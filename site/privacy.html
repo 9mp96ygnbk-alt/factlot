@@ -51,18 +51,25 @@
           <h2 id="collect">What we collect</h2>
           <h3>The website</h3>
           <p>
-            factlot.com sets no cookies and uses no analytics, advertising or
-            tracking. Its only scripts are two files under /try/. The first, on
-            the Try a lookup page (/try/), does nothing until you press the
-            button, then sends the address you typed to FactLot's hosted API
-            (see below), and stores nothing in your browser. The second, on the
-            pricing, Try a lookup and MCP server pages, asks the hosted API
-            whether the free key (see below) is offered and shows a link to it
-            if so; it sends nothing you typed and stores nothing in your
-            browser. Cloudflare, which hosts it, processes your IP address,
-            browser user agent and the page you ask for, to deliver the page and
-            protect the site from abuse. Cloudflare may keep request logs under
-            its own privacy policy; FactLot keeps no access log of its own.
+            factlot.com sets no cookies and uses no advertising, tracking or
+            third-party analytics. FactLot's own server counts page views in
+            totals only: how many requests each group of pages (for example the
+            pricing page, or all property pages together) received in a day, and
+            an estimate of how many distinct visitors there were, made from a
+            one-way hash of the IP address that changes every day. The counts
+            hold no IP address, no page a particular visitor opened and nothing
+            that identifies or follows a visitor, and are deleted after 40 days.
+            Its only scripts are two files under /try/. The first, on the Try a
+            lookup page (/try/), does nothing until you press the button, then
+            sends the address you typed to FactLot's hosted API (see below), and
+            stores nothing in your browser. The second, on the pricing, Try a
+            lookup and MCP server pages, asks the hosted API whether the free
+            key (see below) is offered and shows a link to it if so; it sends
+            nothing you typed and stores nothing in your browser. Cloudflare,
+            which hosts it, processes your IP address, browser user agent and
+            the page you ask for, to deliver the page and protect the site from
+            abuse. Cloudflare may keep request logs under its own privacy
+            policy; FactLot keeps no access log of its own.
           </p>
           <h3>The hosted API</h3>
           <ul class="plain">
@@ -74,6 +81,21 @@
               HTTP method and the response status code. No IP address is
               recorded. These records are kept in a Cloudflare Workers Analytics
               Engine dataset.
+            </li>
+            <li>
+              <strong>Daily usage totals.</strong> We count requests and events
+              in totals for each day: requests by page or route group, registry
+              lookups by tool and by state or county prefix, refusals for a
+              used-up quota or a plan limit, free answers that left earlier
+              values out, checkouts started and completed, reports and model
+              calls, each by kind of caller (no key, free connection, free key,
+              Pro, Team). We also keep an estimate of how many distinct callers
+              of each kind there were, as a fixed-size sketch built from values
+              that are already hashes (the daily-changing hash of the IP
+              address, a connection's ID, or the key ID); a sketch cannot be
+              turned back into a list of callers. The totals hold no IP address,
+              address searched, parcel, key or email, and are kept in Cloudflare
+              Workers KV and, for events, in the Analytics Engine dataset.
             </li>
             <li>
               <strong>Rate-limit counters.</strong> To enforce the per-minute
@@ -319,6 +341,10 @@
               <tr>
                 <th scope="row">Usage records</th>
                 <td>90 days</td>
+              </tr>
+              <tr>
+                <th scope="row">Daily usage totals</th>
+                <td>40 days (90 days for event totals in Analytics Engine)</td>
               </tr>
               <tr>
                 <th scope="row">Rate-limit counters</th>
@@ -573,6 +599,12 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              12 November 2026 (second update): described the daily totals of
+              page views and API calls by page group, tool and kind of caller,
+              and the estimate of distinct callers, in place of the statement
+              that the website had no analytics of any kind.
+            </li>
             <li>
               12 November 2026 (update): added self-service deletion of a free
               key (by email link or with the key), what it removes and what it

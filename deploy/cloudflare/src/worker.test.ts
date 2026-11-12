@@ -6491,15 +6491,21 @@ describe("usage counters (USAGE_COUNTERS_ENABLED)", () => {
     await new Promise((res) => setTimeout(res, 5));
   });
 
-  it("the production wrangler config leaves the counters off", () => {
+  it("the production wrangler config has the counters on, and the privacy notice describes them", () => {
     const text = readFileSync(
       fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)),
       "utf8",
     );
-    assert.doesNotMatch(
+    assert.match(
       text.replace(/\/\/[^\n]*/g, ""),
-      /USAGE_COUNTERS_ENABLED/,
+      /"USAGE_COUNTERS_ENABLED": "true"/,
     );
+    const privacy = readFileSync(
+      fileURLToPath(new URL("../../../site/privacy.html", import.meta.url)),
+      "utf8",
+    );
+    assert.match(privacy, /Daily usage totals/);
+    assert.doesNotMatch(privacy, /uses no analytics/);
   });
 });
 

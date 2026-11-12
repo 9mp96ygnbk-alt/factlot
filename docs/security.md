@@ -54,7 +54,8 @@ Not stored or logged:
 - Request headers (the key is read to authorise, then dropped)
 - IP addresses in usage records
 - API keys in readable form
-- Cookies, tracking, analytics on factlot.com
+- Cookies, tracking or third-party analytics on factlot.com (page views are counted in daily totals
+  only; see the privacy notice)
 
 Stored:
 
