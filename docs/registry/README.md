@@ -418,6 +418,21 @@ return.
      its slowest file. Texas parcels must be in one file. A pack that would exceed the Workers
      limit of 100,000 static-asset files stops while building:
      `npm run pack:registry -- --jobs 6 --out <pack> md.db dc.db ut.db tx.db ny.db ca.db ma.db co.db ct.db`
+   - **Reusing unchanged regions.** `--parts-cache <dir>` keeps each region's finished part in
+     `<dir>` with a stamp: the registry file's size and sha256 (hashed once, then remembered by
+     size, mtime and inode), the region's name and position, every option that reaches it
+     (excluded counties, the suppression list's contents, the entity cut-off, the privacy scan,
+     the file limit), the Node and SQLite versions, and a code version hashed over every source
+     file the part builder imports (found by following imports from `pack.ts`, with the Python
+     privacy scan modules). A later build with the same flag copies a region whose stamp matches
+     and whose cached files still hash to what was stored, builds the rest, and writes the same
+     pack as a full build. Keep the order of the files and add new regions at the end; the cache
+     is written only after a build succeeds:
+     `npm run pack:registry -- --jobs 6 --parts-cache <cache> --out <pack> md.db … ct.db`.
+     `pack.ts --seed-parts-cache <cache> --from-pack <pack> --kept-parts <dir> --built-at <commit>`
+     fills the cache from a finished `--jobs` build whose `<k>.part.jsonl` and `<k>.job.json` were
+     kept, and refuses when the code changed since that commit (unless each changed file is named
+     with `--allow-changed` after review) or a registry file changed after its job started.
    - **What the site says is hosted** comes from `site/_data/hosted.json`. After building a pack,
      `node --experimental-strip-types --conditions=factlot-source scripts/site/gen-hosted.ts <pack>`
      rewrites it from the pack's manifest, together with the marked spans in the pages, README,
