@@ -19,10 +19,45 @@ import {
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** A C0 or C1 control character, or a Unicode line or paragraph separator. */
+const isControl = (c: number) =>
+  c <= 0x1f || (c >= 0x7f && c <= 0x9f) || c === 0x2028 || c === 0x2029;
+
+/** Whether `v` holds a control character; newline, carriage return and tab pass when `lines`. */
+function hasControl(v: string, lines = false): boolean {
+  for (const ch of v) {
+    const c = ch.codePointAt(0)!;
+    if (lines && (c === 0x0a || c === 0x0d || c === 0x09)) continue;
+    if (isControl(c)) return true;
+  }
+  return false;
+}
+
+const line = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .refine((v) => !hasControl(v), "one line of text, no control characters");
+
+/** A single-line argument (an address, parcel id, name or path). */
 const text = (max: number, description: string) =>
-  z.string().trim().min(1).max(max).describe(description);
+  line(max).describe(description);
 const optionalText = (max: number, description: string) =>
-  z.string().trim().min(1).max(max).optional().describe(description);
+  line(max).optional().describe(description);
+/** A multi-line argument: newlines and tabs allowed, other control characters not. */
+const multiline = (max: number, description: string) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .refine(
+      (v) => !hasControl(v, true),
+      "text without control characters other than newlines and tabs",
+    )
+    .describe(description);
 
 /** The calculator for each `calculation` of deal_math. */
 export const DEAL_CALCULATORS = {
@@ -109,7 +144,7 @@ export const PROMPT_ARGS = {
       ),
   },
   deal_math: {
-    question: text(
+    question: multiline(
       2_000,
       "The deal question with its figures, e.g. 'net effective rent on a 10-year lease at $42/sf with 6 months free and $60/sf TI'.",
     ),
