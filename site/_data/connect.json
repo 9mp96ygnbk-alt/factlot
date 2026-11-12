@@ -1,0 +1,789 @@
+{
+  "name": "FactLot connect",
+  "description": "How to connect FactLot to AI clients. Generated from site/_data/connect.json by scripts/site/build.mjs.",
+  "version": "{VERSION}",
+  "mcp_url": "https://api.factlot.com/mcp",
+  "signin_url": "https://api.factlot.com/mcp/signin",
+  "openapi_url": "https://api.factlot.com/openapi.json",
+  "openapi_gpt_actions_url": "https://api.factlot.com/openapi-3.0.json",
+  "repository": "https://github.com/9mp96ygnbk-alt/factlot",
+  "release_assets": {
+    "standalone_mcp": "factlot-mcp-standalone-{VERSION}.tgz",
+    "claude_desktop_extension": "factlot-{VERSION}.mcpb"
+  },
+  "auth": {
+    "free": "No key. 60 requests a minute and 25 registry lookups a day per IP address.",
+    "key": "Pro or Team key in the header Authorization: Bearer <key>.",
+    "oauth": "Clients that cannot send a header connect to the sign-in URL (OAuth 2.1, dynamic client registration) and paste a key once or continue on the free tier."
+  },
+  "verification_note": "Steps follow each vendor's documentation as read on 2026-11-12, except where a path says otherwise. No path has been exercised from the vendor's own console or app; the connectors guide in the repository lists what has been tested.",
+  "surfaces": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "paths": [
+        {
+          "id": "claude-ai",
+          "name": "claude.ai, Claude Desktop and mobile: custom connector",
+          "you_get": "All hosted tools, in chat.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp/signin",
+          "auth": {
+            "free": "Choose Continue on the free tier on the FactLot sign-in page, or use the keyless URL below.",
+            "key": "Choose Connect with my key on the sign-in page and paste a Pro or Team key once; or add the key as a request header Authorization: Bearer <key> and use the keyless URL.",
+            "oauth": "OAuth 2.1 with dynamic client registration; sign-in starts when the client reaches the URL without credentials."
+          },
+          "steps": [
+            "Open Customize, then Connectors, then + Add, then Add custom connector.",
+            "Name it FactLot and enter the URL. Continue, and choose Sign in now.",
+            "On the FactLot page that opens, paste a key or continue on the free tier.",
+            "Keyless alternative: enter https://api.factlot.com/mcp and choose No sign in."
+          ],
+          "guide": "connectors/claude/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "claude-desktop-extension",
+          "name": "Claude Desktop: extension file (local)",
+          "you_get": "The local server, no network access and no key.",
+          "transport": "stdio",
+          "url": null,
+          "auth": {
+            "free": "No key; runs on your machine.",
+            "key": null,
+            "oauth": null
+          },
+          "steps": [
+            "Download factlot-{VERSION}.mcpb from the release.",
+            "In Claude Desktop open Settings, Desktop app, Extensions, Advanced settings, Extension Developer, Install Extension, and choose the file."
+          ],
+          "snippet": {
+            "format": "url",
+            "lines": [
+              "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v{VERSION}/factlot-{VERSION}.mcpb"
+            ]
+          },
+          "guide": "connectors/claude/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "The bundle is validated and tested in CI (npm run build:mcpb); installing it in Claude Desktop was not exercised."
+          }
+        },
+        {
+          "id": "claude-code",
+          "name": "Claude Code",
+          "you_get": "All hosted tools in the terminal; the plugin adds twelve skills.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": [
+            "Run the command.",
+            "For a paid key add --scope user and --header \"Authorization: Bearer <key>\".",
+            "Optional plugin with the CRE skills: run the two plugin commands."
+          ],
+          "snippet": {
+            "format": "shell",
+            "lines": [
+              "claude mcp add --transport http factlot https://api.factlot.com/mcp",
+              "",
+              "# paid key",
+              "claude mcp add --scope user --transport http factlot https://api.factlot.com/mcp --header \"Authorization: Bearer <key>\"",
+              "",
+              "# plugin with skills",
+              "/plugin marketplace add 9mp96ygnbk-alt/factlot",
+              "/plugin install factlot@factlot"
+            ]
+          },
+          "guide": "connectors/claude/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "The claude mcp add syntax matches the vendor's documentation; the hosted endpoint is tested with the MCP SDK client in CI."
+          }
+        },
+        {
+          "id": "claude-api",
+          "name": "Claude API: MCP connector",
+          "you_get": "Claude calls the hosted server from the Messages API.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed.",
+            "key": "Not documented here; the vendor's authorization_token field is described as an OAuth token.",
+            "oauth": null
+          },
+          "steps": [
+            "Send the beta header (the vendor lists mcp-client-2025-11-20 and the newer mcp-client-2026-09-15).",
+            "Pass mcp_servers and a matching mcp_toolset."
+          ],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "import anthropic",
+              "",
+              "client = anthropic.Anthropic()",
+              "response = client.beta.messages.create(",
+              "    model=MODEL,",
+              "    max_tokens=16000,",
+              "    betas=[\"mcp-client-2025-11-20\"],",
+              "    mcp_servers=[{\"type\": \"url\", \"url\": \"https://api.factlot.com/mcp\", \"name\": \"factlot\"}],",
+              "    tools=[{\"type\": \"mcp_toolset\", \"mcp_server_name\": \"factlot\"}],",
+              "    messages=[{\"role\": \"user\", \"content\": \"Size a loan: NOI $1.0M, value $15M, 6% / 30-yr, 65% LTV, 1.25x DSCR.\"}],",
+              ")"
+            ]
+          },
+          "guide": "connectors/claude/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        }
+      ]
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT and OpenAI",
+      "paths": [
+        {
+          "id": "chatgpt-app",
+          "name": "ChatGPT: app by URL (developer mode)",
+          "you_get": "All hosted tools in ChatGPT.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp/signin",
+          "auth": {
+            "free": "No authentication with https://api.factlot.com/mcp, or sign in and choose Continue on the free tier.",
+            "key": "Choose OAuth with the sign-in URL and paste a Pro or Team key once.",
+            "oauth": "OAuth 2.1 with dynamic client registration."
+          },
+          "steps": [
+            "Turn on Developer mode (Settings, Apps, Advanced settings; availability depends on the ChatGPT plan).",
+            "Create an app with the URL; choose OAuth for a paid plan, or No authentication on the keyless URL https://api.factlot.com/mcp.",
+            "Click Connect and complete the FactLot sign-in page."
+          ],
+          "guide": "connectors/chatgpt/README.md",
+          "verification": {
+            "docs": "Menu names are from the repo guide; OpenAI's developer-mode page could not be read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "chatgpt-gpt-action",
+          "name": "Custom GPT Action (OpenAPI)",
+          "you_get": "The 30 most-used tools as REST actions.",
+          "transport": "openapi",
+          "url": "https://api.factlot.com/openapi-3.0.json",
+          "auth": {
+            "free": "Authentication None.",
+            "key": "Authentication API Key, Bearer, with a Pro or Team key.",
+            "oauth": null
+          },
+          "steps": [
+            "In the GPT editor open Configure, Actions, Create new action.",
+            "Import the OpenAPI URL (or paste the document). Do not use /openapi.json: it has more than 30 operations.",
+            "Set authentication, and paste gpt-instructions.md into the instructions."
+          ],
+          "snippet": {
+            "format": "url",
+            "lines": ["https://api.factlot.com/openapi-3.0.json"]
+          },
+          "guide": "connectors/chatgpt/README.md",
+          "verification": {
+            "docs": "Authentication options checked on 2026-11-12; OpenAI's getting-started page does not cover importing by URL or the operation limit, which come from the repo guide.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "openai-responses",
+          "name": "OpenAI Responses API: remote MCP",
+          "you_get": "OpenAI calls the hosted server.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed.",
+            "key": "Not documented here; the vendor's authorization field is described as an OAuth access token.",
+            "oauth": null
+          },
+          "steps": ["Add an mcp tool to the request."],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "from openai import OpenAI",
+              "",
+              "client = OpenAI()",
+              "response = client.responses.create(",
+              "    model=MODEL,",
+              "    tools=[{\"type\": \"mcp\", \"server_label\": \"factlot\", \"server_url\": \"https://api.factlot.com/mcp\", \"require_approval\": \"never\"}],",
+              "    input=\"Compare these two office proposals for my client: ...\",",
+              ")"
+            ]
+          },
+          "guide": "connectors/chatgpt/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        }
+      ]
+    },
+    {
+      "id": "gemini",
+      "name": "Google Gemini",
+      "paths": [
+        {
+          "id": "gemini-cli",
+          "name": "Gemini CLI",
+          "you_get": "All hosted tools in the terminal.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": [
+            "Run the command, or add the entry to ~/.gemini/settings.json (httpUrl).",
+            "For a paid key add --header \"Authorization: Bearer <key>\"."
+          ],
+          "snippet": {
+            "format": "shell",
+            "lines": [
+              "gemini mcp add --transport http factlot https://api.factlot.com/mcp",
+              "",
+              "# or in ~/.gemini/settings.json",
+              "{",
+              "  \"mcpServers\": {",
+              "    \"factlot\": {",
+              "      \"httpUrl\": \"https://api.factlot.com/mcp\"",
+              "    }",
+              "  }",
+              "}"
+            ]
+          },
+          "guide": "connectors/gemini/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "gemini-api",
+          "name": "Gemini API: function calling",
+          "you_get": "Tools run in your own process; no server.",
+          "transport": "function-calling",
+          "url": null,
+          "auth": {
+            "free": "No key; the tools run locally.",
+            "key": null,
+            "oauth": null
+          },
+          "steps": [
+            "pip install the factlot package from the repository (see the guide).",
+            "Pass factlot.gemini_tools() as the tools, and answer each function call with factlot.run_tool."
+          ],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "from google import genai",
+              "from google.genai import types",
+              "import factlot",
+              "",
+              "client = genai.Client()",
+              "config = types.GenerateContentConfig(tools=factlot.gemini_tools())",
+              "response = client.models.generate_content(model=MODEL, contents=\"What's the WALT of ...?\", config=config)",
+              "for part in response.candidates[0].content.parts:",
+              "    if part.function_call:",
+              "        result = factlot.run_tool(part.function_call.name, dict(part.function_call.args))"
+            ]
+          },
+          "guide": "connectors/gemini/README.md",
+          "verification": {
+            "docs": "Not checked against Google's current documentation (the page moved and was not read on 2026-11-12); the tool format is unit-tested in the repo.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        }
+      ]
+    },
+    {
+      "id": "microsoft",
+      "name": "Microsoft Copilot Studio",
+      "paths": [
+        {
+          "id": "copilot-studio-mcp",
+          "name": "Copilot Studio: MCP tool",
+          "you_get": "All hosted tools in a Copilot Studio agent.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "Authentication None.",
+            "key": "Authentication API key, type Header, header name Authorization, value Bearer <key>.",
+            "oauth": "The wizard offers OAuth 2.0 with dynamic discovery; FactLot's sign-in URL is built for it but has not been tried there."
+          },
+          "steps": [
+            "Open the agent, then Tools, Add a tool, New tool, Model Context Protocol.",
+            "Enter a name, a description and the URL, choose the authentication, and Create.",
+            "Create a connection and Add to agent."
+          ],
+          "guide": "connectors/microsoft/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "copilot-studio-connector",
+          "name": "Copilot Studio: custom connector file",
+          "you_get": "The same MCP endpoint through a Power Platform custom connector.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "None.",
+            "key": "Set up in the connector's security settings.",
+            "oauth": null
+          },
+          "steps": [
+            "Download the swagger file from the repository and set host to api.factlot.com.",
+            "In the agent choose Tools, Add a tool, New tool, Custom connector, then New custom connector, Import OpenAPI file, and import it."
+          ],
+          "snippet": {
+            "format": "url",
+            "lines": [
+              "https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/microsoft/copilot-studio-connector.swagger.yaml"
+            ]
+          },
+          "guide": "connectors/microsoft/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        }
+      ]
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon Bedrock",
+      "paths": [
+        {
+          "id": "bedrock-converse",
+          "name": "Bedrock Converse: tool config",
+          "you_get": "Tools run in your own process; no server.",
+          "transport": "function-calling",
+          "url": null,
+          "auth": {
+            "free": "No key; the tools run locally.",
+            "key": null,
+            "oauth": null
+          },
+          "steps": [
+            "Pass factlot.bedrock_tool_config() as toolConfig, and answer each toolUse block with factlot.run_tool."
+          ],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "import boto3, factlot",
+              "",
+              "bedrock = boto3.client(\"bedrock-runtime\")",
+              "response = bedrock.converse(modelId=MODEL_ID, messages=messages, toolConfig=factlot.bedrock_tool_config())",
+              "# when stopReason is tool_use: factlot.run_tool(use[\"name\"], use[\"input\"]) and send a toolResult"
+            ]
+          },
+          "guide": "connectors/amazon/README.md",
+          "verification": {
+            "docs": "Not checked against AWS documentation (the page text could not be read on 2026-11-12); the tool format is unit-tested in the repo.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "bedrock-agents",
+          "name": "Bedrock Agents: action group",
+          "you_get": "The 30 most-used tools as an action group with a Lambda executor.",
+          "transport": "openapi",
+          "url": "https://api.factlot.com/openapi-3.0.json?operations=all",
+          "auth": {
+            "free": "No key; the Lambda runs the tools in process.",
+            "key": null,
+            "oauth": null
+          },
+          "steps": [
+            "Create an action group whose API schema is the OpenAPI document (?operations=all for every tool).",
+            "Deploy connectors/amazon/bedrock-agent-lambda/handler.py with the factlot package beside it as the executor."
+          ],
+          "snippet": {
+            "format": "url",
+            "lines": ["https://api.factlot.com/openapi-3.0.json?operations=all"]
+          },
+          "guide": "connectors/amazon/README.md",
+          "verification": {
+            "docs": "Not checked against AWS documentation on 2026-11-12; the Lambda handler is unit-tested against sample events.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        }
+      ]
+    },
+    {
+      "id": "editors",
+      "name": "Cursor, VS Code, Windsurf, Zed and other MCP clients",
+      "paths": [
+        {
+          "id": "cursor",
+          "name": "Cursor",
+          "you_get": "All hosted tools in Cursor.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed.",
+            "key": "Add a headers object with Authorization: Bearer <key> to the entry (not checked against Cursor's documentation).",
+            "oauth": null
+          },
+          "steps": [
+            "Select the install link (opens Cursor and asks you to confirm), or add the entry to .cursor/mcp.json."
+          ],
+          "snippet": {
+            "format": "json",
+            "lines": [
+              "{",
+              "  \"mcpServers\": {",
+              "    \"factlot\": {",
+              "      \"url\": \"https://api.factlot.com/mcp\"",
+              "    }",
+              "  }",
+              "}"
+            ]
+          },
+          "install_links": [
+            {
+              "label": "Install in Cursor",
+              "kind": "cursor",
+              "name": "factlot",
+              "config": {
+                "url": "https://api.factlot.com/mcp"
+              }
+            }
+          ],
+          "guide": "connectors/others/README.md",
+          "verification": {
+            "docs": "The install-link format was checked against Cursor's documentation on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "vscode",
+          "name": "VS Code (agent mode)",
+          "you_get": "All hosted tools in Copilot agent mode.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": [
+            "Select the install link (VS Code shows the details to review), run the command, or add the entry to .vscode/mcp.json.",
+            "For a paid key add a headers object (the documented example uses an input variable for the token)."
+          ],
+          "snippet": {
+            "format": "shell",
+            "lines": [
+              "code --add-mcp '{\"name\":\"factlot\",\"type\":\"http\",\"url\":\"https://api.factlot.com/mcp\"}'",
+              "",
+              "# or .vscode/mcp.json",
+              "{",
+              "  \"servers\": {",
+              "    \"factlot\": {",
+              "      \"type\": \"http\",",
+              "      \"url\": \"https://api.factlot.com/mcp\"",
+              "    }",
+              "  }",
+              "}"
+            ]
+          },
+          "install_links": [
+            {
+              "label": "Install in VS Code",
+              "kind": "vscode",
+              "name": "factlot",
+              "config": {
+                "type": "http",
+                "url": "https://api.factlot.com/mcp"
+              }
+            },
+            {
+              "label": "Install in VS Code Insiders",
+              "kind": "vscode-insiders",
+              "name": "factlot",
+              "config": {
+                "type": "http",
+                "url": "https://api.factlot.com/mcp"
+              }
+            }
+          ],
+          "guide": "connectors/others/README.md",
+          "verification": {
+            "docs": "The install-link format, the mcp.json entry and code --add-mcp were checked against VS Code's documentation on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "windsurf",
+          "name": "Windsurf",
+          "you_get": "All hosted tools in Windsurf.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed.",
+            "key": null,
+            "oauth": null
+          },
+          "steps": [
+            "Add an MCP server with the URL in Windsurf's MCP settings. The JSON entry below is the common mcpServers shape; Windsurf's own schema for remote servers was not confirmed, so follow its MCP documentation if the entry is rejected."
+          ],
+          "snippet": {
+            "format": "json",
+            "lines": [
+              "{",
+              "  \"mcpServers\": {",
+              "    \"factlot\": {",
+              "      \"url\": \"https://api.factlot.com/mcp\"",
+              "    }",
+              "  }",
+              "}"
+            ]
+          },
+          "guide": "connectors/others/README.md",
+          "verification": {
+            "docs": "Not confirmed: Windsurf's documentation moved and did not show the remote-server schema on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "zed",
+          "name": "Zed",
+          "you_get": "All hosted tools in Zed.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": [
+            "Add the entry to Zed's settings.json, or use Settings, AI, MCP Servers, Add Server, Add Remote Server.",
+            "For a paid key add a headers object; without a header Zed offers the OAuth sign-in."
+          ],
+          "snippet": {
+            "format": "json",
+            "lines": [
+              "{",
+              "  \"context_servers\": {",
+              "    \"factlot\": {",
+              "      \"url\": \"https://api.factlot.com/mcp\"",
+              "    }",
+              "  }",
+              "}"
+            ]
+          },
+          "guide": "connectors/others/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Not exercised from the vendor's own console or app."
+          }
+        },
+        {
+          "id": "other-clients",
+          "name": "Any other MCP client",
+          "you_get": "Remote: all hosted tools. Local: the standalone server, no network access.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": [
+            "Remote: give the client the URL (Streamable HTTP).",
+            "Local stdio, Node.js 22.6 or newer: run the npx command as the server command."
+          ],
+          "snippet": {
+            "format": "shell",
+            "lines": [
+              "npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v{VERSION}/factlot-mcp-standalone-{VERSION}.tgz"
+            ]
+          },
+          "guide": "docs/getting-started.md",
+          "verification": {
+            "docs": "Generic; each client's own documentation names its config keys.",
+            "exercised": "The hosted endpoint is tested with the official MCP SDK client in CI; the standalone package is tested in CI."
+          }
+        }
+      ]
+    },
+    {
+      "id": "frameworks",
+      "name": "Agent frameworks",
+      "paths": [
+        {
+          "id": "langgraph",
+          "name": "LangGraph and LangChain",
+          "you_get": "All hosted tools as LangChain tools.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": [
+            "pip install \"mcp<2\" langchain-mcp-adapters langgraph langchain-core",
+            "Keep one session open for all calls."
+          ],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "from langchain_mcp_adapters.client import MultiServerMCPClient",
+              "from langchain_mcp_adapters.tools import load_mcp_tools",
+              "",
+              "client = MultiServerMCPClient({\"factlot\": {",
+              "    \"transport\": \"streamable_http\",",
+              "    \"url\": \"https://api.factlot.com/mcp\",",
+              "    # \"headers\": {\"Authorization\": \"Bearer <key>\"},",
+              "}})",
+              "async with client.session(\"factlot\") as session:",
+              "    tools = await load_mcp_tools(session)"
+            ]
+          },
+          "guide": "connectors/frameworks/README.md",
+          "verification": {
+            "docs": "The recipe is the repo's tested one; LangChain's newer documentation describes a different adapter that was not tried.",
+            "exercised": "Run against the hosted server and a local build on 2026-11-06 without a model (connectors/frameworks/README.md)."
+          }
+        },
+        {
+          "id": "openai-agents",
+          "name": "OpenAI Agents SDK",
+          "you_get": "All hosted tools for an Agent.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": ["pip install openai-agents"],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "from agents import Agent",
+              "from agents.mcp import MCPServerStreamableHttp",
+              "",
+              "async with MCPServerStreamableHttp(",
+              "    name=\"FactLot\",",
+              "    params={\"url\": \"https://api.factlot.com/mcp\"},  # add \"headers\" for a paid key",
+              "    cache_tools_list=True,",
+              ") as server:",
+              "    agent = Agent(name=\"Assistant\", instructions=\"Use the FactLot tools.\", mcp_servers=[server])"
+            ]
+          },
+          "guide": "connectors/frameworks/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Run against the hosted server and a local build on 2026-11-06 without a model (connectors/frameworks/README.md)."
+          }
+        },
+        {
+          "id": "crewai",
+          "name": "CrewAI",
+          "you_get": "All hosted tools for an Agent.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": ["pip install crewai"],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "from crewai import Agent",
+              "from crewai.mcp import MCPServerHTTP",
+              "",
+              "factlot = MCPServerHTTP(url=\"https://api.factlot.com/mcp\", streamable=True, cache_tools_list=True)",
+              "agent = Agent(role=\"CRE analyst\", goal=\"Size loans and check lease terms\", backstory=\"-\", llm=LLM, mcps=[factlot])"
+            ]
+          },
+          "guide": "connectors/frameworks/README.md",
+          "verification": {
+            "docs": "The recipe is the repo's tested one.",
+            "exercised": "Run against the hosted server and a local build on 2026-11-06 without a model (connectors/frameworks/README.md). The mcps= form was not run against the hosted server."
+          }
+        },
+        {
+          "id": "vercel-ai-sdk",
+          "name": "Vercel AI SDK",
+          "you_get": "All hosted tools for generateText and streamText.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": ["npm i @ai-sdk/mcp ai"],
+          "snippet": {
+            "format": "typescript",
+            "lines": [
+              "import { createMCPClient } from '@ai-sdk/mcp';",
+              "",
+              "const mcpClient = await createMCPClient({",
+              "  transport: { type: 'http', url: 'https://api.factlot.com/mcp' },",
+              "});",
+              "const tools = await mcpClient.tools();",
+              "// await mcpClient.close() when done"
+            ]
+          },
+          "guide": "connectors/frameworks/README.md",
+          "verification": {
+            "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
+            "exercised": "Run against a local build only; not run against the hosted server (connectors/frameworks/README.md)."
+          }
+        },
+        {
+          "id": "mcp-sdks",
+          "name": "MCP Python and TypeScript SDKs",
+          "you_get": "Any MCP client code.",
+          "transport": "streamable-http",
+          "url": "https://api.factlot.com/mcp",
+          "auth": {
+            "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
+            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "oauth": null
+          },
+          "steps": [
+            "Python: pip install mcp. TypeScript: npm i @modelcontextprotocol/client.",
+            "Cache the tool list; every HTTP request counts against the limit."
+          ],
+          "snippet": {
+            "format": "python",
+            "lines": [
+              "from mcp import Client",
+              "from mcp.client.streamable_http import streamable_http_client",
+              "",
+              "async with Client(streamable_http_client(\"https://api.factlot.com/mcp\")) as client:",
+              "    tools = (await client.list_tools()).tools"
+            ]
+          },
+          "guide": "connectors/frameworks/README.md",
+          "verification": {
+            "docs": "The recipe is the repo's tested one (MCP Python SDK 2.x).",
+            "exercised": "Run against the hosted server and a local build on 2026-11-06 without a model (connectors/frameworks/README.md)."
+          }
+        }
+      ]
+    }
+  ]
+}

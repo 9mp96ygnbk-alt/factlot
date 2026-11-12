@@ -23,6 +23,7 @@ import {
   hubRollSentence,
   hubCountyLinks,
 } from "./texas-pages.mjs";
+import { connectBody, connectJson } from "./connect.mjs";
 import {
   hostedMarkets,
   marketBody,
@@ -87,6 +88,7 @@ const NAV = [
   ["/try/", "Try it"],
   ["/calculators/", "Calculators"],
   ["/mcp-server/", "MCP server"],
+  ["/connect/", "Connect"],
   ["/texas/", "Texas"],
   ["/coverage/", "Coverage"],
   [`${REPO}/blob/main/docs/getting-started.md`, "Docs"],
@@ -314,6 +316,28 @@ addPage(
     scripts: ["/try/freekey.js"],
   },
   ["site/_content/mcp.html", "site/try/freekey.js"],
+);
+
+// --- /connect/ and /connect.json ---------------------------------------------------------------
+// Both come from site/_data/connect.json (scripts/site/connect.mjs), so they cannot drift.
+
+const connectRaw = readJson("site/_data/connect.json");
+addPage(
+  {
+    urlPath: "/connect/",
+    title:
+      "Connect FactLot to Claude, ChatGPT, Gemini, Copilot and other AI clients | FactLot",
+    description:
+      "How to connect FactLot's hosted MCP server to Claude, ChatGPT, Gemini, Microsoft Copilot Studio, Amazon Bedrock, Cursor, VS Code, Windsurf, Zed and agent frameworks: the URL, command or config to paste, and whether a key is needed.",
+    h1: "Connect FactLot to your AI client",
+    crumbs: [["/connect/", "Connect"]],
+    body: connectBody(connectRaw, VERSION),
+  },
+  [
+    "site/_content/mcp.html",
+    "site/_data/connect.json",
+    "scripts/site/connect.mjs",
+  ],
 );
 
 // --- /try/ ----------------------------------------------------------------------------------------
@@ -995,6 +1019,10 @@ for (const p of pages) {
   fs.writeFileSync(file, p.html);
 }
 fs.writeFileSync(path.join(out, "coverage", "counties.json"), coverageJson);
+fs.writeFileSync(
+  path.join(out, "connect.json"),
+  connectJson(connectRaw, VERSION),
+);
 
 const staticPages = [
   ["/", ["site/index.html"]],

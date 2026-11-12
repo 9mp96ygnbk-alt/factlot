@@ -812,3 +812,215 @@ describe("hosted registry figures (site/_data/hosted.json)", async () => {
     assert.match(line, /Tarrant County is not served by the hosted registry/);
   });
 });
+
+describe("connect page and connect.json", async () => {
+  const { connectBody, connectData, connectJson, cursorLink, vscodeLink } =
+    await import("./connect.mjs");
+  const raw = JSON.parse(read("site/_data/connect.json"));
+  const data = connectData(raw, version);
+  const body = connectBody(raw, version);
+  const serverJson = JSON.parse(read("server.json")) as {
+    remotes: { url: string }[];
+  };
+  const decode = (s: string) =>
+    s
+      .replaceAll("&amp;", "&")
+      .replaceAll("&lt;", "<")
+      .replaceAll("&gt;", ">")
+      .replaceAll("&quot;", '"');
+
+  it("names the MCP URL server.json publishes and a sign-in URL under it", () => {
+    assert.equal(data.mcp_url, serverJson.remotes[0]!.url);
+    assert.equal(data.signin_url, `${data.mcp_url}/signin`);
+  });
+
+  it("shows every surface and every path on the page", () => {
+    const html = decode(body);
+    assert.ok(data.surfaces.length >= 7);
+    for (const s of data.surfaces) {
+      assert.ok(html.includes(`id="${s.id}"`), s.id);
+      assert.ok(html.includes(s.name), s.name);
+      for (const p of s.paths) {
+        assert.ok(html.includes(`id="${p.id}"`), p.id);
+        assert.ok(html.includes(p.name), p.name);
+        for (const step of p.steps) assert.ok(html.includes(step), step);
+        if (p.snippet) assert.ok(html.includes(p.snippet.text), p.id);
+        assert.ok(p.verification.docs && p.verification.exercised, p.id);
+      }
+    }
+  });
+
+  it("covers the surfaces the connectors guide names", () => {
+    const ids = data.surfaces.flatMap((s: { paths: { id: string }[] }) =>
+      s.paths.map((p) => p.id),
+    );
+    for (const id of [
+      "claude-ai",
+      "claude-desktop-extension",
+      "claude-code",
+      "claude-api",
+      "chatgpt-app",
+      "chatgpt-gpt-action",
+      "openai-responses",
+      "gemini-cli",
+      "gemini-api",
+      "copilot-studio-mcp",
+      "copilot-studio-connector",
+      "bedrock-converse",
+      "bedrock-agents",
+      "cursor",
+      "vscode",
+      "windsurf",
+      "zed",
+      "other-clients",
+      "langgraph",
+      "openai-agents",
+      "crewai",
+      "vercel-ai-sdk",
+      "mcp-sdks",
+    ])
+      assert.ok(ids.includes(id), id);
+  });
+
+  it("uses only FactLot and repository URLs, and the release version in file names", () => {
+    const text = JSON.stringify(data);
+    for (const [u] of text.matchAll(/https?:\/\/[^\s"\\)<>']+/g))
+      assert.ok(
+        /^https:\/\/(api\.factlot\.com|factlot\.com|github\.com\/9mp96ygnbk-alt\/factlot)(\/|$)/.test(
+          u,
+        ),
+        u,
+      );
+    assert.equal(data.version, version);
+    assert.equal(
+      data.release_assets.standalone_mcp,
+      `factlot-mcp-standalone-${version}.tgz`,
+    );
+    assert.equal(
+      data.release_assets.claude_desktop_extension,
+      `factlot-${version}.mcpb`,
+    );
+    const versions = new Set(
+      [...text.matchAll(/releases\/download\/v(\d+\.\d+\.\d+)\//g)].map(
+        (m) => m[1],
+      ),
+    );
+    assert.deepEqual([...versions], [version]);
+    for (const m of text.matchAll(
+      /factlot(?:-mcp-standalone)?-(\d+\.\d+\.\d+)\.(?:tgz|mcpb)/g,
+    ))
+      assert.equal(m[1], version);
+    assert.ok(!/\{VERSION\}/.test(text));
+    // the files exist under the names the release workflow uses
+    assert.ok(
+      text.includes(`releases/download/v${version}/factlot-${version}.mcpb`),
+    );
+  });
+
+  it("builds the Cursor and VS Code links the vendors document", () => {
+    const cursor = data.surfaces
+      .flatMap(
+        (s: { paths: { install_links?: { kind: string; url: string }[] }[] }) =>
+          s.paths,
+      )
+      .flatMap(
+        (p: { install_links?: { kind: string; url: string }[] }) =>
+          p.install_links ?? [],
+      );
+    assert.deepEqual(
+      cursor.map((l: { kind: string }) => l.kind),
+      ["cursor", "vscode", "vscode-insiders"],
+    );
+    const entry = { url: data.mcp_url };
+    const c = new URL(cursorLink("factlot", entry));
+    assert.equal(c.protocol, "cursor:");
+    assert.equal(c.host, "anysphere.cursor-deeplink");
+    assert.equal(c.pathname, "/mcp/install");
+    assert.equal(c.searchParams.get("name"), "factlot");
+    assert.deepEqual(
+      JSON.parse(
+        Buffer.from(c.searchParams.get("config")!, "base64").toString(),
+      ),
+      entry,
+    );
+    const v = vscodeLink("vscode", "factlot", {
+      type: "http",
+      url: data.mcp_url,
+    });
+    assert.ok(v.startsWith("vscode:mcp/install?"));
+    assert.deepEqual(JSON.parse(decodeURIComponent(v.split("?")[1]!)), {
+      name: "factlot",
+      type: "http",
+      url: data.mcp_url,
+    });
+    for (const l of cursor)
+      assert.ok(
+        body.includes(`href="${l.url.replaceAll("&", "&amp;")}"`),
+        l.kind,
+      );
+  });
+
+  it("claims no verification and loads nothing from another origin", () => {
+    assert.ok(!/verified|endorse|official partner/i.test(body));
+    assert.ok(!/<(?:script|img|iframe|link)\b/.test(body));
+    assert.ok(!/(?:src|srcset)=/.test(body));
+    for (const [, u = ""] of body.matchAll(/href="([^"]+)"/g))
+      assert.ok(
+        u.startsWith("#") ||
+          u.startsWith("/") ||
+          /^(cursor|vscode|vscode-insiders):/.test(u) ||
+          u.startsWith("https://github.com/9mp96ygnbk-alt/factlot/"),
+        u,
+      );
+  });
+
+  it("generates connect.json from the same data", () => {
+    const json = JSON.parse(connectJson(raw, version));
+    assert.deepEqual(json, data);
+    assert.ok(
+      json.surfaces.every(
+        (s: {
+          paths: { transport: string; auth: unknown; steps: unknown[] }[];
+        }) => s.paths.every((p) => p.transport && p.auth && p.steps.length),
+      ),
+    );
+  });
+
+  it("is linked from the home page, the MCP page, the try page, llms.txt and the connectors guide", () => {
+    assert.ok(read("site/index.html").includes('href="/connect/"'));
+    assert.ok(read("site/_content/mcp.html").includes('href="/connect/"'));
+    assert.ok(read("site/_content/try.html").includes('href="/connect/"'));
+    assert.ok(read("llms.txt").includes("https://factlot.com/connect/"));
+    assert.ok(
+      read("site/llms.txt").includes("https://factlot.com/connect.json"),
+    );
+    assert.ok(
+      read("connectors/README.md").includes("https://factlot.com/connect/"),
+    );
+  });
+
+  it(
+    "is built into the site, the navigation, the sitemap and /connect.json",
+    { skip: !existsSync(new URL("packages/tools/dist/index.js", root)) },
+    () => {
+      const out = mkdtempSync(`${tmpdir()}/factlot-site-`);
+      execFileSync("node", ["scripts/site/build.mjs", out], {
+        cwd: root,
+        stdio: "pipe",
+      });
+      const page = readFileSync(`${out}/connect/index.html`, "utf8");
+      assert.ok(
+        page.includes('<a href="/connect/" aria-current="page">Connect</a>'),
+      );
+      assert.deepEqual(
+        JSON.parse(readFileSync(`${out}/connect.json`, "utf8")),
+        data,
+      );
+      assert.ok(
+        readFileSync(`${out}/sitemap.xml`, "utf8").includes(
+          "<loc>https://factlot.com/connect/</loc>",
+        ),
+      );
+    },
+  );
+});
