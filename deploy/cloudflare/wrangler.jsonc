@@ -15,8 +15,8 @@
 // their routes answer 503 ModelUnavailable, so deploying before it is set is safe; every other
 // tool runs without a model either way. Delete the secret to turn them off again.
 // GATING_ENABLED (a variable in `vars` below, "true": paid gating is on). Keyless and free-OAuth
-// callers then get registry_get with the current roll year's values only (value_history,
-// history) and registry batch tools answer PlanRequired; Pro and Team keep everything, and
+// callers then get registry_get, and the subject of registry_tx_equity_candidates, with the
+// current roll year's values only (value_history, history) and registry batch tools answer PlanRequired; Pro and Team keep everything, and
 // checkout accepts ?plan=pro&interval=year (price factlot_pro_yearly_v1). Any value other than
 // "true", or removing the variable, turns gating off again.
 //

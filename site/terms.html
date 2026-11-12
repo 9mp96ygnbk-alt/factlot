@@ -27,7 +27,7 @@
         <div class="wrap">
           <h1>Terms of service</h1>
           <p class="small">
-            Effective 7 November 2026. The revision history is at the end.
+            Effective 11 November 2026. The revision history is at the end.
           </p>
           <p>
             These terms cover the hosted FactLot service. Headings are for
@@ -133,8 +133,9 @@
               batch lookup is not included.
             </li>
             <li>
-              <strong>Pro, $49 a month:</strong> 1 API key, 600 requests a
-              minute, 5,000 registry lookups a month (UTC), email support.
+              <strong>Pro, $49 a month, or $490 a year paid in advance:</strong>
+              1 API key, 600 requests a minute, 5,000 registry lookups a month
+              (UTC), email support.
             </li>
             <li>
               <strong>Team, $599 a month:</strong> up to 5 API keys, 3,000
@@ -176,8 +177,9 @@
           <p>
             <strong
               >Automatic renewal. Your subscription renews automatically every
-              month, and Stripe charges your payment method the monthly price on
-              each renewal date, until you cancel.</strong
+              month, or every year if you chose yearly billing, and Stripe
+              charges your payment method the price for that period on each
+              renewal date, until you cancel.</strong
             >
             The price, the renewal period and how to cancel are shown next to
             each Start button before you go to checkout.
@@ -188,14 +190,15 @@
             the Stripe billing portal (<code>POST /v1/billing/portal</code> with
             your key returns a link to it), or email contact@factlot.com with
             the subject "Cancel" from your account email. Cancelling stops the
-            next renewal. Your keys keep working until the end of the month you
-            have paid for, then stop.
+            next renewal. Your keys keep working until the end of the period you
+            have paid for (a month, or a year on yearly billing), then stop.
           </p>
           <p>
-            <strong>Refunds.</strong> We do not refund part of a month. If we
-            charge you in error, for example twice, the wrong amount, or after
-            you cancelled, email us and we will correct it. If a payment is
-            fully refunded or disputed, that subscription's keys stop working.
+            <strong>Refunds.</strong> We do not refund part of a month, or part
+            of a year on yearly billing. If we charge you in error, for example
+            twice, the wrong amount, or after you cancelled, email us and we
+            will correct it. If a payment is fully refunded or disputed, that
+            subscription's keys stop working.
           </p>
           <p>
             <strong>Failed payments.</strong> If a payment fails, Stripe retries
@@ -548,6 +551,11 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              11 November 2026: stated the Free plan's limits on registry value
+              history and the registry batch lookup; added yearly billing for
+              Pro.
+            </li>
             <li>
               7 November 2026: rewritten for the Free, Pro and Team plans,
               registry lookup quotas, the registry download licence and

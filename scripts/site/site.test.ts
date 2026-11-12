@@ -151,6 +151,10 @@ describe("pricing page", () => {
     assert.ok(html.includes("registry_tx_equity_candidates_batch"));
     assert.ok(html.includes('id="stays-free"'));
     assert.ok(html.includes("What you would otherwise use"));
+    assert.ok(
+      html.includes("a partial month, or a partial year on yearly billing"),
+    );
+    assert.ok(!html.includes("carries its market"));
     assert.ok(!/limited time|testimonial|hurry|last chance/i.test(html));
   });
   it("matches the gating the Worker applies", () => {

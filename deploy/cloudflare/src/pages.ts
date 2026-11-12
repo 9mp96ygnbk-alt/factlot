@@ -100,7 +100,7 @@ export function page(
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>${escapeHtml(title)} · FactLot</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style nonce="${nonce}">${EXTRA_CSS}</style></head>
 <body><a class="skip" href="#main">Skip to content</a>
-<header class="site-header"><div class="wrap row"><a class="brand" href="${site}/" aria-label="FactLot home">FactLot</a><nav aria-label="Site"><ul><li><a href="${site}/#pricing">Pricing</a></li><li><a href="${site}/account">Account</a></li><li><a href="mailto:${CONTACT}">Help</a></li></ul></nav></div></header>
+<header class="site-header"><div class="wrap row"><a class="brand" href="${site}/" aria-label="FactLot home">FactLot</a><nav aria-label="Site"><ul><li><a href="${site}/pricing/">Pricing</a></li><li><a href="${site}/account">Account</a></li><li><a href="mailto:${CONTACT}">Help</a></li></ul></nav></div></header>
 <main id="main"><section class="flow"><div class="wrap narrow">
 ${body}
 </div></section></main>
@@ -293,7 +293,7 @@ export function statusText(s: AccountSummary): { text: string; warn: boolean } {
       };
     case "canceled":
       return {
-        text: "Cancelled. The key no longer works. A new plan starts at factlot.com/#pricing.",
+        text: "Cancelled. The key no longer works. A new plan starts at factlot.com/pricing/.",
         warn: true,
       };
     case "incomplete":
@@ -347,7 +347,7 @@ ${message ? notice(message, status >= 400) : ""}
 <div class="buttons"><button type="submit" class="button primary" name="action" value="view">Show my account</button></div>
 </form>
 ${recoverSection(recovery)}
-<p class="small">No plan yet? See <a href="https://factlot.com/#pricing">pricing</a>. Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
+<p class="small">No plan yet? See <a href="https://factlot.com/pricing/">pricing</a>. Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
     { status, formAction: ACCOUNT_FORM_ACTION },
   );
 }

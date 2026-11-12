@@ -2,11 +2,11 @@
  * Paid gating (Worker variable GATING_ENABLED = "true"; off by default). Applied in this Worker,
  * on the registry's answer, so the registry Worker is unchanged.
  *
- * - Value history is for Pro and Team. A keyless or free-OAuth caller's registry_get answer keeps
+ * - Value history is for Pro and Team (the candidates tool's `subject.value_history` is cut the same way). A keyless or free-OAuth caller's registry_get answer keeps
  *   the current roll year's values only: `value_history` (parcels: market and appraised value by
  *   tax year) is cut to the newest tax year, and `history` (include_history: every fact from every
  *   snapshot) to the current facts. Coverage, misses and errors are not touched. The Texas equity
- *   candidates tool is not gated.
+ *   candidates themselves are not gated; only the subject's value_history is cut.
  * - Registry batch tools (names ending in _batch) are for Pro and Team: a free caller gets
  *   PlanRequired, and the call is not metered.
  */
@@ -15,6 +15,9 @@ import { GATING_PRICING_URL } from "./plans.ts";
 type Json = Record<string, unknown>;
 
 export const HISTORY_TOOL = "registry_get";
+/** The candidates tool: its subject carries value_history, limited the same way. */
+export const CANDIDATES_TOOL = "registry_tx_equity_candidates";
+const LIMITED_TOOLS = new Set([HISTORY_TOOL, CANDIDATES_TOOL]);
 
 /** A registry batch tool: refused for free callers when gating is on. */
 export function isBatchRegistryTool(name: unknown): name is string {
@@ -49,6 +52,18 @@ export function limitHistory(answer: unknown): unknown {
   if (typeof answer !== "object" || answer === null || Array.isArray(answer))
     return answer;
   const a = answer as Json;
+  const subject = a.subject;
+  if (
+    typeof subject === "object" &&
+    subject !== null &&
+    !Array.isArray(subject) &&
+    Array.isArray((subject as Json).value_history)
+  ) {
+    // registry_tx_equity_candidates: the subject's series is cut; the candidates are untouched.
+    const limited = limitHistory(subject) as Json;
+    const { history_available, history_note, ...rest } = limited;
+    return { ...a, subject: rest, history_available, history_note };
+  }
   const hasValues = Array.isArray(a.value_history);
   const hasHistory = Array.isArray(a.history);
   if (!hasValues && !hasHistory) return answer;
@@ -135,7 +150,8 @@ export async function limitMcpResponse(
     };
     if (
       c?.method === "tools/call" &&
-      c.params?.name === HISTORY_TOOL &&
+      typeof c.params?.name === "string" &&
+      LIMITED_TOOLS.has(c.params.name) &&
       c.id !== undefined &&
       c.id !== null
     )

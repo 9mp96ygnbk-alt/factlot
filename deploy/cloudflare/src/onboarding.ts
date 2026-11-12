@@ -394,7 +394,7 @@ export function setupGuide(o: {
     links: {
       account: `${site}/account`,
       recover: `${site}/account#recover`,
-      pricing: `${site}/#pricing`,
+      pricing: `${site}/pricing/`,
       mcp,
       openapi: `${api}/openapi.json`,
       onboarding: `${api}/v1/onboarding${p ? `?plan=${p.id}` : ""}`,

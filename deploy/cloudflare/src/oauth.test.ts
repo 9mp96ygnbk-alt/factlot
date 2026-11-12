@@ -874,6 +874,88 @@ describe("free tier through OAuth", () => {
     assert.doesNotMatch(await list.text(), /account_status/);
   });
 
+  it("with gating on, a free connection gets one year of history and a refused batch", async () => {
+    const e = env({ GATING_ENABLED: "true" });
+    const a = await connect(e, { decision: "free" });
+    const series = [
+      { tax_year: 2026, market_value: 200 },
+      { tax_year: 2025, market_value: 150 },
+    ];
+    const gatedInner: Fetcher = {
+      fetch: async (r: Request) => {
+        const m = JSON.parse(await r.text()) as {
+          id: number;
+          params: { name: string };
+        };
+        const structured =
+          m.params.name === "registry_get"
+            ? { value_history: series }
+            : {
+                subject: { value_history: series },
+                candidates: [{ urn: "c" }],
+              };
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [{ type: "text", text: JSON.stringify(structured) }],
+              structuredContent: structured,
+            },
+          }),
+          { headers: { "content-type": "application/json" } },
+        );
+      },
+    };
+    const ask = async (message: unknown) =>
+      (await (
+        await handle(
+          new Request(`${API}/mcp`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              accept: "application/json",
+              authorization: `Bearer ${a.tokens.access_token}`,
+              "cf-connecting-ip": IP,
+            },
+            body: JSON.stringify(message),
+          }),
+          e,
+          gatedInner,
+        )
+      ).json()) as {
+        result: {
+          isError?: boolean;
+          structuredContent: Record<string, unknown> & {
+            value_history?: unknown[];
+            subject?: { value_history: unknown[] };
+          };
+        };
+      };
+    const got = await ask(lookup(1));
+    assert.equal(got.result.structuredContent.value_history?.length, 1);
+    assert.equal(got.result.structuredContent.history_available, "pro");
+    const cand = await ask({
+      ...lookup(2),
+      params: { name: "registry_tx_equity_candidates", arguments: {} },
+    });
+    assert.equal(
+      cand.result.structuredContent.subject?.value_history.length,
+      1,
+    );
+    assert.equal(cand.result.structuredContent.history_available, "pro");
+    assert.equal(
+      (cand.result.structuredContent.candidates as unknown[]).length,
+      1,
+    );
+    const batch = await ask({
+      ...lookup(3),
+      params: { name: "registry_tx_equity_candidates_batch", arguments: {} },
+    });
+    assert.equal(batch.result.isError, true);
+    assert.equal(batch.result.structuredContent.error, "PlanRequired");
+  });
+
   it("gives free connections started from different addresses their own allowance", async () => {
     const e = env();
     const a = await connect(e, { decision: "free" });

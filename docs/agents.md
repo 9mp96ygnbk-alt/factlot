@@ -219,7 +219,8 @@ calls below are in order; each result is reported as returned, with its warnings
 
    `subject` carries the roll value, `value_basis`, areas, year built, state property category
    code and `value_history` (market and appraised value by tax year, each cited to that year's
-   roll). `candidates` are candidates under FactLot's default rule, a design choice, not a legal
+   roll; on the hosted API a call without a Pro or Team key gets the current roll year only, with
+   `history_available` and `history_note` saying so, and the candidates are unchanged). `candidates` are candidates under FactLot's default rule, a design choice, not a legal
    standard; a person decides which, if any, to use. `selection` echoes the rule and its
    parameters, and `sources` gives each roll's licence, attribution and AI-use terms.
 
@@ -488,7 +489,8 @@ lookup.
   with the candidate.
 - **Value history.** The subject carries `value_history`: market and appraised value by tax year
   from every snapshot, newest first, each value cited to the roll of that tax year. A tax year two
-  snapshots value differently is listed once per value.
+  snapshots value differently is listed once per value. Without a Pro or Team key the hosted API
+  returns the current roll year only (`history_available`, `history_note`).
 - **Boundaries.** The output is a list of candidates under FactLot's default rule, a design
   choice, not a legal standard; a person decides which to use and supplies any adjustments. The
   tool never returns owner names, mailing addresses, or ownership facts. Do not look up the owners

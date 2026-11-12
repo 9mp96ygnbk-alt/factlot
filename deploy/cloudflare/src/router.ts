@@ -1218,7 +1218,7 @@ async function route(
         error: "ReportsUnavailable",
         code: "ReportsUnavailable",
         message: "Reports are not open on the hosted API yet.",
-        next: "https://factlot.com/#pricing",
+        next: "https://factlot.com/pricing/",
       }),
       { ...corsHeaders(), "x-factlot-tier": tier },
     );
@@ -1376,7 +1376,11 @@ async function route(
   // Paid gating: a free caller sees the current roll year's values only.
   if (gating && !paid && res.status === 200) {
     if (path === "/mcp") res = await limitMcpResponse(res, mcpBody);
-    else if (path === "/v1/registry/get") res = await limitRestResponse(res);
+    else if (
+      path === "/v1/registry/get" ||
+      path === "/v1/registry/tx_equity_candidates"
+    )
+      res = await limitRestResponse(res);
   }
   if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;

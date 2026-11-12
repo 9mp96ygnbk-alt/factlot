@@ -76,7 +76,7 @@ number as `apn`. A miss returns `urn: null` with whether the county is loaded.
 With a URN, the `subject` that `registry_tx_equity_candidates` returns (step 4) carries the
 subject's cited roll value and `value_basis`, areas, year built, state property category code and
 `value_history`: market and appraised value by tax year, each cited to that year's roll. Show the
-history as returned.
+history as returned (on the hosted API, a call without a Pro or Team key gets the current roll year only, and the answer says so).
 
 Without a registry, ask for the values on the notice: the appraised value, the market value,
 improvement (building) area and land area in SF, year built, and the state property category code

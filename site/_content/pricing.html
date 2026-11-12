@@ -46,7 +46,10 @@
       <td>100,000 a month</td>
     </tr>
     <tr>
-      <th scope="row">Value history from <code>registry_get</code></th>
+      <th scope="row">
+        Value history by tax year (<code>registry_get</code>, and the subject in
+        <code>registry_tx_equity_candidates</code>)
+      </th>
       <td>The current roll year only</td>
       <td>Every tax year and every snapshot</td>
       <td>Every tax year and every snapshot</td>
@@ -130,8 +133,10 @@
     <strong>Full multi-year value history.</strong> On the free tier,
     <code>registry_get</code> returns a parcel's market and appraised value for
     the current roll year only, and <code>include_history</code> returns only
-    the current facts; the answer says what was left out and links here. With a
-    Pro or Team key it returns every tax year and every snapshot.
+    the current facts; the subject in a
+    <code>registry_tx_equity_candidates</code> answer is cut the same way. The
+    answer says what was left out and links here. With a Pro or Team key they
+    return every tax year and every snapshot.
   </li>
   <li>
     <strong>Batch lookup for many parcels at once.</strong>
@@ -155,8 +160,9 @@
   </li>
   <li>
     <code>registry_tx_equity_candidates</code>, one parcel per call, within the
-    same free lookups; the subject it returns carries its market and appraised
-    value by tax year.
+    same free lookups. The candidates and their calculator input are the same on
+    every plan; the subject's value history is the current roll year on the free
+    tier.
   </li>
   <li>
     3 reports a month per IP address, including the Texas evidence packet and
@@ -280,9 +286,10 @@
   billing portal, or by email to contact@factlot.com with the subject "Cancel"
   from your account email. Cancelling stops the next renewal, and your keys work
   to the end of the period you have paid for (a month, or a year on Pro yearly).
-  There are no refunds for a partial month; if you are charged in error, for
-  example twice, the wrong amount, or after you cancelled, email us and we will
-  correct it. See the <a href="/terms#billing">terms</a> and the
+  There are no refunds for a partial month, or a partial year on yearly billing;
+  if you are charged in error, for example twice, the wrong amount, or after you
+  cancelled, email us and we will correct it. See the
+  <a href="/terms#billing">terms</a> and the
   <a href="/privacy">privacy notice</a>.
 </p>
 <p>

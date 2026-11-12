@@ -5222,6 +5222,83 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.deepEqual(pro, record);
   });
 
+  it("candidates: a free caller's subject.value_history is cut to the newest year with the note; Pro keeps every year; candidates untouched; flag off unchanged", async () => {
+    const cand = {
+      subject: { urn: "s", value_history: record.value_history },
+      candidates: [{ urn: "c1" }, { urn: "c2" }],
+      calc_args: { comparables: [1, 2] },
+    };
+    const api = {
+      fetch: async (r: Request) => {
+        const body = await r.text();
+        const path = new URL(r.url).pathname;
+        const j = (b: unknown) =>
+          new Response(JSON.stringify(b), {
+            headers: { "content-type": "application/json" },
+          });
+        if (path === "/mcp") {
+          const m = JSON.parse(body) as { id: number };
+          return j({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [{ type: "text", text: JSON.stringify(cand) }],
+              structuredContent: cand,
+            },
+          });
+        }
+        return j(cand);
+      },
+    };
+    const rest = (await (
+      await call(on(), api, "/v1/registry/tx_equity_candidates", {
+        body: { urn: "s" },
+      })
+    ).json()) as typeof cand & Record<string, unknown>;
+    assert.deepEqual(rest.subject.value_history, [record.value_history[0]]);
+    assert.deepEqual(rest.candidates, cand.candidates);
+    assert.deepEqual(rest.calc_args, cand.calc_args);
+    assert.equal(rest.history_available, "pro");
+    assert.match(String(rest.history_note), /factlot\.com\/pricing\//);
+    assert.equal(rest.subject.urn, "s");
+
+    const mcpFree = (await (
+      await call(on(), api, "/mcp", {
+        body: toolCall("registry_tx_equity_candidates", 1),
+      })
+    ).json()) as { result: { structuredContent: typeof rest } };
+    assert.equal(
+      mcpFree.result.structuredContent.subject.value_history.length,
+      1,
+    );
+    assert.equal(mcpFree.result.structuredContent.history_available, "pro");
+
+    const e = on();
+    const { key } = await issue(e);
+    const pro = (await (
+      await call(e, api, "/v1/registry/tx_equity_candidates", {
+        key,
+        body: { urn: "s" },
+      })
+    ).json()) as unknown;
+    assert.deepEqual(pro, cand);
+    const mcpPro = (await (
+      await call(e, api, "/mcp", {
+        key,
+        body: toolCall("registry_tx_equity_candidates", 1),
+      })
+    ).json()) as { result: { structuredContent: unknown } };
+    assert.deepEqual(mcpPro.result.structuredContent, cand);
+    assert.deepEqual(
+      await (
+        await call(env(), api, "/v1/registry/tx_equity_candidates", {
+          body: { urn: "s" },
+        })
+      ).json(),
+      cand,
+    );
+  });
+
   it("REST: flag unset or not exactly true leaves the answer as it is", async () => {
     const { api } = historyApi();
     for (const e of [env(), env({ GATING_ENABLED: "yes" })])

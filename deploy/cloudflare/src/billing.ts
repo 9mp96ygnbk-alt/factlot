@@ -206,7 +206,7 @@ export async function startCheckout(
     "line_items[0][price]": price,
     "line_items[0][quantity]": 1,
     success_url: `${site}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${site}/#pricing`,
+    cancel_url: `${site}/pricing/`,
     allow_promotion_codes: true,
     billing_address_collection: "auto",
     "tax_id_collection[enabled]": true,
@@ -399,7 +399,7 @@ export async function redeemSession(
         ok: false,
         status: 402,
         session_status: "payment_failed",
-        message: `Your bank payment did not go through, so no key was issued and nothing was charged. Start again at ${siteUrl(d.env)}/#pricing with another payment method, or email ${CONTACT}.`,
+        message: `Your bank payment did not go through, so no key was issued and nothing was charged. Start again at ${siteUrl(d.env)}/pricing/ with another payment method, or email ${CONTACT}.`,
       };
     return {
       ok: false,
