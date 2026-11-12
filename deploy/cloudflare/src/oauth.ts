@@ -987,7 +987,7 @@ export async function sendSignInLinks(
       text: `${text}\n`,
     });
   } catch (err) {
-    logStripeError("oauth email lookup", err);
+    logStripeError("oauth email lookup", err, { message: false });
   }
 }
 

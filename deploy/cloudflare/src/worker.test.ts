@@ -25,6 +25,7 @@ import {
   createCheckout,
   ensurePrice,
   handleWebhook,
+  logStripeError,
   redeemSession,
   refreshIfStale,
   successRoute,
@@ -71,6 +72,7 @@ import {
 import { handle } from "./router.ts";
 import {
   STRIPE_API_VERSION,
+  StripeError,
   hmacSha256Hex,
   verifyStripeSignature,
 } from "./stripe.ts";
@@ -3777,6 +3779,67 @@ describe("recovery by email", () => {
       }),
       f,
     );
+
+  /** The console.error lines written while `fn` runs. */
+  async function errorLines(fn: () => Promise<unknown> | unknown) {
+    const lines: string[] = [];
+    const original = console.error;
+    console.error = (line: unknown) => void lines.push(String(line));
+    try {
+      await fn();
+    } finally {
+      console.error = original;
+    }
+    return lines;
+  }
+
+  it("a Stripe error that echoes the typed address is logged with status, type and code only", async () => {
+    const { e } = setup();
+    const echo = fakeStripe({
+      "GET /customers": () => [
+        400,
+        {
+          error: {
+            type: "invalid_request_error",
+            code: "email_invalid",
+            message: "Invalid email address: buyer@example.com",
+          },
+        },
+      ],
+    });
+    const lines = await errorLines(async () => {
+      const post = await ask(e, "buyer@example.com", echo.fetchImpl);
+      assert.equal(post.status, 200, "the same page as for any address");
+      await post.text();
+    });
+    const stripe = lines.filter((l) => l.includes("stripe call failed"));
+    assert.equal(stripe.length, 1, "the failure is still logged");
+    assert.ok(!lines.join("\n").includes("example.com"), "no address logged");
+    const logged = JSON.parse(stripe[0]!) as Record<string, unknown>;
+    assert.equal(logged.where, "recovery lookup");
+    assert.equal(logged.status, 400);
+    assert.equal(logged.type, "invalid_request_error");
+    assert.equal(logged.code, "email_invalid");
+    assert.equal(logged.error, undefined, "no message");
+  });
+
+  it("logStripeError removes anything shaped like an email address from a message it logs", async () => {
+    const lines = await errorLines(() => {
+      logStripeError(
+        "portal session",
+        new StripeError(
+          400,
+          "Invalid email address: Some.One+tag@sub.example.org, also (other@example.net).",
+        ),
+      );
+      logStripeError("checkout create", new StripeError(404, "No such price"));
+    });
+    const joined = lines.join("\n");
+    assert.ok(!/@/.test(joined), "no @ left in the log");
+    assert.ok(!joined.includes("example"), "no address left in the log");
+    assert.match(lines[0]!, /Invalid email address: \[email\]/);
+    assert.match(lines[1]!, /No such price/, "other messages are kept");
+  });
 
   it("the form is off with a clear notice until the binding and the secret are set", async () => {
     for (const over of [

@@ -556,22 +556,36 @@ export async function refreshIfStale(
   return next;
 }
 
+/** Anything shaped like an email address. */
+const EMAIL_SHAPE = /[^\s@<>"'(),;:]+@[^\s@<>"'(),;:]+/g;
+
 /**
  * Log a failed Stripe call: where, the HTTP status and Stripe's message (which names the
- * problem, such as an unconfigured portal, and never contains a key).
+ * problem, such as an unconfigured portal, and never contains a key). Anything shaped like an
+ * email address is removed from the message. With `{ message: false }` (calls made after looking
+ * a customer up by the email a visitor typed, which Stripe may echo back) the message is not
+ * logged at all, only the status and Stripe's error type and code.
  */
-export function logStripeError(where: string, err: unknown): void {
+export function logStripeError(
+  where: string,
+  err: unknown,
+  opts: { message?: boolean } = {},
+): void {
+  const stripe = err instanceof StripeError;
   console.error(
     JSON.stringify({
       msg: "stripe call failed",
       where,
-      status: err instanceof StripeError ? err.status : undefined,
-      error:
-        err instanceof StripeError
-          ? err.message.slice(0, 300)
-          : err instanceof Error
-            ? err.name
-            : typeof err,
+      status: stripe ? err.status : undefined,
+      ...(stripe && opts.message === false
+        ? { type: err.type, code: err.code }
+        : {
+            error: stripe
+              ? err.message.replace(EMAIL_SHAPE, "[email]").slice(0, 300)
+              : err instanceof Error
+                ? err.name
+                : typeof err,
+          }),
     }),
   );
 }

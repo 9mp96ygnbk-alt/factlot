@@ -207,7 +207,7 @@ export async function sendRecovery(
       ...recoveryMessage(links, RECOVERY_TTL_SECONDS / 60),
     });
   } catch (err) {
-    logStripeError("recovery lookup", err);
+    logStripeError("recovery lookup", err, { message: false });
   }
 }
 

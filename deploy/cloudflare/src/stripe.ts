@@ -11,9 +11,18 @@ export const STRIPE_API_VERSION = "2026-07-29.dahlia";
 
 export class StripeError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
+  /** Stripe's error `type` and `code` (fixed words, never caller input), when it sent them. */
+  readonly type: string | undefined;
+  readonly code: string | undefined;
+  constructor(
+    status: number,
+    message: string,
+    detail: { type?: string; code?: string } = {},
+  ) {
     super(message);
     this.status = status;
+    this.type = detail.type;
+    this.code = detail.code;
   }
 }
 
@@ -70,9 +79,17 @@ export function stripeClient(
       unknown
     >;
     if (!res.ok) {
-      const err = body.error as { message?: string; type?: string } | undefined;
+      const err = body.error as
+        { message?: string; type?: string; code?: string } | undefined;
       // Stripe's message names the problem (bad price, portal not configured); it never echoes the key.
-      throw new StripeError(res.status, err?.message ?? `Stripe ${res.status}`);
+      throw new StripeError(
+        res.status,
+        err?.message ?? `Stripe ${res.status}`,
+        {
+          type: typeof err?.type === "string" ? err.type : undefined,
+          code: typeof err?.code === "string" ? err.code : undefined,
+        },
+      );
     }
     return body;
   };
