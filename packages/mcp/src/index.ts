@@ -9,11 +9,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   CallToolRequestSchema,
+  ListToolsRequestSchema,
   type CallToolResult,
+  type ListToolsResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { jsonSchemas } from "@factlot/schema";
 import {
   RegistryUnavailableError,
+  portableInputSchema,
   registryAvailable,
   registrySnapshot,
   runToolAsync,
@@ -117,6 +120,32 @@ const FetchInput = z.object({
     ),
 });
 
+/**
+ * The ChatGPT search / fetch result shapes (developers.openai.com/api/docs/mcp): returned as
+ * structuredContent, and as the same JSON in one text item for clients that read only text.
+ */
+const SearchOutput = z.object({
+  results: z.array(
+    z.object({ id: z.string(), title: z.string(), url: z.string() }),
+  ),
+  note: z.string().optional(),
+});
+const FetchOutput = z.object({
+  id: z.string(),
+  title: z.string(),
+  text: z.string(),
+  url: z.string(),
+  metadata: z.record(z.string(), z.string()).optional(),
+});
+
+/** structuredContent plus the same JSON, compact, as the one text item. */
+function structured(data: Record<string, unknown>): CallToolResult {
+  return {
+    content: [{ type: "text", text: JSON.stringify(data) }],
+    structuredContent: data,
+  };
+}
+
 const DOCUMENT_ID = /^fl:document:sha256-[a-f0-9]{64}$/;
 
 /** `fetch` of a registry source snapshot: its source, URL, dates, licence and size. */
@@ -159,20 +188,7 @@ function fetchSnapshot(id: string): CallToolResult {
     `File: ${metadata.filename ?? "(not recorded)"}, ${metadata.bytes ?? "unknown"} bytes, retrieved ${metadata.retrieved_at}; the data is as of ${metadata.as_of}.`,
     `License: ${metadata.license}. AI use: ${metadata.ai_use}. Redistribution: ${metadata.redistribution}.${metadata.attribution ? ` Attribution: ${metadata.attribution}.` : ""}`,
   ].join("\n");
-  return {
-    content: [
-      {
-        type: "text",
-        text: JSON.stringify({
-          id,
-          title,
-          url: String(snap.url),
-          text,
-          metadata,
-        }),
-      },
-    ],
-  };
+  return structured({ id, title, url: String(snap.url), text, metadata });
 }
 
 const READ_ONLY = {
@@ -193,6 +209,38 @@ export interface CreateServerOptions {
    * local stdio server sets this; a remote server never reads its own files for a caller.
    */
   localFiles?: boolean;
+}
+
+/**
+ * Answer tools/list with portable input schemas (portableInputSchema): McpServer builds the list
+ * from the zod schemas, and this rewrites each inputSchema in that answer.
+ */
+function portableToolList(server: McpServer): void {
+  const handlers = (
+    server.server as unknown as {
+      _requestHandlers?: Map<
+        string,
+        (request: unknown, extra: unknown) => Promise<unknown>
+      >;
+    }
+  )._requestHandlers;
+  const list = handlers?.get("tools/list");
+  if (!list) throw new Error("McpServer did not register tools/list");
+  server.server.setRequestHandler(
+    ListToolsRequestSchema,
+    async (request, extra) => {
+      const result = (await list(request, extra)) as ListToolsResult;
+      return {
+        ...result,
+        tools: result.tools.map((t) => ({
+          ...t,
+          inputSchema: portableInputSchema(
+            t.inputSchema,
+          ) as typeof t.inputSchema,
+        })),
+      };
+    },
+  );
 }
 
 export function createServer(opts: CreateServerOptions = {}): McpServer {
@@ -254,23 +302,17 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
       );
     }
 
-  // ChatGPT deep research / company knowledge contract: results as a JSON string in one text item.
+  // ChatGPT deep research / company knowledge contract: structuredContent, and the same JSON in
+  // one text item.
   const search = validated(SearchInput, ({ query }) => {
     const results = searchCorpus(query).map((d) => ({
       id: d.id,
       title: d.title,
       url: d.url,
     }));
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            results.length ? { results } : { results, note: NO_MATCH_NOTE },
-          ),
-        },
-      ],
-    };
+    return structured(
+      results.length ? { results } : { results, note: NO_MATCH_NOTE },
+    );
   });
   handlers.set("search", search);
   server.registerTool(
@@ -280,6 +322,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
       description:
         "Search FactLot's knowledge base (tools, inputs, CRE predicates, ID and fact specifications). Returns matching document ids, titles, and URLs; call fetch for full text. A query on a subject the knowledge base does not cover returns no results and a note.",
       inputSchema: SearchInput.shape,
+      outputSchema: SearchOutput.shape,
       annotations: { ...READ_ONLY, title: "Search FactLot knowledge" },
     },
     search,
@@ -294,7 +337,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
         message: `no document "${id}": use an id from search (tool:…, predicates:…, spec:…, guide:…), or a registry source snapshot's fl:document:sha256-… ID`,
         issues: [],
       });
-    return { content: [{ type: "text", text: JSON.stringify(doc) }] };
+    return structured(doc as unknown as Record<string, unknown>);
   });
   handlers.set("fetch", fetchTool);
   server.registerTool(
@@ -304,6 +347,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
       description:
         "Fetch the full text of a FactLot knowledge document by the id returned from search. With a registry loaded, a registry fact's source document_id (fl:document:sha256-…) returns that source snapshot: publisher, dataset, URL, retrieval date, as-of date, licence, AI-use and redistribution rights, file name and size.",
       inputSchema: FetchInput.shape,
+      outputSchema: FetchOutput.shape,
       annotations: {
         ...READ_ONLY,
         title: "Fetch a FactLot knowledge document",
@@ -332,6 +376,8 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
   // passes the arguments through unchanged: an input error comes back as the REST error object
   // {error, message, issues} with isError, like every other error. McpServer still answers
   // tools/list from the registrations above.
+  portableToolList(server);
+
   server.server.setRequestHandler(CallToolRequestSchema, (request) => {
     const { name, arguments: args } = request.params;
     const handler = handlers.get(name);

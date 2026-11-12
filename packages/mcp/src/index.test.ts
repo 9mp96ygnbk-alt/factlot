@@ -316,3 +316,55 @@ test("search says so when nothing matches, and fetch explains a document ID with
   assert.match(error.message, /no FactLot Registry|has none/);
   await client.close();
 });
+
+test("search and fetch return structuredContent, declare an outputSchema, and repeat the JSON as text", async () => {
+  const client = await connect();
+  const { tools } = await client.listTools();
+  for (const name of ["search", "fetch"]) {
+    const t = tools.find((x) => x.name === name);
+    assert.equal(t?.outputSchema?.type, "object", name);
+    assert.equal(t?.annotations?.readOnlyHint, true, name);
+  }
+  // The SDK client checks structuredContent against the declared outputSchema on every call.
+  for (const [name, args] of [
+    ["search", { query: "loan sizing DSCR" }],
+    ["search", { query: "how to bake a sourdough cake" }],
+    ["fetch", { id: "tool:calc_debt_sizing" }],
+  ] as const) {
+    const r = (await client.callTool({ name, arguments: args })) as {
+      content: { type: string; text: string }[];
+      structuredContent?: Record<string, unknown>;
+    };
+    assert.ok(r.structuredContent, name);
+    assert.equal(r.content.length, 1);
+    assert.deepEqual(JSON.parse(r.content[0]!.text), r.structuredContent);
+  }
+  await client.close();
+});
+
+test("tools/list input schemas carry no numeric exclusive bounds (Copilot Studio)", async () => {
+  const client = await connect();
+  const { tools } = await client.listTools();
+  const found: string[] = [];
+  const walk = (s: unknown, where: string) => {
+    if (Array.isArray(s)) s.forEach((x, i) => walk(x, `${where}/${i}`));
+    else if (s && typeof s === "object")
+      for (const [k, v] of Object.entries(s)) {
+        if (
+          (k === "exclusiveMinimum" || k === "exclusiveMaximum") &&
+          typeof v === "number"
+        )
+          found.push(`${where}/${k}`);
+        walk(v, `${where}/${k}`);
+      }
+  };
+  for (const t of tools) walk(t.inputSchema, t.name);
+  assert.deepEqual(found, []);
+  // An integer "greater than 0" is the same rule as "at least 1".
+  const rent = tools.find((t) => t.name === "calc_rent_schedule")!;
+  const term = (rent.inputSchema.properties as Record<string, object>)
+    .term_months as Record<string, unknown>;
+  assert.equal(term.type, "integer");
+  assert.equal(term.minimum, 1);
+  await client.close();
+});
