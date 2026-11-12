@@ -347,7 +347,7 @@ _BOARD_OF_TRUSTEES = re.compile(r"\b(?:THE )?(?:BOARD|BD|BRD) OF (?:TRUSTEES|TRS
 _TRUSTEE = re.compile(
     r"\b(?:AS )?(?:(?:SUCCESSOR|SUC|SUCC|CO|SOLE|SPECIAL|INDIVIDUALLY AND AS|INDIVIDUALLY AND|INDENTURE|COLLATERAL|OWNER|"
     r"SEPARATE|CERTIFICATE|INSTITUTIONAL|LIQUIDATING|PLAN|DELAWARE|ADMINISTRATIVE) )?"
-    r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS)\b"
+    r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS)\b(?! (?:CO|COMPANY|CORP|SERVICES|SERVICING)\b)"
     r"(?: (?:OF|FOR|UNDER|U A|U T A|UNDER THE|OF THE|FOR THE|OF THAT|U D T))?")
 # "<x> TRUST CO TRUSTEES OF ...": the CO is the trust company's, not a co-trustee's.
 _COMPANY_BEFORE_TRUSTEE = re.compile(
@@ -377,7 +377,13 @@ _INSTITUTION_WORD = re.compile(
 _FILLER = frozenset("THE OF FOR AND AS ET AL ETAL A AN UNDER TRUST TRUSTS TR AGREEMENT DATED DTD U W NO NUMBER "
                     "SUCCESSOR BY MERGER TO IN INTEREST".split())
 # A bank or trust company: as trustee it often stands before a securitisation's name that the record cuts short.
-_FINANCIAL = re.compile(r"\b(?:BANK|BANC|TRUST (?:CO|COMPANY)|NATIONAL ASSOCIATION|NATIONAL TRUST|TRUST N A|TRUST NA)\b")
+_FINANCIAL = re.compile(r"\b(?:BANK|BANC|TRUST (?:CO|COMPANY)|NATIONAL ASSOCIATION|NATIONAL TRUST|TRUST N A|TRUST NA|"
+                        r"WELLS FARGO|JPMORGAN|CITIBANK|HSBC|DEUTSCHE|LASALLE|BNY|MELLON|WILMINGTON TRUST|BANKERS TRUST)\b")
+# What follows "<bank> AS TRUSTEE ..." in a securitisation's name, even where the record cuts it short.
+_SECURITIZATION_WORD = re.compile(
+    r"\b(?:ON BEHALF|BEHALF|HOLDERS|PASS|MORTGAGE|MORTGAGES|CERTIFICATES?|SERIES|ASSET|LOAN|LOANS|SECURITIES|REMIC|"
+    r"CMBS|COMMERCIAL|RESIDENTIAL|FUNDING|ACCEPTANCE|ACQUISITION|MASTER|PARTICIPATION|NOTEHOLDERS|REGISTERED|"
+    r"SECURITIZATION|RECEIVABLES)\b|\bTRUST \d")
 
 
 def _segment_names_no_person(seg: str) -> bool:
@@ -419,6 +425,23 @@ def _wrapper_tail(s: str) -> bool:
     tail = s[first_end:]
     trustee = bool(_TRUSTEE.search(tail)) and not _trustee_company(s)
     return bool(_PERSONAL_TRUST_MARK.search(tail) or _PROBATE.search(tail) or trustee or _personal_instrument(tail))
+
+
+def _company_estate(s: str) -> bool:
+    """The estate of a company, as a bankruptcy estate is written: "THE ESTATE OF EXAMPLE GROUP LLC". What follows
+    "ESTATE OF" is one company's name with no given name or family word and nothing person-carrying."""
+    m = re.match(r"^(?:THE )?(?:ESTATE|EST) OF (.+)$", s)
+    if not m:
+        return False
+    rest = m.group(1)
+    forms = list(_LEGAL_FORM.finditer(rest))
+    if not forms or forms[-1].end() != len(rest) or len(forms) > 1:
+        return False
+    tokens = rest.split()
+    return (not any(t in _TRADE_NAME_GIVEN_NAMES or t in _FAMILY_WORDS for t in tokens)
+            and not (_PERSONAL_TRUST_MARK.search(rest) or _PROBATE.search(rest) or _TRUSTEE.search(rest)
+                     or _ANY_TRUST_WORD.search(rest))
+            and _organization_reading(rest))
 
 
 def _trustee_company(s: str) -> bool:
@@ -478,6 +501,8 @@ def _person_carrying(s: str) -> str | None:
     ``trustee_person`` or ``wrapper`` (any of the first three after a company's legal form)."""
     s = _COMPANY_BEFORE_TRUSTEE.sub(r"\1 COMPANY ", s)
     s = re.sub(r"\s+", " ", s).strip()
+    if _company_estate(s):
+        return None
     if _wrapper_tail(s) and not _segment_names_no_person_after_trustees(s):
         return "wrapper"
     if _PROBATE.search(s):
@@ -521,7 +546,8 @@ def _unnamed_side(side: str, board: bool) -> bool:
     tokens = [t for t in side.split() if t not in _FILLER]
     if any(t in _TRADE_NAME_GIVEN_NAMES for t in tokens) or _PERSONAL_TRUST_MARK.search(side) or _PROBATE.search(side):
         return False
-    return board or len(tokens) <= 1 or any(any(c.isdigit() for c in t) for t in tokens)
+    return (board or len(tokens) <= 1 or any(any(c.isdigit() for c in t) for t in tokens)
+            or bool(_SECURITIZATION_WORD.search(side)) or bool(_FINANCIAL.search(side)))
 
 
 def person_carrying_class(name: str) -> str | None:
