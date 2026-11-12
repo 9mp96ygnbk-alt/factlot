@@ -65,13 +65,24 @@ const counties = HOSTED.map(([slug, name, fips, sourceId, system]) => {
       .prepare("select count(*) n from crosswalk where system = ?")
       .all(system)[0]?.n,
   );
+  // Current rolls, plus prior-year rolls loaded as value history only (Registry.ingest_value_history):
+  // those write no coverage row, so their facts are never "current" and are counted from `facts`.
   const rolls = db
     .prepare(
-      `select f.value_json y, f.as_of a, count(*) n from crosswalk c
-       join current_facts f on f.subject = c.urn and f.predicate = 'parcel.tax_year'
-       where c.system = ? group by 1, 2 order by 1, 2`,
+      `select y, a, n from (
+         select f.value_json y, f.as_of a, count(*) n from crosswalk c
+         join current_facts f on f.subject = c.urn and f.predicate = 'parcel.tax_year'
+         where c.system = ?1 group by 1, 2
+         union all
+         select f.value_json y, f.as_of a, count(*) n from crosswalk c
+         join facts f on f.subject = c.urn and f.predicate = 'parcel.tax_year'
+         where c.system = ?1 and f.document_id in (
+           select document_id from snapshots where source_id glob ?2
+           and document_id not in (select document_id from coverage))
+         group by 1, 2
+       ) order by 1, 2`,
     )
-    .all(system)
+    .all(system, `${sourceId}-[0-9][0-9][0-9][0-9]`)
     .map((r) => {
       const tax_year = Number(r.y);
       const as_of = String(r.a);

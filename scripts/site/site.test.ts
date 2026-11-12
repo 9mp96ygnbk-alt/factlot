@@ -188,9 +188,13 @@ describe("texas hub", () => {
     // Midland has no values; the multi-year counties say so.
     assert.ok(table.includes("no values in the publisher's file"));
     assert.ok(table.includes("eleven roll years, 2016 to 2026"));
+    // Harris and Dallas: 2022 to 2025 loaded as value history beside the current roll.
+    assert.equal(table.split("five roll years, 2022 to 2026").length - 1, 2);
     assert.ok(!html.includes("one roll year per county"));
     assert.ok(
-      hubRollSentence(data.counties).startsWith("Six of the sixteen counties"),
+      hubRollSentence(data.counties).startsWith(
+        "Eight of the sixteen counties",
+      ),
     );
   });
   it("keeps the legal disclaimers word for word", () => {

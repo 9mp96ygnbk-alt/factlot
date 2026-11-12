@@ -18,6 +18,30 @@
       "data_as_of": "2026-11-01",
       "rolls": [
         {
+          "tax_year": 2022,
+          "as_of": "2026-11-09",
+          "parcels": 82977,
+          "preliminary": false
+        },
+        {
+          "tax_year": 2023,
+          "as_of": "2026-11-09",
+          "parcels": 84163,
+          "preliminary": false
+        },
+        {
+          "tax_year": 2024,
+          "as_of": "2026-11-09",
+          "parcels": 85290,
+          "preliminary": false
+        },
+        {
+          "tax_year": 2025,
+          "as_of": "2026-11-09",
+          "parcels": 86479,
+          "preliminary": false
+        },
+        {
           "tax_year": 2026,
           "as_of": "2026-11-01",
           "parcels": 87717,
@@ -42,6 +66,30 @@
       "hosted_parcels": 59645,
       "data_as_of": "2026-10-12",
       "rolls": [
+        {
+          "tax_year": 2022,
+          "as_of": "2022-07-25",
+          "parcels": 54915,
+          "preliminary": false
+        },
+        {
+          "tax_year": 2023,
+          "as_of": "2023-07-25",
+          "parcels": 55577,
+          "preliminary": false
+        },
+        {
+          "tax_year": 2024,
+          "as_of": "2024-07-25",
+          "parcels": 56959,
+          "preliminary": false
+        },
+        {
+          "tax_year": 2025,
+          "as_of": "2025-07-24",
+          "parcels": 56892,
+          "preliminary": false
+        },
         {
           "tax_year": 2026,
           "as_of": "2026-10-12",
