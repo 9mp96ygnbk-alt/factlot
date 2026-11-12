@@ -5,6 +5,7 @@
 //   node --experimental-strip-types scripts/site/gen-texas-counties.ts /path/to/tx.db
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { writeResourceData } from "../mcp/gen-resources.ts";
 
 const dbPath = process.argv[2];
 if (!dbPath) throw new Error("usage: gen-texas-counties.ts /path/to/tx.db");
@@ -140,3 +141,6 @@ writeFileSync(
   `${JSON.stringify(out, null, 2)}\n`,
 );
 console.log(counties.map((c) => `${c.slug} ${c.hosted_parcels}`).join(", "));
+
+// The MCP server's factlot:// resources carry these figures too (scripts/mcp/gen-resources.ts).
+writeResourceData();

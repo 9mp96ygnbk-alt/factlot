@@ -16,6 +16,11 @@ import type { Manifest } from "../../deploy/registry/src/format.ts";
 import { countyName } from "../../packages/tools/src/county_names.ts";
 
 import {
+  DATA_FILE as MCP_DATA_FILE,
+  mcpDataCurrent,
+  writeResourceData,
+} from "../mcp/gen-resources.ts";
+import {
   HOSTED_FILES,
   groupPlaces,
   hostedDifferences,
@@ -156,7 +161,7 @@ function writeData(data: HostedData): void {
   });
 }
 
-function main(argv: string[]): void {
+async function main(argv: string[]): Promise<void> {
   const check = argv.includes("--check");
   const textOnly = argv.includes("--text");
   const packDir = argv.find((a) => !a.startsWith("--"));
@@ -205,7 +210,13 @@ function main(argv: string[]): void {
       " ",
     );
     if (want !== have) problems.push(`${NOTE_FILE}: out of date`);
-  } else writeNote(data);
+    if (!(await mcpDataCurrent()))
+      problems.push(`${MCP_DATA_FILE}: out of date`);
+  } else {
+    writeNote(data);
+    // The MCP server's factlot:// resources carry the same figures (scripts/mcp/gen-resources.ts).
+    writeResourceData();
+  }
   for (const rel of HOSTED_FILES) {
     const text = readFileSync(join(root, rel), "utf8");
     if (check) {
@@ -245,4 +256,4 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 )
-  main(process.argv.slice(2));
+  await main(process.argv.slice(2));

@@ -16,6 +16,7 @@ import {
 } from "../../packages/tools/src/registry.ts";
 
 import { MARKETS } from "./market-pages.mjs";
+import { writeResourceData } from "../mcp/gen-resources.ts";
 
 type Row = Record<string, unknown>;
 interface Db {
@@ -109,3 +110,6 @@ console.log(
     .map((m) => `${m.slug}: ${m.sample.urn} owner=${m.holds.owner_of_record}`)
     .join("\n"),
 );
+
+// The MCP server's factlot:// resources carry these figures too (scripts/mcp/gen-resources.ts).
+writeResourceData();
