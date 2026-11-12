@@ -86,6 +86,7 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
+import { propertyPagesRoute } from "./property-pages.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
 import {
@@ -763,6 +764,12 @@ async function route(
       defer: deferWith(opts),
       waitUntil: opts.waitUntil,
     }))!;
+
+  // Public property pages and their sitemaps (property-pages.ts; off unless PROPERTY_PAGES_ENABLED).
+  if (!isApiHost(host)) {
+    const property = await propertyPagesRoute(request, env, path, opts);
+    if (property) return property;
+  }
 
   // Landing page on the apex and www hosts.
   if (!isApiHost(host) && !isApiPath(path) && env.ASSETS)
