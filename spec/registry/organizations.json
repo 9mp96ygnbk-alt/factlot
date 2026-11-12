@@ -1,5 +1,5 @@
 {
-  "description": "Registry is_organization vectors (factlot.registry.normalize.is_organization): which owner, party and lessor names are stored as organisations. The rule is conservative: a name not clearly an organisation is a natural person and is never stored. 'organizations' must read as organisations; 'persons' must not. Person names here are synthetic, built to collide with organisation words (a surname that is also BANK or CHURCH, initials that read as N.A.). There is no TypeScript implementation: the registry classifies names only when it is built (Python), and the TypeScript side reads the stored result.",
+  "description": "Registry is_organization vectors (factlot.registry.normalize.is_organization): which owner, party and lessor names are stored as organisations. The rule is conservative: a name not clearly an organisation is a natural person and is never stored. 'organizations' must read as organisations; 'persons' must not. Person names here are synthetic, built to collide with organisation words (a surname that is also BANK or CHURCH, initials that read as N.A.) or carried inside an organisation-style wrapper (an estate, a personal trust, a trustee named in person, a company followed by a personal trust). There is no TypeScript implementation: the registry classifies names only when it is built (Python), and the TypeScript side reads the stored result.",
   "organizations": [
     "Acme Properties LLC",
     "Gulf Logistics L.P.",
@@ -60,7 +60,23 @@
     "SMITH JOHN PROPERTIES LLC",
     "SMITH & JONES PROPERTIES",
     "PACIFIC COAST PROPERTIES",
-    "UNION STATION VENTURE"
+    "UNION STATION VENTURE",
+    "TRUSTMARK NATIONAL BANK",
+    "FIRST TRUST CORPORATION",
+    "TRINITY CHURCH TRUSTEES",
+    "BOARD OF TRUSTEES OF EXAMPLE COLLEGE",
+    "EXAMPLE REALTY TRUST",
+    "TRAVIS COUNTY",
+    "ESTATES AT EXAMPLE LAKE HOA",
+    "EXAMPLE ESTATE HOMES LLC",
+    "TR EXAMPLE HOLDINGS LLC",
+    "EXAMPLE TRUST COMPANY",
+    "EXAMPLE BANK & TRUST",
+    "EXAMPLE TITLE AND TRUST",
+    "EXAMPLE BANK NA AS TRUSTEE",
+    "TRUST NO 12345",
+    "EXAMPLE DELAWARE STATUTORY TRUST",
+    "EXAMPLE COUNTY TRUSTEE FOR CITY OF EXAMPLE ET AL"
   ],
   "persons": [
     "JOHN BANK",
@@ -113,6 +129,18 @@
     "JOHN SMITH PROPERTIES",
     "SMITH JOHN A RENTALS",
     "DOE JANE CO",
-    "SMITH JOHN PROPERTIES ET AL"
+    "SMITH JOHN PROPERTIES ET AL",
+    "ESTATE OF JANE EXAMPLE",
+    "HEIRS OF JOHN SAMPLE",
+    "DOE JANE LIFE ESTATE",
+    "SAMPLE JOHN REV TR DTD 1/2/2003",
+    "DOE JOHN TR U/A 3-4-1999",
+    "ROE JANE TTEE",
+    "TRUSTEES OF JANE DOE",
+    "EXAMPLE TRUST CO TRUSTEES OF JOHN SAMPLE",
+    "SAMPLE JOHN PROPERTIES TRUST",
+    "EXAMPLE HOLDINGS LLC JOHN DOE REV TR DTD 1/1/2001",
+    "EXAMPLE BANK AS TRUSTEE OF THE JOHN DOE REVOCABLE TRUST",
+    "ESTATE OF JOHN EXAMPLE LLC"
   ]
 }

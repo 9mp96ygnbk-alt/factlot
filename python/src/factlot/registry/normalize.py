@@ -172,7 +172,8 @@ _STRUCTURAL_ORGANIZATION = re.compile(
     r"|\bMORTGAGE ELECTRONIC REGISTRATION\b|^MERS$|\bMERS AS (?:NOMINEE|MORTGAGEE)\b"
     r"|\bFEDERAL NATIONAL MORTGAGE\b|\bFEDERAL HOME LOAN MORTGAGE\b|\bGOVERNMENT NATIONAL MORTGAGE\b"
     r"|\bPASS THROUGH\b|\bASSET BACKED\b|\bMORTGAGE (?:LOAN |SECURITIES |ASSET )?TRUST\b|\bCERTIFICATES SERIES\b"
-    r"|\bBUSINESS TRUST\b"
+    r"|\bBUSINESS TRUST\b|\bSTATUTORY TRUST\b|\bDST\b|\b(?:TITLE|SAVINGS|GUARANTY) (?:AND )?TRUST\b"
+    r"|\bHOA\b|\bHOMEOWNERS\b|\bHOME OWNERS\b|\bPROPERTY OWNERS\b|\bOWNERS (?:ASSN|ASSOCIATION)\b"
 )
 # "N.A." (national association) ends the name of a bank, but it also reads as a person's two initials
 # ("DOE JOHN N A"), so it counts only after a word that names a bank: CITIBANK, CITIMORTGAGE, a savings or
@@ -309,6 +310,248 @@ def _structurally_organization(s: str) -> bool:
     return head.endswith("WELLS FARGO") or any(_BANKING_WORD.match(t) for t in head.split())
 
 
+# --- names that carry a natural person inside an organisation-style wrapper ----------------------
+#
+# A probate form ("ESTATE OF ...", "HEIRS OF ..."), a personal trust ("... REV TR DTD ...", "... FAMILY TRUST"),
+# a trustee named in person ("<person> TRUSTEE", "TRUSTEES OF <person>") or a company followed by any of these
+# ("<company> LLC <person> REV TR") names a natural person, whatever organisation word it also holds. Such a name is
+# rejected whole (``person_carrying_class``): cutting it down to its leading organisation would rest on reading where
+# the person's name starts, and a wrong cut would store it.
+
+# Probate and life-interest forms. "REAL ESTATE OF ..." is a company's name.
+_PROBATE = re.compile(
+    r"(?<!\bREAL )\b(?:ESTATE|EST) OF\b|\bHEIRS (?:OF|AT LAW)\b|\bUNKNOWN HEIRS\b|\bLIFE (?:ESTATE|EST|TENANTS?)\b"
+    r"|\bDECEASED\b|\bDECD\b|\bDEC D\b")
+_TRUST_WORD = r"(?:TRUSTS?|TRST|TR)"
+# Personal trusts, written out or as the rolls abbreviate them. Apostrophes have become spaces ("SURVIVOR S").
+_PERSONAL_TRUST_MARK = re.compile(
+    r"\b(?:REVOCABLE|IRREVOCABLE|REVOC|IRREVOC|IRREV|INTER ?VIVOS|TESTAMENTARY|TESTAMENTRY|QTIP|QPRT|CRUT|CRAT)\b"
+    r"|\bREV (?:LIV|LIVING|LVG|TR|TRUST|TRST|FAM|FAMILY|DEC|DECL|DECLARATION)\b|\bIRR (?:TR|TRUST)\b"
+    r"|(?<!\bSENIOR )(?<!\bASSISTED )(?<!\bINDEPENDENT )\b(?:LIVING|LIV|LVG) (?:TR|TRUST|TRST|REV)\b"
+    rf"|\b(?:FAMILY|FAM) (?:{_TRUST_WORD}|REV|LIV|LIVING|IRREV)\b"
+    rf"|\b(?:MARITAL|SURVIVORS?|SURVIVOR S|EXEMPTION|EXEMPT|BYPASS|BY PASS|CREDIT SHELTER|DISCLAIMER|RESIDUARY|"
+    rf"DECEDENTS?|DECEDENT S|SPOUSAL|DYNASTY|GRANTOR|SPECIAL NEEDS|SUPPLEMENTAL NEEDS|CHILDRENS|CHILDREN S|"
+    rf"GRANDCHILDRENS|GRANDCHILDREN S|SPENDTHRIFT|GENERATION SKIPPING|GST|CHARITABLE REMAINDER(?: UNITRUST)?"
+    rf"(?: ANNUITY)?|CHARITABLE LEAD(?: ANNUITY)?) {_TRUST_WORD}\b|\bMARITAL DEDUCTION\b|\bUNITRUST\b"
+    r"|\b(?:SEPARATE|COMMUNITY) PROPERTY\b")
+# Dated or "under agreement" forms: personal when the name also has a trust or trustee word.
+_TRUST_INSTRUMENT_MARK = re.compile(
+    r"\b(?:DTD|U A|U T A|U D T|U A D|U W|UTA|UDT|UTD|UAD|UTAD|DATED|AGREEMENT DATED|DECLARATION OF TRUST)\b")
+_ANY_TRUST_WORD = re.compile(r"\b(?:TRUSTS?|TRST|TR|TRS|TRUSTEES?|TTEES?|TRSTEES?|TRUSTE|U T A|UTA|U D T|UDT|UTAD)\b")
+# A trustee, written out or abbreviated, with its role words; "BOARD OF TRUSTEES" is a body, kept as one unit.
+_BOARD_OF_TRUSTEES = re.compile(r"\b(?:THE )?(?:BOARD|BD|BRD) OF (?:TRUSTEES|TRS|TTEES)\b(?: OF)?(?: THE)?")
+_TRUSTEE = re.compile(
+    r"\b(?:AS )?(?:(?:SUCCESSOR|SUC|SUCC|CO|SOLE|SPECIAL|INDIVIDUALLY AND AS|INDIVIDUALLY AND) )?"
+    r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS)\b"
+    r"(?: (?:OF|FOR|UNDER|U A|U T A|UNDER THE|OF THE|FOR THE|OF THAT|U D T))?")
+# "<x> TRUST CO TRUSTEES OF ...": the CO is the trust company's, not a co-trustee's.
+_COMPANY_BEFORE_TRUSTEE = re.compile(
+    r"\b(TRUST|BANK|TITLE|SAVINGS|GUARANTY|FIDUCIARY|ABSTRACT) CO (?=(?:AS )?(?:SUCCESSOR )?(?:TRUSTEES?|TTEES?|TRS)\b)")
+# A company named as a trustee company: "100 EXAMPLE TRUSTEE LLC", "EXAMPLE TRUSTEES INC".
+_TRUSTEE_COMPANY = re.compile(r"\b(?:TRUSTEES?|TTEES?|TRS) (?:SERVICES |SERVICING |SOLUTIONS )?(?:LLC|LLLP|LLP|LP|INC|CORP|LTD|PLLC|CO)$")
+# Legal forms that end a company's name; what follows the last one is not part of that name.
+_LEGAL_FORM = re.compile(r"\b(?:LLC|LLLP|LLP|LP|INC|CORP|LTD|PLLC|PC|CO(?! (?:TRUSTEES?|TRS?|TTEES?)\b))\b")
+# A land trust identified by number only ("TRUST NO 12345", "LAND TRUST 4021") names no person.
+_NUMBERED_TRUST = re.compile(r"^(?:THE )?(?:LAND )?TRUST (?:NO |NUMBER )?\d[\d A-Z]*$")
+# Securitisation and fund wording after "AS TRUSTEE FOR ...": certificate holders, a series, a numbered trust.
+_SECURITIZATION = re.compile(
+    r"\bCERTIFICATE ?HOLDERS\b|\bNOTE ?HOLDERS\b|\bBOND ?HOLDERS\b|\bHOLDERS OF\b|\bREGISTERED HOLDERS\b|\bSERIES\b"
+    r"|\bPASS THROUGH\b|\bASSET BACKED\b|\bSECURITIES\b|\bMORTGAGE (?:LOAN |ASSET )?TRUST\b|\bTRUST \d{4}\b"
+    r"|\bCERTIFICATES\b|\bSECURITIZATION\b")
+# Words that make a trustee's or a trust's side an institution: banks and trust companies, schools, churches,
+# hospitals, funds and plans, unions, districts and other public bodies. None is a common surname on its own.
+_INSTITUTION_WORD = re.compile(
+    r"\b(?:BANK|BANC|BANCORP|BANKING|TRUST COMPANY|TRUST CO|TITLE|SAVINGS|FIDUCIARY|NATIONAL ASSOCIATION|FSB|"
+    r"COLLEGE|UNIVERSITY|SCHOOLS?|ACADEMY|SEMINARY|INSTITUTE|LIBRARY|MUSEUM|CEMETERY|SYNAGOGUE|CONGREGATION|PARISH|"
+    r"DIOCESE|ARCHDIOCESE|MOSQUE|CATHEDRAL|CHURCH|CHAPEL|TABERNACLE|MINISTRY|MINISTRIES|FELLOWSHIP|BAPTIST|"
+    r"METHODIST|CATHOLIC|LUTHERAN|PRESBYTERIAN|EPISCOPAL|EVANGELICAL|HOSPITAL|MEDICAL CENTER|HEALTH|FUND|FUNDS|"
+    r"PENSION|RETIREMENT|ANNUITY|WELFARE|BENEFITS?|PROFIT SHARING|UNION|LOCAL \d+|DISTRICT|ISD|AUTHORITY|COUNTY|"
+    r"CITY|TOWN|TOWNSHIP|VILLAGE|BOROUGH|STATE|COMMONWEALTH|UNITED STATES|GOVERNMENT|COMMISSION|SOCIETY|LODGE|"
+    r"LEGION|FOUNDATION|ASSOCIATION|CHARITABLE|CHARITIES|ESTATE BELONGING|CORPORATION|INC|LLC|LP|CORP|CO)\b")
+# Connectors and descriptors that may sit around a trustee or a trust without naming anyone.
+_FILLER = frozenset("THE OF FOR AND AS ET AL ETAL A AN UNDER TRUST TRUSTS TR AGREEMENT DATED DTD U W NO NUMBER".split())
+
+
+def _segment_names_no_person(seg: str) -> bool:
+    """Whether one side of a trustee construct is an institution, an organisation or a numbered trust (no person)."""
+    tokens = [t for t in seg.split()]
+    while tokens and tokens[0] in _FILLER:
+        tokens.pop(0)
+    while tokens and tokens[-1] in _FILLER:
+        tokens.pop()
+    seg = " ".join(tokens)
+    if not seg:
+        return True
+    if all(t.isdigit() or t in _FILLER for t in tokens) or _NUMBERED_TRUST.match(seg) or _SECURITIZATION.search(seg):
+        return True
+    if _PERSONAL_TRUST_MARK.search(seg) or _PROBATE.search(seg):
+        return False
+    forms = list(_LEGAL_FORM.finditer(seg))
+    if forms:
+        after = seg[forms[-1].end():].split()
+        tail = [t for t in after if t not in _FILLER and not t.isdigit()]
+        of_place = bool(after) and after[0] == "OF" and not any(t in _TRADE_NAME_GIVEN_NAMES for t in tail)
+        if tail and not of_place and not _INSTITUTION_WORD.search(" ".join(tail)):
+            return False  # "ACME LLC JOHN DOE": a name follows the company's
+    if any(t in _TRADE_NAME_GIVEN_NAMES for t in tokens) and not _organization_reading(seg):
+        return False
+    if _organization_reading(seg):
+        return True
+    m = _INSTITUTION_WORD.search(seg)
+    return bool(m) and not _only_given_names([t for t in tokens if not _INSTITUTION_WORD.fullmatch(t)])
+
+
+def _wrapper_tail(s: str) -> bool:
+    """Whether a personal trust, a trustee or a probate form follows a company's legal form ("ACME LLC DOE J REV TR")."""
+    forms = list(_LEGAL_FORM.finditer(s))
+    if not forms:
+        return False
+    first_end = forms[0].end()
+    tail = s[first_end:]
+    return bool(_PERSONAL_TRUST_MARK.search(tail) or _PROBATE.search(tail) or _TRUSTEE.search(tail)
+                or (_TRUST_INSTRUMENT_MARK.search(tail) and _ANY_TRUST_WORD.search(tail)))
+
+
+def _personal_trust_is_a_company_name(s: str) -> bool:
+    """A personal-trust word inside a company's own name: "SMITH REVOCABLE HOLDINGS LLC", "SMITH FAMILY TRUST LP".
+
+    The name must end in a legal form, and between the last personal-trust word and that form there may be only
+    generic business words and trust words, so "DOE JANE REV TR ACME LLC" (a trust and a company) is not one."""
+    forms = list(_LEGAL_FORM.finditer(s))
+    if not forms or forms[-1].end() != len(s):
+        return False
+    marks = list(_PERSONAL_TRUST_MARK.finditer(s))
+    if not marks:
+        return False
+    between = s[marks[-1].end():forms[-1].start()].split()
+    trust_at = [i for i, t in enumerate(between) if t in ("TRUST", "TRUSTS", "TR", "TRST")]
+    if marks[-1].group().split()[-1] in ("TRUST", "TRUSTS", "TR", "TRST"):
+        trust_at = [-1] + trust_at
+    if not trust_at:
+        return True  # an adjective in the company's own name: "SEPARATE PROPERTY INVESTORS LP"
+    return all(t in _GENERIC_BUSINESS_WORDS or t == "THE" for t in between[trust_at[-1] + 1:])
+
+
+def _person_carrying(s: str) -> str | None:
+    """The class of natural person a cleaned name carries, or None: ``estate``, ``personal_trust``,
+    ``trustee_person`` or ``wrapper`` (any of the first three after a company's legal form)."""
+    s = _COMPANY_BEFORE_TRUSTEE.sub(r"\1 COMPANY ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    if _wrapper_tail(s) and not _segment_names_no_person_after_trustees(s):
+        return "wrapper"
+    if _PROBATE.search(s):
+        return "estate"
+    if _PERSONAL_TRUST_MARK.search(s) and not _personal_trust_is_a_company_name(s):
+        return "personal_trust"
+    if (_TRUST_INSTRUMENT_MARK.search(s) and _ANY_TRUST_WORD.search(s)
+            and not _segment_names_no_person_after_trustees(s)):
+        return "personal_trust"
+    if _TRUSTEE_COMPANY.search(s) and _organization_reading(s):
+        return None  # a company whose name holds the word: "100 EXAMPLE TRUSTEE LLC"
+    if _BOARD_OF_TRUSTEES.search(s) or _TRUSTEE.search(s):
+        if not _segment_names_no_person_after_trustees(s):
+            return "trustee_person"
+        return None
+    # A bare trailing "TR" or "TRUST" after a person's name: "SMITH JOHN PROPERTIES TRUST" is the person's.
+    m = re.match(rf"^(.*\S) {_TRUST_WORD}(?: THE)?$", s)
+    if (m and not _organization_reading(m.group(1)) and not _INSTITUTION_WORD.search(m.group(1))
+            and not _structurally_organization(s) and not _NUMBERED_TRUST.match(s)):
+        return "personal_trust"
+    return None
+
+
+def _segment_names_no_person_after_trustees(s: str) -> bool:
+    """Split a name at its trustee words and board-of-trustees phrases; True when no side names a person."""
+    parts = [p for p in re.split(_TRUSTEE, _BOARD_OF_TRUSTEES.sub(" | ", s).replace("|", " ")) if p is not None]
+    if not (_BOARD_OF_TRUSTEES.search(s) or _TRUSTEE.search(s)):
+        parts = [s]
+    sides = [p.strip() for p in parts if p and p.strip()]
+    if not sides:
+        return False  # "TRUSTEE" alone names nobody, and nothing makes it an organisation
+    if _TRUST_INSTRUMENT_MARK.search(s) and not any(_NUMBERED_TRUST.match(" ".join(
+            t for t in side.split() if t not in ("THE",))) for side in sides):
+        # A dated or "under agreement" trust with no land-trust number is a personal trust's instrument.
+        if _ANY_TRUST_WORD.search(s) and not _SECURITIZATION.search(s):
+            return False
+    return all(_segment_names_no_person(side) for side in sides)
+
+
+def person_carrying_class(name: str) -> str | None:
+    """Why ``is_organization`` rejects a name that holds an organisation word, or None.
+
+    ``estate`` ("ESTATE OF <person>", "HEIRS OF <person>", "<person> LIFE ESTATE"), ``personal_trust``
+    ("<person> REV TR DTD ...", "<person> FAMILY TRUST", "<person> PROPERTIES TRUST"), ``trustee_person``
+    ("<person> TRUSTEE", "TRUSTEES OF <person>", "<bank> AS TRUSTEE OF <person> TRUST") or ``wrapper`` ("<company>
+    LLC <person> REV TR"). For the measurement and the purge report; ``is_organization`` is the rule.
+    """
+    return _person_carrying(_clean_for_rule(name))
+
+
+# How a withheld party is described in place of its name (``organization_part``): what kind of party it was, never who.
+WITHHELD_KINDS = {"estate": "estate", "personal_trust": "personal trust", "trustee_person": "trustee",
+                  "wrapper": "company with a personal trust", None: "person"}
+
+
+def organization_part(name: str) -> tuple[str | None, str | None]:
+    """``(name to store, kind withheld)`` for one party of a recorded document.
+
+    An organisation is stored as written: ``(name, None)``. A wrapper ("<company> LLC <person> REV TR") keeps its
+    leading company, cut at that company's first legal form, when the cut part is an organisation that carries no
+    person (``(company, "company with a personal trust")``); the person's part is withheld. Any other rejected name is
+    withheld whole: ``(None, kind)`` with kind one of ``WITHHELD_KINDS`` ("estate", "personal trust", "trustee",
+    "person"). The kind says a party existed and what it was, never who.
+    """
+    if is_organization(name):
+        return name, None
+    cls = person_carrying_class(name)
+    kind = WITHHELD_KINDS.get(cls, "person")
+    if cls == "wrapper":
+        words = name.split()
+        for i in range(1, len(words)):
+            head = " ".join(words[:i]).rstrip(" ,;&-/")
+            cleaned = _clean_for_rule(head)
+            forms = list(_LEGAL_FORM.finditer(cleaned))
+            if forms and forms[-1].end() == len(cleaned):
+                if is_organization(head) and not _person_carrying(cleaned):
+                    return head, kind
+                break
+    return None, kind
+
+
+def _clean_for_rule(name: str) -> str:
+    raw = _DBA.split(name.upper().replace("&", " AND "), maxsplit=1)[0]
+    s = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).strip()
+    spaced_lp = bool(_SPACED_LP.search(s)) and not _DOTTED_LP.search(raw) and _spaced_lp_is_partnership(s)
+    for pattern, repl in _SUFFIXES:
+        if pattern == r"\bL P\b" and not (_DOTTED_LP.search(raw) or spaced_lp):
+            continue
+        s = re.sub(pattern, repl, s)
+    return _canonical_tokens(s)
+
+
+def _organization_reading(s: str) -> bool:
+    """The organisation reading of a cleaned name, before the person-carrying check (``is_organization``)."""
+    if _PERSONAL_TRUST.search(s) and not _COMPANY_WORD.search(s):
+        return False
+    if _is_surname_collision(s):
+        return False
+    if _sole_proprietor_trade_name(s):
+        return False
+    return (bool(_ENTITY_TOKENS.search(s)) or _structurally_organization(s) or bool(_NUMBERED_TRUST.match(s))
+            or _institution_as_trustee(s))
+
+
+def _institution_as_trustee(s: str) -> bool:
+    """An institution acting as or through trustees, with no person on any side: "EXAMPLE COLLEGE BOARD OF
+    TRUSTEES", "TRUSTEES OF EXAMPLE UNIVERSITY", "EXAMPLE TRUST CO AS TRUSTEE"."""
+    if not (_BOARD_OF_TRUSTEES.search(s) or _TRUSTEE.search(s)) or _TRUSTEE_COMPANY.search(s):
+        return False
+    s = re.sub(r"\s+", " ", _COMPANY_BEFORE_TRUSTEE.sub(r"\1 COMPANY ", s)).strip()
+    if _PERSONAL_TRUST_MARK.search(s) or _PROBATE.search(s) or not _segment_names_no_person_after_trustees(s):
+        return False
+    return bool(_INSTITUTION_WORD.search(_TRUSTEE.sub(" ", _BOARD_OF_TRUSTEES.sub(" ", s))))
+
+
 def is_organization(name: str) -> bool:
     """Conservative: anything not clearly an organisation is treated as a natural person.
 
@@ -320,22 +563,18 @@ def is_organization(name: str) -> bool:
     ``normalize_name``, where it is dropped. "L.P." with a dot, "LP", and "Limited Partnership" are partnerships. A bare spaced
     "L P" is a partnership only with evidence (``_spaced_lp_is_partnership``), because it is also
     how a roll writes a person's initials ("GARCIA MARIA L P").
+
+    A name that carries a natural person inside an organisation-style wrapper is a person whatever else it holds
+    (``person_carrying_class``): a probate form ("ESTATE OF <person>"), a personal trust ("<person> REV TR DTD ...",
+    "<person> FAMILY TRUST"), a trustee named in person ("<person> TRUSTEE", "TRUSTEES OF <person>") and a company
+    followed by any of these ("<company> LLC <person> REV TR"). A bank or trust company acting as trustee with no
+    person named, a numbered land trust, a board of trustees of an institution and a REIT, business or statutory
+    trust stay organisations.
     """
-    raw = _DBA.split(name.upper().replace("&", " AND "), maxsplit=1)[0]
-    s = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).strip()
-    spaced_lp = bool(_SPACED_LP.search(s)) and not _DOTTED_LP.search(raw) and _spaced_lp_is_partnership(s)
-    for pattern, repl in _SUFFIXES:
-        if pattern == r"\bL P\b" and not (_DOTTED_LP.search(raw) or spaced_lp):
-            continue
-        s = re.sub(pattern, repl, s)
-    s = _canonical_tokens(s)
-    if _PERSONAL_TRUST.search(s) and not _COMPANY_WORD.search(s):
+    s = _clean_for_rule(name)
+    if _person_carrying(s):
         return False
-    if _is_surname_collision(s):
-        return False
-    if _sole_proprietor_trade_name(s):
-        return False
-    return bool(_ENTITY_TOKENS.search(s)) or _structurally_organization(s)
+    return _organization_reading(s)
 
 
 # Words that make an organisation's name read as a family's or a person's: its mailing address is likely a home.
@@ -356,8 +595,8 @@ def personal_style_organization(name: str) -> bool:
     tokens = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).split()
     words = [t for t in tokens if t not in _NOT_A_NAME_WORD and t not in NAME_STOP_TOKENS
              and t not in _GENERIC_BUSINESS_WORDS and t not in _LP_CONTEXT]
-    if any(t in _FAMILY_WORDS for t in tokens):
-        return True
+    if any(t in _FAMILY_WORDS for t in tokens) or _PERSONAL_TRUST_MARK.search(" ".join(tokens)):
+        return True  # "SMITH FAMILY LP", "SMITH REVOCABLE HOLDINGS LLC"
     if any(t in _TRADE_NAME_GIVEN_NAMES for t in words):
         return True
     # A surname and two initials ("SMITH J R"), nothing else: "J P MORGAN CHASE BANK" and "A T T" are not.
