@@ -13,6 +13,9 @@
  *   candidates themselves are not gated; only the subject's value_history is cut.
  * - Registry batch tools (names ending in _batch) are for Pro and Team: a free caller gets
  *   PlanRequired, and the call is not metered.
+ * - registry_tx_equity_candidates with tax_year values a whole pool of parcels on the roll year the
+ *   caller names, so it is for Pro and Team as well: a free caller gets PlanRequired, unmetered.
+ *   Without tax_year the tool uses the newest roll year with values, which stays free.
  * - registry_get with as_of (the record as it stood on an earlier date) is history too, so it is
  *   for Pro and Team: a free caller gets PlanRequired, and the call is not metered. Without this
  *   a free caller could read the earlier roll years one date at a time.
@@ -46,12 +49,34 @@ export function isDatedGet(name: unknown, args: unknown): boolean {
   );
 }
 
-/** A registry call a free caller is refused when gating is on: a batch tool, or a dated registry_get. */
+/**
+ * registry_tx_equity_candidates with tax_year: the subject and every candidate valued on the roll of
+ * the year the caller names, which is value history for a whole pool of parcels. Refused for free
+ * callers when gating is on; without tax_year the tool uses the newest roll year that has values.
+ */
+export function isYearedCandidates(name: unknown, args: unknown): boolean {
+  return (
+    name === CANDIDATES_TOOL &&
+    typeof args === "object" &&
+    args !== null &&
+    !Array.isArray(args) &&
+    (args as Json).tax_year != null
+  );
+}
+
+/**
+ * A registry call a free caller is refused when gating is on: a batch tool, a dated registry_get, or
+ * the candidates tool asked for a roll year.
+ */
 export function isPaidRegistryCall(
   name: unknown,
   args: unknown,
 ): name is string {
-  return isBatchRegistryTool(name) || isDatedGet(name, args);
+  return (
+    isBatchRegistryTool(name) ||
+    isDatedGet(name, args) ||
+    isYearedCandidates(name, args)
+  );
 }
 
 /** What a free caller's answer had cut: distinct earlier tax years (newest first) and earlier facts. Never values. */
@@ -114,12 +139,27 @@ export function datedPlanRequired(): { status: 403; body: Json } {
   };
 }
 
+/** PlanRequired for the candidates tool asked for a roll year (tax_year), in the same shape. */
+export function yearedPlanRequired(): { status: 403; body: Json } {
+  return {
+    status: 403,
+    body: {
+      error: "PlanRequired",
+      message: `${CANDIDATES_TOOL} with tax_year values the subject and every candidate on the roll of the year you name, which is value history, so it is part of the paid plans: Pro and Team. Nothing was counted. Without tax_year the same call uses the newest roll year that has values, within the free daily lookups.`,
+      next: `send a Pro or Team key as Authorization: Bearer <key> (${GATING_PRICING_URL}), or call ${CANDIDATES_TOOL} again without tax_year`,
+      upgrade: GATING_PRICING_URL,
+    },
+  };
+}
+
 /** PlanRequired for a call isPaidRegistryCall matched. */
 export function planRequired(
   tool: string,
   args: unknown,
 ): { status: 403; body: Json } {
-  return isDatedGet(tool, args) ? datedPlanRequired() : batchPlanRequired(tool);
+  if (isDatedGet(tool, args)) return datedPlanRequired();
+  if (isYearedCandidates(tool, args)) return yearedPlanRequired();
+  return batchPlanRequired(tool);
 }
 
 /**

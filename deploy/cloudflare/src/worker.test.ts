@@ -5592,6 +5592,72 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.equal(only.headers.get("x-factlot-registry-quota-limit"), null);
   });
 
+  it("candidates with tax_year: a free caller gets PlanRequired on REST and MCP, unmetered and never forwarded; without tax_year, with a key or with gating off it runs", async () => {
+    const CANDIDATES = "/v1/registry/tx_equity_candidates";
+    const { api, seen } = historyApi();
+    const e = on();
+    const res = await call(e, api, CANDIDATES, {
+      body: { urn: "x", tax_year: 2018, limit: 200 },
+    });
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      error: string;
+      upgrade: string;
+      message: string;
+      next: string;
+    };
+    assert.equal(body.error, "PlanRequired");
+    assert.equal(body.upgrade, "https://factlot.com/pricing/");
+    assert.match(body.message, /tax_year/);
+    assert.match(body.message, /Nothing was counted/);
+    assert.match(body.next, /without tax_year/);
+    assert.deepEqual(seen, []);
+    assert.equal(
+      (await e.METER.quota(await addressSubject(IP, T0), "day", 25)).used,
+      0,
+    );
+    // The roll year the tool picks by itself stays free.
+    const current = await call(e, api, CANDIDATES, { body: { urn: "x" } });
+    assert.equal(current.status, 200);
+    // MCP: a tool error for the call that names a year; the call beside it runs.
+    const mcp = await call(on(), api, "/mcp", {
+      body: [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name: "registry_tx_equity_candidates",
+            arguments: { urn: "x", tax_year: 2018 },
+          },
+        },
+        toolCall("registry_get", 2),
+      ],
+    });
+    const answers = (await mcp.json()) as {
+      id: number;
+      result: { isError?: boolean; structuredContent: { error?: string } };
+    }[];
+    const refused = answers.find((a) => a.id === 1)!;
+    assert.equal(refused.result.isError, true);
+    assert.equal(refused.result.structuredContent.error, "PlanRequired");
+    assert.ok(answers.find((a) => a.id === 2));
+    assert.ok(!seen.join("").includes("2018"), "never forwarded");
+    assert.equal(mcp.headers.get("x-factlot-registry-quota-remaining"), "24");
+    // A Pro key may name the year.
+    const { key } = await issue(e);
+    const pro = await call(e, api, CANDIDATES, {
+      key,
+      body: { urn: "x", tax_year: 2018 },
+    });
+    assert.equal(pro.status, 200);
+    // Flag off: the call runs as before.
+    const off = await call(env(), api, CANDIDATES, {
+      body: { urn: "x", tax_year: 2018 },
+    });
+    assert.equal(off.status, 200);
+  });
+
   it("REST dated get: a free caller's registry_get with as_of gets 403 PlanRequired, unmetered and never forwarded; without as_of, with a key or with gating off it runs", async () => {
     const { api, seen } = historyApi();
     const e = on();
@@ -5813,6 +5879,7 @@ describe("paid gating (GATING_ENABLED)", () => {
         free_history: string;
         batch: string;
         dated_get: string;
+        candidates_tax_year: string;
         pricing: string;
       };
       plans: {
@@ -5830,6 +5897,7 @@ describe("paid gating (GATING_ENABLED)", () => {
       free_history: "current roll year only",
       batch: "Pro and Team",
       dated_get: "Pro and Team",
+      candidates_tax_year: "Pro and Team",
       pricing: "https://factlot.com/pricing/",
     });
     assert.match(String(enabled.plans.free.note), /current roll year/);

@@ -215,7 +215,8 @@ calls below are in order; each result is reported as returned, with its warnings
    ```
 
    Without `tax_year` it compares in the newest tax year whose roll gives the subject a value; pass
-   `tax_year` to pin one.
+   `tax_year` to pin one (on the hosted API naming a year needs a Pro or Team key and answers
+   `PlanRequired` without one, uncounted).
 
    `subject` carries the roll value, `value_basis`, areas, year built, state property category
    code and `value_history` (market and appraised value by tax year, each cited to that year's

@@ -182,6 +182,7 @@ export const GATING_INFO = {
   free_history: "current roll year only",
   batch: "Pro and Team",
   dated_get: "Pro and Team",
+  candidates_tax_year: "Pro and Team",
   pricing: GATING_PRICING_URL,
 };
 

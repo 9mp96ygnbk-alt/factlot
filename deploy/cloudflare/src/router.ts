@@ -121,6 +121,7 @@ import {
 import {
   isDatedGet,
   isPaidRegistryCall,
+  isYearedCandidates,
   limitMcpResponse,
   planRequired,
   limitRestResponse,
@@ -1130,7 +1131,11 @@ async function route(
   );
   const noteRefusal = (tool: unknown, args: unknown) =>
     countEvent(env, "plan_required", [
-      isDatedGet(tool, args) ? "dated" : "batch",
+      isDatedGet(tool, args)
+        ? "dated"
+        : isYearedCandidates(tool, args)
+          ? "tax_year"
+          : "batch",
       kind,
     ]);
   // What the request asks of the registry.
