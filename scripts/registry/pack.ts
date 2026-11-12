@@ -15,6 +15,15 @@
  *
  * The wall-clock time is then about that of the slowest file (Texas) rather than the sum. Each process holds one
  * file's address, name and crosswalk rows in memory, and the parent holds them all while it writes the indexes.
+ *
+ * --parts-cache <dir> keeps each region's finished part with a stamp and takes an unchanged region from there in a
+ * later build instead of packing it again; the pack is the same as a full build's (see "region reuse" below and
+ * pack_cache.ts). Keep the file order: a region's index is in its stamp, so add new regions at the end.
+ *
+ *   node --experimental-strip-types --conditions=factlot-source scripts/registry/pack.ts --seed-parts-cache <dir> \
+ *     --from-pack <pack> --kept-parts <dir> --built-at <commit> [--allow-changed <path>]...
+ *
+ * fills the cache from a finished --jobs build whose <k>.part.jsonl and <k>.job.json were kept (see seedPartsCache).
  */
 import { spawn, spawnSync } from "node:child_process";
 import {
@@ -26,12 +35,30 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
   writeSync,
 } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import {
+  PartsCache,
+  STAMP_SCHEMA,
+  cloneFile,
+  codeVersion,
+  fsReader,
+  gitReader,
+  listFiles,
+  runtimeId,
+  suppressionId,
+  type CacheEntry,
+  type CachedFile,
+  type CodeVersion,
+  type FileHashes,
+  type PartStamp,
+} from "./pack_cache.ts";
 
 import {
   ADDRESS_STREET_TYPES,
@@ -1512,9 +1539,9 @@ export function buildPart(job: PartJob, log: (line: string) => void): void {
   ]);
 }
 
-function readPart(dir: string): PartResult {
+function readPart(file: string): PartResult {
   const [head, [crosswalk, address_rows, name_rows]] = readJsonLines(
-    join(dir, "part.jsonl"),
+    file,
     3,
   ) as [Omit<PartResult, "part"> & { part: RegionPart }, unknown[][]];
   return {
@@ -1549,11 +1576,97 @@ export interface ParallelOptions extends Omit<PackOptions, "privacyCheck"> {
   jobs?: number;
   /** Run the Python privacy scan on each filtered file (the CLI does unless --skip-privacy-scan). */
   privacyScan?: boolean;
+  /** A parts cache directory (see "region reuse" below): unchanged regions are taken from it, built ones stored. */
+  partsCache?: string;
+  /** The code version to stamp parts with (default: computed from this source tree); tests set it. */
+  partsCacheCode?: string;
+}
+
+// --- region reuse ------------------------------------------------------------------------------
+//
+// With a parts cache (--parts-cache <dir>, pack_cache.ts), a region whose stamp matches a cached part is not built:
+// its part.jsonl is read and its files copied from the cache. Nothing in a part depends on another region: a part
+// is made by one process from one filtered file (prepareSource, buildRegion with a fresh EquityState), and k is
+// its only link to the rest of the pack (the g/<k>/ paths and each entry's "k"), so k is in the stamp. The
+// cross-region checks (Combined.add, the pool clash check, finishPack's file and size limits) run on a reused part
+// as on a built one, and checkPart below repeats the cheap per-region ones. The privacy scan is not run again on a
+// reused region: its input (the filtered file) is fixed by the stamp, and so is the scan's code.
+
+const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+
+/** The stamp a region's part gets (pack_cache.ts PartStamp). */
+function partStamp(job: PartJob, code: string, hashes: FileHashes): PartStamp {
+  return {
+    schema: STAMP_SCHEMA,
+    region: job.name,
+    k: job.k,
+    source: hashes.source(job.path),
+    options: {
+      exclude: job.exclude,
+      entity_whole_max: job.entityWholeMax ?? ENTITY_WHOLE_MAX,
+      suppression: suppressionId(job.suppression),
+      privacy_scan: job.privacyScan,
+      max_files: job.maxFiles ?? PACK_MAX_FILES,
+    },
+    code,
+    runtime: runtimeId(),
+  };
+}
+
+/** The pack paths a part's files take: g/<k>/0.json … and, for Texas, its pools under q/. */
+function checkPart(
+  job: { name: string; k: number },
+  r: PartResult,
+  files: CachedFile[],
+  exclude: string[],
+): void {
+  const fail = (why: string) => {
+    throw new Error(`${job.name}: cached part refused: ${why}`);
+  };
+  const part = r.part;
+  if (part.db.name !== job.name) fail(`it is region ${part.db.name}`);
+  let bytes = 0;
+  let largest = 0;
+  const pools = new Set<string>();
+  const shards = new Set<string>();
+  for (const [path, n] of files) {
+    bytes += n;
+    largest = Math.max(largest, n);
+    const q = /^q\/([^/]+)\//.exec(path);
+    if (q) pools.add(q[1]!);
+    else if (path.startsWith(`g/${job.k}/`)) shards.add(path);
+    else fail(`unexpected file ${path}`);
+  }
+  for (let i = 0; i < part.db.shards; i++)
+    if (!shards.delete(`g/${job.k}/${i}.json`))
+      fail(`record shard ${i} missing`);
+  if (shards.size)
+    fail(`${shards.size} files under g/${job.k}/ beyond its shards`);
+  if (pools.size !== part.equity_pools)
+    fail(`${pools.size} pools, the part says ${part.equity_pools}`);
+  if (
+    r.files !== files.length ||
+    r.bytes !== bytes ||
+    r.largest.bytes !== largest
+  )
+    fail("its files are not those it recorded");
+  if (largest > PACK_MAX_FILE_BYTES)
+    fail(`a file of ${largest} bytes, over ${PACK_MAX_FILE_BYTES}`);
+  // Withheld counties: no county, parcel or building of one.
+  for (const c of part.coverage.counties)
+    if (exclude.includes(`${c.state_fips}${c.county_fips}`))
+      fail(`it holds withheld county ${c.state_fips}${c.county_fips}`);
+  for (const p of part.prefixes) {
+    const m = /^fl:(?:parcel|building):us-([0-9]{5})/.exec(p);
+    if (m && exclude.includes(m[1]!)) fail(`it holds subjects under ${p}`);
+  }
 }
 
 /**
  * buildPack with each region in its own process (see "parallel builds" above); the same pack. Rejects files that
- * one process must build together (Texas parcels in more than one file).
+ * one process must build together (Texas parcels in more than one file). With `partsCache`, regions whose stamp
+ * matches are taken from the cache (see "region reuse"), and the regions built are stored there once the pack is
+ * written; a build that fails leaves the cache as it was.
  */
 export async function buildPackParallel(
   sources: PackSource[],
@@ -1569,8 +1682,6 @@ export async function buildPackParallel(
     );
   const tmp = `${target}.building-${process.pid}`;
   const partsDir = `${target}.parts`;
-  rmSync(tmp, { recursive: true, force: true });
-  rmSync(partsDir, { recursive: true, force: true });
   const work = resolve(options.work ?? `${target}.work`);
   const jobs = sources.map((s, k): PartJob => ({
     name: s.name,
@@ -1584,6 +1695,246 @@ export async function buildPackParallel(
     privacyScan: options.privacyScan ?? false,
     maxFiles: options.maxFiles,
   }));
+  const cache = options.partsCache
+    ? new PartsCache(resolve(options.partsCache))
+    : undefined;
+  try {
+    rmSync(tmp, { recursive: true, force: true });
+    rmSync(partsDir, { recursive: true, force: true });
+    const stamps = new Map<number, PartStamp>();
+    const reused = new Map<number, CacheEntry>();
+    if (cache) {
+      const code =
+        options.partsCacheCode ??
+        codeVersion(fsReader(REPO_ROOT), options.privacyScan ?? false).version;
+      for (const job of jobs) {
+        const stamp = partStamp(job, code, cache.hashes);
+        stamps.set(job.k, stamp);
+        const got = cache.load(job.name, stamp);
+        if ("entry" in got) {
+          reused.set(job.k, got.entry);
+          log(`${job.name}: reused from the parts cache`);
+        } else log(`${job.name}: building (${got.reason})`);
+      }
+    }
+    await runJobs(
+      jobs.filter((j) => !reused.has(j.k)),
+      partsDir,
+      log,
+      options.jobs,
+    );
+    const w = new Writer(tmp);
+    const c = new Combined();
+    const built = new Map<number, string[]>();
+    jobs.forEach((job) => {
+      const entry = reused.get(job.k);
+      const r = readPart(entry ? entry.partFile : join(job.dir, "part.jsonl"));
+      if (entry) checkPart(job, r, entry.files, exclude);
+      c.addScope(r.entity_scope);
+      c.add(job.k, r.part, false);
+      if (entry) {
+        // The cached files, copied into the pack under the same paths.
+        const mine = new Set<string>();
+        for (const [path] of entry.files) {
+          const pool = /^q\/([^/]+)\//.exec(path)?.[1];
+          if (pool && !mine.has(pool)) {
+            if (existsSync(join(tmp, "q", pool)))
+              throw new Error(`pool ${pool} is in two regions`);
+            mine.add(pool);
+          }
+          cloneFile(join(entry.dir, "files", path), join(tmp, path));
+        }
+      } else {
+        // The part's files, moved into the pack under the same paths.
+        const paths: string[] = [];
+        const files = join(job.dir, "files");
+        for (const top of existsSync(files) ? readdirSync(files) : []) {
+          const from = join(files, top);
+          if (top === "g") {
+            mkdirSync(join(tmp, "g"), { recursive: true });
+            renameSync(
+              join(from, String(job.k)),
+              join(tmp, "g", String(job.k)),
+            );
+            paths.push(...listFiles(tmp, `g/${job.k}`));
+          } else if (top === "q") {
+            mkdirSync(join(tmp, "q"), { recursive: true });
+            for (const pool of readdirSync(from)) {
+              if (existsSync(join(tmp, "q", pool)))
+                throw new Error(`pool ${pool} is in two regions`);
+              renameSync(join(from, pool), join(tmp, "q", pool));
+              paths.push(...listFiles(tmp, `q/${pool}`));
+            }
+          } else throw new Error(`region ${job.name} wrote ${top}/`);
+        }
+        built.set(job.k, paths);
+      }
+      w.files += r.files;
+      w.bytes += r.bytes;
+      if (r.largest.bytes > w.largest.bytes) w.largest = r.largest;
+    });
+    const manifest = finishPack(c, w, withheld, log, options);
+    if (existsSync(target)) rmSync(target, { recursive: true, force: true });
+    renameSync(tmp, target);
+    if (cache) {
+      // The pack is written: keep the regions built for the next build.
+      for (const job of jobs) {
+        const paths = built.get(job.k);
+        if (!paths) continue;
+        try {
+          cache.store(
+            job.name,
+            stamps.get(job.k)!,
+            join(job.dir, "part.jsonl"),
+            target,
+            paths,
+          );
+          log(`${job.name}: stored in the parts cache`);
+        } catch (err) {
+          log(`${job.name}: not stored in the parts cache: ${String(err)}`);
+        }
+      }
+      cache.hashes.save();
+    }
+    rmSync(partsDir, { recursive: true, force: true });
+    return { files: w.files, bytes: w.bytes, largest: w.largest, manifest };
+  } catch (err) {
+    rmSync(tmp, { recursive: true, force: true });
+    throw err;
+  } finally {
+    cache?.release();
+  }
+}
+
+export interface SeedOptions {
+  /** The parts cache to fill. */
+  cache: string;
+  /** A finished pack built with --jobs. */
+  pack: string;
+  /** Its regions' kept part files: <k>.part.jsonl and <k>.job.json, as the build wrote them. */
+  kept: string;
+  /** The code version the build ran (codeVersion of its commit), by privacy scan setting. */
+  buildCode: (privacyScan: boolean) => CodeVersion;
+  /** The code version now (default: this source tree). */
+  currentCode?: (privacyScan: boolean) => CodeVersion;
+  /**
+   * Files (or npm packages) whose change since the build was reviewed and does not change a part's bytes. Any
+   * other difference refuses the seed.
+   */
+  allowChanged?: string[];
+}
+
+/**
+ * Turns a finished parallel build into parts cache entries, so the next build with the cache reuses its regions
+ * instead of packing them again. Sound only for what it checks, and it refuses otherwise: the code the build ran
+ * must equal the current code (but for reviewed files named in allowChanged); each region's registry file must not
+ * have changed since its job file was written (its mtime, and that of a -wal or -journal, is not later), and its
+ * hash is computed now; the kept part must be the pack's region (the manifest's dbs[k] and candidate data equal the
+ * part's, and the pack's g/<k>/ and pools have exactly the count, total size and largest size the part recorded);
+ * and the per-region checks of a reused part (checkPart) must pass. Returns the regions stored. The pack and the
+ * kept files are only read.
+ */
+export function seedPartsCache(
+  o: SeedOptions,
+  log: (line: string) => void = () => {},
+): string[] {
+  const pack = resolve(o.pack);
+  const manifest = JSON.parse(
+    readFileSync(join(pack, "manifest.json"), "utf8"),
+  ) as Manifest;
+  const current =
+    o.currentCode ?? ((p: boolean) => codeVersion(fsReader(REPO_ROOT), p));
+  const allowed = new Set(o.allowChanged ?? []);
+  const codes = new Map<boolean, string>();
+  const codeFor = (privacyScan: boolean): string => {
+    const known = codes.get(privacyScan);
+    if (known) return known;
+    const then = o.buildCode(privacyScan);
+    const now = current(privacyScan);
+    const changed: string[] = [];
+    for (const [a, b] of [
+      [then.files, now.files],
+      [then.packages, now.packages],
+    ] as const)
+      for (const f of new Set([...Object.keys(a), ...Object.keys(b)]))
+        if (a[f] !== b[f]) changed.push(f);
+    const refused = changed.filter((f) => !allowed.has(f));
+    for (const f of changed)
+      if (allowed.has(f)) log(`code changed since the build, reviewed: ${f}`);
+    if (refused.length)
+      throw new Error(
+        `the code changed since the build in ${refused.join(", ")}; a part built by the old code may differ, so ` +
+          "nothing is seeded (review the diff and pass --allow-changed <path> for each file that does not change a part)",
+      );
+    codes.set(privacyScan, now.version);
+    return now.version;
+  };
+  const cache = new PartsCache(resolve(o.cache));
+  const stored: string[] = [];
+  try {
+    manifest.dbs.forEach((db, k) => {
+      const jobFile = join(o.kept, `${k}.job.json`);
+      const partFile = join(o.kept, `${k}.part.jsonl`);
+      if (!existsSync(jobFile) || !existsSync(partFile)) {
+        log(`${db.name}: no kept part, not seeded`);
+        return;
+      }
+      const job = JSON.parse(readFileSync(jobFile, "utf8")) as PartJob;
+      const refuse = (why: string) => log(`${db.name}: not seeded: ${why}`);
+      if (job.k !== k || job.name !== db.name)
+        return refuse(`the job file is region ${job.name} at ${job.k}`);
+      const started = statSync(jobFile).mtimeMs;
+      for (const f of [job.path, `${job.path}-wal`, `${job.path}-journal`])
+        if (
+          existsSync(f) &&
+          (f === job.path || statSync(f).size > 0) &&
+          statSync(f).mtimeMs > started
+        )
+          return refuse(`${f} changed after the build started`);
+      const r = readPart(partFile);
+      if (!same(r.part.db, db))
+        return refuse("the kept part is not the pack's region");
+      if (r.part.equity_docs.length || r.part.equity_pools) {
+        if (
+          !same(manifest.equity?.docs, r.part.equity_docs) ||
+          manifest.equity?.pools !== r.part.equity_pools
+        )
+          return refuse("its candidate data is not the pack's");
+      }
+      const paths = [
+        ...listFiles(pack, `g/${k}`),
+        ...(r.part.equity_pools ? listFiles(pack, "q") : []),
+      ];
+      const files: CachedFile[] = paths.map((p) => [
+        p,
+        statSync(join(pack, p)).size,
+        "",
+      ]);
+      try {
+        checkPart(job, r, files, job.exclude);
+      } catch (err) {
+        return refuse((err as Error).message);
+      }
+      const stamp = partStamp(job, codeFor(job.privacyScan), cache.hashes);
+      cache.store(job.name, stamp, partFile, pack, paths);
+      stored.push(job.name);
+      log(`${db.name}: seeded (${paths.length} files)`);
+    });
+    cache.hashes.save();
+  } finally {
+    cache.release();
+  }
+  return stored;
+}
+
+/** Runs the region processes of a parallel build, at most `jobs` at once; rejects with the first failure. */
+async function runJobs(
+  jobs: PartJob[],
+  partsDir: string,
+  log: (line: string) => void,
+  limitJobs: number | undefined,
+): Promise<void> {
+  if (!jobs.length) return;
   const script = fileURLToPath(import.meta.url);
   const runJob = (job: PartJob): Promise<void> =>
     new Promise((ok, fail) => {
@@ -1627,54 +1978,18 @@ export async function buildPackParallel(
           );
       });
     });
-  const limit = Math.max(1, Math.min(options.jobs ?? jobs.length, jobs.length));
-  try {
-    const queue = [...jobs];
-    let failed: unknown;
-    await Promise.all(
-      Array.from({ length: limit }, async () => {
-        for (let job = queue.shift(); job && !failed; job = queue.shift())
-          await runJob(job).catch((err: unknown) => {
-            failed ??= err;
-          });
-      }),
-    );
-    if (failed) throw failed;
-    const w = new Writer(tmp);
-    const c = new Combined();
-    jobs.forEach((job) => {
-      const r = readPart(job.dir);
-      c.addScope(r.entity_scope);
-      c.add(job.k, r.part, false);
-      // The part's files, moved into the pack under the same paths.
-      const files = join(job.dir, "files");
-      for (const top of existsSync(files) ? readdirSync(files) : []) {
-        const from = join(files, top);
-        if (top === "g") {
-          mkdirSync(join(tmp, "g"), { recursive: true });
-          renameSync(join(from, String(job.k)), join(tmp, "g", String(job.k)));
-        } else if (top === "q") {
-          mkdirSync(join(tmp, "q"), { recursive: true });
-          for (const pool of readdirSync(from)) {
-            if (existsSync(join(tmp, "q", pool)))
-              throw new Error(`pool ${pool} is in two regions`);
-            renameSync(join(from, pool), join(tmp, "q", pool));
-          }
-        } else throw new Error(`region ${job.name} wrote ${top}/`);
-      }
-      w.files += r.files;
-      w.bytes += r.bytes;
-      if (r.largest.bytes > w.largest.bytes) w.largest = r.largest;
-    });
-    const manifest = finishPack(c, w, withheld, log, options);
-    if (existsSync(target)) rmSync(target, { recursive: true, force: true });
-    renameSync(tmp, target);
-    rmSync(partsDir, { recursive: true, force: true });
-    return { files: w.files, bytes: w.bytes, largest: w.largest, manifest };
-  } catch (err) {
-    rmSync(tmp, { recursive: true, force: true });
-    throw err;
-  }
+  const limit = Math.max(1, Math.min(limitJobs ?? jobs.length, jobs.length));
+  const queue = [...jobs];
+  let failed: unknown;
+  await Promise.all(
+    Array.from({ length: limit }, async () => {
+      for (let job = queue.shift(); job && !failed; job = queue.shift())
+        await runJob(job).catch((err: unknown) => {
+          failed ??= err;
+        });
+    }),
+  );
+  if (failed) throw failed;
 }
 
 /**
@@ -1708,6 +2023,37 @@ async function main(argv: string[]): Promise<void> {
     buildPart(job, (l) => console.log(l));
     return;
   }
+  if (argv[0] === "--seed-parts-cache") {
+    const o: Partial<SeedOptions> & { allowChanged: string[] } = {
+      cache: argv[1],
+      allowChanged: [],
+    };
+    let commit: string | undefined;
+    for (let i = 2; i < argv.length; i++) {
+      const a = argv[i]!;
+      if (a === "--from-pack") o.pack = argv[++i];
+      else if (a === "--kept-parts") o.kept = argv[++i];
+      else if (a === "--built-at") commit = argv[++i];
+      else if (a === "--allow-changed") o.allowChanged.push(argv[++i]!);
+      else throw new Error(`unknown option ${a}`);
+    }
+    if (!o.cache || !o.pack || !o.kept || !commit) {
+      console.error(
+        "usage: node scripts/registry/pack.ts --seed-parts-cache <cache> --from-pack <pack> --kept-parts <dir> --built-at <commit> [--allow-changed <path>]...",
+      );
+      process.exit(2);
+    }
+    const read = gitReader(REPO_ROOT, commit);
+    const stored = seedPartsCache(
+      {
+        ...(o as SeedOptions),
+        buildCode: (p) => codeVersion(read, p),
+      },
+      (l) => console.log(l),
+    );
+    console.log(`seeded ${stored.length} regions: ${stored.join(", ")}`);
+    return;
+  }
   let out: string | undefined;
   let work: string | undefined;
   let jobs = 1;
@@ -1715,6 +2061,7 @@ async function main(argv: string[]): Promise<void> {
   const sources: PackSource[] = [];
   let suppress: string | undefined;
   let privacyScan = true;
+  let partsCache: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--out") out = argv[++i];
@@ -1724,6 +2071,7 @@ async function main(argv: string[]): Promise<void> {
     else if (a === "--skip-privacy-scan") privacyScan = false;
     else if (a === "--work") work = argv[++i];
     else if (a === "--jobs") jobs = Number(argv[++i]);
+    else if (a === "--parts-cache") partsCache = argv[++i];
     else if (a.startsWith("-")) throw new Error(`unknown option ${a}`);
     else {
       const eq = a.indexOf("=");
@@ -1735,7 +2083,7 @@ async function main(argv: string[]): Promise<void> {
   }
   if (!out || !sources.length || !Number.isInteger(jobs) || jobs < 1) {
     console.error(
-      "usage: node scripts/registry/pack.ts --out <dir> [--jobs <n>] [--exclude-county <5-digit FIPS>]... [--suppress <file>] [--work <dir>] [--skip-privacy-scan] <db | name=db>...",
+      "usage: node scripts/registry/pack.ts --out <dir> [--jobs <n>] [--parts-cache <dir>] [--exclude-county <5-digit FIPS>]... [--suppress <file>] [--work <dir>] [--skip-privacy-scan] <db | name=db>...",
     );
     process.exit(2);
   }
@@ -1747,13 +2095,14 @@ async function main(argv: string[]): Promise<void> {
   const suppression = suppress ? readSuppression(resolve(suppress)) : undefined;
   const log = (l: string) => console.log(l);
   const stats =
-    jobs > 1
+    jobs > 1 || partsCache
       ? await buildPackParallel(sources, out, log, {
           excludeCounties,
           work,
           suppression,
           privacyScan,
           jobs,
+          partsCache,
         })
       : buildPack(sources, out, log, {
           excludeCounties,

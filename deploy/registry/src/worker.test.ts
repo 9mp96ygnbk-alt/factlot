@@ -2,11 +2,16 @@
 // runTool returns against the fixture itself, for every record and a battery of searches, misses and dated lookups.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   copyFileSync,
+  existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
+  rmSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { createRequire } from "node:module";
@@ -19,12 +24,16 @@ import { packProblems } from "../../../scripts/registry/deploy.ts";
 import {
   buildPack,
   buildPackParallel,
+  buildPart,
+  seedPartsCache,
 } from "../../../scripts/registry/pack.ts";
+import { codeVersion, fsReader } from "../../../scripts/registry/pack_cache.ts";
 import {
   computeRegistryCoverage,
   configureRegistry,
   equityRule,
   getTool,
+  hostedWithheldCounties,
   runTool,
   selectEquityCandidates,
 } from "../../../packages/tools/src/index.ts";
@@ -1074,15 +1083,15 @@ function packFiles(root: string): Map<string, string> {
   );
 }
 
-test("a parallel build (--jobs) writes the same pack as one process", async () => {
-  // Texas (county 48997 and the entities) in one file, New York (36061) and the buildings in the other.
+/** The fixture split in two registry files: Texas (county 48997 and the entities) and New York (36061, buildings). */
+function splitNyTx(tag: string): { ny: string; tx: string } {
   const all = relocated(
-    "parallel.db",
+    `${tag}.db`,
     [["us-48999", "us-36061"]],
     NATIONAL_SQL.split(";")[0]!,
   );
-  const tx = join(dir, "parallel-tx.db");
-  const ny = join(dir, "parallel-ny.db");
+  const tx = join(dir, `${tag}-tx.db`);
+  const ny = join(dir, `${tag}-ny.db`);
   copyFileSync(all, tx);
   copyFileSync(all, ny);
   const inNy = "(urn LIKE 'fl:parcel:us-36061:%' OR urn LIKE 'fl:building:%')";
@@ -1101,6 +1110,11 @@ test("a parallel build (--jobs) writes the same pack as one process", async () =
     );
     d.close();
   }
+  return { ny, tx };
+}
+
+test("a parallel build (--jobs) writes the same pack as one process", async () => {
+  const { ny, tx } = splitNyTx("parallel");
   const sources = [
     { name: "ny", path: ny },
     { name: "tx", path: tx },
@@ -1153,4 +1167,380 @@ test("a pack the Worker could not hold is refused while building", () => {
       ),
     /a Worker version/,
   );
+});
+
+// --- region reuse (pack.ts --parts-cache) ------------------------------------------------------
+
+/** Two packs hold the same files with the same bytes (the manifest apart from built_at). */
+function assertSamePack(got: string, want: string): void {
+  const fa = packFiles(want);
+  const fb = packFiles(got);
+  assert.deepEqual([...fb.keys()].sort(), [...fa.keys()].sort());
+  for (const [path, text] of fa) {
+    if (path === "manifest.json") {
+      const strip = (t: string) => ({ ...JSON.parse(t), built_at: null });
+      assert.deepEqual(strip(fb.get(path)!), strip(text));
+    } else assert.equal(fb.get(path), text, path);
+  }
+}
+
+/** Every file of a directory and its sha256, to tell whether it changed at all. */
+function snapshot(root: string): Map<string, string> {
+  return new Map(
+    allFiles(root).map((f) => [
+      relative(root, f),
+      createHash("sha256").update(readFileSync(f)).digest("hex"),
+    ]),
+  );
+}
+
+/** A parallel build with the parts cache; returns which regions were reused and which built. */
+async function cachedBuild(
+  sources: { name: string; path: string }[],
+  out: string,
+  cache: string,
+  extra: Record<string, unknown> = {},
+): Promise<{ reused: string[]; built: string[] }> {
+  const lines: string[] = [];
+  await buildPackParallel(sources, out, (l) => lines.push(l), {
+    entityWholeMax: 1,
+    jobs: 2,
+    partsCache: cache,
+    partsCacheCode: "test-code",
+    ...extra,
+  });
+  const pick = (re: RegExp) =>
+    lines.flatMap((l) => {
+      const m = re.exec(l);
+      return m ? [m[1]!] : [];
+    });
+  return {
+    reused: pick(/^(\w+): reused from the parts cache$/),
+    built: pick(/^(\w+): building \(/),
+  };
+}
+
+test("parts cache: a warm build writes the cold build's pack, and a changed region alone is rebuilt", async () => {
+  const { ny, tx } = splitNyTx("reuse");
+  const sources = [
+    { name: "ny", path: ny },
+    { name: "tx", path: tx },
+  ];
+  const cache = join(dir, "parts-cache-1");
+  const cold = join(dir, "pack-reuse-cold");
+  await buildPackParallel(sources, cold, () => {}, {
+    entityWholeMax: 1,
+    jobs: 2,
+  });
+  const fill = await cachedBuild(sources, join(dir, "pack-reuse-fill"), cache);
+  assert.deepEqual(fill, { reused: [], built: ["ny", "tx"] });
+  assertSamePack(join(dir, "pack-reuse-fill"), cold);
+  const warm = join(dir, "pack-reuse-warm");
+  assert.deepEqual(await cachedBuild(sources, warm, cache), {
+    reused: ["ny", "tx"],
+    built: [],
+  });
+  assertSamePack(warm, cold);
+  assert.deepEqual(packProblems(warm), []);
+  // One region's file changes: only it is built again, and the pack is a full build's.
+  const d = new DatabaseSync(ny);
+  d.exec(
+    "UPDATE subjects SET label = label || ' ANNEX' WHERE urn = (SELECT MIN(urn) FROM subjects WHERE kind = 'parcel' AND label IS NOT NULL)",
+  );
+  d.close();
+  const full = join(dir, "pack-reuse-full");
+  await buildPackParallel(sources, full, () => {}, {
+    entityWholeMax: 1,
+    jobs: 2,
+  });
+  const mixed = join(dir, "pack-reuse-mixed");
+  assert.deepEqual(await cachedBuild(sources, mixed, cache), {
+    reused: ["tx"],
+    built: ["ny"],
+  });
+  assertSamePack(mixed, full);
+  assert.notDeepEqual(packFiles(full), packFiles(cold), "the change shows");
+  // The region order is part of a region's stamp (its index k is in its files).
+  assert.deepEqual(
+    await cachedBuild(
+      [...sources].reverse(),
+      join(dir, "pack-reuse-rev"),
+      cache,
+    ),
+    { reused: [], built: ["tx", "ny"] },
+  );
+});
+
+test("parts cache: an option, the code version, or a damaged or partial entry means the region is built again", async () => {
+  const { ny, tx } = splitNyTx("stamp");
+  const sources = [
+    { name: "ny", path: ny },
+    { name: "tx", path: tx },
+  ];
+  const cache = join(dir, "parts-cache-2");
+  const cold = join(dir, "pack-stamp-cold");
+  await buildPackParallel(sources, cold, () => {}, {
+    entityWholeMax: 1,
+    jobs: 2,
+  });
+  const out = join(dir, "pack-stamp");
+  const both = { reused: [], built: ["ny", "tx"] };
+  assert.deepEqual(await cachedBuild(sources, out, cache), both);
+  // Options that reach a part.
+  assert.deepEqual(
+    await cachedBuild(sources, out, cache, { entityWholeMax: 2 }),
+    both,
+  );
+  const someUrn = String(
+    new DatabaseSync(ny, { readOnly: true })
+      .prepare("SELECT urn FROM subjects WHERE kind = 'parcel' LIMIT 1")
+      .get()!.urn,
+  );
+  assert.deepEqual(
+    await cachedBuild(sources, out, cache, {
+      suppression: { subjects: [someUrn], owner_names: [] },
+    }),
+    both,
+  );
+  assert.deepEqual(
+    await cachedBuild(sources, out, cache, { maxFiles: 90_000 }),
+    both,
+  );
+  // The code version.
+  assert.deepEqual(
+    await cachedBuild(sources, out, cache, { partsCacheCode: "other-code" }),
+    both,
+  );
+  assert.deepEqual(await cachedBuild(sources, out, cache), both);
+  assert.deepEqual(await cachedBuild(sources, out, cache), {
+    reused: ["ny", "tx"],
+    built: [],
+  });
+  // A damaged file (same size), a missing file, a partial entry (no stamp), a damaged part.jsonl.
+  const entry = (r: string) => join(cache, "regions", r);
+  const shard = join(entry("tx"), "files", "g", "1", "0.json");
+  const bytes = readFileSync(shard);
+  bytes[10] = bytes[10]! ^ 1;
+  writeFileSync(shard, bytes);
+  assert.deepEqual(await cachedBuild(sources, out, cache), {
+    reused: ["ny"],
+    built: ["tx"],
+  });
+  assertSamePack(out, cold);
+  rmSync(join(entry("ny"), "files", "g", "0", "0.json"));
+  assert.deepEqual(await cachedBuild(sources, out, cache), {
+    reused: ["tx"],
+    built: ["ny"],
+  });
+  rmSync(join(entry("tx"), "stamp.json"));
+  assert.deepEqual(await cachedBuild(sources, out, cache), {
+    reused: ["ny"],
+    built: ["tx"],
+  });
+  writeFileSync(
+    join(entry("ny"), "part.jsonl"),
+    readFileSync(join(entry("ny"), "part.jsonl"), "utf8").slice(0, 100),
+  );
+  assert.deepEqual(await cachedBuild(sources, out, cache), {
+    reused: ["tx"],
+    built: ["ny"],
+  });
+  assertSamePack(out, cold);
+  // A file's hash is remembered by size, mtime and inode: touching it is enough to hash it again, and the
+  // unchanged content still matches.
+  const later = new Date(Date.now() + 5000);
+  utimesSync(tx, later, later);
+  assert.deepEqual(await cachedBuild(sources, out, cache), {
+    reused: ["ny", "tx"],
+    built: [],
+  });
+});
+
+test("parts cache: a build that fails leaves the cache as it was", async () => {
+  const { ny, tx } = splitNyTx("fail");
+  const sources = [
+    { name: "ny", path: ny },
+    { name: "tx", path: tx },
+  ];
+  const cache = join(dir, "parts-cache-3");
+  await cachedBuild(sources, join(dir, "pack-fail-ok"), cache);
+  const before = snapshot(cache);
+  // Every region built again, and one fails.
+  await assert.rejects(
+    cachedBuild(sources, join(dir, "pack-fail-1"), cache, { maxFiles: 3 }),
+    /a Worker version/,
+  );
+  assert.deepEqual(snapshot(cache), before);
+  // One region reused, the other changed and failing in its process.
+  const d = new DatabaseSync(tx);
+  d.exec("UPDATE meta SET value = '1' WHERE key = 'address_key_version'");
+  d.close();
+  await assert.rejects(
+    cachedBuild(sources, join(dir, "pack-fail-2"), cache),
+    /address_key_version is 1/,
+  );
+  assert.deepEqual(snapshot(cache), before);
+  assert.ok(!existsSync(join(dir, "pack-fail-2")));
+});
+
+test("parts cache: a cached part whose stamp and bytes match is still checked before it is used", async () => {
+  const { ny, tx } = splitNyTx("check");
+  const sources = [
+    { name: "ny", path: ny },
+    { name: "tx", path: tx },
+  ];
+  const cache = join(dir, "parts-cache-5");
+  await cachedBuild(sources, join(dir, "pack-check"), cache);
+  // Rewrite ny's entry consistently (as a bug in the builder could have made it): its part claims another shard.
+  const e = join(cache, "regions", "ny");
+  const sum = (b: string | Buffer) =>
+    createHash("sha256").update(b).digest("hex");
+  const lines = readFileSync(join(e, "part.jsonl"), "utf8").split("\n");
+  const head = JSON.parse(lines[0]!) as { part: { db: { shards: number } } };
+  head.part.db.shards += 1;
+  lines[0] = JSON.stringify(head);
+  const part = lines.join("\n");
+  writeFileSync(join(e, "part.jsonl"), part);
+  const contents = JSON.parse(readFileSync(join(e, "contents.json"), "utf8"));
+  contents.part = { bytes: Buffer.byteLength(part), sha256: sum(part) };
+  const text = JSON.stringify(contents);
+  writeFileSync(join(e, "contents.json"), text);
+  const stamp = JSON.parse(readFileSync(join(e, "stamp.json"), "utf8"));
+  stamp.contents = sum(text);
+  writeFileSync(join(e, "stamp.json"), JSON.stringify(stamp));
+  const before = snapshot(cache);
+  await assert.rejects(
+    cachedBuild(sources, join(dir, "pack-check-2"), cache),
+    /ny: cached part refused: record shard \d+ missing/,
+  );
+  assert.deepEqual(snapshot(cache), before);
+});
+
+test("parts cache: seeded from a finished build and its kept part files", async () => {
+  const { ny, tx } = splitNyTx("seed");
+  const sources = [
+    { name: "ny", path: ny },
+    { name: "tx", path: tx },
+  ];
+  const kept = join(dir, "seed-kept");
+  mkdirSync(kept, { recursive: true });
+  const exclude = Object.keys(hostedWithheldCounties()).sort();
+  // What the build's processes wrote (the job file first, as the build does), kept aside.
+  sources.forEach((s, k) => {
+    const job = {
+      name: s.name,
+      path: s.path,
+      k,
+      dir: join(dir, "seed-parts", String(k)),
+      work: join(dir, "seed-work"),
+      exclude,
+      entityWholeMax: 1,
+      privacyScan: false,
+    };
+    writeFileSync(join(kept, `${k}.job.json`), JSON.stringify(job));
+    buildPart(job, () => {});
+    copyFileSync(join(job.dir, "part.jsonl"), join(kept, `${k}.part.jsonl`));
+  });
+  const pack = join(dir, "pack-seed");
+  await buildPackParallel(sources, pack, () => {}, {
+    entityWholeMax: 1,
+    jobs: 2,
+  });
+  const packBefore = snapshot(pack);
+  const code = (files: Record<string, string>) => () => ({
+    version: "test-code",
+    files,
+    packages: {},
+  });
+  const cache = join(dir, "parts-cache-4");
+  // The code changed since the build: nothing is seeded unless the change is named as reviewed.
+  assert.throws(
+    () =>
+      seedPartsCache({
+        cache,
+        pack,
+        kept,
+        buildCode: code({ "scripts/registry/pack.ts": "old" }),
+        currentCode: code({ "scripts/registry/pack.ts": "new" }),
+      }),
+    /code changed since the build in scripts\/registry\/pack.ts/,
+  );
+  assert.deepEqual(readdirSync(join(cache, "regions")), []);
+  // A registry file changed after its job started is not seeded.
+  const later = new Date(Date.now() + 60_000);
+  utimesSync(ny, later, later);
+  const lines: string[] = [];
+  assert.deepEqual(
+    seedPartsCache(
+      {
+        cache,
+        pack,
+        kept,
+        buildCode: code({ "scripts/registry/pack.ts": "old" }),
+        currentCode: code({ "scripts/registry/pack.ts": "new" }),
+        allowChanged: ["scripts/registry/pack.ts"],
+      },
+      (l) => lines.push(l),
+    ),
+    ["tx"],
+  );
+  assert.ok(
+    lines.some((l) =>
+      /^ny: not seeded: .* changed after the build started/.test(l),
+    ),
+  );
+  // Seeded regions are reused, and the pack is the build's.
+  assert.deepEqual(
+    await cachedBuild(sources, join(dir, "pack-seed-2"), cache),
+    {
+      reused: ["tx"],
+      built: ["ny"],
+    },
+  );
+  assertSamePack(join(dir, "pack-seed-2"), pack);
+  assert.deepEqual(
+    seedPartsCache({
+      cache,
+      pack,
+      kept,
+      buildCode: code({}),
+      currentCode: code({}),
+    }),
+    ["tx"],
+    "ny's file is still newer than its job",
+  );
+  assert.deepEqual(snapshot(pack), packBefore, "the pack is only read");
+});
+
+test("parts cache: the code version covers every file a part is made by", () => {
+  const root = fileURLToPath(new URL("../../../", import.meta.url));
+  const read = fsReader(root);
+  const v = codeVersion(read, true);
+  for (const f of [
+    "scripts/registry/pack.ts",
+    "scripts/registry/pack_cache.ts",
+    "deploy/registry/src/format.ts",
+    "deploy/registry/src/equity.ts",
+    "deploy/registry/src/search.ts",
+    "deploy/registry/src/hosted.ts",
+    "packages/tools/src/registry.ts",
+    "packages/tools/src/catalog.ts",
+    "packages/id/src/index.ts",
+    "python/src/factlot/registry/privacy_scan.py",
+    "python/src/factlot/registry/normalize.py",
+  ])
+    assert.ok(Object.hasOwn(v.files, f), f);
+  assert.ok(v.packages.zod, "npm packages by version");
+  assert.ok(
+    !Object.keys(codeVersion(read, false).files).some((f) => f.endsWith(".py")),
+  );
+  // Any edit to any of them is a new version.
+  for (const f of Object.keys(v.files)) {
+    const edited = codeVersion(
+      (rel) => (rel === f ? `${read(rel)}\n` : read(rel)),
+      true,
+    );
+    assert.notEqual(edited.version, v.version, f);
+  }
+  assert.equal(codeVersion(read, true).version, v.version, "stable");
 });
