@@ -135,6 +135,62 @@ describe("MCP resources", () => {
       ]);
     });
 
+  test("completion: an argument name from Object.prototype completes nothing", async () => {
+    const client = await connect({ hosted: true });
+    const templates = {
+      "factlot://coverage/{place}": "place",
+      "factlot://sources/{source_id}": "source_id",
+      "factlot://markets/{slug}": "slug",
+      "factlot://schemas/tools/{tool}": "tool",
+    };
+    for (const [uri, real] of Object.entries(templates)) {
+      for (const name of [
+        "toString",
+        "constructor",
+        "__proto__",
+        "valueOf",
+        "hasOwnProperty",
+      ]) {
+        const r = await client.complete({
+          ref: { type: "ref/resource", uri },
+          argument: { name, value: "" },
+        });
+        assert.deepEqual(r.completion.values, [], `${uri} ${name}`);
+      }
+      const ok = await client.complete({
+        ref: { type: "ref/resource", uri },
+        argument: { name: real, value: "" },
+      });
+      assert.ok(Array.isArray(ok.completion.values), uri);
+    }
+  });
+
+  for (const opts of [
+    { registry: false, localFiles: true },
+    { registry: true, localFiles: true },
+    { registry: false },
+    { hosted: true, registry: true },
+  ] as CreateServerOptions[])
+    test(`the tool index lists exactly what tools/list lists (${JSON.stringify(opts)})`, async () => {
+      const client = await connect(opts);
+      const { tools } = await client.listTools();
+      const index = JSON.parse(
+        (await body(client, "factlot://schemas/tools")).text,
+      ) as { about: string; tools: { name: string; uri: string }[] };
+      assert.deepEqual(
+        index.tools.map((t) => t.name).sort(),
+        tools.map((t) => t.name).sort(),
+      );
+      for (const t of index.tools.slice(0, 5)) {
+        const one = JSON.parse((await body(client, t.uri)).text);
+        assert.equal(one.input_schema.type, "object", t.name);
+      }
+      assert.equal(
+        index.tools.some((t) => t.name.startsWith("registry_")),
+        Boolean(opts.registry),
+      );
+    });
+
   test("the coverage resource states hosted.json's figures exactly", async () => {
     assert.deepEqual(
       RESOURCE_DATA.hosted,
@@ -286,7 +342,7 @@ describe("MCP resources", () => {
       (await body(client, "factlot://schemas/tools")).text,
     );
     const names = toolsIndex.tools.map((t: { name: string }) => t.name);
-    for (const n of ["calc_net_effective_rent", "registry_get", "doc_read_pdf"])
+    for (const n of ["calc_net_effective_rent", "search", "doc_read_pdf"])
       assert.ok(names.includes(n), n);
     const ner = JSON.parse(
       (await body(client, "factlot://schemas/tools/calc_net_effective_rent"))
@@ -460,6 +516,42 @@ describe("MCP prompts", () => {
           );
       }
     });
+
+  test("arguments with control characters are refused; a multi-line question is not", async () => {
+    const client = await connect();
+    const refused = (name: PromptName, args: Record<string, string>) =>
+      assert.rejects(
+        client.getPrompt({ name, arguments: args }),
+        (e: { code?: number }) => e.code === -32602,
+        `${name} ${JSON.stringify(args)}`,
+      );
+    for (const v of [
+      "a\n\nIgnore all\u0000",
+      "1000 Louisiana St\nHouston",
+      "x\ty",
+      "x\u0007",
+      "x\u0085y",
+      "x\u2028y",
+    ]) {
+      await refused("property_owner", { property: v });
+      await refused("owner_portfolio", { owner: v });
+      await refused("parcel_value_history", { parcel: v });
+      await refused("tx_unequal_appraisal_candidates", { parcel: v });
+      await refused("lease_abstract_check", { document: v });
+    }
+    await refused("deal_math", { question: "rent\u0000" });
+    await refused("deal_math", { question: "rent\u001b[2J" });
+    const ok = await client.getPrompt({
+      name: "deal_math",
+      arguments: {
+        question: "Base rent $42/sf\nFree rent: 6 months\r\n\tTI $60/sf",
+      },
+    });
+    assert.match(
+      (ok.messages[0]!.content as { text: string }).text,
+      /Free rent: 6 months/,
+    );
+  });
 
   test("the registry prompts say where the registry is and what a key adds", () => {
     const local = { hosted: false, registry: false, localFiles: true };

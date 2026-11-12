@@ -7856,16 +7856,38 @@ describe("MCP resources and prompts on the hosted /mcp", () => {
     };
   }
 
-  const rpc = async (
+  /** A registry service that answers registry_get with a parcel record. */
+  const service = {
+    async fetch(r: Request) {
+      const { tool, input } = (await r.json()) as {
+        tool: string;
+        input: { urn?: string };
+      };
+      assert.equal(tool, "registry_get");
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          result: { urn: input.urn, status: "current", facts: [] },
+        }),
+      );
+    },
+  };
+
+  type Rpc = {
+    id?: unknown;
+    result?: Record<string, unknown>;
+    error?: { code: number; message: string };
+  };
+
+  const post = async (
     e: ReturnType<typeof env>,
     api: { fetch(r: Request): Promise<Response> },
-    method: string,
-    params: Record<string, unknown> = {},
+    body: unknown,
   ) => {
     const res = await handle(
       new Request("https://api.factlot.com/mcp", {
         method: "POST",
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        body: JSON.stringify(body),
         headers: {
           "content-type": "application/json",
           accept: "application/json, text/event-stream",
@@ -7876,18 +7898,64 @@ describe("MCP resources and prompts on the hosted /mcp", () => {
       api,
       { now: () => e.clock.t },
     );
-    assert.equal(res.status, 200, method);
-    return (await res.json()) as {
-      result?: Record<string, unknown>;
-      error?: { code: number; message: string };
-    };
+    assert.equal(res.status, 200);
+    return (await res.json()) as Rpc | Rpc[];
   };
+  const rpc = async (
+    e: ReturnType<typeof env>,
+    api: { fetch(r: Request): Promise<Response> },
+    method: string,
+    params: Record<string, unknown> = {},
+  ) => (await post(e, api, { jsonrpc: "2.0", id: 1, method, params })) as Rpc;
+  const text = (r: Rpc) => (r.result!.contents as { text: string }[])[0]!.text;
 
-  it("keyless: declared in initialize, every resource reads, prompts validate, no lookup is used", async () => {
+  /** Registry lookups counted so far, over every meter object. */
+  const lookups = (e: ReturnType<typeof env>) =>
+    [...e.limiter.objects]
+      .filter(([name]) => name.startsWith("meter:"))
+      .reduce(
+        (a, [, o]) =>
+          a + [...o.store.counts.values()].reduce((x, n) => x + n, 0),
+        0,
+      );
+
+  const URN = "fl:parcel:us-48201:0011440000001";
+  const getCall = (id: number) => ({
+    jsonrpc: "2.0",
+    id,
+    method: "tools/call",
+    params: { name: "registry_get", arguments: { urn: URN } },
+  });
+
+  async function withHosted(
+    fn: (
+      e: ReturnType<typeof env>,
+      api: { fetch(r: Request): Promise<Response> },
+    ) => Promise<void>,
+  ) {
     const inner = await hostedInnerApi();
+    configureRegistryRunner(registryRunner(service));
     try {
-      const e = env({ RL_ANON: new CountingLimit(1000) });
-      const init = await rpc(e, inner.api, "initialize", {
+      await fn(env({ RL_ANON: new CountingLimit(1000) }), inner.api);
+    } finally {
+      configureRegistryRunner(undefined);
+      inner.close();
+    }
+  }
+
+  it("keyless: declared in initialize, every resource reads, prompts validate, and no lookup is used where a registry call uses one", async () => {
+    await withHosted(async (e, api) => {
+      // A metered call first: the counter moves, so the checks below can see a lookup.
+      const get = (await post(e, api, getCall(9))) as Rpc;
+      assert.notEqual(
+        (get.result as { isError?: boolean }).isError,
+        true,
+        JSON.stringify(get),
+      );
+      const afterGet = lookups(e);
+      assert.equal(afterGet, 1, "the registry_get was counted");
+
+      const init = await rpc(e, api, "initialize", {
         protocolVersion: "2025-06-18",
         capabilities: {},
         clientInfo: { name: "check", version: "1" },
@@ -7896,25 +7964,7 @@ describe("MCP resources and prompts on the hosted /mcp", () => {
       assert.ok(caps.resources && caps.prompts && caps.tools);
       assert.match(String(init.result!.instructions), /factlot:\/\/coverage/);
 
-      const list = await rpc(e, inner.api, "resources/list");
-      const resources = list.result!.resources as { uri: string }[];
-      assert.ok(resources.length >= 7 && resources.length < 60);
-      for (const r of resources) {
-        const read = await rpc(e, inner.api, "resources/read", {
-          uri: r.uri,
-        });
-        const contents = read.result!.contents as { text: string }[];
-        assert.ok(contents[0]!.text.length > 0, r.uri);
-      }
-      const cov = JSON.parse(
-        (
-          (
-            await rpc(e, inner.api, "resources/read", {
-              uri: "factlot://coverage",
-            })
-          ).result!.contents as { text: string }[]
-        )[0]!.text,
-      ) as { this_server: string; totals: unknown };
+      // Exactly the expected resources for the current hosted.json.
       const hosted = JSON.parse(
         readFileSync(
           fileURLToPath(
@@ -7922,40 +7972,129 @@ describe("MCP resources and prompts on the hosted /mcp", () => {
           ),
           "utf8",
         ),
-      ) as { totals: unknown };
+      ) as { totals: unknown; places: { key: string }[] };
+      const { RESOURCE_DATA, hostedMarkets } = await import("@factlot/mcp");
+      const want = [
+        "factlot://coverage",
+        "factlot://sources",
+        "factlot://markets",
+        "factlot://schemas/fact",
+        "factlot://schemas/tools",
+        "factlot://spec/id",
+        "factlot://plans",
+        ...hosted.places.map((p) => `factlot://coverage/${p.key}`),
+        ...hostedMarkets(RESOURCE_DATA).map(
+          (m: { slug: string }) => `factlot://markets/${m.slug}`,
+        ),
+      ].sort();
+      const resources = (await rpc(e, api, "resources/list")).result!
+        .resources as { uri: string }[];
+      assert.deepEqual(resources.map((r) => r.uri).sort(), want);
+      for (const r of resources)
+        assert.ok(
+          text(await rpc(e, api, "resources/read", { uri: r.uri })).length > 0,
+          r.uri,
+        );
+      const cov = JSON.parse(
+        text(
+          await rpc(e, api, "resources/read", { uri: "factlot://coverage" }),
+        ),
+      ) as { this_server: string; totals: unknown };
       assert.equal(cov.this_server, "hosted");
       assert.deepEqual(cov.totals, hosted.totals);
-      const missing = await rpc(e, inner.api, "resources/read", {
-        uri: "factlot://sources/no-such-source",
-      });
-      assert.equal(missing.error?.code, -32002);
 
-      const prompts = (await rpc(e, inner.api, "prompts/list")).result!
-        .prompts as { name: string }[];
+      const prompts = (await rpc(e, api, "prompts/list")).result!.prompts as {
+        name: string;
+      }[];
       assert.ok(prompts.some((p) => p.name === "property_owner"));
-      const got = await rpc(e, inner.api, "prompts/get", {
+      const got = await rpc(e, api, "prompts/get", {
         name: "parcel_value_history",
         arguments: { parcel: "1000 Louisiana St, Houston" },
       });
       const msg = (got.result!.messages as { content: { text: string } }[])[0]!;
       assert.match(msg.content.text, /registry_coverage/);
       assert.doesNotMatch(msg.content.text, /has no registry loaded/);
-      const bad = await rpc(e, inner.api, "prompts/get", {
+      const bad = await rpc(e, api, "prompts/get", {
         name: "parcel_value_history",
-        arguments: { parcel: "x", as_of: "yesterday" },
+        arguments: { parcel: "x\u0000", as_of: "yesterday" },
       });
       assert.equal(bad.error?.code, -32602);
 
-      // Nothing was metered: no lookup counter exists for this caller.
-      for (const [name, o] of e.limiter.objects)
-        if (name.startsWith("meter:"))
-          assert.equal(
-            [...o.store.counts.values()].reduce((a, n) => a + n, 0),
-            0,
-            name,
-          );
-    } finally {
-      inner.close();
-    }
+      assert.equal(
+        lookups(e),
+        afterGet,
+        "resources and prompts used no lookup",
+      );
+    });
+  });
+
+  it("a batch mixing resources/read and tools/call charges the tool call only", async () => {
+    await withHosted(async (e, api) => {
+      const answers = (await post(e, api, [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "resources/read",
+          params: { uri: "factlot://coverage" },
+        },
+        getCall(2),
+        {
+          jsonrpc: "2.0",
+          id: 3,
+          method: "prompts/get",
+          params: { name: "property_owner", arguments: { property: "x" } },
+        },
+      ])) as Rpc[];
+      assert.deepEqual(answers.map((a) => a.id).sort(), [1, 2, 3]);
+      for (const a of answers) assert.ok(a.result, JSON.stringify(a.error));
+      assert.equal(lookups(e), 1);
+    });
+  });
+
+  it("hostile resource URIs get a clean JSON-RPC error", async () => {
+    await withHosted(async (e, api) => {
+      for (const uri of [
+        "factlot://sources/__proto__",
+        "factlot://coverage/constructor",
+        "factlot://markets/toString",
+        "factlot://schemas/tools/__proto__",
+        `factlot://markets/${"a".repeat(100_000)}`,
+        "factlot://__proto__",
+      ]) {
+        const r = await rpc(e, api, "resources/read", { uri });
+        assert.ok(r.error, uri.slice(0, 60));
+        assert.ok(
+          [-32002, -32602].includes(r.error.code),
+          `${uri.slice(0, 60)}: ${r.error.code}`,
+        );
+        assert.ok(r.error.message.length < 300, "no echo of a long URI");
+      }
+      assert.equal(lookups(e), 0);
+    });
+  });
+
+  it("the tool index lists what tools/list lists, the hosted tools included", async () => {
+    await withHosted(async (e, api) => {
+      const listed = (
+        (await rpc(e, api, "tools/list")).result!.tools as { name: string }[]
+      ).map((t) => t.name);
+      const index = JSON.parse(
+        text(
+          await rpc(e, api, "resources/read", {
+            uri: "factlot://schemas/tools",
+          }),
+        ),
+      ) as { tools: { name: string; hosted_extra?: boolean }[] };
+      assert.deepEqual(
+        index.tools.map((t) => t.name).sort(),
+        [...listed].sort(),
+      );
+      assert.ok(listed.includes("report_create"));
+      assert.ok(listed.includes("registry_get"));
+      assert.equal(
+        index.tools.find((t) => t.name === "report_create")?.hosted_extra,
+        true,
+      );
+    });
   });
 });
