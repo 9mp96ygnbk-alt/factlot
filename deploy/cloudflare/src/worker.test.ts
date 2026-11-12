@@ -1711,7 +1711,7 @@ describe("same-origin registry lookups for the /try/ page", () => {
     const body = (await over.json()) as Record<string, unknown>;
     assert.equal(body.error, "RegistryQuotaExceeded");
     assert.equal(typeof body.message, "string");
-    assert.equal(body.upgrade, "https://factlot.com/#pricing");
+    assert.equal(body.upgrade, "https://factlot.com/pricing/");
     assert.match(
       over.headers.get("access-control-expose-headers") ?? "",
       /x-factlot-registry-quota-remaining/,
