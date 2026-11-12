@@ -39,6 +39,8 @@ import {
   computeRegistryCoverage,
   configureRegistry,
   getTool,
+  RECORDED_FACTS_LIMIT,
+  RECORDED_PREDICATES,
   runTool,
   type RegistryCoverage,
 } from "../../packages/tools/src/index.ts";
@@ -271,6 +273,47 @@ async function run(
       args: { urn, as_of: at, include_history: rand() < 0.5 },
     });
     calls.push({ tool: "registry_tx_equity_candidates", args: { urn } });
+    if (s.kind === "parcel")
+      calls.push({ tool: "registry_recorded_facts", args: { urn } });
+  }
+  // Recorded sales and documents of parcels whose records keep only the newest RECORDED_FACTS_LIMIT (their lists
+  // are read from the pack's pages), the heaviest first: the first page, each predicate, and a page from the middle.
+  const recordedIn = RECORDED_PREDICATES.map((p) => `'${p}'`).join(", ");
+  for (const r of all(
+    `SELECT subject, COUNT(*) AS n FROM current_facts WHERE predicate IN (${recordedIn}) GROUP BY subject HAVING n > ${RECORDED_FACTS_LIMIT} ORDER BY n DESC, subject LIMIT ?`,
+    Math.ceil(samples / 10),
+  )) {
+    const urn = String(r.subject);
+    const totals = new Map(
+      all(
+        `SELECT predicate, COUNT(*) AS n FROM current_facts WHERE subject = ? AND predicate IN (${recordedIn}) GROUP BY predicate`,
+        urn,
+      ).map((x) => [String(x.predicate), Number(x.n)]),
+    );
+    const label = "capped recorded facts";
+    calls.push({ tool: "registry_get", args: { urn }, label });
+    calls.push({
+      tool: "registry_recorded_facts",
+      args: { urn, limit: 100 },
+      label,
+    });
+    calls.push({
+      tool: "registry_recorded_facts",
+      args: {
+        urn,
+        limit: 100,
+        cursor: RECORDED_PREDICATES.map((p) =>
+          Math.floor((totals.get(p) ?? 0) / 2),
+        ).join("."),
+      },
+      label,
+    });
+    for (const predicate of totals.keys())
+      calls.push({
+        tool: "registry_recorded_facts",
+        args: { urn, predicate, limit: 37 },
+        label,
+      });
   }
   // Parcels with no improvement facts (registry_get's land-only warning), alone and in a building.
   for (const r of all(
