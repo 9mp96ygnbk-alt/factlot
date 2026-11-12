@@ -28,7 +28,7 @@ Downloads: registry sample on real data, https://github.com/9mp96ygnbk-alt/factl
 
 ## Links
 
-- [Connect](https://factlot.com/connect/): setup for each MCP client and agent framework
+- [Connect](https://factlot.com/connect/): setup for each MCP client and agent framework; the same as JSON at https://factlot.com/connect.json
 - [Coverage catalog (JSON)](https://factlot.com/coverage.json): hosted places, sources, rights, ID systems
 - [Coverage map](https://factlot.com/coverage/): county status; per-county JSON at https://factlot.com/coverage/counties.json
 - [OpenAPI 3.1](https://api.factlot.com/openapi.json): every tool as a REST operation; [OpenAPI 3.0](https://api.factlot.com/openapi-3.0.json) is the curated subset of at most 30 operations for Custom GPT Actions (`?operations=all` gives every tool); https://api.factlot.com/ describes endpoints and plans as JSON

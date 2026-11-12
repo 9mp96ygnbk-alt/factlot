@@ -59,7 +59,8 @@ function withMarketHosted(): ResourceData {
     hosted: {
       ...RESOURCE_DATA.hosted,
       places: [
-        ...RESOURCE_DATA.hosted.places,
+        // The test's own figures for the place, whether or not the pack already serves it.
+        ...RESOURCE_DATA.hosted.places.filter((p) => p.key !== m.place),
         {
           key: m.place,
           counties: ["36061"],
@@ -70,7 +71,9 @@ function withMarketHosted(): ResourceData {
         },
       ],
       entity_registries: [
-        ...RESOURCE_DATA.hosted.entity_registries,
+        ...RESOURCE_DATA.hosted.entity_registries.filter(
+          (r) => r.jurisdiction !== m.entity?.jurisdiction,
+        ),
         ...(m.entity
           ? [
               {
