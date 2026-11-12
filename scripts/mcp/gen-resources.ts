@@ -73,6 +73,9 @@ function attributionFromTerms(s: Record<string, unknown>): string | null {
   return null;
 }
 
+/** Order by UTF-16 code units, the same on every machine (localeCompare follows the ICU locale). */
+const byCodeUnit = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 function configFiles(dir: string): string[] {
   const out: string[] = [];
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -133,8 +136,8 @@ function sources(
       .map((c) => c.fips);
   return out.sort((a, b) =>
     a.state === b.state
-      ? a.source_id.localeCompare(b.source_id)
-      : a.state.localeCompare(b.state),
+      ? byCodeUnit(a.source_id, b.source_id)
+      : byCodeUnit(a.state, b.state),
   );
 }
 
@@ -233,10 +236,14 @@ export function resourceDataSource(data = resourceData()): string {
 /** Write DATA_FILE from the current data (gen-hosted.ts and gen-markets.ts call this too). */
 export function writeResourceData(): void {
   writeFileSync(join(root, DATA_FILE), resourceDataSource());
-  spawnSync("npx", ["prettier", "--write", DATA_FILE], {
+  const r = spawnSync("npx", ["prettier", "--write", DATA_FILE], {
     cwd: root,
-    stdio: "ignore",
+    stdio: ["ignore", "ignore", "inherit"],
   });
+  if (r.status !== 0)
+    throw new Error(
+      `prettier could not format ${DATA_FILE} (${r.error?.message ?? `exit ${r.status}`}); the file is written but not formatted`,
+    );
 }
 
 /** Whether DATA_FILE holds what the current data gives. */
