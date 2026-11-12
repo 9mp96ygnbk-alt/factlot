@@ -1,0 +1,59 @@
+name: Deploy the API Worker
+
+# Run by hand (Actions tab, or `gh workflow run deploy.yml`). Deploys factlot-api from the chosen
+# commit of main with `npm run deploy:cloudflare`: the packages and the site are built, wrangler
+# uploads the Worker and its static pages, and the changed pages are sent to IndexNow.
+# It needs two repository secrets: CLOUDFLARE_API_TOKEN (a token from the "Edit Cloudflare Workers"
+# template, limited to this account and zone) and CLOUDFLARE_ACCOUNT_ID.
+# The registry Worker (factlot-registry) is not deployed here: its pack is registry data, which is
+# never in this repository or its artifacts. Deploy it first when the data changes
+# (docs/registry/README.md), then run this.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit of main to deploy (default: the tip of main)"
+        required: false
+        default: main
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: The commit must be on main and its CI must have passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha=$(git rev-parse HEAD)
+          git merge-base --is-ancestor "$sha" origin/main || { echo "$sha is not on main"; exit 1; }
+          ci=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$sha" --json conclusion --jq '.[0].conclusion')
+          [ "$ci" = "success" ] || { echo "CI for $sha: ${ci:-not run}"; exit 1; }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build and deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "the CLOUDFLARE_API_TOKEN secret is not set"; exit 1; }
+          npm run deploy:cloudflare
