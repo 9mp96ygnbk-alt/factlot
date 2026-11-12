@@ -935,6 +935,10 @@ describe("free tier through OAuth", () => {
     const got = await ask(lookup(1));
     assert.equal(got.result.structuredContent.value_history?.length, 1);
     assert.equal(got.result.structuredContent.history_available, "pro");
+    assert.deepEqual(got.result.structuredContent.history_withheld, {
+      tax_years: [2025],
+      count: 1,
+    });
     const cand = await ask({
       ...lookup(2),
       params: { name: "registry_tx_equity_candidates", arguments: {} },

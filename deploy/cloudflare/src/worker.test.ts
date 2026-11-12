@@ -5148,17 +5148,24 @@ describe("paid gating (GATING_ENABLED)", () => {
     facts: [{ id: "f2", predicate: "parcel.market_value", value: 200 }],
     value_history: [
       { tax_year: 2026, market_value: 200, appraised_value: 190 },
-      { tax_year: 2025, market_value: 150, appraised_value: 140 },
-      { tax_year: 2024, market_value: 100, appraised_value: 100 },
+      { tax_year: 2025, market_value: 1234567, appraised_value: 1111111 },
+      { tax_year: 2024, market_value: 7654321, appraised_value: 7000001 },
     ],
     history: [
       { id: "f2", predicate: "parcel.market_value", value: 200 },
-      { id: "f1", predicate: "parcel.market_value", value: 150 },
+      { id: "f1", predicate: "parcel.market_value", value: 1234567 },
     ],
     coverage: { county_loaded: true },
   };
   const BATCH = "registry_tx_equity_candidates_batch";
   const BATCH_PATH = "/v1/registry/tx_equity_candidates/batch";
+
+  /** A free answer must not carry any value from an earlier roll year, in any form. */
+  function assertNoWithheldValues(answer: unknown) {
+    const text = JSON.stringify(answer);
+    for (const v of ["1234567", "1111111", "7654321", "7000001"])
+      assert.ok(!text.includes(v), `free answer leaks ${v}`);
+  }
 
   /** An inner handler that answers registry_get with a parcel carrying prior years. */
   function historyApi() {
@@ -5205,12 +5212,16 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.deepEqual(free.value_history, [record.value_history[0]]);
     assert.deepEqual(free.history, [record.history[0]]);
     assert.equal(free.history_available, "pro");
-    assert.match(
-      String(free.history_note),
-      /https:\/\/factlot\.com\/pricing\//,
+    assert.deepEqual(free.history_withheld, {
+      tax_years: [2025, 2024],
+      count: 2,
+      facts: 1,
+    });
+    assert.equal(
+      free.history_note,
+      "2 earlier roll years, 2024 and 2025, and 1 earlier fact in history, are available with a Pro or Team key: https://factlot.com/pricing/",
     );
-    assert.match(String(free.history_note), /no Pro or Team key/);
-    assert.match(String(free.history_note), /current roll year only/);
+    assertNoWithheldValues(free);
     assert.deepEqual(free.coverage, record.coverage);
     assert.deepEqual(free.facts, record.facts);
 
@@ -5259,7 +5270,15 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.deepEqual(rest.candidates, cand.candidates);
     assert.deepEqual(rest.calc_args, cand.calc_args);
     assert.equal(rest.history_available, "pro");
-    assert.match(String(rest.history_note), /factlot\.com\/pricing\//);
+    assert.deepEqual(rest.history_withheld, {
+      tax_years: [2025, 2024],
+      count: 2,
+    });
+    assert.equal(
+      rest.history_note,
+      "2 earlier roll years, 2024 and 2025, are available with a Pro or Team key: https://factlot.com/pricing/",
+    );
+    assertNoWithheldValues(rest);
     assert.equal(rest.subject.urn, "s");
 
     const mcpFree = (await (
@@ -5297,6 +5316,175 @@ describe("paid gating (GATING_ENABLED)", () => {
       ).json(),
       cand,
     );
+  });
+
+  /** An inner handler that answers every registry call (REST and MCP) with the given answer. */
+  function answerApi(answer: unknown) {
+    const j = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
+    return {
+      fetch: async (r: Request) => {
+        const body = await r.text();
+        if (new URL(r.url).pathname === "/mcp") {
+          const m = JSON.parse(body) as { id: number };
+          return j({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [{ type: "text", text: JSON.stringify(answer) }],
+              structuredContent: answer,
+            },
+          });
+        }
+        return j(answer);
+      },
+    };
+  }
+
+  /** The answer a free caller gets over REST, MCP structuredContent and MCP text. */
+  async function freeAnswers(
+    answer: unknown,
+    tool = "registry_get",
+    path = "/v1/registry/get",
+  ) {
+    const api = answerApi(answer);
+    const rest = await (
+      await call(on(), api, path, { body: { urn: "x" } })
+    ).json();
+    const mcp = (await (
+      await call(on(), api, "/mcp", { body: toolCall(tool, 1) })
+    ).json()) as {
+      result: { content: { text: string }[]; structuredContent: unknown };
+    };
+    return [
+      rest,
+      mcp.result.structuredContent,
+      JSON.parse(mcp.result.content[0]!.text),
+    ] as Record<string, unknown>[];
+  }
+
+  it("a parcel with one roll year gets no note and no withheld block (REST, MCP structuredContent and text)", async () => {
+    const one = {
+      urn: "fl:parcel:us-48201:2",
+      facts: [{ id: "f2", predicate: "parcel.market_value", value: 200 }],
+      value_history: [
+        { tax_year: 2026, market_value: 200, appraised_value: 190 },
+      ],
+      history: [{ id: "f2", predicate: "parcel.market_value", value: 200 }],
+    };
+    for (const a of await freeAnswers(one)) {
+      assert.deepEqual(a, one);
+      assert.ok(!("history_note" in a) && !("history_withheld" in a));
+      assert.ok(!("history_available" in a));
+    }
+  });
+
+  it("several roll years: years newest first and a count, in words, and no earlier value anywhere (REST and MCP)", async () => {
+    const many = {
+      ...record,
+      value_history: [
+        ...record.value_history,
+        { tax_year: 2023, market_value: 3141592, appraised_value: 2718281 },
+        { tax_year: 2022, market_value: 1618033, appraised_value: 1414213 },
+      ],
+      history: [record.history[0]],
+    };
+    for (const a of await freeAnswers(many)) {
+      assert.deepEqual(a.history_withheld, {
+        tax_years: [2025, 2024, 2023, 2022],
+        count: 4,
+      });
+      assert.equal(
+        a.history_note,
+        "4 earlier roll years, 2022 to 2025, are available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assert.equal(a.history_available, "pro");
+      assert.deepEqual(a.value_history, [many.value_history[0]]);
+      const text = JSON.stringify(a);
+      for (const v of [
+        "1234567",
+        "1111111",
+        "7654321",
+        "7000001",
+        "3141592",
+        "2718281",
+        "1618033",
+        "1414213",
+      ])
+        assert.ok(!text.includes(v), `free answer leaks ${v}`);
+    }
+  });
+
+  it("a parcel whose earlier years are not consecutive lists them", async () => {
+    const gap = {
+      urn: "u",
+      value_history: [
+        { tax_year: 2026, market_value: 1 },
+        { tax_year: 2024, market_value: 2 },
+        { tax_year: 2022, market_value: 3 },
+      ],
+    };
+    const [rest] = await freeAnswers(gap);
+    assert.equal(
+      rest!.history_note,
+      "2 earlier roll years, 2022 and 2024, are available with a Pro or Team key: https://factlot.com/pricing/",
+    );
+  });
+
+  it("include_history facts removed with no earlier value years: says so, with a count only", async () => {
+    const onlyFacts = {
+      urn: "u",
+      facts: record.facts,
+      value_history: [{ tax_year: 2026, market_value: 200 }],
+      history: record.history,
+    };
+    for (const a of await freeAnswers(onlyFacts)) {
+      assert.deepEqual(a.history_withheld, { facts: 1 });
+      assert.equal(
+        a.history_note,
+        "1 earlier fact in history is available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assertNoWithheldValues(a);
+    }
+    const noValues = { urn: "u", facts: record.facts, history: record.history };
+    const [rest] = await freeAnswers(noValues);
+    assert.deepEqual(rest!.history_withheld, { facts: 1 });
+  });
+
+  it("candidates: a one-year subject gets no note; several years get the withheld years; no earlier value (REST and MCP)", async () => {
+    const oneYear = {
+      subject: {
+        urn: "s",
+        value_history: [{ tax_year: 2026, market_value: 200 }],
+      },
+      candidates: [{ urn: "c1" }],
+    };
+    for (const a of await freeAnswers(
+      oneYear,
+      "registry_tx_equity_candidates",
+      "/v1/registry/tx_equity_candidates",
+    )) {
+      assert.deepEqual(a, oneYear);
+    }
+    const several = {
+      subject: { urn: "s", value_history: record.value_history },
+      candidates: [{ urn: "c1" }],
+    };
+    for (const a of await freeAnswers(
+      several,
+      "registry_tx_equity_candidates",
+      "/v1/registry/tx_equity_candidates",
+    )) {
+      assert.deepEqual(a.history_withheld, {
+        tax_years: [2025, 2024],
+        count: 2,
+      });
+      assert.equal(a.history_available, "pro");
+      assert.ok(!("history_note" in (a.subject as object)));
+      assertNoWithheldValues(a);
+    }
   });
 
   it("REST: flag unset or not exactly true leaves the answer as it is", async () => {

@@ -5,7 +5,11 @@
  * - Value history is for Pro and Team (the candidates tool's `subject.value_history` is cut the same way). A keyless or free-OAuth caller's registry_get answer keeps
  *   the current roll year's values only: `value_history` (parcels: market and appraised value by
  *   tax year) is cut to the newest tax year, and `history` (include_history: every fact from every
- *   snapshot) to the current facts. Coverage, misses and errors are not touched. The Texas equity
+ *   snapshot) to the current facts. Coverage, misses and errors are not touched. When something was
+ *   actually removed, the answer adds `history_withheld` (the earlier tax years, newest first, and
+ *   their count, and a count of earlier facts; never a value, citation, id or date), a one-sentence
+ *   `history_note` saying the same in words, and `history_available: "pro"`. When nothing was
+ *   removed (a parcel with one roll year) none of the three is added. The Texas equity
  *   candidates themselves are not gated; only the subject's value_history is cut.
  * - Registry batch tools (names ending in _batch) are for Pro and Team: a free caller gets
  *   PlanRequired, and the call is not metered.
@@ -50,7 +54,38 @@ export function isPaidRegistryCall(
   return isBatchRegistryTool(name) || isDatedGet(name, args);
 }
 
-const HISTORY_NOTE = `This answer was shortened because the call has no Pro or Team key: value_history (and history, if asked for) keep the current roll year only, and any earlier years were left out. A Pro or Team key returns every year: ${GATING_PRICING_URL}`;
+/** What a free caller's answer had cut: distinct earlier tax years (newest first) and earlier facts. Never values. */
+export interface HistoryWithheld {
+  tax_years?: number[];
+  count?: number;
+  facts?: number;
+}
+
+function yearsInWords(years: number[]): string {
+  const n = years.length;
+  const asc = [...years].sort((x, y) => x - y);
+  const contiguous = asc.every(
+    (y, i) => i === 0 || y === (asc[i - 1] ?? Number.NaN) + 1,
+  );
+  const label = `${n} earlier roll ${n === 1 ? "year" : "years"}`;
+  if (n === 1) return `${label}, ${asc[0]}`;
+  if (contiguous && n > 2) return `${label}, ${asc[0]} to ${asc[n - 1]}`;
+  if (n === 2) return `${label}, ${asc[0]} and ${asc[1]}`;
+  return `${label}, ${asc.slice(0, -1).join(", ")} and ${asc[n - 1]}`;
+}
+
+/** The one-line note for what was withheld, saying only what was actually removed. */
+export function historyNote(w: HistoryWithheld): string {
+  const years = w.tax_years?.length ?? 0;
+  const facts = w.facts ?? 0;
+  const factsPhrase = `${facts} earlier ${facts === 1 ? "fact" : "facts"} in history`;
+  const subject =
+    years > 0
+      ? `${yearsInWords(w.tax_years as number[])}${facts > 0 ? `, and ${factsPhrase}` : ""},`
+      : factsPhrase;
+  const single = facts > 0 ? years === 0 && facts === 1 : years === 1;
+  return `${subject} ${single ? "is" : "are"} available with a Pro or Team key: ${GATING_PRICING_URL}`;
+}
 
 /** PlanRequired for a batch tool, in the shape the model-backed tools use. */
 export function batchPlanRequired(tool: string): { status: 403; body: Json } {
@@ -104,13 +139,22 @@ export function limitHistory(answer: unknown): unknown {
   ) {
     // registry_tx_equity_candidates: the subject's series is cut; the candidates are untouched.
     const limited = limitHistory(subject) as Json;
-    const { history_available, history_note, ...rest } = limited;
-    return { ...a, subject: rest, history_available, history_note };
+    const { history_available, history_withheld, history_note, ...rest } =
+      limited;
+    if (history_withheld === undefined) return { ...a, subject: rest };
+    return {
+      ...a,
+      subject: rest,
+      history_available,
+      history_withheld,
+      history_note,
+    };
   }
   const hasValues = Array.isArray(a.value_history);
   const hasHistory = Array.isArray(a.history);
   if (!hasValues && !hasHistory) return answer;
   const out: Json = { ...a };
+  const withheld: HistoryWithheld = {};
   if (hasValues) {
     const entries = a.value_history as Json[];
     const years = entries
@@ -121,15 +165,28 @@ export function limitHistory(answer: unknown): unknown {
       current === undefined
         ? entries.slice(0, 1)
         : entries.filter((e) => e?.tax_year === current);
+    const removed = [...new Set(years)]
+      .filter((y) => y !== current)
+      .sort((x, y) => y - x);
+    if (removed.length > 0) {
+      withheld.tax_years = removed;
+      withheld.count = removed.length;
+    }
   }
   if (hasHistory) {
     const keep = new Set(
       (Array.isArray(a.facts) ? (a.facts as Json[]) : []).map((f) => f?.id),
     );
-    out.history = (a.history as Json[]).filter((f) => keep.has(f?.id));
+    const all = a.history as Json[];
+    const kept = all.filter((f) => keep.has(f?.id));
+    out.history = kept;
+    if (all.length > kept.length) withheld.facts = all.length - kept.length;
   }
+  if (withheld.tax_years === undefined && withheld.facts === undefined)
+    return out;
   out.history_available = "pro";
-  out.history_note = HISTORY_NOTE;
+  out.history_withheld = withheld;
+  out.history_note = historyNote(withheld);
   return out;
 }
 
