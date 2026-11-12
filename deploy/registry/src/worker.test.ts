@@ -16,7 +16,10 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { packProblems } from "../../../scripts/registry/deploy.ts";
-import { buildPack } from "../../../scripts/registry/pack.ts";
+import {
+  buildPack,
+  buildPackParallel,
+} from "../../../scripts/registry/pack.ts";
 import {
   computeRegistryCoverage,
   configureRegistry,
@@ -38,7 +41,7 @@ import {
 } from "./equity.ts";
 import { fileAssets } from "./file_assets.ts";
 import { SharedPages, listPages, type Manifest } from "./format.ts";
-import { hostedOutcome, type HostedScope } from "./hosted.ts";
+import { hostedOutcome, partialCounties, type HostedScope } from "./hosted.ts";
 import { addressListKey } from "./search.ts";
 import { Pack } from "./store.ts";
 import { handle } from "./worker.ts";
@@ -113,9 +116,14 @@ async function compare(
     ) as Manifest;
     if (
       Object.keys(m.withheld ?? {}).length ||
-      Object.keys(m.entity_scope ?? {}).length
+      Object.keys(m.entity_scope ?? {}).length ||
+      Object.keys(m.partial_counties ?? {}).length
     )
-      scope = { withheld: m.withheld, entity_scope: m.entity_scope };
+      scope = {
+        withheld: m.withheld,
+        entity_scope: m.entity_scope,
+        partial_counties: m.partial_counties,
+      };
   }
   configureRegistry(db);
   const cov = scope ? computeRegistryCoverage() : undefined;
@@ -818,4 +826,277 @@ test("the suppression list: an entity is not served, a parcel loses its owner bu
   assert.ok(!text.includes("ownership.owner_of_record"), text.slice(0, 300));
   assert.ok(!text.includes("ownership.owner_mailing_address"));
   assert.ok(text.includes("parcel."), "its parcel facts stay");
+});
+
+/**
+ * A copy of the fixture with every text value rewritten by `pairs` (in order), as if its regions were elsewhere;
+ * `sql` then adjusts what a plain replacement cannot. The fixture's stored coverage is dropped.
+ */
+function relocated(name: string, pairs: [string, string][], sql = ""): string {
+  const out = join(dir, name);
+  copyFileSync(fixture, out);
+  const d = new DatabaseSync(out);
+  d.exec("PRAGMA foreign_keys = OFF");
+  for (const t of d
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all()
+    .map((r) => String(r.name)))
+    for (const c of d
+      .prepare(`PRAGMA table_info(${t})`)
+      .all()
+      .filter((r) => /TEXT|^$/i.test(String(r.type)))
+      .map((r) => String(r.name)))
+      for (const [from, to] of pairs)
+        d.exec(
+          `UPDATE ${t} SET ${c} = replace(${c}, '${from}', '${to}') WHERE ${c} LIKE '%${from}%'`,
+        );
+  d.exec(`${sql}; DELETE FROM meta WHERE key = 'coverage'`);
+  d.close();
+  return out;
+}
+
+// Invented places for the fixture's two counties: New York County (36061) with a New York entity registry and an
+// NYC-style crosswalk system, and Suffolk County, Massachusetts (25025) from a Boston-only parcel source.
+const NATIONAL: [string, string][] = [
+  ["us-48999", "us-36061"],
+  ["us-48997", "us-25025"],
+  ["fl:entity:us-tx:", "fl:entity:us-ny:"],
+  ["test-account", "nyc_bbl"],
+  ["test-cad-997", "ma-boston-assessing"],
+];
+const NATIONAL_SQL =
+  "UPDATE sources SET state_fips = '36', county_fips = '061' WHERE county_fips = '999';" +
+  "UPDATE sources SET state_fips = '25', county_fips = '025' WHERE county_fips = '997'";
+
+test("regions outside Texas: entity registry served in part, crosswalk systems, a county loaded in part", async () => {
+  const x = relocated("national.db", NATIONAL, NATIONAL_SQL);
+  const pack = join(dir, "pack-national");
+  const stats = buildPack([{ name: "ny", path: x }], pack, () => {}, {
+    entityWholeMax: 0,
+  });
+  assert.deepEqual(packProblems(pack), []);
+  const m = stats.manifest;
+  // Entity scoping is per jurisdiction, not Texas-only: us-ny keeps only the entities that own a served parcel.
+  const ny = m.entity_scope["us-ny"]!;
+  assert.ok(
+    ny && ny.served > 0 && ny.served < ny.total,
+    JSON.stringify(m.entity_scope),
+  );
+  assert.equal(m.equity, null, "no Texas parcel, no candidate data");
+  assert.deepEqual(Object.keys(m.partial_counties ?? {}), ["25025"]);
+  assert.equal(m.partial_counties!["25025"]!.area, "the City of Boston");
+  // Everything answers as runTool on the served data, with the hosted misses.
+  rowsFrom = x;
+  try {
+    const list = [...shared, ...getCalls(), ...searchCalls()];
+    const bad = await compare(pack, join(`${pack}.work`, "ny.db"), list, m);
+    assert.deepEqual(
+      bad.slice(0, 5),
+      [],
+      `${bad.length} of ${list.length} differ`,
+    );
+  } finally {
+    rowsFrom = fixture;
+  }
+  const assets = fileAssets(pack);
+  const call = async (tool: string, input: Row) =>
+    JSON.parse(
+      await worker(assets, tool, getTool(tool)!.input.parse(input)),
+    ) as { ok: boolean; result?: Row; error?: Row & { issues: Row[] } };
+  const nyParcel = String(
+    new DatabaseSync(x, { readOnly: true })
+      .prepare(
+        "SELECT urn, external_id FROM crosswalk WHERE system = 'nyc_bbl' LIMIT 1",
+      )
+      .get()!.external_id,
+  );
+  const resolved = await call("registry_resolve_external", {
+    system: "nyc_bbl",
+    external_id: nyParcel,
+  });
+  assert.match(String(resolved.result!.urn), /^fl:parcel:us-36061:/);
+  // A county loaded in part says which part.
+  const miss = await call("registry_resolve_parcel", {
+    state_fips: "25",
+    county_fips: "025",
+    apn: "0000",
+  });
+  const missCov = miss.result!.coverage as Row;
+  assert.equal(missCov.county_area, "the City of Boston");
+  assert.match(
+    String(missCov.message),
+    /Suffolk County, MA \(25025\) is loaded in this registry for the City of Boston only \(\d+ parcels/,
+  );
+  assert.match(String(missCov.message), /Chelsea, Revere and Winthrop/);
+  const got = await call("registry_get", { urn: "fl:parcel:us-25025:0000" });
+  assert.match(String(got.error!.message), /for the City of Boston only/);
+  const cov = await call("registry_coverage", {});
+  const hosted = cov.result!.hosted as { partial_counties: Row[] };
+  assert.equal(hosted.partial_counties[0]!.region, "us-25025");
+  assert.equal(
+    (cov.result!.counties as Row[]).find((c) => c.region === "us-25025")!.area,
+    "the City of Boston",
+  );
+  // The candidate tools are Texas-only: a clear input error, alone and in a batch.
+  const nyUrn = String(resolved.result!.urn);
+  const one = await call("registry_tx_equity_candidates", { urn: nyUrn });
+  assert.equal(one.error!.error, "InputError");
+  assert.equal(one.error!.issues[0]!.path, "urn");
+  assert.match(
+    String(one.error!.message),
+    /Texas-only \(state FIPS 48\): this parcel is in state FIPS 36/,
+  );
+  const byApn = await call("registry_tx_equity_candidates", {
+    state_fips: "25",
+    county_fips: "025",
+    apn: "1",
+  });
+  assert.match(String(byApn.error!.message), /this parcel is in state FIPS 25/);
+  const batch = await call("registry_tx_equity_candidates_batch", {
+    subjects: [
+      { id: "ny", urn: nyUrn },
+      { id: "boston", state_fips: "25", county_fips: "025", apn: "1" },
+    ],
+  });
+  const results = batch.result!.results as { id: string; error: Row }[];
+  assert.deepEqual(
+    results.map((r) => [r.id, r.error.error]),
+    [
+      ["ny", "InputError"],
+      ["boston", "InputError"],
+    ],
+  );
+  assert.deepEqual(batch.result!.summary, {
+    subjects: 2,
+    answered: 0,
+    errors: 2,
+  });
+});
+
+test("a county is loaded in part only when every parcel source of it covers that part", () => {
+  const county = (sources: string[]) => ({
+    counties: [
+      {
+        region: "us-25025",
+        state_fips: "25",
+        county_fips: "025",
+        state: "MA",
+        parcels: 1,
+        buildings: 0,
+        sources: sources.map((source_id) => ({
+          source_id,
+          as_of: "2025-01-01",
+        })),
+      },
+    ],
+    entity_registries: [],
+    crosswalk_systems: [],
+    totals: {
+      parcels: 1,
+      entities: 0,
+      buildings: 0,
+      counties: 1,
+      states: ["MA"],
+    },
+  });
+  assert.deepEqual(
+    Object.keys(partialCounties(county(["ma-boston-assessing"]))),
+    ["25025"],
+  );
+  assert.deepEqual(
+    Object.keys(partialCounties(county(["ma-boston-assessing-2027"]))),
+    ["25025"],
+  );
+  assert.deepEqual(
+    partialCounties(county(["ma-boston-assessing", "ma-massgis-parcels"])),
+    {},
+  );
+  assert.deepEqual(partialCounties(county(["ma-boston-assessingx"])), {});
+});
+
+function packFiles(root: string): Map<string, string> {
+  return new Map(
+    allFiles(root).map((f) => [relative(root, f), readFileSync(f, "utf8")]),
+  );
+}
+
+test("a parallel build (--jobs) writes the same pack as one process", async () => {
+  // Texas (county 48997 and the entities) in one file, New York (36061) and the buildings in the other.
+  const all = relocated(
+    "parallel.db",
+    [["us-48999", "us-36061"]],
+    NATIONAL_SQL.split(";")[0]!,
+  );
+  const tx = join(dir, "parallel-tx.db");
+  const ny = join(dir, "parallel-ny.db");
+  copyFileSync(all, tx);
+  copyFileSync(all, ny);
+  const inNy = "(urn LIKE 'fl:parcel:us-36061:%' OR urn LIKE 'fl:building:%')";
+  for (const [db, where] of [
+    [ny, inNy],
+    [tx, `NOT ${inNy}`],
+  ] as const) {
+    const d = new DatabaseSync(db);
+    const gone = `(SELECT urn FROM subjects WHERE NOT ${where})`;
+    d.exec(
+      `DELETE FROM facts WHERE subject IN ${gone}; DELETE FROM coverage WHERE subject IN ${gone};` +
+        `DELETE FROM address_index WHERE urn IN ${gone}; DELETE FROM name_index WHERE urn IN ${gone};` +
+        `DELETE FROM crosswalk WHERE urn IN ${gone}; DELETE FROM building_members WHERE parcel_urn IN ${gone} OR building_urn IN ${gone};` +
+        `DELETE FROM relationships WHERE from_urn IN ${gone} OR to_urn IN ${gone};` +
+        `DELETE FROM meta WHERE key = 'coverage'; DELETE FROM subjects WHERE NOT ${where};`,
+    );
+    d.close();
+  }
+  const sources = [
+    { name: "ny", path: ny },
+    { name: "tx", path: tx },
+  ];
+  const one = join(dir, "pack-one");
+  const two = join(dir, "pack-two");
+  const a = buildPack(sources, one, () => {}, { entityWholeMax: 1 });
+  const b = await buildPackParallel(sources, two, () => {}, {
+    entityWholeMax: 1,
+    jobs: 2,
+  });
+  assert.ok(a.manifest.equity, "the Texas file has candidate data");
+  assert.deepEqual(
+    { files: b.files, bytes: b.bytes, largest: b.largest },
+    { files: a.files, bytes: a.bytes, largest: a.largest },
+  );
+  const fa = packFiles(one);
+  const fb = packFiles(two);
+  assert.deepEqual([...fb.keys()].sort(), [...fa.keys()].sort());
+  for (const [path, text] of fa) {
+    if (path === "manifest.json") {
+      const strip = (t: string) => ({ ...JSON.parse(t), built_at: null });
+      assert.deepEqual(strip(fb.get(path)!), strip(text));
+    } else assert.equal(fb.get(path), text, path);
+  }
+  assert.deepEqual(packProblems(two), []);
+  // Candidate data indexes its documents across the pack: two Texas files cannot be built apart.
+  await assert.rejects(
+    buildPackParallel(
+      [
+        { name: "a", path: tx },
+        { name: "b", path: fixture },
+      ],
+      join(dir, "pack-two-texas"),
+    ),
+    /Texas parcels are in a and b/,
+  );
+});
+
+test("a pack the Worker could not hold is refused while building", () => {
+  assert.throws(
+    () =>
+      buildPack(
+        [{ name: "fixture", path: fixture }],
+        join(dir, "pack-big"),
+        () => {},
+        {
+          maxFiles: 5,
+        },
+      ),
+    /a Worker version/,
+  );
 });
