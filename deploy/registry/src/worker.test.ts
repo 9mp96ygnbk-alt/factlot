@@ -21,6 +21,12 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { packProblems } from "../../../scripts/registry/deploy.ts";
+import { bindingStore } from "../../../scripts/registry/object_store.ts";
+import {
+  SyncError,
+  scanPack,
+  syncPack,
+} from "../../../scripts/registry/sync_pack.ts";
 import {
   buildPack,
   buildPackParallel,
@@ -52,8 +58,16 @@ import { fileAssets } from "./file_assets.ts";
 import { SharedPages, listPages, type Manifest } from "./format.ts";
 import { hostedOutcome, partialCounties, type HostedScope } from "./hosted.ts";
 import { addressListKey } from "./search.ts";
+import { MemoryBucket } from "./memory_bucket.ts";
+import {
+  POINTER_FORMAT,
+  completeKey,
+  openPointedPack,
+  bucketText,
+  packKey,
+} from "./r2_pack.ts";
 import { Pack } from "./store.ts";
-import { handle } from "./worker.ts";
+import { handle, type Env } from "./worker.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
 const calls = JSON.parse(readFileSync(join(spec, "calls.json"), "utf8")) as {
@@ -89,7 +103,7 @@ function rows(sql: string): Row[] {
 }
 
 async function worker(
-  assets: ReturnType<typeof fileAssets>,
+  assets: ReturnType<typeof fileAssets> | Env,
   tool: string,
   input: unknown,
 ): Promise<string> {
@@ -98,10 +112,57 @@ async function worker(
       method: "POST",
       body: JSON.stringify({ tool, input }),
     }),
-    { ASSETS: assets },
+    "fetch" in assets ? { ASSETS: assets } : assets,
   );
   assert.equal(res.status, 200);
   return res.text();
+}
+
+/**
+ * The object-storage backend over an in-memory bucket holding `pack`, released by the sync tool (refusals,
+ * upload, verification, completion record, pointer) as it would be to R2.
+ */
+async function r2Env(pack: string, id = "pack-test"): Promise<Env> {
+  const bucket = new MemoryBucket();
+  await syncPack(bindingStore(bucket), pack, {
+    id,
+    log: () => {},
+    samples: 8,
+    seed: 1,
+  });
+  return { PACK_BACKEND: "r2", PACK_BUCKET: bucket };
+}
+
+/**
+ * A pack written straight into a bucket with its completion record and pointer, without the sync tool's refusals
+ * (as if put there by other means).
+ */
+async function rawLoad(
+  bucket: MemoryBucket,
+  pack: string,
+  id: string,
+): Promise<void> {
+  const local = scanPack(pack);
+  for (const f of local.files)
+    bucket.poke(packKey(id, f.path), readFileSync(f.abs));
+  const identity = { pack_id: id, ...local.identity };
+  bucket.poke(
+    completeKey(id),
+    JSON.stringify({
+      format: POINTER_FORMAT,
+      ...identity,
+      verified_at: "2026-11-12T00:00:00.000Z",
+    }),
+  );
+  bucket.poke(
+    "packs/current.json",
+    JSON.stringify({
+      format: POINTER_FORMAT,
+      ...identity,
+      switched_at: "2026-11-12T00:00:00.000Z",
+      previous: null,
+    }),
+  );
 }
 
 interface Call {
@@ -134,6 +195,8 @@ async function compare(
         partial_counties: m.partial_counties,
       };
   }
+  // The same pack on the object-storage backend: every answer must be byte for byte the assets backend's.
+  const r2 = await r2Env(pack);
   configureRegistry(db);
   const cov = scope ? computeRegistryCoverage() : undefined;
   try {
@@ -155,10 +218,17 @@ async function compare(
         bad.push(
           `${tool} ${JSON.stringify(args)}\n  worker ${got}\n  sdk    ${JSON.stringify(want)}`,
         );
+      const gotR2 = await worker(r2, tool, parsed.data);
+      if (gotR2 !== got)
+        bad.push(
+          `r2 backend: ${tool} ${JSON.stringify(args)}\n  r2     ${gotR2}\n  assets ${got}`,
+        );
     }
   } finally {
     configureRegistry(undefined);
   }
+  if (!((r2.PACK_BUCKET as MemoryBucket).ops.get > 0))
+    bad.push("the r2 backend read nothing");
   return bad;
 }
 
@@ -543,10 +613,13 @@ test("a withheld county and an entity registry served in part", async () => {
     rowsFrom = fixture;
   }
   const assets = fileAssets(pack);
-  const call = async (tool: string, input: Row) =>
-    JSON.parse(
-      await worker(assets, tool, getTool(tool)!.input.parse(input)),
-    ) as { ok: boolean; result?: Row; error?: Row };
+  const r2 = await r2Env(pack);
+  const call = async (tool: string, input: Row) => {
+    const parsed = getTool(tool)!.input.parse(input);
+    const got = await worker(assets, tool, parsed);
+    assert.equal(await worker(r2, tool, parsed), got, `r2 backend: ${tool}`);
+    return JSON.parse(got) as { ok: boolean; result?: Row; error?: Row };
+  };
   const tarrantUrn = rows(
     "SELECT urn FROM subjects WHERE urn LIKE 'fl:parcel:us-48999:%' LIMIT 1",
   )[0]!.urn as string;
@@ -837,9 +910,21 @@ test("every pack withholds Tarrant, even when --exclude-county is left out", asy
     problems.some((p) => /serves county 48439/.test(p)),
     problems.join("\n"),
   );
-  // And the Worker answers nothing of a withheld county, even from such a pack.
+  // The sync tool refuses it too, before uploading anything.
+  const refused = new MemoryBucket();
+  await assert.rejects(
+    syncPack(bindingStore(refused), pack, { id: "bad", log: () => {} }),
+    (err: Error) =>
+      err instanceof SyncError && /serves county 48439/.test(err.message),
+  );
+  assert.equal(refused.objects.size, 0);
+  // And the Worker answers nothing of a withheld county, even from such a pack, on either backend.
   const store = new Pack(fileAssets(pack));
   assert.equal(await store.entry("fl:parcel:us-48439:1"), undefined);
+  const bucket = new MemoryBucket();
+  await rawLoad(bucket, pack, "bad");
+  const opened = await openPointedPack(bucketText(bucket));
+  assert.equal(await opened.pack.entry("fl:parcel:us-48439:1"), undefined);
 });
 
 test("the suppression list: an entity is not served, a parcel loses its owner but keeps its facts", async () => {
