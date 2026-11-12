@@ -92,8 +92,7 @@ something only by using a link before its owner does (claim, recovery, free-key 
 or within 24 hours (reports). Used links are worthless; unused links expire in 10 to 75 minutes.
 
 Not changed, on purpose. A report download token could be made single use, but the documented
-behaviour is "download_url works 24 hours" (the `report_create` tool description, the pricing and
-reports pages), and clients legitimately fetch it more than once (a HEAD first, a retry, a second
+behaviour is "download_url works 24 hours" (the `report_create` tool description, the MCP and security pages), and clients legitimately fetch it more than once (a HEAD first, a retry, a second
 agent). Shortening it would break that promise. Moving tokens out of paths (POST bodies, headers or
 URL fragments) is a URL redesign. If the exposure matters more than the request log, set
 `"invocation_logs": false` inside `observability.logs` (drops request URLs and the request log) or

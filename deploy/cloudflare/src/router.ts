@@ -2386,7 +2386,14 @@ async function freeKeyRoute(
     const jsonBody = (request.headers.get("content-type") ?? "").includes(
       "application/json",
     );
-    if (!jsonBody && origin && origin !== "null" && origin !== url.origin)
+    // The site pages (/account/free-key*) check Origin for every body; only the JSON API
+    // paths (/v1/keys/free*), meant for programs, skip it for JSON.
+    if (
+      (!jsonBody || !isApi) &&
+      origin &&
+      origin !== "null" &&
+      origin !== url.origin
+    )
       return formPage(403, "This form only works on its own page.");
     if (
       !(await metered(env.RL_ANON.limit({ key: `freekey:${address}` }))).success

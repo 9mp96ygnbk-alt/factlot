@@ -6776,6 +6776,45 @@ describe("free key by email", () => {
     assert.equal(r.status, 403);
   });
 
+  it("the site's free-key paths check Origin for JSON bodies too; the JSON API paths do not", async () => {
+    const { e, mail } = setup();
+    const post = (url: string, headers: Record<string, string>) =>
+      run(
+        e,
+        new Request(url, {
+          method: "POST",
+          body: JSON.stringify({
+            email: "origin@example.com",
+            accept_terms: true,
+          }),
+          headers: {
+            "content-type": "application/json",
+            "cf-connecting-ip": IP,
+            ...headers,
+          },
+        }),
+      );
+    for (const path of ["/account/free-key", "/account/free-key-delete"]) {
+      const bad = await post(`https://factlot.com${path}`, {
+        origin: "https://evil.example",
+      });
+      assert.equal(bad.status, 403, `${path} from another site`);
+      const good = await post(`https://factlot.com${path}`, {
+        origin: "https://factlot.com",
+      });
+      assert.notEqual(good.status, 403, `${path} from its own page`);
+      const none = await post(`https://factlot.com${path}`, {});
+      assert.notEqual(none.status, 403, `${path} without an Origin header`);
+    }
+    assert.equal(mail.sent.length, 1, "only the same-origin request mailed");
+    // The API path is for programs and stays open to JSON from anywhere.
+    waitPassed(e);
+    const api = await post("https://api.factlot.com/v1/keys/free", {
+      origin: "https://evil.example",
+    });
+    assert.equal(api.status, 202);
+  });
+
   it("one active key per address: a new key revokes the old one", async () => {
     const { e, mail, api } = setup();
     const k1 = await mint(e, mail, "Pair@Example.com");
