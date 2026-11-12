@@ -12,7 +12,11 @@ export const HOSTING_NOTE = HOSTED_NOTE;
 
 export const WHATS_NEW: { text: string; changelog: string }[] = [
   {
-    text: "Texas registry grows to sixteen counties: Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman join, with several roll years in Brazos, Nueces, Galveston, Kaufman, Jefferson and Guadalupe. 434,538 parcels in 43 counties are hosted.",
+    text: "Six new hosted regions: New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver and Connecticut. Los Angeles County and San Francisco files carry no owner names; the City of Boston is loaded without the rest of Suffolk County.",
+    changelog: "six new hosted regions",
+  },
+  {
+    text: "Texas registry grows to sixteen counties: Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman join, with several roll years in Brazos, Nueces, Galveston, Kaufman, Jefferson and Guadalupe.",
     changelog: "sixteen hosted counties",
   },
   {
