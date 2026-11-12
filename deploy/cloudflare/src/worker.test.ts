@@ -7451,12 +7451,12 @@ describe("free key by email", () => {
       assert.ok(shown.plans.free.free_key);
     });
 
-    it("is off in the shipped wrangler config", () => {
+    it("is on in the shipped wrangler config", () => {
       const text = readFileSync(
         new URL("../wrangler.jsonc", import.meta.url),
         "utf8",
       );
-      assert.doesNotMatch(text, /^\s*"FREE_KEY_ENABLED"/m);
+      assert.match(text, /^\s*"FREE_KEY_ENABLED": "true",$/m);
     });
 
     it("turning it off stops new keys; a key already issued keeps working", async () => {

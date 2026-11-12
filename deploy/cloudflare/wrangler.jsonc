@@ -19,7 +19,7 @@
 // current roll year's values only (value_history, history) and registry batch tools answer PlanRequired; Pro and Team keep everything, and
 // checkout accepts ?plan=pro&interval=year (price factlot_pro_yearly_v1). Any value other than
 // "true", or removing the variable, turns gating off again.
-// FREE_KEY_ENABLED (not set here; add it to `vars` as "true" to turn the free API key by email on).
+// FREE_KEY_ENABLED (a variable in `vars` below, "true": the free API key by email is on).
 // Needs the EMAIL binding and RECOVERY_SIGNING_SECRET below. Unset or any other value: POST
 // /v1/keys/free and /account/free-key answer 404 and /account shows no form; keys already issued
 // keep working. Publish the privacy notice and terms that describe it before setting it.
@@ -57,6 +57,7 @@
     "REPORTS_ENABLED": "true",
     "USAGE_COUNTERS_ENABLED": "true",
     "GATING_ENABLED": "true",
+    "FREE_KEY_ENABLED": "true",
   },
   // KEYS also holds the OAuth server's records (clients, grants, hashed tokens) under the `oauth:`
   // prefix (src/oauth.ts), so OAuth needs no binding of its own.
