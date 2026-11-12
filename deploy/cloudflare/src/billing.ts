@@ -57,6 +57,7 @@ import { CHANGELOG_URL, CONTACT, DISCUSSIONS, SUPPORT_URL } from "./contact.ts";
 import { sendWelcomeEmail } from "./email.ts";
 import { messagePage, onboardingPage } from "./pages.ts";
 import { claimUrl, newClaim, storeClaim } from "./claim.ts";
+import { countEvent } from "./usage.ts";
 
 /** How long a key's subscription status is trusted before it is re-checked with Stripe. */
 export const RECHECK_MS = 6 * 60 * 60 * 1000;
@@ -484,6 +485,7 @@ export async function redeemSession(
   );
   const email = buyerEmail(session);
   if (email) d.defer(sendWelcomeEmail(d.env, email, PLANS[plan]));
+  countEvent(d.env, "checkout_complete", [plan, by]);
   return { ok: true, key, plan };
 }
 

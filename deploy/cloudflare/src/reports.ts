@@ -40,6 +40,7 @@ import {
   type Tier,
 } from "./plans.ts";
 import type { Env, QuotaSpec, QuotaState } from "./types.ts";
+import { countEvent } from "./usage.ts";
 
 export const REPORT_TOOL_NAME = "report_create";
 
@@ -268,6 +269,7 @@ export async function runReport(
   o: ReportOptions,
 ): Promise<ReportOutcome> {
   const out = await runReportInner(env, caller, request, o);
+  countEvent(env, "report", [out.ok ? "created" : "refused", caller.tier]);
   // Every answer says whether it counted against the month: only a stored build does.
   return { ...out, body: { ...out.body, billed: out.ok } } as ReportOutcome;
 }

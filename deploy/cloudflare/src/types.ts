@@ -180,4 +180,6 @@ export interface Env {
   REPORTS_ENABLED?: string;
   /** "true" turns paid gating on: value history and batch registry tools for Pro and Team only. Unset: off. */
   GATING_ENABLED?: string;
+  /** "true" turns the usage counters on (usage.ts). Unset or anything else: nothing is counted. */
+  USAGE_COUNTERS_ENABLED?: string;
 }

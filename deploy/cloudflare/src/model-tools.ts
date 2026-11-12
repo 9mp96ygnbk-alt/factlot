@@ -28,6 +28,7 @@ import {
   modelUnavailable,
   type ModelDeps,
 } from "./model.ts";
+import { countEvent } from "./usage.ts";
 import {
   REPORT_NARRATIVE,
   REPORT_NARRATIVE_TOOL,
@@ -266,6 +267,31 @@ function capped(
 
 /** Run a model-backed tool for this caller: availability, plan and allowance first. */
 export async function runModelTool(
+  name: string,
+  args: unknown,
+  env: Env,
+  caller: ModelCaller | undefined,
+  deps: ModelDeps = {},
+): Promise<ToolAnswer> {
+  const answer = await runModelToolInner(name, args, env, caller, deps);
+  const tier = caller?.plan ?? "anonymous";
+  const code = (answer.body as { code?: unknown }).code;
+  countEvent(env, "model_call", [
+    name,
+    answer.status < 300
+      ? "ok"
+      : code === "PlanRequired"
+        ? "plan_required"
+        : answer.status === 429
+          ? "limited"
+          : "error",
+  ]);
+  if (code === "PlanRequired")
+    countEvent(env, "plan_required", ["model_tool", tier]);
+  return answer;
+}
+
+async function runModelToolInner(
   name: string,
   args: unknown,
   env: Env,

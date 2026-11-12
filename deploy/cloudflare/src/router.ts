@@ -95,6 +95,19 @@ import {
   recoveryState,
 } from "./recovery.ts";
 import {
+  countCheckoutStart,
+  countEvent,
+  countHistoryWithheld,
+  countToolCalls,
+  callerKind,
+  noteCaller,
+  recordRequest,
+  regionDim,
+  setUsageWaitUntil,
+  type CallerKind,
+} from "./usage.ts";
+import {
+  isDatedGet,
   isPaidRegistryCall,
   limitMcpResponse,
   planRequired,
@@ -155,6 +168,14 @@ const REGISTRY_TOOLS = new Map(
     .map((t) => [t.path, t.name]),
 );
 const REGISTRY_NAMES = new Set(REGISTRY_TOOLS.values());
+/** Tool names the usage counters keep by name (anything else counts as "other"). */
+const USAGE_TOOL_NAMES: ReadonlySet<string> = new Set([
+  ...tools.map((t) => t.name),
+  ...ACCOUNT_TOOL_NAMES,
+  REPORT_TOOL.name,
+  "doc_extract_lease",
+  "report_narrative",
+]);
 
 /** The inner handler's limit on messages in one MCP batch (createHandler's maxMcpBatch). */
 const MAX_MCP_BATCH = 20;
@@ -652,6 +673,9 @@ export async function handle(
     request = new Request(`${url.origin}/mcp${url.search}`, request);
     path = "/mcp";
   }
+  setUsageWaitUntil(opts.waitUntil);
+  const seen = (status: number) =>
+    recordRequest(env, { host: url.host, path: url.pathname, status });
   try {
     // Uptime monitors probe with HEAD: answer it as the GET (same limits, same status), no body.
     if (request.method === "HEAD" && path === "/health") {
@@ -661,12 +685,16 @@ export async function handle(
         api,
         opts,
       );
+      seen(res.status);
       return new Response(null, { status: res.status, headers: res.headers });
     }
-    return await route(request, env, api, opts);
+    const res = await route(request, env, api, opts);
+    seen(res.status);
+    return res;
   } catch (err) {
     if (err instanceof MeterUnavailable) {
       console.error(JSON.stringify({ msg: "meter unavailable" }));
+      seen(503);
       return serviceUnavailable(path);
     }
     throw err;
@@ -735,9 +763,12 @@ async function route(
     );
     if (!ok.success)
       return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
-    return path === "/billing/checkout"
-      ? checkoutRoute(env, request, url, opts.fetchImpl, now)
-      : successRoute(env, url, opts.fetchImpl, deferWith(opts));
+    if (path === "/billing/checkout") {
+      const res = await checkoutRoute(env, request, url, opts.fetchImpl, now);
+      await countCheckoutStart(env, request, url, res);
+      return res;
+    }
+    return successRoute(env, url, opts.fetchImpl, deferWith(opts));
   }
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
     return recoverRoute(request, env, url, path, opts);
@@ -838,10 +869,15 @@ async function route(
     );
     if (!ok.success)
       return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
-    return withHeaders(
-      await checkoutRoute(env, request, url, opts.fetchImpl, now),
-      corsHeaders(),
+    const checkout = await checkoutRoute(
+      env,
+      request,
+      url,
+      opts.fetchImpl,
+      now,
     );
+    await countCheckoutStart(env, request, url, checkout);
+    return withHeaders(checkout, corsHeaders());
   }
   if (path.startsWith("/v1/billing/claim/")) {
     // GET only. HEAD also reaches this branch in a Worker, and redeeming on it would discard the
@@ -1047,6 +1083,16 @@ async function route(
     ? PLANS[paid.record.plan].requestsPerMinute
     : ANONYMOUS_REQUESTS_PER_MINUTE;
 
+  // Usage counters (usage.ts): the caller's kind, for counts and the distinct-caller sketch.
+  const kind: CallerKind = callerKind(
+    paid?.record.plan,
+    oauth !== undefined && !paid,
+  );
+  const noteRefusal = (tool: unknown, args: unknown) =>
+    countEvent(env, "plan_required", [
+      isDatedGet(tool, args) ? "dated" : "batch",
+      kind,
+    ]);
   // What the request asks of the registry.
   let mcpBody: unknown;
   let mcpText: string | undefined;
@@ -1101,6 +1147,7 @@ async function route(
       });
     mcpBatch = Array.isArray(mcpBody);
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
+    countToolCalls(env, items, kind, USAGE_TOOL_NAMES);
     // Answers are matched to calls by id when lookups are charged, so two requests with one id
     // would let an error answer stand for a real one. JSON-RPC ids must be unique in a batch.
     if (mcpBatch && hasDuplicateIds(items))
@@ -1206,6 +1253,7 @@ async function route(
         }),
       );
   }
+  noteCaller(env, kind, paid ? `key:${keyId(paid.hash)}` : await freeSubject());
   if (!hit.ok) return rateLimited(path, perMinute, tier, oauth !== undefined);
 
   // Reports: metered per month against reports_per_month (reports.ts).
@@ -1247,6 +1295,7 @@ async function route(
     "x-ratelimit-limit": String(perMinute),
   };
   if (refuseRestBatch) {
+    noteRefusal(REGISTRY_TOOLS.get(path), parseArgs(restText));
     return withHeaders(json(refuseRestBatch.status, refuseRestBatch.body), {
       ...corsHeaders(),
       ...headers,
@@ -1259,6 +1308,7 @@ async function route(
       deniedError = quotaError(hit.quota, tier, now(), {
         connection: oauth !== undefined,
       });
+      countEvent(env, "quota_exhausted", [kind, paid ? "month" : "day"]);
       headers["retry-after"] = String(deniedError.retry_after_seconds);
     }
   }
@@ -1366,6 +1416,12 @@ async function route(
             hit.granted,
           );
     res = counted.res;
+    for (const c of counted.charged)
+      countEvent(env, "lookup", [
+        c.tool,
+        regionDim(regionOf(c.tool, c.args)),
+        kind,
+      ]);
     const unanswered = counted.free;
     // The subscription's daily usage (by tool and region) for /account and account_usage.
     if (paid && counted.charged.length > 0)
@@ -1391,6 +1447,12 @@ async function route(
       path === "/v1/registry/tx_equity_candidates"
     )
       res = await limitRestResponse(res);
+    await countHistoryWithheld(
+      env,
+      res,
+      path === "/mcp" ? "mcp" : "rest",
+      kind,
+    );
   }
   if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;
@@ -1400,7 +1462,7 @@ async function route(
         ...(await Promise.all(
           accountCalls.map((m) =>
             refusedBatch(m)
-              ? refusedBatchAnswer(m)
+              ? refusedBatchAnswer(m, noteRefusal)
               : isModelCall(m)
                 ? answerModelCall(
                     env,
@@ -1528,7 +1590,11 @@ interface Charges {
 }
 
 /** The JSON-RPC answer to a refused registry call, a batch tool or a dated registry_get (a tool error, like the model-backed tools'). */
-function refusedBatchAnswer(m: AccountCall): unknown {
+function refusedBatchAnswer(
+  m: AccountCall,
+  note: (tool: unknown, args: unknown) => void,
+): unknown {
+  note(m.params.name, m.params.arguments);
   const a = planRequired(m.params.name, m.params.arguments);
   return {
     jsonrpc: "2.0",
