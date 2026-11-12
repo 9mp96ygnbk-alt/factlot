@@ -389,24 +389,50 @@ function newestTransfer(facts: Json[]): Json | undefined {
   return best;
 }
 
-function withheldOf(facts: Json[], byPredicate: boolean): RecordsWithheld {
+/** The registry's summary of the recorded facts a capped record left out (recorded_facts_truncated.by_predicate). */
+type Omitted = Record<
+  string,
+  { kept?: unknown; total?: unknown; from_year?: unknown; to_year?: unknown }
+>;
+
+/**
+ * What was withheld of `predicates`: the facts the answer had and the cut removed, plus the ones the registry had
+ * already left out of a capped record (counted from its summary, so the totals are the parcel's true totals).
+ */
+function withheldOf(
+  facts: Json[],
+  predicates: readonly string[],
+  omitted: Omitted,
+  byPredicate: boolean,
+): RecordsWithheld | undefined {
   const years = facts
+    .filter((f) => predicates.includes(String(f.predicate)))
     .map((f) => /^(\d{4})/.exec(dateOf(f))?.[1])
     .filter((y): y is string => y !== undefined)
     .map(Number);
-  const out: RecordsWithheld = { count: facts.length };
+  const counts: Record<string, number> = {};
+  let count = 0;
+  for (const p of predicates) {
+    const o = Object.hasOwn(omitted, p) ? omitted[p]! : {};
+    const left =
+      typeof o.total === "number" && typeof o.kept === "number"
+        ? Math.max(0, o.total - o.kept)
+        : 0;
+    if (left > 0) {
+      for (const y of [o.from_year, o.to_year])
+        if (typeof y === "number") years.push(y);
+    }
+    const n = facts.filter((f) => f.predicate === p).length + left;
+    if (n > 0) counts[p] = n;
+    count += n;
+  }
+  if (count === 0) return undefined;
+  const out: RecordsWithheld = { count };
   if (years.length > 0) {
     out.from_year = Math.min(...years);
     out.to_year = Math.max(...years);
   }
-  if (byPredicate) {
-    const counts: Record<string, number> = {};
-    for (const p of DOCUMENT_PREDICATES) {
-      const n = facts.filter((f) => f.predicate === p).length;
-      if (n > 0) counts[p] = n;
-    }
-    out.by_predicate = counts;
-  }
+  if (byPredicate) out.by_predicate = counts;
   return out;
 }
 
@@ -414,7 +440,9 @@ function withheldOf(facts: Json[], byPredicate: boolean): RecordsWithheld {
  * A registry_get answer for a free caller: of its recorded sales and documents (SALE_PREDICATE and
  * DOCUMENT_PREDICATES, one fact per event) the newest sale or deed only. Every other fact is kept, in
  * place. `history` loses the same facts (run limitHistory first: it cuts history to the current
- * facts). Returns the answer unchanged when it has no facts array, or at most one recorded fact and
+ * facts). A record the registry capped (`recorded_facts_truncated`) is counted from that summary, so
+ * the withheld counts and years are the parcel's true totals, and the summary itself is dropped
+ * (the withheld blocks say the same for a free caller); a Pro caller keeps it. Returns the answer unchanged when it has no facts array, or at most one recorded fact and
  * that one a sale or deed.
  */
 export function limitSales(answer: unknown): unknown {
@@ -426,9 +454,14 @@ export function limitSales(answer: unknown): unknown {
   const recorded = facts.filter((f) => RECORDED_PREDICATES.has(f?.predicate));
   const kept = newestTransfer(recorded);
   const removed = recorded.filter((f) => f !== kept);
-  if (removed.length === 0) return answer;
+  // A record the registry capped (more recorded facts than it keeps) says what it left out.
+  const truncated = a.recorded_facts_truncated as Json | undefined;
+  const omitted = (truncated?.by_predicate ?? {}) as Omitted;
+  if (removed.length === 0 && truncated === undefined) return answer;
+  const { recorded_facts_truncated: _summary, ...rest } = a;
+  void _summary;
   const out: Json = {
-    ...a,
+    ...rest,
     facts: facts.filter(
       (f) => !RECORDED_PREDICATES.has(f?.predicate) || f === kept,
     ),
@@ -439,11 +472,13 @@ export function limitSales(answer: unknown): unknown {
         !RECORDED_PREDICATES.has(f?.predicate) ||
         (kept?.id !== undefined && f?.id === kept.id),
     );
-  const sales = removed.filter((f) => f.predicate === SALE_PREDICATE);
-  const documents = removed.filter((f) => f.predicate !== SALE_PREDICATE);
-  const salesWithheld = sales.length > 0 ? withheldOf(sales, false) : undefined;
-  const documentsWithheld =
-    documents.length > 0 ? withheldOf(documents, true) : undefined;
+  const salesWithheld = withheldOf(removed, [SALE_PREDICATE], omitted, false);
+  const documentsWithheld = withheldOf(
+    removed,
+    DOCUMENT_PREDICATES,
+    omitted,
+    true,
+  );
   out.history_available = "pro";
   if (salesWithheld) out.sales_withheld = salesWithheld;
   if (documentsWithheld) out.documents_withheld = documentsWithheld;

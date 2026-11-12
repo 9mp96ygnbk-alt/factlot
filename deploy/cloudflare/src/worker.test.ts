@@ -6264,6 +6264,75 @@ describe("paid gating (GATING_ENABLED)", () => {
     }
   });
 
+  it("recorded sales on a capped record: counts and years come from recorded_facts_truncated; a free caller loses the summary, Pro keeps it", async () => {
+    const capped = {
+      ...SALES_RECORD,
+      recorded_facts_truncated: {
+        limit: 8,
+        kept: 8,
+        total: 146,
+        from_year: 2001,
+        to_year: 2012,
+        by_predicate: {
+          "transaction.sale": {
+            kept: 3,
+            total: 103,
+            from_year: 2001,
+            to_year: 2008,
+          },
+          "transaction.deed": { kept: 2, total: 2 },
+          "debt.mortgage_recorded": {
+            kept: 2,
+            total: 40,
+            from_year: 2002,
+            to_year: 2012,
+          },
+          "debt.mortgage_satisfaction_recorded": { kept: 1, total: 1 },
+        },
+        rest: "registry_recorded_facts",
+      },
+    };
+    for (const a of await freeAnswers(capped)) {
+      assert.deepEqual(a.sales_withheld, {
+        count: 103,
+        from_year: 2001,
+        to_year: 2026,
+      });
+      assert.deepEqual(a.documents_withheld, {
+        count: 42,
+        from_year: 2002,
+        to_year: 2025,
+        by_predicate: {
+          "transaction.deed": 1,
+          "debt.mortgage_recorded": 40,
+          "debt.mortgage_satisfaction_recorded": 1,
+        },
+      });
+      assert.equal(
+        a.sales_note,
+        "This answer keeps the newest recorded sale or deed only; 103 more recorded sales, 2001 to 2026, and 42 recorded documents (deeds, mortgages and mortgage satisfactions), 2002 to 2025, are available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assert.ok(!("recorded_facts_truncated" in a));
+      assert.deepEqual(a.facts, [
+        SALES_RECORD.facts[0],
+        KEPT_DEED,
+        SALES_RECORD.facts.at(-1),
+      ]);
+      assertNoWithheldSales(a);
+    }
+    const e = on();
+    const { key } = await issue(e);
+    assert.deepEqual(
+      await (
+        await call(e, answerApi(capped), "/v1/registry/get", {
+          key,
+          body: { urn: "x" },
+        })
+      ).json(),
+      capped,
+    );
+  });
+
   it("recorded sales: a Pro key and gating off get every recorded fact unchanged (REST and MCP)", async () => {
     const api = answerApi(SALES_RECORD);
     const e = on();
