@@ -507,7 +507,7 @@ lookup.
 ## Example: Claude Messages API with the Python SDK
 
 Requires `pip install anthropic` and an `ANTHROPIC_API_KEY`. The loop passes every tool, so the
-model may call a `registry_*` tool; on a server with no registry it gets `RegistryUnavailable`, and for a region the registry does not hold it gets a coverage miss. Either way it moves on. On the hosted API, call `registry_coverage` first.
+model may call a `registry_*` tool; on a server with no registry it gets `RegistryUnavailable`, and for a region the registry does not hold it gets a coverage miss. Either way it moves on. On the hosted API, call `registry_coverage` first. Without a Pro or Team key the hosted `registry_owned_by` returns the first three parcels of an owner's portfolio; when more were left out, `portfolio_withheld` gives their `count` and the portfolio's `total`, with a `portfolio_note`, and a portfolio of three parcels or fewer is returned whole with neither.
 
 ```python
 import json
