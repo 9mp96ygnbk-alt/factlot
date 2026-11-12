@@ -5688,6 +5688,159 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.ok(!("portfolio_withheld" in got));
   });
 
+  /** An entity's registry_get record with `n` "owns" rows to parcels, plus rows of other kinds. */
+  function entityRecord(n: number) {
+    const urn = "fl:entity:us-tx:0809999999";
+    const owns = Array.from({ length: n }, (_, i) => ({
+      from_urn: urn,
+      type: "owns",
+      to_urn: `fl:parcel:us-48201:${8000000 + i + 1}`,
+      as_of: `2026-01-${String(20 - i).padStart(2, "0")}`,
+      method: "name_match",
+      confidence: 0.9,
+      basis: "owner of record name matches the entity's legal name",
+      document_id: "doc-roll-2026",
+    }));
+    const other = [
+      {
+        from_urn: urn,
+        type: "successor_of",
+        to_urn: "fl:entity:us-tx:0808888888",
+        as_of: "2025-06-01",
+      },
+      {
+        from_urn: "fl:entity:us-tx:0807777777",
+        type: "owns",
+        to_urn: urn,
+        as_of: "2025-05-01",
+      },
+    ];
+    return {
+      urn,
+      kind: "entity",
+      label: "Example Holdings LLC",
+      facts: [
+        {
+          id: "e1",
+          predicate: "entity.legal_name",
+          value: "Example Holdings LLC",
+        },
+      ],
+      // Other rows sit between the owns rows, so order is checked too.
+      relationships: [
+        ...owns.slice(0, 2),
+        other[0],
+        ...owns.slice(2),
+        other[1],
+      ],
+      crosswalk: [],
+    };
+  }
+
+  it("registry_get on an entity: a free caller keeps the first three owns rows to parcels, other rows untouched, with a note (REST, MCP structuredContent and text)", async () => {
+    const ent = entityRecord(11);
+    const answers = await freeAnswers(ent);
+    for (const a of answers) {
+      assert.deepEqual(a.relationships, [
+        ent.relationships[0],
+        ent.relationships[1],
+        ent.relationships[2],
+        ent.relationships[3],
+        ent.relationships.at(-1),
+      ]);
+      assert.deepEqual(a.portfolio_withheld, { count: 8, total: 11 });
+      assert.equal(
+        a.portfolio_note,
+        "8 more parcels of this owner are available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assert.deepEqual(a.facts, ent.facts);
+      const text = JSON.stringify(a);
+      for (const r of ent.relationships.slice(4, -1))
+        assert.ok(!text.includes(r!.to_urn), `free answer leaks ${r!.to_urn}`);
+    }
+    assert.deepEqual(answers[0], answers[1]);
+    assert.deepEqual(answers[1], answers[2]);
+  });
+
+  it("registry_get: an entity with three owned parcels or fewer, and a parcel with many relationships, are unchanged", async () => {
+    const parcel = {
+      urn: "fl:parcel:us-48201:8000001",
+      kind: "parcel",
+      relationships: entityRecord(6).relationships.map((r) => ({
+        ...r,
+        from_urn: "fl:entity:us-tx:0809999999",
+        to_urn: "fl:parcel:us-48201:8000001",
+      })),
+    };
+    for (const answer of [entityRecord(3), entityRecord(0), parcel])
+      for (const a of await freeAnswers(answer)) {
+        assert.deepEqual(a, answer);
+        assert.ok(!("portfolio_withheld" in a) && !("portfolio_note" in a));
+      }
+  });
+
+  it("registry_get on an entity: a Pro key and gating off get every relationship (REST and MCP)", async () => {
+    const ent = entityRecord(11);
+    const api = answerApi(ent);
+    const e = on();
+    const { key } = await issue(e);
+    for (const [en, k] of [
+      [e, key],
+      [env(), undefined],
+    ] as const) {
+      const auth = k ? { key: k } : {};
+      assert.deepEqual(
+        await (
+          await call(en, api, "/v1/registry/get", {
+            ...auth,
+            body: { urn: ent.urn },
+          })
+        ).json(),
+        ent,
+      );
+      const mcp = (await (
+        await call(en, api, "/mcp", {
+          ...auth,
+          body: toolCall("registry_get", 1),
+        })
+      ).json()) as {
+        result: { content: { text: string }[]; structuredContent: unknown };
+      };
+      assert.deepEqual(mcp.result.structuredContent, ent);
+      assert.deepEqual(JSON.parse(mcp.result.content[0]!.text), ent);
+    }
+  });
+
+  it("registry_get on an entity with include_history: the history cut and the portfolio cut together", async () => {
+    const base = entityRecord(5);
+    const ent = {
+      ...base,
+      history: [
+        base.facts[0],
+        {
+          id: "e0",
+          predicate: "entity.legal_name",
+          value: "Example Holdings Ltd",
+        },
+      ],
+    };
+    for (const a of await freeAnswers(ent)) {
+      assert.deepEqual(a.history, [base.facts[0]]);
+      assert.deepEqual(a.history_withheld, { facts: 1 });
+      assert.equal(a.history_available, "pro");
+      assert.equal(
+        a.history_note,
+        "1 earlier fact in history is available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assert.deepEqual(a.portfolio_withheld, { count: 2, total: 5 });
+      assert.equal(
+        a.portfolio_note,
+        "2 more parcels of this owner are available with a Pro or Team key: https://factlot.com/pricing/",
+      );
+      assert.equal((a.relationships as unknown[]).length, 3 + 2);
+    }
+  });
+
   it("REST: flag unset or not exactly true leaves the answer as it is", async () => {
     const { api } = historyApi();
     for (const e of [env(), env({ GATING_ENABLED: "yes" })])

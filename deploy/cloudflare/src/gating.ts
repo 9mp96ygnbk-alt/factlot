@@ -28,6 +28,15 @@
  *   of three parcels or fewer is unchanged and gets neither. The tool takes no paging argument
  *   (its input is entity_urn alone, and other arguments are dropped by its schema), so the cut is
  *   applied to every answer and there is nothing to refuse.
+ * - The same portfolio is in registry_get on an entity URN: its `relationships` hold one "owns" row
+ *   from the entity to each parcel it owns (current links only; include_history adds superseded
+ *   facts, never ended links). A free caller's entity record keeps the first FREE_PORTFOLIO_PARCELS
+ *   of those rows in the registry's order and drops the rest; every other relationship (other types,
+ *   rows to the entity, rows to anything but a parcel) stays, and a parcel or building record is not
+ *   touched. When rows were dropped the record gets the same `portfolio_withheld` and
+ *   `portfolio_note`, beside any history cut. The three parcels kept here need not be the three
+ *   registry_owned_by keeps: registry_get orders the rows by link date and registry_owned_by by
+ *   parcel label, and this Worker does not see the labels, so it does not try to match them.
  */
 import { GATING_PRICING_URL } from "./plans.ts";
 
@@ -299,11 +308,50 @@ export function limitPortfolio(answer: unknown): unknown {
   return out;
 }
 
-/** A free caller's answer from `tool`: the portfolio cut for registry_owned_by, else the history cut. */
+/**
+ * A registry_get answer on an entity for a free caller: the first FREE_PORTFOLIO_PARCELS "owns"
+ * relationships from the entity to a parcel, in the registry's order; every other row unchanged.
+ * Returns the answer unchanged for any other record, or when it holds that many or fewer.
+ */
+export function limitEntityPortfolio(answer: unknown): unknown {
+  if (typeof answer !== "object" || answer === null || Array.isArray(answer))
+    return answer;
+  const a = answer as Json;
+  if (a.kind !== "entity" || !Array.isArray(a.relationships)) return answer;
+  const owns = (r: unknown) => {
+    const row = r as Json | null;
+    return (
+      row?.type === "owns" &&
+      row.from_urn === a.urn &&
+      typeof row.to_urn === "string" &&
+      row.to_urn.startsWith("fl:parcel:")
+    );
+  };
+  const rows = a.relationships as unknown[];
+  const total = rows.filter(owns).length;
+  if (total <= FREE_PORTFOLIO_PARCELS) return answer;
+  let seen = 0;
+  const kept = rows.filter((r) => !owns(r) || ++seen <= FREE_PORTFOLIO_PARCELS);
+  const withheld: PortfolioWithheld = {
+    count: total - FREE_PORTFOLIO_PARCELS,
+    total,
+  };
+  return {
+    ...a,
+    relationships: kept,
+    portfolio_withheld: withheld,
+    portfolio_note: portfolioNote(withheld),
+  };
+}
+
+/**
+ * A free caller's answer from `tool`: the portfolio cut for registry_owned_by; for registry_get the
+ * history cut and, on an entity, the portfolio cut; else the history cut.
+ */
 export function limitFreeAnswer(tool: unknown, answer: unknown): unknown {
-  return tool === PORTFOLIO_TOOL
-    ? limitPortfolio(answer)
-    : limitHistory(answer);
+  if (tool === PORTFOLIO_TOOL) return limitPortfolio(answer);
+  if (tool === HISTORY_TOOL) return limitEntityPortfolio(limitHistory(answer));
+  return limitHistory(answer);
 }
 
 /** Apply the free cut for `tool` to one MCP tool result (text and structuredContent), when it is not an error. */
