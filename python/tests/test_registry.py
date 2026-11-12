@@ -288,6 +288,21 @@ class PersonCarryingNames(unittest.TestCase):
                      "STATE OF EXAMPLE", "CITY OF EXAMPLE"):
             self.assertTrue(is_organization(name), name)
 
+    def test_forms_found_in_recorded_data_stay_organisations(self):
+        # Shapes seen in the registry files (names invented): securitisation trustees cut short by the record,
+        # trustee roles, a REIT's taxable subsidiary, a company named for an estate, a dated organisation trust.
+        for name in ("EXAMPLE BANK N A AS TRUSTEE FOR THE EXAMPLEHOLDERS", "EXAMPLE BANK NATIONAL ASSOCIATION AS TRUSTEE FOR 2006-X1",
+                     "EXAMPLE BANK TRUST COMPANY AMERICAS AS TRUSTEE", "EXAMPLE BANK TRUST COMPANY N A TRUSTEE",
+                     "EXAMPLE BANK N A AS TRUSTEE SUCCESSOR BY MERGER TO", "EXAMPLE TRUST COMPANY INC AS INDENTURE TRUSTEE",
+                     "EXAMPLE TRS 12 HARBOR LLC", "EXAMPLE PROPERTIES LP AND EXAMPLE TRS INC", "GRAND ESTATE OF EXAMPLE LLC",
+                     "ESTATE OF 100 EXAMPLE STREET LLC", "12 EXAMPLE STREET REALTY TRUST U/A/D 1/2/2003",
+                     "EXAMPLE HOLDINGS TRUST NO 2 DATED 1/2/2003", "BOARD OF TRUSTEES OF THE EXAMPLE RELIEF ASSN"):
+            self.assertTrue(is_organization(name), name)
+        for name in ("EXAMPLE BANK AS TRUSTEE FOR JOHN DOE", "EXAMPLE BANK TRUSTEE OF THE DOE JANE TRUST",
+                     "DOE JOHN ESTATE OF", "ESTATE OF EXAMPLE LLC", "DOE FAMILY HOLDINGS TRUST DTD 1/2/2003",
+                     "JOHN EXAMPLE REALTY TRUST U/A/D 1/2/2003", "EXAMPLE TRS JOHN LLC"):
+            self.assertFalse(is_organization(name), name)
+
     def test_personal_trust_words_in_a_company_name_withhold_its_mailing_address(self):
         from factlot.registry.normalize import personal_style_organization
         for name in ("SMITH REVOCABLE HOLDINGS LLC", "EXAMPLE FAMILY TRUST LP"):

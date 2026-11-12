@@ -318,9 +318,11 @@ def _structurally_organization(s: str) -> bool:
 # rejected whole (``person_carrying_class``): cutting it down to its leading organisation would rest on reading where
 # the person's name starts, and a wrong cut would store it.
 
-# Probate and life-interest forms. "REAL ESTATE OF ..." is a company's name.
+# Probate and life-interest forms. "ESTATE OF" at the start or the end of a name, or before no legal form, is probate;
+# inside a company's name ("<word> ESTATE OF <place> LLC", "REAL ESTATE OF ...") or before a number it is not.
 _PROBATE = re.compile(
-    r"(?<!\bREAL )\b(?:ESTATE|EST) OF\b|\bHEIRS (?:OF|AT LAW)\b|\bUNKNOWN HEIRS\b|\bLIFE (?:ESTATE|EST|TENANTS?)\b"
+    r"^(?:THE )?(?:ESTATE|EST) OF\b(?! \d)|\b(?:ESTATE|EST) OF$"
+    r"|(?<!\bREAL )\b(?:ESTATE|EST) OF\b(?! \d)(?!.*\b(?:LLC|LLLP|LLP|LP|INC|CORP|LTD|PLLC|CO)\b)|\bHEIRS (?:OF|AT LAW)\b|\bUNKNOWN HEIRS\b|\bLIFE (?:ESTATE|EST|TENANTS?)\b"
     r"|\bDECEASED\b|\bDECD\b|\bDEC D\b")
 _TRUST_WORD = r"(?:TRUSTS?|TRST|TR)"
 # Personal trusts, written out or as the rolls abbreviate them. Apostrophes have become spaces ("SURVIVOR S").
@@ -341,7 +343,8 @@ _ANY_TRUST_WORD = re.compile(r"\b(?:TRUSTS?|TRST|TR|TRS|TRUSTEES?|TTEES?|TRSTEES
 # A trustee, written out or abbreviated, with its role words; "BOARD OF TRUSTEES" is a body, kept as one unit.
 _BOARD_OF_TRUSTEES = re.compile(r"\b(?:THE )?(?:BOARD|BD|BRD) OF (?:TRUSTEES|TRS|TTEES)\b(?: OF)?(?: THE)?")
 _TRUSTEE = re.compile(
-    r"\b(?:AS )?(?:(?:SUCCESSOR|SUC|SUCC|CO|SOLE|SPECIAL|INDIVIDUALLY AND AS|INDIVIDUALLY AND) )?"
+    r"\b(?:AS )?(?:(?:SUCCESSOR|SUC|SUCC|CO|SOLE|SPECIAL|INDIVIDUALLY AND AS|INDIVIDUALLY AND|INDENTURE|COLLATERAL|OWNER|"
+    r"SEPARATE|CERTIFICATE|INSTITUTIONAL|LIQUIDATING|PLAN|DELAWARE|ADMINISTRATIVE) )?"
     r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS)\b"
     r"(?: (?:OF|FOR|UNDER|U A|U T A|UNDER THE|OF THE|FOR THE|OF THAT|U D T))?")
 # "<x> TRUST CO TRUSTEES OF ...": the CO is the trust company's, not a co-trustee's.
@@ -369,7 +372,10 @@ _INSTITUTION_WORD = re.compile(
     r"CITY|TOWN|TOWNSHIP|VILLAGE|BOROUGH|STATE|COMMONWEALTH|UNITED STATES|GOVERNMENT|COMMISSION|SOCIETY|LODGE|"
     r"LEGION|FOUNDATION|ASSOCIATION|CHARITABLE|CHARITIES|ESTATE BELONGING|CORPORATION|INC|LLC|LP|CORP|CO)\b")
 # Connectors and descriptors that may sit around a trustee or a trust without naming anyone.
-_FILLER = frozenset("THE OF FOR AND AS ET AL ETAL A AN UNDER TRUST TRUSTS TR AGREEMENT DATED DTD U W NO NUMBER".split())
+_FILLER = frozenset("THE OF FOR AND AS ET AL ETAL A AN UNDER TRUST TRUSTS TR AGREEMENT DATED DTD U W NO NUMBER "
+                    "SUCCESSOR BY MERGER TO IN INTEREST".split())
+# A bank or trust company: as trustee it often stands before a securitisation's name that the record cuts short.
+_FINANCIAL = re.compile(r"\b(?:BANK|BANC|TRUST (?:CO|COMPANY)|NATIONAL ASSOCIATION|NATIONAL TRUST|TRUST N A|TRUST NA)\b")
 
 
 def _segment_names_no_person(seg: str) -> bool:
@@ -391,7 +397,8 @@ def _segment_names_no_person(seg: str) -> bool:
         after = seg[forms[-1].end():].split()
         tail = [t for t in after if t not in _FILLER and not t.isdigit()]
         of_place = bool(after) and after[0] == "OF" and not any(t in _TRADE_NAME_GIVEN_NAMES for t in tail)
-        if tail and not of_place and not _INSTITUTION_WORD.search(" ".join(tail)):
+        financial = bool(_FINANCIAL.search(seg)) and not any(t in _TRADE_NAME_GIVEN_NAMES for t in tail)
+        if tail and not of_place and not financial and not _INSTITUTION_WORD.search(" ".join(tail)):
             return False  # "ACME LLC JOHN DOE": a name follows the company's
     if any(t in _TRADE_NAME_GIVEN_NAMES for t in tokens) and not _organization_reading(seg):
         return False
@@ -408,8 +415,40 @@ def _wrapper_tail(s: str) -> bool:
         return False
     first_end = forms[0].end()
     tail = s[first_end:]
-    return bool(_PERSONAL_TRUST_MARK.search(tail) or _PROBATE.search(tail) or _TRUSTEE.search(tail)
-                or (_TRUST_INSTRUMENT_MARK.search(tail) and _ANY_TRUST_WORD.search(tail)))
+    trustee = bool(_TRUSTEE.search(tail)) and not _trustee_company(s)
+    return bool(_PERSONAL_TRUST_MARK.search(tail) or _PROBATE.search(tail) or trustee or _personal_instrument(tail))
+
+
+def _trustee_company(s: str) -> bool:
+    """A company whose name holds a trustee word: "100 EXAMPLE TRUSTEE LLC", "EXAMPLE TRS 12 LLC" (a REIT's taxable
+    subsidiary). The name ends in a legal form, and only TRS may stand anywhere but just before it."""
+    if _TRUSTEE_COMPANY.search(s):
+        return True
+    forms = list(_LEGAL_FORM.finditer(s))
+    if not forms or forms[-1].end() != len(s) or not re.search(r"\bTRS\b", s):
+        return False
+    rest = re.sub(r"\bTRS\b", " ", s)
+    return not (_TRUSTEE.search(rest) or _PERSONAL_TRUST_MARK.search(s) or _PROBATE.search(s)
+                or any(t in _TRADE_NAME_GIVEN_NAMES for t in s.split()))
+
+
+def _personal_instrument(s: str) -> bool:
+    """A dated or "under agreement" trust ("... TR DTD 1 2 2003", "... TRUST U A") that is not an organisation's.
+
+    It is an organisation's when what precedes the instrument words is a named organisation trust with no given name
+    and no FAMILY ("<number> <street> REALTY TRUST U A D ...", "EXAMPLE HOLDINGS TRUST NO 2 DATED ..."), a numbered
+    land trust, or a securitisation."""
+    m = _TRUST_INSTRUMENT_MARK.search(s)
+    if not m or not _ANY_TRUST_WORD.search(s) or _SECURITIZATION.search(s):
+        return False
+    head = s[:m.start()].strip()
+    tokens = head.split()
+    if re.search(r"\bTRUST (?:NO |NUMBER )?\d", s):
+        return False
+    if (tokens and not any(t in _TRADE_NAME_GIVEN_NAMES or t in _FAMILY_WORDS for t in tokens)
+            and not _TRUSTEE.search(head) and not _PERSONAL_TRUST_MARK.search(head) and _organization_reading(head)):
+        return False
+    return True
 
 
 def _personal_trust_is_a_company_name(s: str) -> bool:
@@ -443,10 +482,9 @@ def _person_carrying(s: str) -> str | None:
         return "estate"
     if _PERSONAL_TRUST_MARK.search(s) and not _personal_trust_is_a_company_name(s):
         return "personal_trust"
-    if (_TRUST_INSTRUMENT_MARK.search(s) and _ANY_TRUST_WORD.search(s)
-            and not _segment_names_no_person_after_trustees(s)):
+    if _personal_instrument(s):
         return "personal_trust"
-    if _TRUSTEE_COMPANY.search(s) and _organization_reading(s):
+    if _trustee_company(s) and _organization_reading(s):
         return None  # a company whose name holds the word: "100 EXAMPLE TRUSTEE LLC"
     if _BOARD_OF_TRUSTEES.search(s) or _TRUSTEE.search(s):
         if not _segment_names_no_person_after_trustees(s):
@@ -468,12 +506,20 @@ def _segment_names_no_person_after_trustees(s: str) -> bool:
     sides = [p.strip() for p in parts if p and p.strip()]
     if not sides:
         return False  # "TRUSTEE" alone names nobody, and nothing makes it an organisation
-    if _TRUST_INSTRUMENT_MARK.search(s) and not any(_NUMBERED_TRUST.match(" ".join(
-            t for t in side.split() if t not in ("THE",))) for side in sides):
-        # A dated or "under agreement" trust with no land-trust number is a personal trust's instrument.
-        if _ANY_TRUST_WORD.search(s) and not _SECURITIZATION.search(s):
-            return False
-    return all(_segment_names_no_person(side) for side in sides)
+    if _personal_instrument(s):
+        return False
+    lenient = bool(_FINANCIAL.search(s)) or bool(_BOARD_OF_TRUSTEES.search(s))
+    return all(_segment_names_no_person(side) or (lenient and _unnamed_side(side, bool(_BOARD_OF_TRUSTEES.search(s))))
+               for side in sides)
+
+
+def _unnamed_side(side: str, board: bool) -> bool:
+    """The other side of a bank's or a board's trusteeship that names no one: a word or two cut short by the record
+    ("WELLS FARGO BANK N A AS TRUSTEE FOR THE <word>"), a numbered series, or a board's institution."""
+    tokens = [t for t in side.split() if t not in _FILLER]
+    if any(t in _TRADE_NAME_GIVEN_NAMES for t in tokens) or _PERSONAL_TRUST_MARK.search(side) or _PROBATE.search(side):
+        return False
+    return board or len(tokens) <= 1 or any(any(c.isdigit() for c in t) for t in tokens)
 
 
 def person_carrying_class(name: str) -> str | None:
