@@ -252,24 +252,30 @@
               <dl class="stats">
                 <div>
                   <dt>Commercial parcels on the hosted API</dt>
-                  <dd>434,538</dd>
+                  <dd>
+                    <!-- hosted:parcels -->434,538<!-- /hosted:parcels -->
+                  </dd>
                 </div>
                 <div>
                   <dt>Counties hosted</dt>
-                  <dd>43</dd>
+                  <dd><!-- hosted:counties -->43<!-- /hosted:counties --></dd>
                 </div>
                 <div>
                   <dt>Texas counties hosted</dt>
-                  <dd>16</dd>
+                  <dd>
+                    <!-- hosted:texas-counties -->16<!-- /hosted:texas-counties -->
+                  </dd>
                 </div>
               </dl>
               <p class="small">
-                Hosted: Maryland (24 jurisdictions), the District of Columbia,
-                Juab and Summit counties in Utah, and sixteen Texas counties
-                (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron,
-                Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson,
-                Guadalupe and Kaufman). Commercial, industrial, and multifamily
-                parcels only; some public files omit owner names.
+                Hosted:
+                <!-- hosted:places -->Maryland (all 24 jurisdictions), the
+                District of Columbia, Juab and Summit counties in Utah, and
+                sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton,
+                Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos,
+                Midland, Ector, Grayson, Guadalupe and Kaufman)<!-- /hosted:places -->.
+                Commercial, industrial, and multifamily parcels only; some
+                public files omit owner names.
               </p>
               <p class="small">
                 Built and documented for self-hosting; not on the hosted API:
@@ -288,13 +294,14 @@
                 >
                 lists. The hosted API also serves the 6,994 GSA lease comps
                 (<code>lease_comp_search</code>; the federal government is the
-                tenant, so they are not private-market comps). Tarrant County is
-                not served by the hosted registry while the publisher's terms
-                for AI use are unclear. Call
-                <code>registry_coverage</code> first to see what is hosted. The
-                other regions are built and verified in the project's pipeline
-                and run on your own FactLot with a registry file; more hosted
-                regions open as their terms allow.
+                tenant, so they are not private-market comps).
+                <!-- hosted:withheld -->Tarrant County is not served by the
+                hosted registry while the publisher's terms for AI use are
+                unclear.<!-- /hosted:withheld -->
+                Call <code>registry_coverage</code> first to see what is hosted.
+                The other regions are built and verified in the project's
+                pipeline and run on your own FactLot with a registry file; more
+                hosted regions open as their terms allow.
               </p>
               <p>
                 <a

@@ -385,8 +385,7 @@ return.
    show how each county reports them.
 3. **More hosted regions.** The hosted registry at `https://api.factlot.com` is a query-only
    service built from registry files: the registry tools run against it and the files are not
-   downloadable from it. It serves Maryland, the District of Columbia, Juab and Summit counties
-   in Utah, and sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman; Denton and Williamson from 2027 preliminary rolls, Midland without values, the others with 2026 rolls and, for several, earlier years); `registry_coverage` lists
+   downloadable from it. It serves <!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, and sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman)<!-- /hosted:places --> (<!-- hosted:totals -->434,538 parcels in 43 counties<!-- /hosted:totals -->); `registry_coverage` lists
    exactly what is hosted. More regions open as their terms allow. A self-hosted
    `@factlot/server` serves any registry file with `FACTLOT_REGISTRY_DB`.
 
