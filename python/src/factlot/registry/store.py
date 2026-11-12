@@ -281,10 +281,13 @@ def file_document_id(path: str | Path) -> tuple[str, int]:
     return f"fl:document:sha256-{h.hexdigest()}", size
 
 
-# An ownership link is current only while the owner-of-record fact it was inferred from is current.
+# An ownership link is current only when it was inferred from the owner-of-record fact the parcel's record
+# shows: the newest current one (latest as_of, then lowest fact ID, as ``Registry.facts`` keeps it). A district
+# that loads one source per roll year keeps every year's owner fact current; the older years' links are owner
+# history, not current owners (CURRENT_LINK in packages/tools/src/registry.ts).
 _CURRENT_LINK = (
-    "(r.type != 'owns' OR EXISTS (SELECT 1 FROM current_facts cf WHERE cf.subject = r.to_urn "
-    "AND cf.predicate = 'ownership.owner_of_record' AND cf.document_id = r.document_id))"
+    "(r.type != 'owns' OR r.document_id = (SELECT cf.document_id FROM current_facts cf WHERE cf.subject = r.to_urn "
+    "AND cf.predicate = 'ownership.owner_of_record' ORDER BY cf.as_of DESC, cf.fact_id LIMIT 1))"
 )
 
 
@@ -296,12 +299,14 @@ _FACTS_AT = (
     "AND c.source_id = s.source_id AND c.as_of <= ?)"
 )
 _ORDER_FACTS = " ORDER BY predicate, as_of DESC, fact_id"
-# An ownership link on a date: made by then, from an owner-of-record fact current on that date.
+# An ownership link on a date: made by then, from the owner-of-record fact the record shows on that date (the
+# newest of those current then, as ``Registry.facts`` keeps it with ``as_of``; LINK_AT in TypeScript).
 _LINK_AT = (
-    "r.as_of <= ? AND (r.type != 'owns' OR EXISTS (SELECT 1 FROM facts f JOIN snapshots s ON "
+    "r.as_of <= ? AND (r.type != 'owns' OR r.document_id = (SELECT f.document_id FROM facts f JOIN snapshots s ON "
     "s.document_id = f.document_id WHERE f.subject = r.to_urn AND f.predicate = 'ownership.owner_of_record' "
-    "AND f.document_id = r.document_id AND f.as_of <= ? AND f.as_of = (SELECT MAX(c.as_of) FROM coverage c "
-    "WHERE c.subject = f.subject AND c.source_id = s.source_id AND c.as_of <= ?)))"
+    "AND f.as_of <= ? AND f.as_of = (SELECT MAX(c.as_of) FROM coverage c "
+    "WHERE c.subject = f.subject AND c.source_id = s.source_id AND c.as_of <= ?) "
+    "ORDER BY f.as_of DESC, f.fact_id LIMIT 1))"
 )
 # Mailing-address predicates: stored without the contact names in them that are not organisations
 # (``normalize.scrub_mailing_address``).

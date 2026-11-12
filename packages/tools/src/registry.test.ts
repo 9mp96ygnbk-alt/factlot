@@ -644,3 +644,75 @@ test("coverage computed on read equals the stored summary, and a stale one is re
     configureRegistry(undefined);
   }
 });
+
+test("ownership links: only the owner the record shows is current, once per parcel", () => {
+  // District 997 loads one source per roll year (2025, 2026 and a 2027 preliminary roll), and each year keeps
+  // its owner facts and links. Synthetic organisations only.
+  const db = fixtureDb("owners.db");
+  configureRegistry(db.path);
+  type Link = { from_urn: string; type: string; as_of: string };
+  const get = (urn: string, asOf?: string) => {
+    const r = runTool("registry_get", {
+      urn,
+      ...(asOf ? { as_of: asOf } : {}),
+    });
+    assert.ok(r.ok);
+    const rec = r.result as {
+      relationships: Link[];
+      facts: { predicate: string; value: unknown }[];
+    };
+    return {
+      owners: rec.relationships
+        .filter((l) => l.type === "owns")
+        .map((l) => [l.from_urn, l.as_of]),
+      owner: rec.facts.find((f) => f.predicate === "ownership.owner_of_record")
+        ?.value,
+    };
+  };
+  const owned = (entity: string) => {
+    const r = runTool("registry_owned_by", { entity_urn: entity });
+    assert.ok(r.ok);
+    return (r.result as { results: { urn: string }[] }).results.map(
+      (x) => x.urn,
+    );
+  };
+  const p = (apn: string) => `fl:parcel:us-48997:${apn}`;
+  const BAYOU = "fl:entity:us-tx:0807777777";
+  const PARTNERS = "fl:entity:us-tx:0808888888";
+  try {
+    // Owner changed on the newest roll: the new owner alone, from the roll the owner fact comes from.
+    assert.deepEqual(get(p("1000002")), {
+      owners: [[PARTNERS, "2027-04-15"]],
+      owner: "Example Office Partners LP",
+    });
+    // The same owner on every roll: one link, not one per roll year.
+    assert.deepEqual(get(p("1000001")).owners, [[BAYOU, "2027-04-15"]]);
+    // A dated lookup shows the owner on the latest roll at or before the date.
+    assert.deepEqual(get(p("1000002"), "2026-12-31"), {
+      owners: [[BAYOU, "2026-10-15"]],
+      owner: "Bayou Equity Holdings LLC",
+    });
+    assert.deepEqual(get(p("1000001"), "2025-12-31").owners, [
+      [BAYOU, "2025-07-25"],
+    ]);
+    // A parcel on an older roll only keeps that roll's owner.
+    assert.deepEqual(get(p("1000010")).owners, [[BAYOU, "2025-07-25"]]);
+    // Portfolios: each parcel once; the former owner no longer holds the parcel it sold.
+    const bayou = owned(BAYOU);
+    assert.equal(new Set(bayou).size, bayou.length);
+    assert.ok(bayou.includes(p("1000001")) && bayou.includes(p("1000010")));
+    assert.ok(!bayou.includes(p("1000002")));
+    assert.deepEqual(owned(PARTNERS), [
+      p("1000002"),
+      p("1000003"),
+      p("1000004"),
+    ]);
+    // A parcel from a single-source roll is unchanged: its one owner, linked from its latest snapshot.
+    assert.deepEqual(
+      get("fl:parcel:us-48999:0001-000-0001").owners.map((o) => o[0]),
+      ["fl:entity:us-tx:0801111111"],
+    );
+  } finally {
+    configureRegistry(undefined);
+  }
+});
