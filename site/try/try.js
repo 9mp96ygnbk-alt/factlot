@@ -387,7 +387,7 @@
     } else {
       card.appendChild(
         el("p", {
-          text: "The API returned no owner for this parcel. It withholds the names of natural persons.",
+          text: "The API returned no owner for this parcel. Either the county's public file carries no owner names (Los Angeles County, San Francisco, Maryland and Utah) or the owner is a natural person, whose name the API withholds.",
         }),
       );
     }

@@ -1,7 +1,9 @@
 <p class="lede">
-  Type a commercial property address in a loaded county, or pick a sample, and
-  run a real lookup against FactLot's hosted API. You get the cited public
-  record that an AI agent would get, with no account and no API key.
+  Type a commercial property address in a hosted place (Maryland, the District
+  of Columbia, parts of Utah, sixteen Texas counties, New York City, Los Angeles
+  County, San Francisco, the City of Boston, Denver and Connecticut), or pick a
+  sample, and run a real lookup against FactLot's hosted API. You get the cited
+  public record that an AI agent would get, with no account and no API key.
 </p>
 
 <form id="try-form" class="try-form" action="/try/" method="get" novalidate>
@@ -22,13 +24,16 @@
     <button class="button primary" type="submit" id="try-go">Look up</button>
   </div>
   <p id="try-hint" class="small">
-    A house number and street, such as <code>1200 Main St</code>. Commercial,
-    industrial and multifamily parcels only; a city alone matches nothing.
+    A house number and street, such as <code>1200 Main St</code> or
+    <code>136 W 42nd St</code>. Commercial, industrial and multifamily parcels
+    only; a city alone matches nothing. Los Angeles County and San Francisco
+    records have no owner names, because the public files carry none.
   </p>
 </form>
 
 <p class="small" id="try-samples-label">
-  Samples from the Texas worked examples:
+  Samples: four from the Texas worked examples, one in New York City and one in
+  Los Angeles County.
 </p>
 <ul class="try-chips" aria-labelledby="try-samples-label">
   <li>
@@ -49,6 +54,16 @@
   <li>
     <button type="button" class="try-chip" data-q="2323 N Central Expy">
       2323 N Central Expy, Richardson (Dallas)
+    </button>
+  </li>
+  <li>
+    <button type="button" class="try-chip" data-q="200 Park Ave">
+      200 Park Ave, Manhattan (New York City)
+    </button>
+  </li>
+  <li>
+    <button type="button" class="try-chip" data-q="355 S Grand Ave">
+      355 S Grand Ave, Los Angeles (Los Angeles County; no owner names)
     </button>
   </li>
 </ul>
