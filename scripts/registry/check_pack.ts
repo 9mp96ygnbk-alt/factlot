@@ -29,6 +29,7 @@ import { basename, join, resolve } from "node:path";
 import { cpuUsage } from "node:process";
 
 import {
+  ADDRESS_STREET_TYPES,
   computeRegistryCoverage,
   configureRegistry,
   getTool,
@@ -76,8 +77,11 @@ function merge(files: string[], out: string): void {
   d.exec("DELETE FROM meta WHERE key = 'coverage'");
   files.slice(1).forEach((f, i) => {
     d.exec(`ATTACH '${f.replaceAll("'", "''")}' AS m${i}`);
+    // A source (and its snapshots) can be in more than one file, e.g. a national file loaded with each region.
     for (const t of TABLES)
-      d.exec(`INSERT INTO main.${t} SELECT * FROM m${i}.${t} ORDER BY rowid`);
+      d.exec(
+        `INSERT ${t === "sources" || t === "snapshots" ? "OR IGNORE " : ""}INTO main.${t} SELECT * FROM m${i}.${t} ORDER BY rowid`,
+      );
     d.exec(`DETACH m${i}`);
   });
   d.close();
@@ -427,14 +431,12 @@ async function run(
     });
   }
   // Address searches from real keys.
-  const streetTypes =
-    /^(ALY|AVE|BLVD|BYP|CIR|CSWY|CT|DR|EXPY|FWY|HWY|LN|LOOP|PATH|PIKE|PKWY|PL|PLZ|RD|ROW|RUN|SQ|ST|TER|TPKE|TRL|WALK|WAY|XING)$/;
   for (const r of all(
     `SELECT key FROM address_index ORDER BY ${shuffle} LIMIT ?`,
     samples,
   )) {
     const t = String(r.key).split(" ");
-    const ti = t.findIndex((x) => streetTypes.test(x));
+    const ti = t.findIndex((x) => ADDRESS_STREET_TYPES.has(x));
     const qs = [
       t.join(" "),
       `${t.slice(0, Math.max(2, ti + 1)).join(" ")}, Somewhere, MD`,
