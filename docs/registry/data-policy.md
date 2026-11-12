@@ -46,6 +46,23 @@ Not allowed:
   link are dropped, not just left out of search. A name is read as a person unless it is clearly
   an organisation; a trade name that is a person's own name and a generic business word ("SMITH
   JOHN PROPERTIES") is read as a person. It never compiles profiles of individuals.
+- **No person inside an organisation-style name.** A name that carries a natural person is a person,
+  whatever organisation word it also holds: an estate or probate form ("ESTATE OF ...", "HEIRS OF
+  ...", "LIFE ESTATE"), a personal trust (living, revocable, irrevocable, testamentary, family,
+  marital, survivor's, exemption and similar trusts, including the rolls' abbreviations such as
+  "REV TR", "LIV TR", "FAM TR", "TR DTD", "U/A", "TTEE"), a trustee named in person ("<person>
+  TRUSTEE", "TRUSTEES OF <person>", "<bank> AS TRUSTEE OF THE <person> TRUST"), and a company
+  followed by any of these ("<company> LLC <person> REV TR"). Kept as organisations: a bank, trust
+  or title company acting as trustee with no person named, numbered land trusts, real estate
+  investment, business and statutory trusts, realty trusts, funds and plans of institutions, boards
+  of trustees of schools, churches and other institutions, and government bodies.
+- **Parties to recorded documents.** Deeds, mortgages and satisfactions keep their document (date,
+  type, amount, document IDs, lot) whatever their parties. Only organisation parties are named; for
+  "<company> LLC <person> REV TR" only the company is kept, and only when nothing of the person's
+  name remains in it. In place of every other party the document says how many parties were
+  withheld and of what kind ("person", "estate", "personal trust", "trustee", "company with a
+  personal trust"), never who. `--purge-persons` applies this to files built earlier, and the
+  privacy scan counts any party name still stored that the rule rejects.
 - **No person on a stored address.** An organisation's mailing address can name a person ("ATTN
   JANE DOE", "C/O JOHN SMITH"). Ingest removes each such contact, with its marker, unless the name
   is clearly an organisation ("C/O ACME MANAGEMENT LLC"). The rest of the address stays. For a file

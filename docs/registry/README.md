@@ -73,6 +73,17 @@ and "PLC". A surname that is also an organisation word does not make a person an
 "JOHN BANK", "CHURCH, MARY" and "ANNA COUNTY" are persons. Forms that a person's name can look like are left out on purpose (a bare "NV",
 "SA", "BV" or "AG", "NA", "FANNIE MAE"). The shared vectors are `spec/registry/organizations.json`.
 
+A name that carries a natural person inside an organisation-style wrapper is a person whatever else
+it holds (`person_carrying_class`): "ESTATE OF <person>", "HEIRS OF <person>", a personal trust
+("<person> REV TR DTD ...", "<person> FAMILY TRUST", "<person> PROPERTIES TRUST"), a trustee named in
+person ("<person> TRUSTEE", "TRUSTEES OF <person>", "<bank> AS TRUSTEE OF THE <person> TRUST") and a
+company followed by one of these ("<company> LLC <person> REV TR"). A bank or trust company as
+trustee with no person named, "TRUST NO 12345", statutory and business trusts, realty trusts,
+"BOARD OF TRUSTEES OF EXAMPLE COLLEGE" and "TRINITY CHURCH TRUSTEES" stay organisations. Parties to
+deeds and mortgages follow `organization_part`: an organisation is kept as written, a wrapper keeps
+its leading company only when nothing of the person's name remains in it, and every other party is
+replaced by a count in `<role>_withheld` (`{"count": 2, "kinds": ["estate", "person"]}`).
+
 **Provenance and rights.** Each fact carries:
 
 - its method: `public_record` for facts read from a file, `inferred` with a confidence for

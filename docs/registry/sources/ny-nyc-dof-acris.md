@@ -74,6 +74,11 @@ of the year are registered as snapshots of the source under the names `acris-mas
   (`… FEDERAL CREDIT UNION`). The rule is shared by every adapter, so it was not changed here; widening it (a "CREDIT UNION", a
   `…BANK` suffix, a short list of agencies) is a maintainers' decision. A deed to an individual lists no
   grantee, and `organizations_only: true` says why.
+- **Withheld parties.** Each party the rule rejects (a person, an estate, a personal trust, a trustee named in person,
+  a company followed by a personal trust) is counted in `<role>_withheld`, for example
+  `grantors_withheld: {"count": 2, "kinds": ["estate", "person"]}`, with no name. A "<company> LLC <person> REV TR"
+  party keeps its leading company in the role list when nothing of the person's name remains in it, and is counted
+  too. The document is kept whatever its parties.
 - **Multi-lot documents.** `lots_in_document` is the number of lots the Legals table lists for the document. A deed or
   mortgage over several lots is published on each lot with the full amount: do not sum it or divide it by one lot's area.
   Easement rows (`easement` = `Y`) are not an interest in the lot itself and are skipped (2,962 rows in 2021-2026).
