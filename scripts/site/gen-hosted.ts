@@ -130,6 +130,14 @@ export function hostedData(m: Manifest, texasOrder: string[]): HostedData {
   };
 }
 
+function writeData(data: HostedData): void {
+  writeFileSync(join(root, DATA), `${JSON.stringify(data, null, 2)}\n`);
+  spawnSync("npx", ["prettier", "--write", DATA], {
+    cwd: root,
+    stdio: "ignore",
+  });
+}
+
 function main(argv: string[]): void {
   const check = argv.includes("--check");
   const textOnly = argv.includes("--text");
@@ -153,7 +161,7 @@ function main(argv: string[]): void {
     data = hostedData(m, texas);
     data.text = hostedText(data);
     if (!check) {
-      writeFileSync(join(root, DATA), `${JSON.stringify(data, null, 2)}\n`);
+      writeData(data);
       console.log(
         `${DATA}: ${data.totals.parcels} parcels in ${data.totals.counties} counties, ${data.places.length} places`,
       );
@@ -167,7 +175,7 @@ function main(argv: string[]): void {
         process.exit(1);
       }
       data.text = text;
-      writeFileSync(join(root, DATA), `${JSON.stringify(data, null, 2)}\n`);
+      writeData(data);
     }
   }
   const changed: string[] = [];
