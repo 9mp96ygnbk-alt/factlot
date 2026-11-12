@@ -1,6 +1,8 @@
 /**
- * Reads a pack through the Worker's static-assets binding (or any fetcher with the same shape, such as the
- * file-backed one the tests and the pack checker use). Parsed files are kept in a small per-isolate cache.
+ * Reads a pack from a storage backend: the Worker's static-assets binding (or any fetcher with the same shape, such
+ * as the file-backed one the tests and the pack checker use), or one pack of an object-storage bucket (r2_pack.ts).
+ * Parsed files are kept in a small per-isolate cache. One Pack reads one pack only, so a request that holds a Pack
+ * never mixes the files of two packs.
  */
 import {
   decodeEntry,
@@ -19,20 +21,44 @@ export interface AssetFetcher {
   fetch(request: Request | string): Promise<Response>;
 }
 
+/** Where a pack's files come from: the text of a pack file by its path, or undefined when the pack has no such file. */
+export interface PackSource {
+  read(path: string): Promise<string | undefined>;
+}
+
+/** The static-assets backend: pack files served to the Worker by its ASSETS binding. */
+export function assetsSource(assets: AssetFetcher): PackSource {
+  return {
+    async read(path: string): Promise<string | undefined> {
+      const res = await assets.fetch(`https://registry.internal/${path}`);
+      if (res.status === 404) return undefined;
+      if (!res.ok) throw new Error(`pack file ${path}: HTTP ${res.status}`);
+      return res.text();
+    },
+  };
+}
+
 const CACHE_FILES = 48;
 
 export class Pack {
   private manifestPromise: Promise<Manifest> | undefined;
   private readonly cache = new Map<string, unknown>();
   private readonly pinned: Map<string, unknown>;
-  /** Files read from the assets binding since the pack was opened (for tests and timing). */
+  /** Files read from the backend since the pack was opened (for tests and timing). */
   reads = 0;
 
-  private readonly assets: AssetFetcher;
+  private readonly source: PackSource;
 
-  /** `pinned`: files kept from an earlier reader of the same pack (the checker uses it to time a warm isolate). */
-  constructor(assets: AssetFetcher, pinned = new Map<string, unknown>()) {
-    this.assets = assets;
+  /**
+   * `source`: the backend, or an assets fetcher (the static-assets backend). `pinned`: files kept from an earlier
+   * reader of the same pack (the checker uses it to time a warm isolate; the object-storage backend passes the
+   * manifest it has already read and checked).
+   */
+  constructor(
+    source: AssetFetcher | PackSource,
+    pinned = new Map<string, unknown>(),
+  ) {
+    this.source = "read" in source ? source : assetsSource(source);
     this.pinned = pinned;
   }
 
@@ -46,10 +72,9 @@ export class Pack {
       return v as T;
     }
     this.reads += 1;
-    const res = await this.assets.fetch(`https://registry.internal/${path}`);
-    if (res.status === 404) return undefined;
-    if (!res.ok) throw new Error(`pack file ${path}: HTTP ${res.status}`);
-    const v = JSON.parse(await res.text()) as T;
+    const text = await this.source.read(path);
+    if (text === undefined) return undefined;
+    const v = JSON.parse(text) as T;
     if (pin) {
       this.pinned.set(path, v);
       return v;
