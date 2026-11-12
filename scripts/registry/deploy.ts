@@ -23,7 +23,7 @@ import { hostedWithheldCounties } from "../../packages/tools/src/registry.ts";
 const PACK_PATH =
   /^(manifest\.json|n\/df\.json|[gxan](\/[0-9a-z]+)*\/[0-9]+\.json|q\/[0-9]{5}-[0-9a-z]+(-[0-9]+)?\/(h|b[0-9]+|(all|g[0-9a-z]+)\/[rc][0-9]+)\.json)$/;
 
-function walk(dir: string, out: string[] = []): string[] {
+export function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) walk(p, out);
@@ -32,8 +32,14 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/** Problems that make a pack directory unfit to deploy (empty when it is fine). */
-export function packProblems(dir: string): string[] {
+/**
+ * Problems that make a pack directory unfit to deploy (empty when it is fine). `maxFiles`: the file-count cap
+ * (default the static-assets limit; the object-storage backend has none and passes Infinity).
+ */
+export function packProblems(
+  dir: string,
+  o: { maxFiles?: number } = {},
+): string[] {
   if (!existsSync(join(dir, "manifest.json")))
     return [
       `${dir} has no manifest.json: build the pack first (npm run pack:registry)`,
@@ -42,12 +48,11 @@ export function packProblems(dir: string): string[] {
   const m = JSON.parse(
     readFileSync(join(dir, "manifest.json"), "utf8"),
   ) as Manifest;
-  if (m.format !== PACK_FORMAT)
-    problems.push(`pack format ${m.format}, this Worker reads ${PACK_FORMAT}`);
   const files = walk(dir);
-  if (files.length > MAX_FILES)
+  const maxFiles = o.maxFiles ?? MAX_FILES;
+  if (files.length > maxFiles)
     problems.push(
-      `${files.length} files, more than the ${MAX_FILES} a Worker version may hold`,
+      `${files.length} files, more than the ${maxFiles} a Worker version may hold`,
     );
   for (const f of files) {
     const rel = relative(dir, f);
@@ -55,6 +60,21 @@ export function packProblems(dir: string): string[] {
       problems.push(`${rel} is over 25 MiB`);
     if (!PACK_PATH.test(rel)) problems.push(`${rel} is not a pack file`);
   }
+  problems.push(...manifestProblems(m));
+  for (let k = 0; k < m.dbs.length; k++)
+    if (!existsSync(join(dir, "g", String(k))))
+      problems.push(`records of ${m.dbs[k]!.name} are missing`);
+  return problems;
+}
+
+/**
+ * Problems of a pack's manifest alone: its format, and any county of hostedWithheldCounties() it serves or does not
+ * record as withheld. The object-storage sync tool runs these again on the stored manifest before any pointer switch.
+ */
+export function manifestProblems(m: Manifest): string[] {
+  const problems: string[] = [];
+  if (m.format !== PACK_FORMAT)
+    problems.push(`pack format ${m.format}, this Worker reads ${PACK_FORMAT}`);
   for (const fips of Object.keys(hostedWithheldCounties())) {
     const served =
       Object.hasOwn(m.counties, `us-${fips}`) ||
@@ -68,9 +88,6 @@ export function packProblems(dir: string): string[] {
         `the pack does not record county ${fips} as withheld; rebuild it with the current pack.ts`,
       );
   }
-  for (let k = 0; k < m.dbs.length; k++)
-    if (!existsSync(join(dir, "g", String(k))))
-      problems.push(`records of ${m.dbs[k]!.name} are missing`);
   return problems;
 }
 
