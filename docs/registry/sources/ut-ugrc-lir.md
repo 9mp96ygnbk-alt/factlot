@@ -50,7 +50,9 @@ Adapter: `python/src/factlot/registry/adapters/ut_ugrc.py` (account system `ugrc
 
 ## What the file contains
 
-One row per tax parcel (UGRC's goal is "one tax parcel record per unique tax notice"). The Hub CSV is UTF-8
+One row per tax parcel (UGRC's goal is "one tax parcel record per unique tax notice"), but most counties write one
+row per building and some repeat a row per polygon part, so a parcel can have several rows; the reader yields one
+record per parcel (see "Several rows for one parcel" below). The Hub CSV is UTF-8
 with a byte-order mark, quoted, header row of field **aliases**; the feature service uses field names. The
 fields are the LIR standard (the layer description reproduces the full work-group recommendation):
 
@@ -152,7 +154,8 @@ PYTHONPATH=python/src python3 -m factlot.registry.adapters.ut_ugrc <Utah County 
 - Facts written: 336,753. Seconds: 27.1. Invalid ids, errors, retired: 0, 0, 0.
 - Organisation owners stored (current owner-of-record facts): 0; natural persons or withheld owners not stored (names not kept): 0. The LIR schema carries no owner.
 - Ownership links to registered entities after `link_owners()`: 0 (the only entity registry in the scratch file is `ct-sos-entities`).
-- The LIR file has several rows for one `Parcel ID` where a parcel has more than one building or part: Salt Lake 30,877 in-scope rows for 30,756 parcels, Utah County 18,249 rows for 13,639 parcels (an in-scope parcel with several rows gets one fact per distinct value). Parcel counts above are distinct parcels.
+- The LIR file has several rows for one `Parcel ID` where a parcel has more than one building or part: Salt Lake 30,877 in-scope rows for 30,756 parcels, Utah County 18,249 rows for 13,639 parcels (at the time an in-scope parcel with several rows got one fact per distinct value; since 2026-11-12 the reader
+  yields one record per parcel, see "Several rows for one parcel"). Parcel counts above are distinct parcels.
 
 ## Statewide extension (2026-11-03)
 
@@ -291,6 +294,50 @@ By county:
 | Weber (49057)       | 2026-09-29 |       153,163 |        929 |         5,803 |            3,629 |         0 |      3,629 |       0 |                   0 |               0 | `6ce8e2883a99dc71` |
 | **All 23 counties** |            | **1,009,795** | **20,675** |    **45,851** |       **31,667** | **9,557** | **21,710** | **449** |               **0** |           **0** |                    |
 
+## Several rows for one parcel (2026-11-12)
+
+The LIR files hold more than one row for many parcels, and the rows of one parcel are often far apart in the
+file. Until 2026-11-12 the reader yielded one record per row, so such a parcel got two or more current values
+for one single-valued fact from one document, which the registry audit counts as a violation (13,757 extra
+facts in the 19 counties of the statewide extension loaded after Juab and Summit).
+
+Measured on the archived files of those 19 counties (Beaver, Cache, Davis, Duchesne, Garfield, Grand, Kane,
+Millard, Morgan, Piute, Rich, Salt Lake, Sevier, Tooele, Uintah, Utah, Washington, Wayne, Weber): 66,449
+in-scope parcels, 60,058 with one row and 6,391 with several (24,689 rows). Of the 6,391:
+
+- `Square Footage` ("Square footage of primary bldg(s)" in the publisher's field list) differs between rows
+  in 4,464 parcels and is the same in 1,927: rows are buildings. But 1,598 parcels have rows identical in every
+  field but `OBJECTID` and the shape (803 with the same shape too, 795 with another polygon part), and 981 more
+  have some identical rows; 435 pairs of rows repeat one building description and differ only in the value,
+  land value, primary-residence, city or subdivision fields.
+- `Year Built` differs in 3,010 and is the same in 3,381.
+- `Total Market Value` ("Total market value of parcel's land, structures, and other improvements") is the
+  same in 5,060, the same apart from blank or zero rows in 1,170, and different in 161: 160 in Rich County,
+  whose multi-row parcels carry no land value and a different total on each building row, and 1 in Washington.
+  `Land Market Value` is the same in all but 1.
+- `Parcel Acres` is the same in all but 1; `Parcel Address` in all; the class differs in 173 parcels (49 map to
+  two categories: 4 in Davis, 45 in Washington); 127 parcels have an out-of-scope row beside an in-scope one.
+
+Rules (`read_roll`, rows of a parcel in `OBJECTID` order so that file order does not matter):
+
+- building area: the sum of `Square Footage` over the parcel's distinct buildings, a building being one
+  combination of square footage, year built, effective year built, floors and construction material; a row
+  that repeats a combination is counted once. Out-of-scope rows of an in-scope parcel are buildings on it too.
+- year built: the earliest.
+- market value: taken once (the field is the parcel's total); when rows carry different positive values no
+  market value is written (161 parcels), since no row is the parcel's total and a sum is not what the field
+  means.
+- category: a parcel is in scope when any row is; among its rows' categories `F2` comes first, then `F1`, then
+  `B`. `local_use_code` keeps every distinct row class in row order, joined by `; ` (173 parcels).
+- situs address and acres: from the first row that has one.
+
+A parcel with one row yields exactly what it did before: on all 19 files and on the Juab and Summit files,
+every one-row parcel's record is equal under the old and the new reader, and a rebuild of Juab and Summit
+gives the same facts (fact ids included), crosswalk, coverage and address index as before. Rebuilt, the 21
+county files give 67,977 parcels, every county equal to its count above, with no parcel holding two values
+for one fact and 0 audit violations (`B` 15,654, `F1` 48,242, `F2` 4,081: Davis 3 `B` and 1 `F1` and
+Washington 45 `B` fewer, the parcels that had rows in two categories).
+
 ## Known gaps
 
 - No owner of record. Owner names are on the counties' own web searches (Utah County also exposes a map
@@ -302,6 +349,9 @@ By county:
   and lumps industrial parcels into `Commercial` (all F1 here).
 - No tax year column; `CURRENT_ASOF` is the snapshot date. Parcels are one per tax notice, so a condominium
   complex can be one record.
+- Several rows for one parcel are collapsed by rule (below): two identical buildings on one parcel (same area,
+  year, floors and material) are counted once, and a parcel whose rows carry different market values (Rich County)
+  has no market value.
 - The Hub export can be stale relative to the layer; compare its `Last-Modified` to the item's `modified`.
   (Davis's export was being regenerated on 2026-11-03 and still served a 2026-07-01 file.)
 - Carbon, Emery and San Juan are not loaded (statewide extension above). Box Elder's layer dates from

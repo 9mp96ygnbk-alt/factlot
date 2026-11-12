@@ -114,6 +114,7 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
 
 ### Fixed
 
+- Utah registry: the UGRC LIR reader now yields one record per parcel when a county file has several rows for it (one per building, or a repeated polygon part), so a parcel no longer gets two current values for one fact: building area is summed over its distinct buildings, year built is the earliest, market value is taken once (none when rows disagree), the category follows F2, F1, B with every row class kept in the use code, and parcels with one row are unchanged.
 - Hosted API: HEAD (and any method but GET) on the one-time claim URL `/v1/billing/claim/<token>` and on `/billing/success` now answers 405 and no longer redeems the checkout session, so a link prefetcher or probe cannot burn the key.
 - Hosted API: an `Authorization` header that is present but not `Bearer <token>` (a `Token` scheme, a bare key, `Bearer` alone) now answers 401 with `WWW-Authenticate: Bearer` instead of silently serving the free tier. It does not count against the rejected-key limit. `/mcp` keeps its OAuth handling and public pages ignore the header.
 - `doc_extract_lease`: PDFs are limited to 5 MB (was 10 MB; MCP requests with a PDF to 8 MB, was 15 MB) and page reading stops with 422 `PdfTooSlow` after 20 seconds, checked between pages. pdf.js offers no cap on decompressed stream size; page and character caps still apply.
