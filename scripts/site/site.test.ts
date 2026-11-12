@@ -632,8 +632,9 @@ describe("/try/ page", () => {
       assert.ok(!js.toLowerCase().includes(bad.toLowerCase()), bad);
     assert.match(js, /credentials: "omit"/);
   });
-  it("shows the API's history note as text with a link to /pricing/, only when present", () => {
-    assert.match(js, /typeof record\.history_note === "string"/);
+  it("shows the API's history and sales notes as text with a link to /pricing/, only when present", () => {
+    assert.match(js, /\[record\.history_note, record\.sales_note\]/);
+    assert.match(js, /typeof n !== "string" \|\| !n\) return;/);
     assert.match(js, /class: "note try-history"/);
     assert.match(
       js,

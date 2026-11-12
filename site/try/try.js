@@ -729,14 +729,18 @@
       box.appendChild(el("div", { class: "try-table" }, [t]));
     } else
       box.appendChild(el("p", { text: "The record holds no roll value." }));
-    if (typeof record.history_note === "string" && record.history_note) {
+    var notes = [];
+    [record.history_note, record.sales_note].forEach(function (n) {
+      if (typeof n !== "string" || !n) return;
       // The API's own sentence, shown as text. It ends with the pricing URL; the page links
       // its own /pricing/ instead of printing the address.
-      var sentence = record.history_note.replace(/:\s*https?:\/\/\S+\s*$/, ".");
-      s.note = sentence;
+      notes.push(n.replace(/:\s*https?:\/\/\S+\s*$/, "."));
+    });
+    if (notes.length) {
+      s.note = notes.join(" ");
       box.appendChild(
         el("p", { class: "note try-history" }, [
-          sentence + " ",
+          s.note + " ",
           el("a", {
             class: "button primary",
             href: "/pricing/",
@@ -890,8 +894,57 @@
           ".",
         ]),
       );
+    // The newest recorded sale or deed the API returned (a free answer keeps one), as recorded.
+    var sale = facts.filter(function (f) {
+      return (
+        f.predicate === "transaction.sale" || f.predicate === "transaction.deed"
+      );
+    })[0];
+    if (sale && sale.value && typeof sale.value === "object") {
+      var sv = sale.value;
+      var deed = sale.predicate === "transaction.deed";
+      var amount = deed ? sv.amount_usd : sv.price_usd;
+      var saleRows = [
+        [deed ? "Date recorded" : "Sale date", sv.date || "not recorded"],
+        [
+          "Price as recorded",
+          typeof amount === "number"
+            ? "$" + amount.toLocaleString("en-US")
+            : "not recorded",
+        ],
+        ["Document type", deed ? sv.doc_type || "not recorded" : "sale record"],
+      ];
+      var st = el("table");
+      st.appendChild(
+        el("caption", {
+          class: "visually-hidden",
+          text: "Latest recorded sale as the API returned it",
+        }),
+      );
+      var sb = el("tbody");
+      saleRows.forEach(function (r) {
+        sb.appendChild(
+          el("tr", null, [
+            el("th", { scope: "row", text: r[0] }),
+            el("td", { text: String(r[1]) }),
+            el("td", { class: "small", text: citation(sale) }),
+          ]),
+        );
+      });
+      st.appendChild(sb);
+      card.appendChild(el("h3", { text: "Latest recorded sale" }));
+      card.appendChild(el("div", { class: "try-table" }, [st]));
+      card.appendChild(
+        el("p", {
+          class: "small",
+          text: "As recorded. The record does not say whether a sale was at arm's length.",
+        }),
+      );
+    }
     card.appendChild(
-      sourceBlock(parcelFacts.concat(ownerLine.name ? owner : [])),
+      sourceBlock(
+        parcelFacts.concat(ownerLine.name ? owner : [], sale ? [sale] : []),
+      ),
     );
     card.appendChild(
       el("details", { class: "try-raw" }, [
