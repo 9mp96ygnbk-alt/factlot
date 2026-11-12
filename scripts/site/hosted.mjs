@@ -221,6 +221,10 @@ const config = (p) =>
     detail: (q) => `${N(q.parcels)} commercial parcels as of ${q.as_of}`,
   };
 
+/** The name of a place (a `places` entry of the data) as the llms.txt paragraph gives it, for example "Maryland" or "sixteen Texas counties". */
+export const placeLabel = (data, p) =>
+  config({ ...p, state: stateOf(data, p) }).label(p, data);
+
 /** "Maryland (all 24 jurisdictions), the District of Columbia, ..., and sixteen Texas counties (Harris, ...)". */
 export function placesText(data) {
   return serialList(

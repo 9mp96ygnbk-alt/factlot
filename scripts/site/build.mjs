@@ -25,6 +25,10 @@ import {
 } from "./texas-pages.mjs";
 import { connectBody, connectJson } from "./connect.mjs";
 import {
+  buildCoverageCatalog,
+  loadSourceConfigs,
+} from "./coverage-catalog.mjs";
+import {
   hostedMarkets,
   marketBody,
   marketDescription,
@@ -855,6 +859,11 @@ ${Object.keys(byState)
               encodingFormat: "application/json",
               contentUrl: `${SITE}/coverage/counties.json`,
             },
+            {
+              "@type": "DataDownload",
+              encodingFormat: "application/json",
+              contentUrl: `${SITE}/coverage.json`,
+            },
           ],
         },
       ],
@@ -1022,6 +1031,31 @@ fs.writeFileSync(path.join(out, "coverage", "counties.json"), coverageJson);
 fs.writeFileSync(
   path.join(out, "connect.json"),
   connectJson(connectRaw, VERSION),
+);
+
+// The catalog agents read: /coverage.json, from hosted.json, the source configs and the tool catalog.
+fs.writeFileSync(
+  path.join(out, "coverage.json"),
+  `${JSON.stringify(
+    buildCoverageCatalog({
+      hosted: hostedJson,
+      configs: loadSourceConfigs(root),
+      toolNames: tools.map((t) => t.name),
+      version: VERSION,
+      idExampleUrn: (e) => {
+        const r = runTool("id_parcel", {
+          state_fips: e.state_fips,
+          county_fips: e.county_fips,
+          apn: e.apn,
+        });
+        if (!r.ok)
+          throw new Error(`coverage.json: id_parcel failed for ${e.apn}`);
+        return r.result.urn;
+      },
+    }),
+    null,
+    2,
+  )}\n`,
 );
 
 const staticPages = [

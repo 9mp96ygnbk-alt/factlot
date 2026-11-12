@@ -21,6 +21,17 @@ export function groupPlaces(
   buildings: number;
   as_of: string;
 }[];
+export function placeLabel(
+  data: unknown,
+  p: {
+    key: string;
+    counties: string[];
+    names: string[];
+    parcels: number;
+    buildings: number;
+    as_of: string;
+  },
+): string;
 export function placesText(data: unknown): string;
 export function tableText(data: unknown): string;
 export function totalsText(data: unknown): string;

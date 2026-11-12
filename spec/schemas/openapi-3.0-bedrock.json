@@ -3,7 +3,7 @@
   "info": {
     "title": "FactLot",
     "version": "0.5.0",
-    "description": "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself. This document is the Amazon Bedrock Agents profile: 9 of the 46 operations (Bedrock allows 11 APIs per agent unless the quota is raised), with the allowed values of each field given in its description because Bedrock does not support enum; the server still validates every request. /openapi-3.0.json?profile=bedrock&operations=all is the complete document in this form."
+    "description": "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself. On the hosted API the registry operations answer for the places listed, with sources and rights, at https://factlot.com/coverage.json. This document is the Amazon Bedrock Agents profile: 9 of the 46 operations (Bedrock allows 11 APIs per agent unless the quota is raised), with the allowed values of each field given in its description because Bedrock does not support enum; the server still validates every request. /openapi-3.0.json?profile=bedrock&operations=all is the complete document in this form."
   },
   "servers": [
     {

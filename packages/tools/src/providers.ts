@@ -478,7 +478,7 @@ function openApi(
   }
   const base = opts.serverUrl?.replace(/\/+$/, "") ?? "";
   const description = [
-    "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself.",
+    "The open fact layer for commercial real estate AI agents: deterministic CRE calculators with audit trails, canonical FactLot IDs, and cited-fact validation. Call these operations instead of doing lease, CAM, rent, loan, or return math yourself. On the hosted API the registry operations answer for the places listed, with sources and rights, at https://factlot.com/coverage.json.",
     ...(mode === "bedrock"
       ? [
           `This document is the Amazon Bedrock Agents profile: ${included.length} of the ${list(filter).length} operations (Bedrock allows 11 APIs per agent unless the quota is raised), with the allowed values of each field given in its description because Bedrock does not support enum; the server still validates every request. ${base}/openapi-3.0.json?profile=bedrock&operations=all is the complete document in this form.`,
