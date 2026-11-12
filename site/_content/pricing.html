@@ -1,9 +1,11 @@
 <p class="lede">
   The tools are open source and free to run yourself, with no limits. The hosted
   endpoint at <code>https://api.factlot.com</code> saves you running it. Free,
-  with no key, has every calculator, ID, fact, rules and document tool. Four
+  with no key, has every calculator, ID, fact, rules and document tool. Five
   things are for Pro and Team only: the full multi-year value history from
-  <code>registry_get</code>, an owner's full portfolio from
+  <code>registry_get</code>, a parcel's full list of recorded sales, deeds,
+  mortgages and satisfactions from <code>registry_get</code> (Free shows the
+  newest sale or deed and counts the rest), an owner's full portfolio from
   <code>registry_owned_by</code> (Free shows the first three parcels), the batch
   lookup for working many parcels at once, and the two model-backed tools. Plans
   also differ in request rate, registry lookups, reports, keys and support.
@@ -66,6 +68,15 @@
       <td>The current roll year only</td>
       <td>Every tax year and every snapshot</td>
       <td>Every tax year and every snapshot</td>
+    </tr>
+    <tr>
+      <th scope="row">
+        Recorded sales, deeds, mortgages and satisfactions of a parcel
+        (<code>registry_get</code>)
+      </th>
+      <td>The newest sale or deed, and the number and years of the rest</td>
+      <td>Every recorded sale and document, each cited</td>
+      <td>Every recorded sale and document, each cited</td>
     </tr>
     <tr>
       <th scope="row">

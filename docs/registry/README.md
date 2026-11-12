@@ -309,7 +309,14 @@ rule but does not keep a parcel current that the roll has retired. A derived fac
 overlay) is `inferred` with a confidence. Sales and recorded documents
 (`transaction.sale`, `transaction.deed`, `debt.mortgage_recorded`, `debt.mortgage_satisfaction_recorded`) are the many-valued
 predicates: a parcel holds one fact per sale or document and readers return them all, newest first. Recorded-document
-facts name organisations only. Source review records:
+facts name organisations only. On the hosted API, a `registry_get` without a Pro or Team key keeps, of these four
+predicates, only the newest sale or deed (by recorded date, then amount, then fact ID), whole and in its place in `facts`
+and in `include_history`'s `history`; the others are left out, and the record adds `sales_withheld` (`transaction.sale`)
+and `documents_withheld` (the three document predicates, with `by_predicate` counts), each a `count` and the
+`from_year` and `to_year` of the dates left out (never a price, party, document number, citation or full date), a
+one-sentence `sales_note` and `history_available: "pro"`. A parcel with no such fact, or a single sale or deed (a roll's
+latest sale), is unchanged and gets none of them. A price is the price as recorded, zero or nominal included; the
+sources do not say whether a sale was at arm's length, and the registry does not infer it. Source review records:
 [sources/README.md](sources/README.md#enrichment-sources-zoning-building-and-sale-facts); the predicates are in
 [../fact-model.md](../fact-model.md).
 
