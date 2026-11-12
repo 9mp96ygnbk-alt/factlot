@@ -34,23 +34,41 @@ field). The column positions below are transcribed from that spreadsheet.
   with a class (a class with no letter or digit, such as ``*``, is skipped). TCAD's export has no
   separate quality code.
 
+Prior years. TCAD posts no earlier Legacy export; the only prior-year rolls on its public information
+page are its yearly EARS submissions to the Comptroller (``227EARS<mmddyy>.zip``, tax years 2022 to
+2025). An EARS file is one comma-delimited text file (the Comptroller's *Electronic Appraisal Roll
+Submission Record Layout and Instructions Manual*, form 96-1051; TCAD zips the csv and zips that zip
+again). It holds ``AJR`` records, one per account, taxing unit and Comptroller category, with the
+fields in the manual's order (``EARS_FIELDS`` below, 1-based): AJR002 the tax year, AJR004 to AJR006
+the taxing unit (ID, type ``00`` for the county, county fund type), AJR008 the short account number,
+which is TCAD's ``prop_id``, AJR031 the category, and the market value of that category in that unit
+as AJR034 (totally exempt), AJR035 (land), AJR036 (improvements), AJR037 (minerals) and AJR038
+(personal property), in whole dollars, after ARB changes and before any cap. The file carries no
+owner name. ``read_ears_value_history`` reads the county's records only (every Travis property is in
+the county unit; another unit's record can cover only the part of a property inside that unit) and
+adds the categories of an account up to its market value. EARS has no appraised value (it reports
+cap losses per taxing unit instead), so a prior year carries the market value alone. These files load
+as value history only (``--history-only``, ``Registry.ingest_value_history``).
+
 Usage: ``python -m factlot.registry.adapters.tx_travis "2026 Certified Appraisal Export Supp 0.zip" registry.db --as-of 2026-07-18``
+Prior year: ``python -m factlot.registry.adapters.tx_travis 227EARS090425.zip registry.db --as-of 2025-09-04 --history-only 2025``
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import io
 import json
 import re
 import zipfile
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from ..normalize import COMMERCIAL_CATEGORIES, is_commercial
-from ..store import IngestStats, ParcelRecord, Registry, Source
+from ..store import IngestStats, ParcelRecord, ParcelValues, Registry, Source
 
 STATE_FIPS = "48"
 COUNTY_FIPS = "453"
@@ -69,6 +87,24 @@ SOURCE = Source(
     attribution="Travis Central Appraisal District",
     terms_reviewed="2026-11-02",
 )
+
+# EARS (form 96-1051) AJR fields read here, by their 1-based position in the comma-delimited record.
+EARS_FIELDS = {
+    "record_type": 1, "year": 2, "taxing_unit_id": 4, "taxing_unit_type": 5, "county_fund_type": 6,
+    "short_account": 8, "category": 31,
+    "totally_exempt": 34, "land_market": 35, "improvement_market": 36, "mineral_market": 37, "personal_market": 38,
+}
+_EARS_VALUE_FIELDS = ("totally_exempt", "land_market", "improvement_market", "mineral_market", "personal_market")
+EARS_COUNTY_UNIT_TYPE = "00"
+EARS_PUBLISHER_URL = "https://traviscad.org/publicinformation"
+
+
+def ears_source(tax_year: int) -> Source:
+    """The registry source of one year's EARS submission (``tx-travis-cad-<year>``)."""
+    return replace(SOURCE, source_id=f"{SOURCE.source_id}-{tax_year}",
+                   title=f"EARS submission to the Comptroller (electronic appraisal roll), tax year {tax_year}",
+                   url=EARS_PUBLISHER_URL)
+
 
 # Fixed-width fields as (start, end), 1-based and inclusive, from the Legacy 8.0.33 layout.
 PROP_FIELDS = {
@@ -303,6 +339,120 @@ def read_roll(path: str | Path, *, categories: Iterable[str] | None = COMMERCIAL
         )
 
 
+def _ears_text(path: str | Path) -> tuple[str, io.TextIOBase]:
+    """The csv of an EARS submission as (member name, text stream): a ``.csv`` file, or a zip holding the csv
+    or holding the zip that holds it. TCAD's files are zipped twice, and the outer zip also carries PDF recaps
+    and other attachments, so the member is chosen by name: the one ``.csv`` or ``.zip`` with ``EARS`` in it
+    (or the only ``.csv``). Latin-1, like the Legacy export."""
+    p = Path(path)
+    if p.suffix.lower() == ".csv":
+        return p.name, open(p, encoding="latin-1", newline="")
+    zf = zipfile.ZipFile(p)
+    for _ in range(2):
+        names = [n for n in zf.namelist() if not n.endswith("/")]
+        csvs = [n for n in names if n.lower().endswith(".csv")]
+        named = [n for n in csvs if "ears" in Path(n).name.lower()]
+        pick = named if len(named) == 1 else csvs
+        if len(pick) == 1:
+            return Path(pick[0]).name, io.TextIOWrapper(zf.open(pick[0]), encoding="latin-1", newline="")
+        inner = [n for n in names if n.lower().endswith(".zip") and "ears" in Path(n).name.lower()]
+        if pick or len(inner) != 1:
+            break
+        zf = zipfile.ZipFile(io.BytesIO(zf.read(inner[0])))
+    raise ValueError(f"{p.name}: expected one EARS .csv, or one EARS .zip holding it; found {zf.namelist()[:10]}")
+
+
+def read_ears_value_history(path: str | Path, accounts: Iterable[str], *,
+                            problems: list[str] | None = None) -> Iterator[ParcelValues]:
+    """Yield each listed account's tax year and market value from an EARS submission, and nothing else.
+
+    For a prior-year roll (``Registry.ingest_value_history``). Only the county's ``AJR`` records are read
+    (taxing unit type ``00``; with several county funds, fund ``A`` or else the first in code order), and an
+    account's categories are added up: totally exempt, land, improvement, mineral and personal property
+    market value. Addresses, legal descriptions and owner ID codes in the file are never read. An account
+    whose records state more than one year, or a value that is not a number, is not yielded and is named
+    in ``problems``; so is a record with too few fields. A total of 0 is not a figure.
+    """
+    wanted = frozenset(a.lstrip("0") for a in accounts)
+    f = EARS_FIELDS
+    last = max(f.values())
+    totals: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))  # account → fund → market value
+    years: dict[str, set[str]] = defaultdict(set)
+    unit_ids: dict[str, str] = {}
+    bad: set[str] = set()
+    note = problems.append if problems is not None else (lambda _m: None)
+    name, text = _ears_text(path)
+    with text:
+        for n, row in enumerate(csv.reader(text), 1):
+            if not row or row[0].strip().upper() != "AJR":
+                continue
+            if len(row) < last:
+                note(f"{name} line {n}: {len(row)} fields, expected at least {last}")
+                continue
+            if row[f["taxing_unit_type"] - 1].strip() != EARS_COUNTY_UNIT_TYPE:
+                continue
+            acct = row[f["short_account"] - 1].strip().lstrip("0")
+            if acct not in wanted:
+                continue
+            try:
+                value = sum(float(v) for name_ in _EARS_VALUE_FIELDS if (v := row[f[name_] - 1].strip()))
+            except ValueError:
+                bad.add(acct)
+                note(f"{name} line {n}: account {acct} has a value that is not a number")
+                continue
+            fund = row[f["county_fund_type"] - 1].strip().upper()
+            totals[acct][fund] += value
+            years[acct].add(row[f["year"] - 1].strip())
+            unit_ids.setdefault(acct, row[f["taxing_unit_id"] - 1].strip())
+    for acct, by_fund in totals.items():
+        if acct in bad:
+            continue
+        if len(years[acct]) != 1 or not (y := next(iter(years[acct]))).isdigit():
+            note(f"{name}: account {acct} states tax years {sorted(years[acct])}")
+            continue
+        fund = "A" if "A" in by_fund else min(by_fund)
+        total = by_fund[fund]
+        yield ParcelValues(
+            county_fips=COUNTY_FIPS, apn=acct, tax_year=int(y),
+            market_value=total if total > 0 else None, appraised_value=None,
+            locator=f"{name} AJR short account {acct}, taxing unit {unit_ids[acct]} (county)",
+        )
+
+
+def build_history(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, tax_year: int,
+                  retrieved_at: str | None = None) -> IngestStats:
+    """Add one prior year's market values from an archived EARS submission to the Travis parcels already loaded.
+
+    History only (``Registry.ingest_value_history``): the current record, owners and addresses are not touched.
+    An account whose records are not of ``tax_year`` is not loaded and is named in ``stats.errors``.
+    """
+    reg = Registry(db_path)
+    try:
+        src = ears_source(tax_year)
+        reg.add_source(src)
+        snap = reg.add_snapshot(src.source_id, snapshot_path, as_of, retrieved_at)
+        accounts = [row[0] for row in reg.db.execute("SELECT external_id FROM crosswalk WHERE system = ?", (ACCOUNT_SYSTEM,))]
+        problems: list[str] = []
+        wrong: list[str] = []
+
+        def in_year(rows: Iterable[ParcelValues]) -> Iterator[ParcelValues]:
+            for r in rows:
+                if r.tax_year == tax_year:
+                    yield r
+                else:
+                    wrong.append(f"{r.locator}: tax year {r.tax_year}, expected {tax_year}")
+
+        stats = reg.ingest_value_history(in_year(read_ears_value_history(snapshot_path, accounts, problems=problems)),
+                                         snap, state_fips=STATE_FIPS)
+        stats.seen += len(wrong) + len(problems)
+        stats.skipped_invalid += len(wrong) + len(problems)
+        stats.errors.extend((wrong + problems)[:20])
+        stats.source_id, stats.tax_year = src.source_id, tax_year
+        return stats
+    finally:
+        reg.close()
+
+
 def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retrieved_at: str | None = None,
           full_roll: bool = True) -> IngestStats:
     """Ingest one archived certified export into a registry file (created if missing)."""
@@ -323,7 +473,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--as-of", required=True, help="export date, YYYY-MM-DD (the run date in APPR_HDR.TXT)")
     ap.add_argument("--retrieved-at", help="ISO timestamp from the collector manifest")
     ap.add_argument("--partial", action="store_true", help="do not retire parcels missing from this file")
+    ap.add_argument("--history-only", type=int, metavar="TAX_YEAR",
+                    help="the file is the EARS submission of this earlier tax year (227EARS<mmddyy>.zip): add its market "
+                         "values to parcels already loaded and change nothing else (owners, addresses, other facts "
+                         "and parcels are not written)")
     args = ap.parse_args(argv)
+    if args.history_only:
+        print(json.dumps(asdict(build_history(args.snapshot, args.db, as_of=args.as_of, tax_year=args.history_only,
+                                              retrieved_at=args.retrieved_at)), indent=2))
+        return 0
     stats = build(args.snapshot, args.db, as_of=args.as_of, retrieved_at=args.retrieved_at, full_roll=not args.partial)
     print(json.dumps(asdict(stats), indent=2))
     return 0

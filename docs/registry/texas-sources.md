@@ -78,7 +78,7 @@ and the weekly run skips it until a person reads the terms and flips it.
 | ---------- | --------- | ------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- |
 | Harris     | 2022-2025 | `download.hcad.org/data/CAMA/<year>/` four Real Property zips (about 0.5 GB)    | yes      | Same file names as 2026; not opened                              |
 | Dallas     | 2022-2025 | `DCAD<year>_CERTIFIED_<date>.zip` and `DCAD<year>_CURRENT.zip` (about 0.4 GB)   | yes      | Sizes match 2026; not opened (Range ignored)                     |
-| Travis     | 2022-2025 | `227EARS<date>.zip`, the EARS submission to the Comptroller (70-150 MB)         | yes      | **Different**: EARS, not Legacy 8.0.33; no adapter               |
+| Travis     | 2022-2025 | `227EARS<date>.zip`, the EARS submission to the Comptroller (70-150 MB)         | yes      | **Different**: EARS (form 96-1051); `tx_travis --history-only`   |
 | Collin     | 2022-2025 | `data.texas.gov/resource/<id>.csv` (9-10 pages of 50,000 rows each)             | **no**   | **Different**: flat per-property CSV, not the Access export      |
 | Williamson | 2024-2025 | `documents.wcad.org/cert/CertifiedAppraisalReport(-OLD).txt` (65-82 MB)         | **no**   | **Different**: text roll, year inferred from Last-Modified       |
 | Denton     | none      | the county layer holds one year (`pYear` 2027); dentoncad.com is a script shell | n/a      | no source added; the owner must ask DCAD for prior-year extracts |
@@ -87,7 +87,7 @@ Why not verified: Collin's rolls are on the Texas Open Data Portal (a platform w
 has read, the same open item as the Comptroller entry) rather than on `link.collincad.org`;
 Williamson's text files are on `documents.wcad.org`, a host no terms review covers, and the file's
 tax year was inferred. Travis is marked verified because the EARS zips sit on the reviewed host and
-path, but the layout differs from the one its adapter reads, so they are archived only. Fort Bend
+path; the layout differs from the Legacy export, and `tx_travis --history-only` reads it (below). Fort Bend
 and Tarrant are deliberately not included.
 
 Notes: Harris's prior-year folders were regenerated on 2026-11-09 (Last-Modified), so values may
@@ -101,6 +101,17 @@ only the tax year and the values, adds `parcel.tax_year`, `parcel.market_value` 
 under the `<id>-<year>` source to parcels the registry already holds, and writes no other fact, parcel, owner,
 address, link or coverage row, so an older roll can never change or outrank the current record
 (`Registry.ingest_value_history`). A row whose year is not the one named is refused.
+
+Travis prior years are EARS submissions (the Comptroller's form 96-1051 layout: one comma-delimited `AJR` record per
+account, taxing unit and category; TCAD zips the csv twice and adds PDF recaps). `python -m
+factlot.registry.adapters.tx_travis 227EARS090425.zip registry.db --as-of 2025-09-04 --history-only 2025` reads the
+county's records only, adds each account's categories up (totally exempt, land, improvement, mineral and personal
+property market value) and writes `parcel.tax_year` and `parcel.market_value`; EARS has no appraised value, and the
+file's addresses, legal descriptions and owner ID codes are never read. The short account number (AJR008) is TCAD's
+`prop_id`. Two limits to state wherever these values are shown: the figure is the roll **as submitted** (the date in
+the file name), so a value the appraisal review board or a later supplement changed afterwards is not reflected (on
+the 2024 file, 92% of the hosted accounts equal the prior-year total the 2025 submission states for them; most of
+the rest were lowered after the 2024 submission); and an account not on that year's roll has no value for it.
 
 Run one year with the workflow (unverified sources need the collector's `--include-unverified`
 flag, which the workflow does not pass, so they stay skipped until flipped):

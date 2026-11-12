@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import tempfile
 import unittest
@@ -9,8 +11,9 @@ import zipfile
 from pathlib import Path
 
 from factlot.registry import Registry
-from factlot.registry.adapters import tx_dallas, tx_harris
+from factlot.registry.adapters import tx_dallas, tx_harris, tx_travis
 
+from test_adapter_tx_travis import travis_zip
 from test_adapters import (
     DALLAS,
     HARRIS_NEIGHBORHOOD_ROWS,
@@ -205,6 +208,152 @@ class DallasHistoryOnly(unittest.TestCase):
         stats = tx_dallas.build_history(dallas_zip(self.tmp, 2027, values=False), self.db, as_of="2026-11-02", tax_year=2025)
         self.assertEqual(stats.kept, 0, "a 2027 file is not tax year 2025, and its zero values are not values")
         self.assertGreater(stats.skipped_invalid, 0)
+
+
+# EARS (Comptroller form 96-1051) AJR field numbers, 1-based, copied from the manual's Appendix 1, not from
+# the adapter: a wrong position in the adapter fails here. A 2025 record has 102 fields.
+AJR = {"record_type": 1, "year": 2, "district": 3, "unit_id": 4, "unit_type": 5, "fund": 6, "account": 7,
+       "short_account": 8, "address": 10, "confidential": 11, "legal": 12, "owner_id": 30, "category": 31,
+       "previous_category": 32, "previous_market": 33, "exempt": 34, "land": 35, "improvement": 36, "mineral": 37,
+       "personal": 38, "gis_parcel_id": 102}
+
+
+def ajr(short_account: str, category: str, *, year: int = 2025, unit: tuple[str, str, str] = ("227000", "00", "A"),
+        land: str = "0", improvement: str = "0", exempt: str = "0", mineral: str = "0", personal: str = "0",
+        **other: str) -> list[str]:
+    row = [""] * 102
+    fields = dict(record_type="AJR", year=str(year), district="227", unit_id=unit[0], unit_type=unit[1], fund=unit[2],
+                  account=f"01{short_account}", short_account=short_account, address="1201 S LAMAR BLVD",
+                  confidential="N", legal="LOT 1-4, TEMPLER LOTS", owner_id="1600885", category=category,
+                  previous_category=category, previous_market="1", exempt=exempt, land=land, improvement=improvement,
+                  mineral=mineral, personal=personal, gis_parcel_id=short_account, **other)
+    for name, value in fields.items():
+        row[AJR[name] - 1] = value
+    return row
+
+
+SCHOOL = ("227901", "02", "")
+EARS_ROWS = [
+    # The restaurant: one category. The school district's record states less (a part of the lot) and is not read.
+    ajr("100008", "F1", unit=SCHOOL, land="4000000", improvement="90000"),
+    ajr("100008", "F1", land="4232160", improvement="99906"),
+    # The apartments: two categories in the county unit add up.
+    ajr("100012", "B", land="18467437", improvement="42305683"),
+    ajr("100012", "F1", land="1000000", improvement="716880"),
+    # The condo: wholly exempt that year; the exempt amount is its market value.
+    ajr("100040", "XV", exempt="850000"),
+    # The house is not a registry parcel; business personal property is not either.
+    ajr("100050", "A", land="100000", improvement="150000"),
+    ajr("900001", "L1", personal="50000"),
+    # The storage lot: no value at all that year.
+    ajr("100090", "F1"),
+]
+
+
+def ears_zip(tmp: Path, rows: list[list[str]] = EARS_ROWS, name: str = "227EARS090425", *, nested: bool = True) -> Path:
+    """An EARS submission the way TCAD posts it: the csv in a zip, in a zip that also holds attachments.
+    The legal description has a comma."""
+    text = io.StringIO(newline="")
+    csv.writer(text, lineterminator="\r\n").writerows(rows)
+    inner = io.BytesIO()
+    with zipfile.ZipFile(inner, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"{name}.csv", text.getvalue().encode("latin-1"))
+    p = tmp / f"{name}{'' if nested else '-single'}.zip"
+    if not nested:
+        p.write_bytes(inner.getvalue())
+        return p
+    with zipfile.ZipFile(p, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"{name}.zip", inner.getvalue())
+        # TCAD's outer zip also carries recaps and another zip; neither is the roll.
+        zf.writestr("2025_PTD_COUNTY_50_105_TOTALS.pdf", b"%PDF-1.4")
+        zf.writestr("2025_PTD_50_897.zip", inner.getvalue()[:0] + b"PK\x05\x06" + b"\0" * 18)
+    return p
+
+
+class TravisHistoryOnly(unittest.TestCase):
+    """Travis prior years come as EARS submissions, a different file from the Legacy export of the current roll."""
+
+    CAFE = "fl:parcel:us-48453:100008"
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.db = self.tmp / "registry.db"
+        tx_travis.build(travis_zip(self.tmp), self.db, as_of="2026-07-18")
+
+    def history(self, urn: str) -> list[tuple]:
+        reg = Registry.open_readonly(self.db)
+        try:
+            return [(e["tax_year"], e["market_value"], e["appraised_value"]) for e in reg.value_history(urn)]
+        finally:
+            reg.close()
+
+    def test_adds_market_value_history_and_changes_nothing_else(self):
+        before = snapshot_of(self.db)
+        stats = tx_travis.build_history(ears_zip(self.tmp), self.db, as_of="2025-09-04", tax_year=2025)
+        self.assertEqual(stats.source_id, "tx-travis-cad-2025")
+        # Registry accounts in the county unit: 100008, 100012, 100040 (kept) and 100090 (no value).
+        self.assertEqual((stats.seen, stats.kept, stats.skipped_invalid, stats.skipped_out_of_scope), (4, 3, 1, 0))
+        after = snapshot_of(self.db)
+        for t in UNTOUCHED:
+            self.assertEqual(after[t], before[t], f"{t} must not change")
+        self.assertEqual(after["record"], before["record"], "the current records (value_history aside) must not change")
+        added = set(after["facts"]) - set(before["facts"])
+        self.assertTrue(before["facts"] and set(before["facts"]) <= set(after["facts"]))
+        self.assertEqual({f[2] for f in added}, {"parcel.tax_year", "parcel.market_value"})
+        self.assertFalse([f for f in added if "LAMAR" in str(f) or "TEMPLER" in str(f) or "1600885" in str(f)],
+                         "addresses, legal descriptions and owner ID codes are never written")
+        # The county's record, not the school district's; categories add up; the exempt amount counts.
+        self.assertEqual(self.history(self.CAFE), [(2026, 4336640, 4336640), (2025, 4332066, None)])
+        self.assertEqual(self.history("fl:parcel:us-48453:100012")[1], (2025, 62490000, None))
+        self.assertEqual(self.history("fl:parcel:us-48453:100040")[1], (2025, 850000, None))
+        self.assertEqual([y for y, *_ in self.history("fl:parcel:us-48453:100090")], [2026])
+        reg = Registry.open_readonly(self.db)
+        try:
+            src = reg.db.execute("SELECT * FROM sources WHERE source_id = 'tx-travis-cad-2025'").fetchone()
+            self.assertIn("EARS submission", src["title"])
+            self.assertEqual(reg.db.execute("SELECT COUNT(*) FROM subjects WHERE urn LIKE '%:100050'").fetchone()[0], 0)
+            fact = reg.db.execute("SELECT locator FROM facts WHERE subject = ? AND predicate = 'parcel.market_value' "
+                                  "AND locator LIKE '%EARS%'", (self.CAFE,)).fetchone()
+            self.assertEqual(fact[0], "227EARS090425.csv AJR short account 100008, taxing unit 227000 (county)")
+        finally:
+            reg.close()
+
+    def test_single_zip_and_plain_csv_read_the_same(self):
+        accounts = ["100008", "100012"]
+        want = list(tx_travis.read_ears_value_history(ears_zip(self.tmp), accounts))
+        self.assertEqual([(r.apn, r.tax_year, r.market_value) for r in want],
+                         [("100008", 2025, 4332066), ("100012", 2025, 62490000)])
+        single = ears_zip(self.tmp, nested=False)
+        self.assertEqual(list(tx_travis.read_ears_value_history(single, accounts)), want)
+        with zipfile.ZipFile(single) as zf:
+            zf.extractall(self.tmp / "x")
+        self.assertEqual(list(tx_travis.read_ears_value_history(self.tmp / "x" / "227EARS090425.csv", accounts)), want)
+
+    def test_another_year_bad_numbers_and_short_records_are_not_loaded(self):
+        stats = tx_travis.build_history(ears_zip(self.tmp, name="227EARS082824"), self.db, as_of="2024-08-28", tax_year=2024)
+        self.assertEqual(stats.kept, 0, "a 2025 file is not tax year 2024")
+        self.assertTrue(any("expected 2024" in e for e in stats.errors))
+        rows = [ajr("100008", "F1", land="12x", improvement="5"), ajr("100008", "F2", land="7"),
+                ["AJR", "2025", "227"], ["AUD", "2025"], ajr("100012", "B", land="10")]
+        problems: list[str] = []
+        got = list(tx_travis.read_ears_value_history(ears_zip(self.tmp, rows, name="227EARS010125"), ["100008", "100012"],
+                                                     problems=problems))
+        self.assertEqual([(r.apn, r.market_value) for r in got], [("100012", 10)],
+                         "an account with an unreadable value is dropped whole, not loaded with a partial sum")
+        self.assertEqual(len(problems), 2)
+        self.assertEqual(self.history(self.CAFE), [(2026, 4336640, 4336640)])
+
+    def test_rerun_is_idempotent(self):
+        z = ears_zip(self.tmp)
+        tx_travis.build_history(z, self.db, as_of="2025-09-04", tax_year=2025)
+        once = snapshot_of(self.db)
+        tx_travis.build_history(z, self.db, as_of="2025-09-04", tax_year=2025)
+        self.assertEqual(snapshot_of(self.db), once)
+
+    def test_cli_flag(self):
+        self.assertEqual(tx_travis.main([str(ears_zip(self.tmp)), str(self.db), "--as-of", "2025-09-04",
+                                         "--history-only", "2025"]), 0)
+        self.assertEqual([y for y, *_ in self.history(self.CAFE)], [2026, 2025])
 
 
 if __name__ == "__main__":
