@@ -638,6 +638,13 @@ export class RateLimiterObject {
         ),
       );
     }
+    if (url.pathname === "/forget") {
+      // Self-service deletion (freekey.ts): drop every counter this subject holds.
+      await this.state.storage.deleteAll();
+      this.meter.storageCleared();
+      this.alarmAt = undefined;
+      return jsonResponse({ forgotten: true });
+    }
     if (url.pathname === "/claim") {
       const b = (await request.json()) as { name: string; value: string };
       const value = this.meter.claim(b.name, b.value);
@@ -770,6 +777,9 @@ export function objectMeter(
         limit,
         ...(counter ? { counter } : {}),
       }),
+    forget: async (subject) => {
+      await call(ns, `meter:${subject}`, "/forget", {});
+    },
     claim: async (name, value) =>
       (
         await call<{ value: string }>(ns, `claim:${name}`, "/claim", {

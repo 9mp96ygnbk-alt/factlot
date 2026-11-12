@@ -87,6 +87,8 @@ export interface MeterService {
   usage(subject: string, days: number): Promise<UsageSummary>;
   /** When `key:<key id>` last made a request (ISO, to the minute). */
   lastUsed(subject: string): Promise<string | undefined>;
+  /** Erase everything the meter holds for `subject` (counters, usage, last use). */
+  forget(subject: string): Promise<void>;
 }
 
 export interface UsageSummary {

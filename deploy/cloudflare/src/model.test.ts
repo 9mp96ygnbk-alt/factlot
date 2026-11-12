@@ -187,6 +187,7 @@ function memoryMeter(now = () => T0) {
       m(s).refund(k, n, r);
     },
     claim: async (_n: string, v: string) => v,
+    forget: async () => {},
     record: async () => {},
     usage: async () => ({
       from: "",
