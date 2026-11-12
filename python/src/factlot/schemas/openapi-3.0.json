@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.0.0",
   "info": {
     "title": "FactLot",
     "version": "0.5.0",
@@ -15,7 +15,7 @@
       "post": {
         "operationId": "calc_rent_schedule",
         "summary": "Lease rent schedule",
-        "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace. Optional unit (kw, mw, unit, acre, key, room, space) relabels area and $/SF for data-center, ground, yard, residential, hotel, or parking leases without changing any number. Deterministic: use this instead of doing the math yourself; cite formula calc.rent_schedule@1 and the returned steps, and surface any warnings.",
+        "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month).",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -217,7 +217,7 @@
       "post": {
         "operationId": "calc_net_effective_rent",
         "summary": "Net effective rent (NER)",
-        "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12. schedule.unit (kw, mw, unit, acre, key, room, space) reports $/kW/yr, $/acre/yr and so on instead of $/SF/yr. Deterministic: use this instead of doing the math yourself; cite formula calc.net_effective_rent@1 and the returned steps, and surface any warnings.",
+        "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -452,7 +452,7 @@
       "post": {
         "operationId": "calc_compare_proposals",
         "summary": "Compare lease proposals",
-        "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ. schedule.unit (kw, mw, unit, acre, key, room, space, the same for every proposal) ranks per kW, MW, unit, acre, key, room, or space instead of per SF. Deterministic: use this instead of doing the math yourself; cite formula calc.compare_proposals@2 and the returned steps, and surface any warnings.",
+        "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -868,7 +868,7 @@
       "post": {
         "operationId": "calc_multifamily_rent_roll",
         "summary": "Multifamily rent roll",
-        "description": "Analyze an apartment rent roll (up to 5,000 units with status occupied, notice, vacant, model, or down; market and lease rent per month; lease dates; concessions as weeks free, months free, or dollars): gross potential rent, vacancy, non-revenue units, loss to lease, concessions amortised straight-line over each lease term, effective rent income, physical and economic occupancy, effective rent per unit and per SF, a lease expiration schedule by month, and a per-unit-type summary. Single-lease mode (lease instead of units) returns the effective monthly rent after a weeks-free or months-free concession. Deterministic: use this instead of doing the math yourself; cite formula calc.multifamily_rent_roll@1 and the returned steps, and surface any warnings.",
+        "description": "Analyze an apartment rent roll (up to 5,000 units with status occupied, notice, vacant, model, or down; market and lease rent per month; lease dates; concessions as weeks free, months free, or dollars): gross potential rent, vacancy, non-revenue units, loss to lease, concessions amortised…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1178,7 +1178,7 @@
       "post": {
         "operationId": "calc_percentage_rent",
         "summary": "Retail percentage rent",
-        "description": "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid. Deterministic: use this instead of doing the math yourself; cite formula calc.percentage_rent@1 and the returned steps, and surface any warnings.",
+        "description": "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1319,7 +1319,7 @@
       "post": {
         "operationId": "calc_cam_reconciliation",
         "summary": "CAM / operating expense reconciliation",
-        "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings. Deterministic: use this instead of doing the math yourself; cite formula calc.cam_reconciliation@2 and the returned steps, and surface any warnings.",
+        "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1613,7 +1613,7 @@
       "post": {
         "operationId": "calc_cam_reconciliation_batch",
         "summary": "CAM reconciliation for every tenant (batch)",
-        "description": "Reconcile CAM for a whole building in one call: the expense pool and gross-up once, then up to 500 tenants each with share, base year or expense stop, cap, admin fee, occupancy, estimates paid, and lease-specific excluded categories. Returns each tenant's statement (identical to calc_cam_reconciliation for that tenant, with its trace and warnings) and a building reconciliation: total billed against the recoverable pool, the unrecovered amount, and why (unleased or vacant share, lease exclusions, gross-up, caps, base years and stops, admin fees, zero floor, rounding). Deterministic: use this instead of doing the math yourself; cite formula calc.cam_reconciliation_batch@1 and the returned steps, and surface any warnings.",
+        "description": "Reconcile CAM for a whole building in one call: the expense pool and gross-up once, then up to 500 tenants each with share, base year or expense stop, cap, admin fee, occupancy, estimates paid, and lease-specific excluded categories.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1947,7 +1947,7 @@
       "post": {
         "operationId": "calc_debt_sizing",
         "summary": "Loan sizing (LTV / DSCR / debt yield)",
-        "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics; optionally a stress table over NOI, rate, and value shocks (max loan, binding constraint, LTV, DSCR, debt yield per scenario) and the refinance shortfall against an existing loan balance. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@3 and the returned steps, and surface any warnings.",
+        "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -2124,7 +2124,7 @@
       "post": {
         "operationId": "calc_lease_remeasurement_asc842",
         "summary": "Lease remeasurement (ASC 842, lessee)",
-        "description": "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the per-period amortization table (operating: straight-line single lease cost; finance: interest plus amortization) in cents that foots: every row rolls forward exactly, totals are the row sums, and the final period trues up liability and ROU asset to zero. Warns where judgment is needed. Deterministic: use this instead of doing the math yourself; cite formula calc.lease_remeasurement_asc842@2 and the returned steps, and surface any warnings.",
+        "description": "Remeasure a lessee's lease liability and right-of-use asset under ASC 842 after a modification, lease-term reassessment, contingency resolution, or residual value guarantee change: new liability (PV of remaining payments), liability and ROU adjustments with any gain (ASC 842-20-35-4), and the…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -2281,7 +2281,7 @@
       "post": {
         "operationId": "calc_walt",
         "summary": "Weighted average lease term (WALT)",
-        "description": "Weighted average remaining lease term in years as of a date (actual days ÷ 365.25), weighted by each lease's area_sf (weight_by \"area\") or annual_rent (weight_by \"rent\"). Deterministic: use this instead of doing the math yourself; cite formula calc.walt@1 and the returned steps, and surface any warnings.",
+        "description": "Weighted average remaining lease term in years as of a date (actual days ÷ 365.25), weighted by each lease's area_sf (weight_by \"area\") or annual_rent (weight_by \"rent\").",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -2479,7 +2479,7 @@
       "post": {
         "operationId": "calc_irr",
         "summary": "Internal rate of return",
-        "description": "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed). Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@2 and the returned steps, and surface any warnings.",
+        "description": "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed).",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -2564,7 +2564,7 @@
       "post": {
         "operationId": "calc_renew_vs_relocate",
         "summary": "Renew vs. relocate",
-        "description": "Compare renewing in place with moving over one horizon: NPV and discounted effective rent of each case (rent schedule with free rent, TI net of allowance, fees, moving, downtime, double rent, termination, and disruption costs), the starting rent at which they break even, and year-by-year cash flows. Deterministic: use this instead of doing the math yourself; cite formula calc.renew_vs_relocate@2 and the returned steps, and surface any warnings.",
+        "description": "Compare renewing in place with moving over one horizon: NPV and discounted effective rent of each case (rent schedule with free rent, TI net of allowance, fees, moving, downtime, double rent, termination, and disruption costs), the starting rent at which they break even, and year-by-year cash flows.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -2963,7 +2963,7 @@
       "post": {
         "operationId": "calc_hotel_metrics",
         "summary": "Hotel operating metrics (USALI)",
-        "description": "Occupancy, ADR, RevPAR, TRevPAR, and a USALI-style profit ladder for a period: departmental profit, GOP and margin, GOPPAR, management fees, EBITDA, FF&E reserve, and NOI (EBITDA less replacement reserve). Deterministic: use this instead of doing the math yourself; cite formula calc.hotel_metrics@1 and the returned steps, and surface any warnings.",
+        "description": "Occupancy, ADR, RevPAR, TRevPAR, and a USALI-style profit ladder for a period: departmental profit, GOP and margin, GOPPAR, management fees, EBITDA, FF&E reserve, and NOI (EBITDA less replacement reserve).",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3115,7 +3115,7 @@
       "post": {
         "operationId": "calc_dcf_pro_forma",
         "summary": "Property DCF from a rent roll",
-        "description": "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, with fractional downtime and free rent kept as part months rather than rounded); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated. Deterministic: use this instead of doing the math yourself; cite formula calc.dcf_pro_forma@2 and the returned steps, and surface any warnings.",
+        "description": "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3547,7 +3547,7 @@
       "post": {
         "operationId": "calc_direct_cap",
         "summary": "Direct capitalization value and implied cap rate",
-        "description": "Value by direct capitalization: (NOI − capital reserve) ÷ cap rate, then below-the-line deductions for lease-up costs, free-rent burn-off, and other adjustments to an as-is value (optionally rounded); and the cap rate a price implies, before and after reserves and all-in after the below-the-line costs. Records the NOI basis (trailing, forward, stabilized). Deterministic: use this instead of doing the math yourself; cite formula calc.direct_cap@1 and the returned steps, and surface any warnings.",
+        "description": "Value by direct capitalization: (NOI − capital reserve) ÷ cap rate, then below-the-line deductions for lease-up costs, free-rent burn-off, and other adjustments to an as-is value (optionally rounded); and the cap rate a price implies, before and after reserves and all-in after the below-the-line…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3692,7 +3692,7 @@
       "post": {
         "operationId": "calc_amortization_schedule",
         "summary": "Loan amortization schedule",
-        "description": "Period-by-period schedule of a fixed-rate loan, monthly or quarterly: an optional interest-only period, then level payments on an amortization term that can run past maturity (balloon), with 30/360, actual/360, or actual/365 interest (the payment on a 30/360 basis). Rows are in cents that foot: interest is rounded each period, the final payment repays the whole balance, and the totals are the row sums. Deterministic: use this instead of doing the math yourself; cite formula calc.amortization_schedule@1 and the returned steps, and surface any warnings.",
+        "description": "Period-by-period schedule of a fixed-rate loan, monthly or quarterly: an optional interest-only period, then level payments on an amortization term that can run past maturity (balloon), with 30/360, actual/360, or actual/365 interest (the payment on a 30/360 basis).",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3815,7 +3815,7 @@
       "post": {
         "operationId": "calc_equity_waterfall",
         "summary": "LP/GP equity distribution waterfall",
-        "description": "Split periodic project equity cash flows between LP and GP: preferred return (compounding or simple) and return of capital pro rata to capital in either order, an optional GP catch-up, IRR-hurdle tiers with promote splits measured on the LP's IRR, and a residual split. Returns per-period LP and GP contributions and distributions (with the GP's promote) that foot to the cent, and LP, GP, and project IRRs and multiples, with the conventions to confirm against the operating agreement. Deterministic: use this instead of doing the math yourself; cite formula calc.equity_waterfall@1 and the returned steps, and surface any warnings.",
+        "description": "Split periodic project equity cash flows between LP and GP: preferred return (compounding or simple) and return of capital pro rata to capital in either order, an optional GP catch-up, IRR-hurdle tiers with promote splits measured on the LP's IRR, and a residual split.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -3990,7 +3990,7 @@
       "post": {
         "operationId": "calc_exchange_1031",
         "summary": "1031 exchange deadlines, identification, and boot",
-        "description": "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage boot, debt replacement, and trade-down of an exchange, with the boot-limited gain when the basis is given. Deterministic: use this instead of doing the math yourself; cite formula calc.exchange_1031@2 and the returned steps, and surface any warnings.",
+        "description": "Not tax advice: arithmetic only. The 45-day identification and 180-day exchange deadlines of IRC §1031(a)(3) (the exchange period ends earlier at a given tax-return due date), the three-property, 200%, and 95% identification tests of Treas. Reg. §1.1031(k)-1(c)(4), and the cash boot, mortgage…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -4177,7 +4177,7 @@
       "post": {
         "operationId": "rules_tx_property_tax_protest_deadline",
         "summary": "Texas property tax protest deadline",
-        "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted deadline). status says where as_of (default: today in US Central time; echoed in as_of) falls: not_yet_open before January 1 of the tax year, open from then through the deadline, passed after it; days_remaining counts the days to the deadline (null once passed), and once passed next_season gives the same rule for the next tax year (May 15 basis). notes says what the rule does not cover (late protests, other §41.44 deadlines, §25.25 corrections) and which sections to read. Returns the statute citations, the rule's verification status and a disclaimer. Information about a statutory deadline: not legal or tax advice and not a substitute for the advice of an attorney. Verification status: verified. Cite rule rules.tx.property_tax_protest_deadline@2 and its statutes.",
+        "description": "Deadline to file a Texas property tax protest with the appraisal review board: the later of May 15 or 30 days after the notice of appraised value was delivered, rolled past weekends and Texas legal holidays, plus a conservative file-by date (the last business day on or before the unadjusted…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -4263,7 +4263,7 @@
       "post": {
         "operationId": "id_parcel",
         "summary": "FactLot parcel ID",
-        "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems. APNs that differ only in where a separator falls (\"12-34\", \"1-234\") get different IDs; in a county with a documented fixed-width format the variants of one APN converge (NYC BBL \"3-1234-56\" = \"3012340056\").",
+        "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -4499,7 +4499,7 @@
       "post": {
         "operationId": "doc_verify_facts",
         "summary": "Verify extracted document facts",
-        "description": "Check values YOU extracted from a document against its text, deterministically; FactLot runs no model. Send the pages as text and one candidate per value: {predicate, value, quote, page}. Each candidate is checked in order: (1) the value's shape (Ingest predicates such as lease.expiration_date YYYY-MM-DD, lease.pro_rata_share in (0, 1], ordered lease.base_rent_schedule steps; any other dotted predicate needs a non-empty value); (2) the quote, at least 12 characters, is on the cited page, where only whitespace, line breaks, letter case and typographic quotes and dashes may differ (a word hyphenated across a line must keep its hyphen; a quote found on exactly one other page is accepted with the page corrected); (3) every number, date and party name in the value is written in the quote, in any common form: 1250000 matches \"$1,250,000.00\", 0.03 matches \"3%\" or \"three percent\", 2031-06-30 matches \"June 30, 2031\" or \"6/30/2031\"; text the lease states as written (a prohibited use, a carve-out, a protected use) is written in it as words, ignoring case, punctuation and line breaks; (4) a confidence you give below 0.8 holds it for review; (5) every other part of the value must be confirmed by the quote too: a true/false value, an enum or a summary not written in the quote holds the candidate for review, named in the reason. Verified means every part of the value was found in the quote. Returns verified (FactLot facts: method extracted, citing document_id, page, quote and character span, plus which value parts were checked and as what), needs_review (the quote is on the page but does not state the value: check consistency; low confidence: confidence; a part FactLot cannot confirm from the quote, such as a boolean: coverage) and rejected (wrong shape; quote missing, too short, or on several pages), each with a reason to act on. Not checked: meaning (a quote stating the number in another context passes), and whether the pages came from the file whose sha256 you give.",
+        "description": "Check values YOU extracted from a document against its text, deterministically; FactLot runs no model. Send the pages as text and one candidate per value: {predicate, value, quote, page}.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -4722,7 +4722,7 @@
       "post": {
         "operationId": "doc_abstract_lease",
         "summary": "Lease abstract with amendments",
-        "description": "Current-state lease abstract from a lease and its amendments, with amendment precedence, as of as_of. Give each document's pages with the candidates you extracted (checked exactly as doc_verify_facts checks them), or the facts doc_verify_facts already returned for it (without pages only the value against its quote is rechecked, marked quote_on_page: false). Documents may come in any order: give the lease role original and each amendment role amendment with its effective_date (without a role the lease is inferred only when that is unambiguous, otherwise it is an input error; two or more amendments need effective dates). The original applies first, then amendments by effective_date; a later document's value for a predicate controls, and the earlier one moves to history and is linked through supersedes. An amendment effective after as_of is pending: its values are listed under pending and pending_facts with a warning and do not control. A rent schedule restated from a later date keeps the earlier steps before it (carried_forward). Each field gives its value, the controlling document, page, quote and fact, the superseded history, conflicts (two different values from one document, or from two documents of the same rank), pending values and open_items (a candidate for that predicate in the controlling or a later document that needs review or was rejected, so the value may not be final). FactLot only orders what you extracted: it does not find terms you missed, and an amendment that changes a term without restating it (\"extended by 24 months\") needs the resulting value extracted with that sentence as its quote, which the quote check will hold for review if the date is not written there.",
+        "description": "Current-state lease abstract from a lease and its amendments, with amendment precedence, as of as_of.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -4969,7 +4969,7 @@
       "post": {
         "operationId": "doc_predicates",
         "summary": "Lease predicate catalog",
-        "description": "Look up the lease predicates doc_verify_facts and doc_abstract_lease know (lease.expiration_date, lease.base_rent_schedule, lease.go_dark, ...) before extracting: for each, its value shape as JSON Schema, one valid example with a quote that states it (and whether that example verifies), which parts of the value are checked against the quote and how (number, ratio, date, verbatim name, as-written words, a worded enum, a number inside free text), which count as checked only when the quote writes them out (summaries, some enums), and which always need review (true/false values and enums no wording confirms, such as a CAM cap method or a kick-out party) unless a person confirms them. Generated from the same tables the checks use. Give predicate for one, prefix (e.g. lease.renewal) for a group, or neither for all. Also returns notes on statuses, paths, human confirmation and the generic rules for any other dotted predicate. Reads no document.",
+        "description": "Look up the lease predicates doc_verify_facts and doc_abstract_lease know (lease.expiration_date, lease.base_rent_schedule, lease.go_dark, ...) before extracting: for each, its value shape as JSON Schema, one valid example with a quote that states it (and whether that example verifies), which…",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,

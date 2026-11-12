@@ -269,6 +269,32 @@ export interface OpenApiOptions {
 export const GPT_ACTIONS_MAX_OPERATIONS = 30;
 
 /**
+ * Custom GPT Actions: "300 characters max for each API endpoint description/summary field"
+ * (developers.openai.com/api/docs/actions/production).
+ */
+export const GPT_ACTIONS_MAX_DESCRIPTION = 300;
+
+/**
+ * `text` in at most `max` characters: whole sentences when the first fits, else whole words and
+ * an ellipsis.
+ */
+const ABBREVIATION = /\b(e\.g|i\.e|etc|vs|Treas|Reg|Sec|No|Inc|Co|St)$/;
+
+export function shortenDescription(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max);
+  // The last sentence end that fits: a stop followed by a space or the end of `text`, not the
+  // stop of an abbreviation such as "e.g." or "Treas. Reg.".
+  let sentence = -1;
+  for (const m of text.slice(0, max + 1).matchAll(/[.!?](?=\s|$)/g))
+    if (m.index < max && !ABBREVIATION.test(text.slice(0, m.index)))
+      sentence = m.index;
+  if (sentence >= max / 3) return head.slice(0, sentence + 1);
+  const word = head.slice(0, max - 1).lastIndexOf(" ");
+  return `${head.slice(0, word > 0 ? word : max - 1).replace(/[\s,;:]+$/, "")}…`;
+}
+
+/**
  * The curated Custom GPT Actions subset, which the OpenAPI 3.0 document lists by default: the
  * most-used tools (live review usage, 2026-11) and the valuation calculators, with registry
  * lookups that appear only on a server with a registry. Every other tool stays in the OpenAPI
@@ -330,23 +356,27 @@ const ERROR_SCHEMA: Json = {
 };
 
 function openApi(
-  version: "3.1.0" | "3.0.3",
+  version: "3.1.0" | "3.0.0",
   opts: OpenApiOptions,
   defaultOperations: "gpt_actions" | "all",
 ): Json {
-  const convert = version === "3.0.3" ? toOpenApi30Schema : (s: Json) => s;
+  const convert = version === "3.0.0" ? toOpenApi30Schema : (s: Json) => s;
   const subset = (opts.operations ?? defaultOperations) === "gpt_actions";
   const filter = opts.filter ?? withoutRegistry;
   const included = list(
     (t) => filter(t) && (!subset || GPT_ACTIONS_TOOLS.includes(t.name)),
   );
+  // The GPT Actions subset keeps each operation's description within the Actions limit; the
+  // full text stays in the schema-free MCP and OpenAPI 3.1 listings.
+  const describe = (text: string) =>
+    subset ? shortenDescription(text, GPT_ACTIONS_MAX_DESCRIPTION) : text;
   const paths: Json = {};
   for (const t of included) {
     paths[t.path] = {
       post: {
         operationId: t.name,
-        summary: t.title,
-        description: t.description,
+        summary: describe(t.title),
+        description: describe(t.description),
         "x-openai-isConsequential": false,
         requestBody: {
           required: true,
@@ -415,5 +445,6 @@ export function openApi31(opts: OpenApiOptions = {}): Json {
  * Bedrock Agents action groups, Microsoft API plugins, or Vertex AI extensions.
  */
 export function openApi30(opts: OpenApiOptions = {}): Json {
-  return openApi("3.0.3", opts, "gpt_actions");
+  // 3.0.0: Bedrock Agents action groups require exactly that value; Custom GPT Actions accept it.
+  return openApi("3.0.0", opts, "gpt_actions");
 }

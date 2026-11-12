@@ -15,6 +15,7 @@ import {
   openaiResponsesTools,
   portableInputSchema,
   runTool,
+  shortenDescription,
   toGeminiSchema,
   toOpenApi30Schema,
   tools,
@@ -254,7 +255,7 @@ test("OpenAPI 3.0 is the curated Custom GPT Actions subset, at most 30 operation
     ).map((p) => p.post.operationId);
   // Default: no registry, catalog order.
   const doc = openApi30();
-  assert.equal(doc.openapi, "3.0.3");
+  assert.equal(doc.openapi, "3.0.0");
   assert.deepEqual(
     opsOf(doc),
     names.filter(
@@ -382,4 +383,34 @@ test("portable MCP input schemas restate exclusive bounds", () => {
   });
   // Applying it twice changes nothing.
   assert.deepEqual(portableInputSchema(s), s);
+});
+
+test("the Custom GPT Actions subset keeps every summary and description within 300 characters", () => {
+  for (const filter of [undefined, () => true]) {
+    const doc = openApi30(filter ? { filter } : {});
+    for (const [path, item] of Object.entries(
+      doc.paths as Record<
+        string,
+        { post: { summary: string; description: string } }
+      >,
+    )) {
+      assert.ok(item.post.summary.length <= 300, `${path} summary`);
+      assert.ok(item.post.description.length <= 300, `${path} description`);
+      assert.ok(item.post.description.length > 40, `${path} keeps a sentence`);
+    }
+  }
+  // Every operation in the complete documents keeps its full description.
+  const full = openApi30({ operations: "all", filter: () => true })
+    .paths as Record<
+    string,
+    { post: { operationId: string; description: string } }
+  >;
+  for (const item of Object.values(full))
+    assert.equal(
+      item.post.description,
+      tools.find((t) => t.name === item.post.operationId)!.description,
+    );
+  assert.equal(shortenDescription("First one. Second one.", 15), "First one.");
+  assert.equal(shortenDescription("abcdefghij klmnop", 12), "abcdefghij…");
+  assert.equal(shortenDescription("short", 300), "short");
 });
