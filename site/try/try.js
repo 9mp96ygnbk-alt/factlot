@@ -404,6 +404,17 @@
       warn.appendChild(wl);
       card.appendChild(warn);
     }
+    if (typeof record.history_note === "string" && record.history_note) {
+      // The API's own sentence, shown as text. It ends with the pricing URL; the page links
+      // its own /pricing/ instead of printing the address.
+      var sentence = record.history_note.replace(/:\s*https?:\/\/\S+\s*$/, ".");
+      card.appendChild(
+        el("p", { class: "note try-history" }, [
+          sentence + " ",
+          el("a", { href: "/pricing/", text: "Plans and limits" }),
+        ]),
+      );
+    }
     card.appendChild(sourceBlock(parcelFacts.concat(owner)));
     card.appendChild(
       el("details", { class: "try-raw" }, [

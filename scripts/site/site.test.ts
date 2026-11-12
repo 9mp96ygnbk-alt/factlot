@@ -481,6 +481,18 @@ describe("/try/ page", () => {
       assert.ok(!js.toLowerCase().includes(bad.toLowerCase()), bad);
     assert.match(js, /credentials: "omit"/);
   });
+  it("shows the API's history note as text with a link to /pricing/, only when present", () => {
+    assert.match(js, /typeof record\.history_note === "string"/);
+    assert.match(js, /class: "note try-history"/);
+    assert.match(js, /href: "\/pricing\/", text: "Plans and limits"/);
+    // The note is the same sentence the Worker writes, minus the trailing address.
+    const note =
+      "4 earlier roll years, 2022 to 2025, are available with a Pro or Team key: https://factlot.com/pricing/";
+    assert.equal(
+      note.replace(/:\s*https?:\/\/\S+\s*$/, "."),
+      "4 earlier roll years, 2022 to 2025, are available with a Pro or Team key.",
+    );
+  });
   it("prints a year without a thousands separator", () => {
     assert.match(
       js,
