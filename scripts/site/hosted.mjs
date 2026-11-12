@@ -130,7 +130,7 @@ export const PLACES = [
         ? "New York City (all five boroughs)"
         : `New York City (${andList(p.counties.map((f) => NYC[f]))})`,
     detail: (p, d) =>
-      `${p.counties.length === 5 ? "all five boroughs" : andList(p.counties.map((f) => NYC[f]))}; ${N(p.parcels)} commercial parcels${p.buildings ? ` and ${N(p.buildings)} buildings` : ""} from the Department of Finance roll as of ${p.as_of}, with owners of record that are organisations${ownersOf(d, "us-ny", "New York Department of State")}`,
+      `${p.counties.length === 5 ? "all five boroughs" : andList(p.counties.map((f) => NYC[f]))}; ${N(p.parcels)} commercial parcels${p.buildings ? ` and ${N(p.buildings)} buildings` : ""} from the Department of Finance final assessment roll as of ${p.as_of}, public record with no restrictions on use, with owners of record that are organisations${ownersOf(d, "us-ny", "New York Department of State")}`,
   },
   {
     key: "la",
@@ -138,7 +138,7 @@ export const PLACES = [
     label: () => "Los Angeles County",
     short: () => "Los Angeles County",
     detail: (p) =>
-      `${N(p.parcels)} commercial parcels from the Assessor's roll as of ${p.as_of}; no owner names, which the public file does not carry`,
+      `${N(p.parcels)} commercial parcels from the Assessor's parcel data roll as of ${p.as_of}; no owner names, which the public file does not carry; the County's open-data terms allow commercial use`,
   },
   {
     key: "sf",
@@ -146,15 +146,15 @@ export const PLACES = [
     label: () => "San Francisco",
     short: () => "San Francisco",
     detail: (p) =>
-      `${N(p.parcels)} commercial parcels from the Assessor's roll as of ${p.as_of}; no owner names, which the public file does not carry`,
+      `${N(p.parcels)} commercial parcels from the Assessor's secured roll (the 2025 roll year, the latest published; file as of ${p.as_of}); no owner names, which the public file does not carry; public domain (PDDL)`,
   },
   {
     key: "boston",
     fips: ["25025"],
-    label: () => "Boston",
-    short: () => "Boston",
+    label: () => "the City of Boston",
+    short: () => "the City of Boston",
     detail: (p) =>
-      `the City of Boston only, not the rest of Suffolk County; ${N(p.parcels)} commercial parcels from the Assessing Department's file as of ${p.as_of}`,
+      `the City of Boston only, not Chelsea, Revere or Winthrop, the rest of Suffolk County; ${N(p.parcels)} commercial parcels from the Assessing Department's fiscal-year 2026 file, with values as of ${p.as_of}, older than the other regions; public domain (ODC-PDDL)`,
   },
   {
     key: "denver",
@@ -162,15 +162,15 @@ export const PLACES = [
     label: () => "Denver",
     short: () => "Denver",
     detail: (p, d) =>
-      `${N(p.parcels)} commercial parcels from the Assessor's file as of ${p.as_of}${ownersOf(d, "us-co", "Colorado Secretary of State")}`,
+      `${N(p.parcels)} commercial parcels from the Assessor's file as of ${p.as_of}; CC BY 3.0, "City and County of Denver"${ownersOf(d, "us-co", "Colorado Secretary of State")}`,
   },
   {
     key: "ct",
     state: "09",
     label: () => "Connecticut",
-    short: () => "Connecticut",
+    short: () => "Connecticut (statewide, by town)",
     detail: (p, d) =>
-      `${N(p.parcels)} commercial parcels in ${word(p.counties.length)} former counties from the statewide parcel and CAMA layer as of ${p.as_of}${ownersOf(d, "us-ct", "Connecticut Secretary of the State")}`,
+      `${N(p.parcels)} commercial parcels in ${word(p.counties.length)} former counties, from the towns' grand lists in the statewide parcel and CAMA layer as of ${p.as_of}; CC0${ownersOf(d, "us-ct", "Connecticut Secretary of the State")}`,
   },
 ];
 
