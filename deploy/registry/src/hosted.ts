@@ -21,11 +21,90 @@ export interface EntityScope {
   total: number;
 }
 
+/** A county whose parcels come only from sources that cover part of it (a city assessor in a larger county). */
+export interface PartialCounty {
+  /** The part that is loaded ("the City of Boston"). */
+  area: string;
+  /** What else is in the county and is not loaded. */
+  rest: string;
+}
+
 export interface HostedScope {
   /** 5-digit county FIPS → why the hosted registry serves none of its parcels. */
   withheld?: Record<string, string>;
   /** Entity registry jurisdiction → how many of its entities the hosted registry serves. */
   entity_scope?: Record<string, EntityScope>;
+  /** 5-digit county FIPS → the part of the county its parcels cover, for a county loaded only in part. */
+  partial_counties?: Record<string, PartialCounty>;
+}
+
+/**
+ * Parcel sources that cover only part of their county, by source ID (a per-tax-year or companion source
+ * "<id>-<suffix>" counts as the same source). A county whose every parcel source is listed here for that county is
+ * "loaded in part": its coverage and misses say which part, so a parcel elsewhere in the county is not taken to be
+ * outside the registry's scope. Add a source here when its adapter covers less than the county its FIPS names.
+ */
+export const PARTIAL_COUNTY_SOURCES: Record<
+  string,
+  PartialCounty & { county: string }
+> = {
+  "ma-boston-assessing": {
+    county: "25025",
+    area: "the City of Boston",
+    rest: "Chelsea, Revere and Winthrop, the other municipalities of Suffolk County, assess separately and are not loaded",
+  },
+};
+
+function partialSource(
+  sourceId: string,
+): (PartialCounty & { county: string }) | undefined {
+  for (const [id, p] of Object.entries(PARTIAL_COUNTY_SOURCES))
+    if (sourceId === id || sourceId.startsWith(`${id}-`)) return p;
+  return undefined;
+}
+
+/** The counties of a coverage summary that are loaded only in part (see PARTIAL_COUNTY_SOURCES). */
+export function partialCounties(
+  cov: RegistryCoverage,
+): Record<string, PartialCounty> {
+  const out: Record<string, PartialCounty> = {};
+  for (const c of cov.counties) {
+    const fips = `${c.state_fips}${c.county_fips}`;
+    if (!c.sources.length) continue;
+    const parts = c.sources.map((s) => partialSource(s.source_id));
+    if (parts.some((p) => !p || p.county !== fips)) continue;
+    const areas = [...new Set(parts.map((p) => p!.area))];
+    const rests = [...new Set(parts.map((p) => p!.rest))];
+    out[fips] = { area: areas.join(" and "), rest: rests.join("; ") };
+  }
+  return out;
+}
+
+function partialOf(
+  scope: HostedScope,
+  fips: string,
+): PartialCounty | undefined {
+  return scope.partial_counties && Object.hasOwn(scope.partial_counties, fips)
+    ? scope.partial_counties[fips]
+    : undefined;
+}
+
+/** A loaded-county miss message, said of the part of the county that is loaded. */
+function partialMessage(
+  cov: RegistryCoverage,
+  fips: string,
+  p: PartialCounty,
+  message: string,
+): string {
+  const label = countyText(cov, fips).replace(/ \([^)]*\)$/, "");
+  const said = message.replace(
+    /^(.*?) is loaded in this registry \(/,
+    (_m, head: string) =>
+      `${head} is loaded in this registry for ${p.area} only (`,
+  );
+  return said === message
+    ? message
+    : `${said}. Of ${label}, only ${p.area} is loaded: ${p.rest}`;
 }
 
 /** "Tarrant County, TX (48439)". */
@@ -58,8 +137,14 @@ export function hostedParcelMiss(
   countyFips: string,
 ): Row {
   const out = parcelMiss(cov, stateFips, countyFips);
-  const withheld = withheldMessage(scope, cov, `${stateFips}${countyFips}`);
+  const fips = `${stateFips}${countyFips}`;
+  const withheld = withheldMessage(scope, cov, fips);
   if (withheld) out.message = withheld;
+  const p = partialOf(scope, fips);
+  if (p && out.county_loaded === true) {
+    out.county_area = p.area;
+    out.message = partialMessage(cov, fips, p, String(out.message));
+  }
   return out;
 }
 
@@ -100,8 +185,14 @@ export function hostedRecordMiss(
   const [, kind, region = ""] = urn.split(":");
   if (kind === "entity") return hostedEntityMiss(scope, cov, region, false);
   if ((kind === "parcel" || kind === "building") && region.startsWith("us-")) {
-    const withheld = withheldMessage(scope, cov, region.slice(3, 8));
+    const fips = region.slice(3, 8);
+    const withheld = withheldMessage(scope, cov, fips);
     if (withheld) out.message = withheld;
+    const p = partialOf(scope, fips);
+    if (p && out.county_loaded === true) {
+      out.county_area = p.area;
+      out.message = partialMessage(cov, fips, p, String(out.message));
+    }
   }
   return out;
 }
@@ -114,10 +205,34 @@ export function hostedCoverageResult(
 ): unknown {
   const withheld = Object.keys(scope.withheld ?? {}).sort();
   const trimmed = Object.keys(scope.entity_scope ?? {}).sort();
-  if (!withheld.length && !trimmed.length) return result;
+  const partial = Object.keys(scope.partial_counties ?? {}).sort();
+  if (!withheld.length && !trimmed.length && !partial.length) return result;
+  const r = result as Row;
   return {
-    ...(result as Row),
+    ...r,
+    // A county loaded in part says which part, where the county is listed.
+    ...(partial.length && Array.isArray(r.counties)
+      ? {
+          counties: (r.counties as Row[]).map((c) => {
+            const p = partialOf(
+              scope,
+              `${String(c.state_fips)}${String(c.county_fips)}`,
+            );
+            return p ? { ...c, area: p.area } : c;
+          }),
+        }
+      : {}),
     hosted: {
+      ...(partial.length
+        ? {
+            partial_counties: partial.map((fips) => ({
+              region: `us-${fips}`,
+              name: countyName(fips) ?? null,
+              area: scope.partial_counties![fips]!.area,
+              message: `${countyText(cov, fips)} is loaded for ${scope.partial_counties![fips]!.area} only: ${scope.partial_counties![fips]!.rest}`,
+            })),
+          }
+        : {}),
       withheld_counties: withheld.map((fips) => ({
         region: `us-${fips}`,
         name: countyName(fips) ?? null,

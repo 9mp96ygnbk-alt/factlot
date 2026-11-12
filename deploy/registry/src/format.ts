@@ -9,8 +9,14 @@
 import type { RegistryCoverage } from "../../../packages/tools/src/registry.ts";
 
 import type { EquityManifest, EquitySubject } from "./equity.ts";
+import type { PartialCounty } from "./hosted.ts";
 
 export const PACK_FORMAT = 2;
+
+/** Workers Paid: 100,000 static-asset files per Worker version (the free plan allows 20,000). */
+export const PACK_MAX_FILES = 100_000;
+/** Workers static assets: 25 MiB per file. */
+export const PACK_MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 /** Target size of one shard file, in bytes (the builder sizes shard counts from it). */
 export const SHARD_TARGET_BYTES = 96 * 1024;
@@ -79,6 +85,8 @@ export interface Manifest {
   withheld: Record<string, string>;
   /** Entity registries served in part (jurisdiction → served and total entities); see hosted.ts. */
   entity_scope: Record<string, { served: number; total: number }>;
+  /** Counties loaded only in part (5-digit FIPS → the part); see hosted.ts. Absent in packs built before it. */
+  partial_counties?: Record<string, PartialCounty>;
   /** Texas unequal-appraisal candidate data (equity.ts), or null when the pack holds no Texas parcel. */
   equity: EquityManifest | null;
   counts: Record<string, number>;

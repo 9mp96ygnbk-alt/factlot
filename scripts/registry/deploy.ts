@@ -13,13 +13,12 @@ import { fileURLToPath } from "node:url";
 
 import {
   PACK_FORMAT,
+  PACK_MAX_FILES as MAX_FILES,
+  PACK_MAX_FILE_BYTES as MAX_FILE_BYTES,
   type Manifest,
 } from "../../deploy/registry/src/format.ts";
 import { hostedWithheldCounties } from "../../packages/tools/src/registry.ts";
 
-/** Workers Paid: 100,000 static-asset files per Worker version (the free plan allows 20,000). */
-const MAX_FILES = 100_000;
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
 /** The files a pack holds: manifest, records, crosswalk, address and name indexes, candidate pools. */
 const PACK_PATH =
   /^(manifest\.json|n\/df\.json|[gxan](\/[0-9a-z]+)*\/[0-9]+\.json|q\/[0-9]{5}-[0-9a-z]+(-[0-9]+)?\/(h|b[0-9]+|(all|g[0-9a-z]+)\/[rc][0-9]+)\.json)$/;
