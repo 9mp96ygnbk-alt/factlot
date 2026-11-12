@@ -41,6 +41,8 @@
  *   kept here need not be the three registry_owned_by keeps: registry_get orders the rows by link
  *   date and registry_owned_by by parcel label, and this Worker does not see the labels, so it
  *   does not try to match them.
+ * - registry_recorded_facts (every recorded sale and document of a parcel, paged) is for Pro and
+ *   Team: a free caller gets PlanRequired, and the call is not metered.
  * - Recorded sales and documents are for Pro and Team beyond the newest sale. A parcel's registry_get
  *   facts hold one fact per recorded sale (transaction.sale), deed (transaction.deed), mortgage
  *   (debt.mortgage_recorded) and mortgage satisfaction (debt.mortgage_satisfaction_recorded). A free
@@ -103,9 +105,12 @@ export function isYearedCandidates(name: unknown, args: unknown): boolean {
   );
 }
 
+/** The paged reader of a parcel's recorded sales and documents: for Pro and Team. */
+export const RECORDED_TOOL = "registry_recorded_facts";
+
 /**
- * A registry call a free caller is refused when gating is on: a batch tool, a dated registry_get, or
- * the candidates tool asked for a roll year.
+ * A registry call a free caller is refused when gating is on: a batch tool, a dated registry_get, the
+ * candidates tool asked for a roll year, or registry_recorded_facts.
  */
 export function isPaidRegistryCall(
   name: unknown,
@@ -114,8 +119,23 @@ export function isPaidRegistryCall(
   return (
     isBatchRegistryTool(name) ||
     isDatedGet(name, args) ||
-    isYearedCandidates(name, args)
+    isYearedCandidates(name, args) ||
+    name === RECORDED_TOOL
   );
+}
+
+/** PlanRequired for registry_recorded_facts, in the same shape. */
+export function recordedPlanRequired(): { status: 403; body: Json } {
+  return {
+    status: 403,
+    body: {
+      error: "PlanRequired",
+      code: "PlanRequired",
+      message: `${RECORDED_TOOL} returns every recorded sale and document of a parcel, which is part of the paid plans: Pro and Team. Nothing was counted. Without a key, ${HISTORY_TOOL} returns the newest recorded sale or deed and counts the rest within the free daily lookups.`,
+      next: `send a Pro or Team key as Authorization: Bearer <key> (${GATING_PRICING_URL}), or call ${HISTORY_TOOL}`,
+      upgrade: GATING_PRICING_URL,
+    },
+  };
 }
 
 /** What a free caller's answer had cut: distinct earlier tax years (newest first) and earlier facts. Never values. */
@@ -196,6 +216,7 @@ export function planRequired(
   tool: string,
   args: unknown,
 ): { status: 403; body: Json } {
+  if (tool === RECORDED_TOOL) return recordedPlanRequired();
   if (isDatedGet(tool, args)) return datedPlanRequired();
   if (isYearedCandidates(tool, args)) return yearedPlanRequired();
   return batchPlanRequired(tool);

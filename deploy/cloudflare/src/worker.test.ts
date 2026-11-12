@@ -6810,6 +6810,65 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "24");
   });
 
+  it("registry_recorded_facts: a free caller gets PlanRequired on REST and MCP, unmetered and never forwarded; a Pro key and gating off get the page", async () => {
+    const page = {
+      urn: "fl:parcel:us-36061:1",
+      predicate: null,
+      totals: { "transaction.sale": 120 },
+      total: 120,
+      facts: [
+        {
+          id: "s1",
+          predicate: "transaction.sale",
+          value: { price_usd: 9876543 },
+        },
+      ],
+      next_cursor: "1.0.0.0",
+    };
+    const seen: string[] = [];
+    const api = answerApi(page);
+    const spy = {
+      fetch: async (r: Request) => {
+        seen.push(`${new URL(r.url).pathname} ${await r.clone().text()}`);
+        return api.fetch(r);
+      },
+    };
+    const e = on();
+    const rest = await call(e, spy, "/v1/registry/recorded_facts", {
+      body: { urn: page.urn },
+    });
+    assert.equal(rest.status, 403);
+    const body = (await rest.json()) as { error: string; message: string };
+    assert.equal(body.error, "PlanRequired");
+    assert.match(body.message, /Nothing was counted/);
+    assert.ok(!JSON.stringify(body).includes("9876543"));
+    const mcp = await call(e, spy, "/mcp", {
+      body: toolCall("registry_recorded_facts", 1),
+    });
+    const m = (await mcp.json()) as {
+      result: { isError?: boolean; structuredContent: { error?: string } };
+    };
+    assert.equal(m.result.isError, true);
+    assert.equal(m.result.structuredContent.error, "PlanRequired");
+    assert.deepEqual(seen, [], "never forwarded");
+    assert.equal(
+      (await e.METER.quota(await addressSubject(IP, T0), "day", 25)).used,
+      0,
+    );
+    const { key } = await issue(e);
+    const pro = await call(e, spy, "/v1/registry/recorded_facts", {
+      key,
+      body: { urn: page.urn },
+    });
+    assert.equal(pro.status, 200);
+    assert.deepEqual(await pro.json(), page);
+    const off = await call(env(), spy, "/v1/registry/recorded_facts", {
+      body: { urn: page.urn },
+    });
+    assert.equal(off.status, 200);
+    assert.deepEqual(await off.json(), page);
+  });
+
   it("batch tools stay available to Pro with gating on", async () => {
     const { api, seen } = historyApi();
     const e = on();
