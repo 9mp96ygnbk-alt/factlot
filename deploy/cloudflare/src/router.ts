@@ -92,6 +92,9 @@ import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
 import {
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
   freeKeyEnabled,
+  freeKeyDeleteLinkRoute,
+  freeKeyDeleteRequestRoute,
+  freeKeyDeleteWithKeyRoute,
   freeKeyLinkRoute,
   freeKeyRequestRoute,
   isFreeKeyToken,
@@ -788,8 +791,11 @@ async function route(
   if (
     freeKeyEnabled(env) &&
     (path === "/v1/keys/free" ||
+      path === "/v1/keys/free/delete" ||
       path === "/account/free-key" ||
-      path.startsWith("/account/free-key/"))
+      path.startsWith("/account/free-key/") ||
+      path === "/account/free-key-delete" ||
+      path.startsWith("/account/free-key-delete/"))
   )
     return freeKeyRoute(request, env, url, path, opts, await addressKey());
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
@@ -2264,7 +2270,9 @@ async function recoverRoute(
 
 /**
  * /v1/keys/free, /account/free-key and /account/free-key/<token>: the free API key issued by
- * email (freekey.ts). Requests and redemptions count against a per-address minute budget.
+ * email (freekey.ts), and its deletion (/v1/keys/free/delete, DELETE /v1/keys/free,
+ * /account/free-key-delete and /account/free-key-delete/<token>). Requests and redemptions count
+ * against a per-address minute budget.
  */
 async function freeKeyRoute(
   request: Request,
@@ -2275,14 +2283,24 @@ async function freeKeyRoute(
   address: string,
 ): Promise<Response> {
   const now = opts.now ?? Date.now;
-  const isApi = path === "/v1/keys/free";
-  const token = path.startsWith("/account/free-key/")
-    ? path.slice("/account/free-key/".length)
+  const isApi = path === "/v1/keys/free" || path === "/v1/keys/free/delete";
+  // Deletion (freekey.ts): its own paths, and DELETE /v1/keys/free with the key as bearer.
+  const del =
+    path === "/v1/keys/free/delete" ||
+    path.startsWith("/account/free-key-delete");
+  const linkPrefix = del ? "/account/free-key-delete/" : "/account/free-key/";
+  const token = path.startsWith(linkPrefix)
+    ? path.slice(linkPrefix.length)
     : undefined;
   const cors = isApi ? corsHeaders() : undefined;
   const fopts = { now, defer: deferWith(opts), address, cors };
   const asJsonApi = (res: Response) => (cors ? withHeaders(res, cors) : res);
-  const allowed = token !== undefined ? ["GET", "HEAD", "POST"] : ["POST"];
+  const allowed =
+    token !== undefined
+      ? ["GET", "HEAD", "POST"]
+      : path === "/v1/keys/free"
+        ? ["POST", "DELETE"]
+        : ["POST"];
   if (!allowed.includes(request.method)) {
     if (token === undefined && !isApi && request.method === "GET")
       return Response.redirect(`${url.origin}/account#free-key`, 303);
@@ -2299,7 +2317,7 @@ async function freeKeyRoute(
   }
   const formPage = (status: number, notice: string) =>
     accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env));
-  if (request.method === "POST") {
+  if (request.method === "POST" || request.method === "DELETE") {
     const origin = request.headers.get("origin");
     const jsonBody = (request.headers.get("content-type") ?? "").includes(
       "application/json",
@@ -2312,6 +2330,8 @@ async function freeKeyRoute(
       return isApi
         ? rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous")
         : formPage(429, "Too many tries from this address. Wait a minute.");
+    if (request.method === "DELETE")
+      return freeKeyDeleteWithKeyRoute(env, request, fopts);
     if (token === undefined) {
       const body = await readBody(request, 4 * 1024);
       if (body === undefined)
@@ -2321,8 +2341,12 @@ async function freeKeyRoute(
               message: "request body over 4 KB",
             })
           : formPage(413, "The form is too large.");
-      return freeKeyRequestRoute(env, request, body, fopts);
+      return del
+        ? freeKeyDeleteRequestRoute(env, request, body, fopts)
+        : freeKeyRequestRoute(env, request, body, fopts);
     }
   }
-  return freeKeyLinkRoute(env, request, token!, fopts);
+  return del
+    ? freeKeyDeleteLinkRoute(env, request, token!, fopts)
+    : freeKeyLinkRoute(env, request, token!, fopts);
 }

@@ -13,16 +13,29 @@
  * most FREE_KEY_ADDRESS_LOOKUPS_PER_DAY lookups a day and the per-IP minute limit, whichever
  * key they use (router.ts).
  *
- * KV: `freekey:<sha256(key)>` {tier "free", email_hash, created, revoked_at?}; `freeemail:
+ * Deletion (same shape, its own purpose string and records, and no key in any email):
+ *   POST   /v1/keys/free/delete  {email}  (also the form on /account, POST /account/free-key-delete)
+ *          always answers 202 {sent_if_found: true}; the email goes out after the answer, and only
+ *          when the address has a key, so a bystander's address is never mailed and the answer
+ *          tells the asker nothing.
+ *   GET    /account/free-key-delete/<token>  a confirm page; deletes nothing
+ *   POST   /account/free-key-delete/<token>  deletes once
+ *   DELETE /v1/keys/free  with the key as bearer: the same deletion, no email.
+ * Deleting removes `freekey:` for the current key and every replaced key (each record names the
+ * one it replaced in `prev`), `freeemail:`, and the meters `freemail:` (reports) and `freekey:`
+ * (lookups). Links already emailed, the 5-minute wait markers, the per-network-address counters
+ * and the claims for used links (random, not tied to the address) are not touched.
+ *
+ * KV: `freekey:<sha256(key)>` {tier "free", email_hash, created, revoked_at?, prev?}; `freeemail:
  * <email_hash>` the current key's hash (one active key per address: a new one revokes the old);
  * `freelink:<sha256(id)>` the link's record (30 minutes); `freewait:<email_hash>` the resend
- * wait. The address itself is never stored or logged: only a salted hash of its lower case.
+ * wait; `freedel:<sha256(id)>` and `freedelwait:<email_hash>` the same for deletion links. The address itself is never stored or logged: only a salted hash of its lower case.
  * Links reuse the recovery signing secret under their own purpose string.
  */
 import { CONTACT } from "./contact.ts";
-import { sendEmail, freeKeyMessage } from "./email.ts";
+import { sendEmail, freeKeyMessage, freeKeyDeleteMessage } from "./email.ts";
 import { json, siteUrl } from "./billing.ts";
-import { hashKey, keyId, randomToken } from "./keys.ts";
+import { bearer, hashKey, keyId, randomToken } from "./keys.ts";
 import {
   EMAIL_RE,
   TOKEN_RE,
@@ -32,10 +45,14 @@ import {
 } from "./recovery.ts";
 import {
   freeKeyConfirmPage,
+  freeKeyDeleteConfirmPage,
+  freeKeyDeleteSentPage,
+  freeKeyDeletedPage,
   freeKeyIssuedPage,
   freeKeySentPage,
   messagePage,
   FREE_KEY_SENT,
+  FREE_KEY_DELETE_SENT,
 } from "./pages.ts";
 import { FREE_KEY_ADDRESS_LOOKUPS_PER_DAY } from "./plans.ts";
 import type { Env, KV } from "./types.ts";
@@ -50,6 +67,10 @@ export const FREE_KEY_RESEND_SECONDS = 5 * 60;
 /** Free keys minted per address per UTC day. */
 export const FREE_KEY_MINTS_PER_ADDRESS_PER_DAY = 3;
 const PURPOSE = "factlot-freekey";
+/** A different signed purpose: an issuance link cannot delete and a deletion link cannot mint. */
+const DELETE_PURPOSE = "factlot-freekey-delete";
+/** The most replaced keys followed back from the current one in one deletion. */
+const MAX_CHAIN = 100;
 
 export interface FreeKeyRecord {
   tier: "free";
@@ -57,6 +78,8 @@ export interface FreeKeyRecord {
   email_hash: string;
   created: string;
   revoked_at?: string;
+  /** The hash of the key this one replaced: how deletion finds replaced keys from the address. */
+  prev?: string;
 }
 
 export interface FreeKeyCaller {
@@ -111,31 +134,52 @@ interface LinkRecord {
   used_at?: string;
 }
 
-async function createLink(env: Env, eh: string, now: number): Promise<string> {
+interface LinkKind {
+  prefix: "freelink" | "freedel";
+  purpose: string;
+}
+const ISSUE: LinkKind = { prefix: "freelink", purpose: PURPOSE };
+const DELETE: LinkKind = { prefix: "freedel", purpose: DELETE_PURPOSE };
+
+async function createLink(
+  env: Env,
+  eh: string,
+  now: number,
+  kind: LinkKind = ISSUE,
+): Promise<string> {
   const secret = env.RECOVERY_SIGNING_SECRET!;
   const id = randomToken();
   const rec: LinkRecord = {
     email_hash: eh,
     expires_at: new Date(now + FREE_KEY_LINK_TTL_SECONDS * 1000).toISOString(),
   };
-  await env.KEYS.put(`freelink:${await hashKey(id)}`, JSON.stringify(rec), {
-    expirationTtl: FREE_KEY_LINK_TTL_SECONDS,
-  });
-  return `${id}.${await sign(secret, id, PURPOSE)}`;
+  await env.KEYS.put(
+    `${kind.prefix}:${await hashKey(id)}`,
+    JSON.stringify(rec),
+    {
+      expirationTtl: FREE_KEY_LINK_TTL_SECONDS,
+    },
+  );
+  return `${id}.${await sign(secret, id, kind.purpose)}`;
 }
 
 type Check =
   | { ok: true; hash: string; rec: LinkRecord }
   | { ok: false; why: "invalid" | "expired" | "used" };
 
-async function checkLink(env: Env, token: string, now: number): Promise<Check> {
+async function checkLink(
+  env: Env,
+  token: string,
+  now: number,
+  kind: LinkKind = ISSUE,
+): Promise<Check> {
   const m = TOKEN_RE.exec(token);
   const secret = env.RECOVERY_SIGNING_SECRET;
   if (!m || !secret) return { ok: false, why: "invalid" };
-  if (!sameString(m[2]!, await sign(secret, m[1]!, PURPOSE)))
+  if (!sameString(m[2]!, await sign(secret, m[1]!, kind.purpose)))
     return { ok: false, why: "invalid" };
   const hash = await hashKey(m[1]!);
-  const raw = await env.KEYS.get(`freelink:${hash}`);
+  const raw = await env.KEYS.get(`${kind.prefix}:${hash}`);
   if (!raw) return { ok: false, why: "expired" };
   const rec = JSON.parse(raw) as LinkRecord;
   if (rec.used_at) return { ok: false, why: "used" };
@@ -329,6 +373,7 @@ export async function freeKeyLinkRoute(
     tier: "free",
     email_hash: eh,
     created: new Date(now()).toISOString(),
+    ...(prev && prev !== hash ? { prev } : {}),
   };
   await env.KEYS.put(`freekey:${hash}`, JSON.stringify(rec));
   await env.KEYS.put(`freeemail:${eh}`, hash);
@@ -338,4 +383,214 @@ export async function freeKeyLinkRoute(
     api: env.API_URL ?? "https://api.factlot.com",
     site: siteUrl(env),
   });
+}
+
+/**
+ * Delete everything kept for one address hash: the current key and every replaced key (followed
+ * through `prev`), the address record, and the meters of the address's reports and of each key.
+ * Keys go first so they stop working at once; the address record goes last so a failed run can
+ * be repeated from a new link. `known` is a key hash the caller already holds.
+ */
+async function deleteAddress(
+  env: Env,
+  eh: string,
+  known?: string,
+): Promise<void> {
+  const hashes: string[] = [];
+  const add = (h: string | null | undefined) => {
+    if (h && !hashes.includes(h)) hashes.push(h);
+  };
+  add(known);
+  let next: string | null | undefined = await env.KEYS.get(`freeemail:${eh}`);
+  while (next && hashes.length < MAX_CHAIN && !hashes.includes(next)) {
+    add(next);
+    const raw = await env.KEYS.get(`freekey:${next}`);
+    const rec = raw ? (JSON.parse(raw) as FreeKeyRecord) : undefined;
+    next = rec && rec.email_hash === eh ? rec.prev : undefined;
+  }
+  for (const h of hashes) {
+    const raw = await env.KEYS.get(`freekey:${h}`);
+    // Only this address's records: a stray hash never deletes someone else's key.
+    if (raw && (JSON.parse(raw) as FreeKeyRecord).email_hash !== eh) continue;
+    await env.KEYS.delete(`freekey:${h}`);
+    await env.METER.forget(`freekey:${keyId(h)}`);
+  }
+  await env.METER.forget(`freemail:${eh.slice(0, 32)}`);
+  await env.KEYS.delete(`freeemail:${eh}`);
+}
+
+/** The deletion email, run after the answer is sent; only for an address that has a key. */
+async function sendDeleteLink(
+  env: Env,
+  email: string,
+  now: () => number,
+): Promise<void> {
+  const kv: KV = env.KEYS;
+  try {
+    const eh = await emailHash(env, email);
+    if (!(await kv.get(`freeemail:${eh}`))) return;
+    if (await kv.get(`freedelwait:${eh}`)) return;
+    await kv.put(`freedelwait:${eh}`, "1", {
+      expirationTtl: FREE_KEY_RESEND_SECONDS,
+    });
+    const url = `${siteUrl(env)}/account/free-key-delete/${await createLink(env, eh, now(), DELETE)}`;
+    await sendEmail(env, "freekeydelete", {
+      to: email,
+      ...freeKeyDeleteMessage(url, FREE_KEY_LINK_TTL_SECONDS / 60),
+    });
+  } catch {
+    console.error(JSON.stringify({ msg: "free key deletion email failed" }));
+  }
+}
+
+/** POST /v1/keys/free/delete and POST /account/free-key-delete. The caller has rate-limited. */
+export async function freeKeyDeleteRequestRoute(
+  env: Env,
+  request: Request,
+  body: string,
+  opts: FreeKeyOptions,
+): Promise<Response> {
+  const asJson = wantsJson(request);
+  const now = opts.now ?? Date.now;
+  const fail = (status: number, code: string, message: string) =>
+    withCors(
+      asJson
+        ? json(status, {
+            error: code,
+            code,
+            message,
+            next: 'POST /v1/keys/free/delete {"email":"you@example.com"}',
+          })
+        : messagePage(status, "Delete my free key", message, {
+            next: { href: "/account#free-key", label: "Try again" },
+          }),
+      opts.cors,
+    );
+  if (freeKeyState(env) !== "on")
+    return fail(
+      503,
+      "FreeKeyUnavailable",
+      `Free keys by email are being set up; email ${CONTACT}.`,
+    );
+  let email = "";
+  try {
+    email = asJson
+      ? String((JSON.parse(body) as { email?: unknown }).email ?? "")
+      : (new URLSearchParams(body).get("email") ?? "");
+  } catch {
+    // falls through to the 400 below
+  }
+  email = email.trim();
+  if (email.length > 254 || !EMAIL_RE.test(email))
+    return fail(400, "BadRequest", "Enter a valid email address.");
+  const defer = opts.defer ?? ((w) => void w.catch(() => {}));
+  defer(sendDeleteLink(env, email, now));
+  return withCors(
+    asJson
+      ? json(202, { sent_if_found: true, message: FREE_KEY_DELETE_SENT })
+      : freeKeyDeleteSentPage(),
+    opts.cors,
+  );
+}
+
+const DELETE_LINK_PROBLEM = {
+  invalid:
+    "This link is not valid. Copy the whole link from the email, or ask for a new one.",
+  expired: "This link has expired (links last 30 minutes). Ask for a new one.",
+  used: "This link was already used. Ask for a new one if you need to delete again.",
+};
+
+function deleteLinkProblem(why: keyof typeof DELETE_LINK_PROBLEM): Response {
+  return messagePage(
+    why === "invalid" ? 404 : 410,
+    "Delete my free key",
+    DELETE_LINK_PROBLEM[why],
+    { next: { href: "/account#free-key", label: "Email me a new link" } },
+  );
+}
+
+/** GET (confirm page) or POST (delete) /account/free-key-delete/<token>. */
+export async function freeKeyDeleteLinkRoute(
+  env: Env,
+  request: Request,
+  token: string,
+  opts: FreeKeyOptions,
+): Promise<Response> {
+  const now = opts.now ?? Date.now;
+  if (freeKeyState(env) !== "on")
+    return messagePage(
+      503,
+      "Delete my free key",
+      `Free keys by email are being set up; email ${CONTACT}.`,
+    );
+  const check = await checkLink(env, token, now(), DELETE);
+  if (!check.ok) return deleteLinkProblem(check.why);
+  // Only a POST deletes: a GET or HEAD from a prefetcher or preview bot shows the button.
+  if (request.method !== "POST") return freeKeyDeleteConfirmPage(token);
+  // Once, even when two clicks race: the Durable Object claim decides.
+  const mine = randomToken();
+  if ((await env.METER.claim(`freedel:${check.hash}`, mine)) !== mine)
+    return deleteLinkProblem("used");
+  await env.KEYS.put(
+    `freedel:${check.hash}`,
+    JSON.stringify({ ...check.rec, used_at: new Date(now()).toISOString() }),
+    { expirationTtl: FREE_KEY_LINK_TTL_SECONDS },
+  );
+  try {
+    await deleteAddress(env, check.rec.email_hash);
+  } catch {
+    console.error(JSON.stringify({ msg: "free key deletion failed" }));
+    return messagePage(
+      500,
+      "Delete my free key",
+      `Something went wrong and the deletion may be incomplete. Ask for a new link, or email ${CONTACT}.`,
+      { next: { href: "/account#free-key", label: "Email me a new link" } },
+    );
+  }
+  return freeKeyDeletedPage();
+}
+
+/** DELETE /v1/keys/free with the key as bearer: the same deletion, no email. */
+export async function freeKeyDeleteWithKeyRoute(
+  env: Env,
+  request: Request,
+  opts: FreeKeyOptions,
+): Promise<Response> {
+  const token = bearer(request.headers.get("authorization"));
+  const caller = token ? await resolveFreeKey(env, token) : undefined;
+  if (!caller)
+    return withCors(
+      json(
+        401,
+        {
+          error: "Unauthorized",
+          code: "Unauthorized",
+          message: "Send the free key as Authorization: Bearer fl_free_...",
+          next: "DELETE /v1/keys/free with the free key as the bearer token",
+        },
+        { "www-authenticate": 'Bearer realm="factlot"' },
+      ),
+      opts.cors,
+    );
+  try {
+    await deleteAddress(env, caller.email_hash, caller.hash);
+  } catch {
+    console.error(JSON.stringify({ msg: "free key deletion failed" }));
+    return withCors(
+      json(500, {
+        error: "DeletionIncomplete",
+        code: "DeletionIncomplete",
+        message: `The deletion may be incomplete: send the request again, or email ${CONTACT}.`,
+      }),
+      opts.cors,
+    );
+  }
+  return withCors(
+    json(200, {
+      deleted: true,
+      message:
+        "The free key, any key it replaced, and the records kept for the address are deleted. Allow up to a minute for the key to stop working everywhere.",
+    }),
+    opts.cors,
+  );
 }

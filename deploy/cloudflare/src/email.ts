@@ -21,7 +21,7 @@ export function emailConfigured(env: Env): boolean {
 /** Send one message; false (and one log line without personal data) when it fails. */
 export async function sendEmail(
   env: Env,
-  kind: "welcome" | "recovery" | "signin" | "freekey",
+  kind: "welcome" | "recovery" | "signin" | "freekey" | "freekeydelete",
   message: Omit<EmailMessageBuilder, "from" | "replyTo">,
 ): Promise<boolean> {
   if (!env.EMAIL) return false;
@@ -117,6 +117,21 @@ export function freeKeyMessage(
       "This is a transactional message: someone (we hope you) asked for a free FactLot API key with this email address. We will not add you to any mailing list.",
       `Open this link and press the button to get the key. It is shown once:\n${url}`,
       `The link works once and expires in ${minutes} minutes. If you did not ask for it, ignore this email: nothing is created until the link is used. A new key replaces any earlier free key for this address.`,
+      `Questions: reply to this email or write to ${CONTACT}.`,
+    ]),
+  };
+}
+
+export function freeKeyDeleteMessage(
+  url: string,
+  minutes: number,
+): { subject: string; text: string; html: string } {
+  return {
+    subject: "Delete your free FactLot API key",
+    ...body([
+      "This is a transactional message: someone (we hope you) asked to delete the free FactLot API key for this email address. We will not add you to any mailing list.",
+      `Open this link and press the button to delete the key and the records kept for this address. Nothing is deleted until you press it:\n${url}`,
+      `The link works once and expires in ${minutes} minutes. If you did not ask for it, ignore this email: nothing changes. This email does not contain a key.`,
       `Questions: reply to this email or write to ${CONTACT}.`,
     ]),
   };

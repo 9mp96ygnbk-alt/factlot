@@ -1613,6 +1613,9 @@ describe("router", () => {
       claim: async () => {
         throw new Error("DO down");
       },
+      forget: async () => {
+        throw new Error("DO down");
+      },
       refund: async () => {
         throw new Error("DO down");
       },
@@ -6344,6 +6347,389 @@ describe("free key by email", () => {
       await run(off.e, new Request("https://factlot.com/account"))
     ).text();
     assert.doesNotMatch(html, /action="\/account\/free-key"/);
+  });
+
+  describe("deleting a free key", () => {
+    const askDelete = (
+      e: ReturnType<typeof env>,
+      email: unknown,
+      ip = IP,
+      form = false,
+    ) =>
+      run(
+        e,
+        form
+          ? new Request("https://factlot.com/account/free-key-delete", {
+              method: "POST",
+              body: new URLSearchParams({ email: String(email) }).toString(),
+              headers: {
+                "content-type": "application/x-www-form-urlencoded",
+                origin: "https://factlot.com",
+                "cf-connecting-ip": ip,
+              },
+            })
+          : new Request("https://api.factlot.com/v1/keys/free/delete", {
+              method: "POST",
+              body: JSON.stringify({ email }),
+              headers: {
+                "content-type": "application/json",
+                "cf-connecting-ip": ip,
+              },
+            }),
+      );
+    const delLinkOf = (text: string) =>
+      text.match(
+        /https:\/\/factlot\.com\/account\/free-key-delete\/[A-Za-z0-9_.-]+/,
+      )?.[0];
+    const withKey = (
+      e: ReturnType<typeof env>,
+      key: string | undefined,
+      ip = IP,
+    ) =>
+      run(
+        e,
+        new Request("https://api.factlot.com/v1/keys/free", {
+          method: "DELETE",
+          headers: {
+            "cf-connecting-ip": ip,
+            ...(key ? { authorization: `Bearer ${key}` } : {}),
+          },
+        }),
+      );
+    const freeNames = (e: ReturnType<typeof env>) =>
+      [...e.KEYS.data.keys()].filter((k) => /^(freekey|freeemail):/.test(k));
+    const counted = (e: ReturnType<typeof env>, prefix: string) =>
+      [...e.limiter.objects.entries()]
+        .filter(([n]) => n.startsWith(prefix))
+        .reduce((a, [, o]) => a + o.store.counts.size, 0);
+
+    it("emails a link only when the address has a key, and answers the same either way", async () => {
+      const { e, mail, api } = setup();
+      const key = await mint(e, mail, "Has.Key@Example.com");
+      assert.equal((await lookups(e, api, key)).status, 200);
+      mail.sent.length = 0;
+      const known = await askDelete(e, "has.key@example.com");
+      const unknown = await askDelete(e, "never.asked@example.org");
+      assert.equal(known.status, 202);
+      assert.equal(unknown.status, 202);
+      assert.deepEqual(await known.json(), await unknown.json());
+      assert.equal(
+        mail.sent.length,
+        1,
+        "only the address with a key is mailed",
+      );
+      assert.equal(mail.sent[0]!.to, "has.key@example.com");
+      const text = mail.sent[0]!.text;
+      assert.match(text, /transactional/);
+      assert.match(text, /30 minutes/);
+      assert.doesNotMatch(text, /fl_free_/, "no key in the email");
+      assert.doesNotMatch(text, /newsletter|subscribe|unsubscribe/i);
+      assert.ok(delLinkOf(text));
+      // The form answers the same page for both, and a bad address is a 400.
+      const a = await (
+        await askDelete(e, "has.key@example.com", IP, true)
+      ).text();
+      const b = await (
+        await askDelete(e, "nobody@example.org", IP, true)
+      ).text();
+      const bare = (t: string) => t.replace(/nonce="[^"]*"/g, "");
+      assert.equal(bare(a), bare(b));
+      assert.equal((await askDelete(e, "not-an-email")).status, 400);
+      assert.equal(mail.sent.length, 1, "the second request waits 5 minutes");
+    });
+
+    it("full flow by email: GET and HEAD delete nothing, the POST deletes, the key stops at once", async () => {
+      const { e, mail, api } = setup();
+      const key = await mint(e, mail, "gone@example.com");
+      assert.equal((await lookups(e, api, key)).status, 200);
+      const eh = JSON.parse(
+        [...e.KEYS.data.entries()].find(([k]) => k.startsWith("freekey:"))![1],
+      ).email_hash as string;
+      e.limiter
+        .object(`meter:freemail:${eh.slice(0, 32)}`)
+        .store.setCount("month:2026-11", 2);
+      assert.ok(counted(e, "meter:freemail:") > 0);
+      assert.ok(counted(e, "meter:freekey:") > 0);
+      await askDelete(e, "gone@example.com");
+      const url = delLinkOf(mail.sent.at(-1)!.text)!;
+      for (const method of ["GET", "HEAD", "GET"]) {
+        const r = await open(e, url, method);
+        assert.equal(r.status, 200);
+        if (method === "GET")
+          assert.match(await r.text(), /Delete my free key/);
+      }
+      assert.equal(freeNames(e).length, 2, "nothing deleted by GET or HEAD");
+      assert.equal((await lookups(e, api, key)).status, 200);
+      const post = await open(e, url, "POST");
+      assert.equal(post.status, 200);
+      assert.match(await post.text(), /deleted/);
+      assert.equal((await lookups(e, api, key)).status, 401, "stops at once");
+      assert.deepEqual(freeNames(e), []);
+      assert.equal(counted(e, "meter:freemail:"), 0, "report counter gone");
+      assert.equal(counted(e, "meter:freekey:"), 0, "key meter gone");
+      assert.equal((await open(e, url, "POST")).status, 410, "single use");
+      assert.equal((await open(e, url, "GET")).status, 410);
+      // The address can start again, and no earlier state comes back.
+      waitPassed(e);
+      const again = await mint(e, mail, "gone@example.com");
+      assert.equal((await lookups(e, api, again)).status, 200);
+      assert.equal((await lookups(e, api, key)).status, 401);
+    });
+
+    it("deletes replaced keys too, and leaves other addresses alone", async () => {
+      const { e, mail, api } = setup();
+      const other = await mint(e, mail, "other@example.com", "203.0.113.90");
+      const ks: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        ks.push(
+          await mint(e, mail, "chain@example.com", `203.0.113.${91 + i}`),
+        );
+        waitPassed(e);
+      }
+      assert.equal(
+        [...e.KEYS.data.keys()].filter((k) => k.startsWith("freekey:")).length,
+        4,
+        "three keys for the address (two revoked) and one for the other",
+      );
+      await askDelete(e, "chain@example.com");
+      await open(e, delLinkOf(mail.sent.at(-1)!.text)!, "POST");
+      assert.equal(
+        [...e.KEYS.data.keys()].filter((k) => k.startsWith("freekey:")).length,
+        1,
+        "every key of the address is gone, revoked ones included",
+      );
+      for (const k of ks) assert.equal((await lookups(e, api, k)).status, 401);
+      assert.equal((await lookups(e, api, other)).status, 200);
+    });
+
+    it("the key holder deletes with DELETE and the key as bearer: same result, no email", async () => {
+      const { e, mail, api } = setup();
+      const k1 = await mint(e, mail, "bearer@example.com");
+      waitPassed(e);
+      const k2 = await mint(e, mail, "bearer@example.com");
+      const other = await mint(e, mail, "keep@example.com");
+      const sent = mail.sent.length;
+      assert.equal((await lookups(e, api, k2)).status, 200);
+      const res = await withKey(e, k2);
+      assert.equal(res.status, 200);
+      const body = (await res.json()) as { deleted: boolean };
+      assert.equal(body.deleted, true);
+      assert.equal(mail.sent.length, sent, "no email");
+      assert.equal((await lookups(e, api, k2)).status, 401);
+      assert.equal((await lookups(e, api, k1)).status, 401, "replaced key too");
+      assert.equal((await lookups(e, api, other)).status, 200);
+      assert.equal(
+        freeNames(e).filter((k) => k.startsWith("freeemail:")).length,
+        1,
+      );
+      assert.equal(
+        (await withKey(e, k2)).status,
+        401,
+        "a second delete is 401",
+      );
+      assert.equal((await withKey(e, undefined)).status, 401);
+      assert.equal((await withKey(e, `fl_free_${"A".repeat(43)}`)).status, 401);
+      assert.equal((await lookups(e, api, other)).status, 200);
+    });
+
+    it("a deletion link cannot create a key and an issuance link cannot delete", async () => {
+      const { e, mail, api } = setup();
+      const key = await mint(e, mail, "purpose@example.com");
+      waitPassed(e);
+      await ask(e, "purpose@example.com");
+      const issue = linkOf(mail.sent.at(-1)!.text)!;
+      await askDelete(e, "purpose@example.com");
+      const del = delLinkOf(mail.sent.at(-1)!.text)!;
+      const tokenOf = (u: string) => u.split("/").at(-1)!;
+      const crossDel = `https://factlot.com/account/free-key-delete/${tokenOf(issue)}`;
+      const crossIssue = `https://factlot.com/account/free-key/${tokenOf(del)}`;
+      assert.equal((await open(e, crossDel, "POST")).status, 404);
+      assert.equal((await open(e, crossDel, "GET")).status, 404);
+      assert.equal((await open(e, crossIssue, "POST")).status, 404);
+      assert.equal((await open(e, crossIssue, "GET")).status, 404);
+      assert.equal((await lookups(e, api, key)).status, 200, "nothing deleted");
+      assert.equal(
+        [...e.KEYS.data.keys()].filter((k) => k.startsWith("freekey:")).length,
+        1,
+        "nothing minted",
+      );
+      // Each still does its own job.
+      assert.equal((await open(e, del, "POST")).status, 200);
+      assert.equal((await lookups(e, api, key)).status, 401);
+    });
+
+    it("rejects forged and expired links, and a recovery link", async () => {
+      const { e, mail, api } = setup();
+      const key = await mint(e, mail, "forge2@example.com");
+      await askDelete(e, "forge2@example.com");
+      const url = delLinkOf(mail.sent.at(-1)!.text)!;
+      const forged = `${url.slice(0, -1)}${url.endsWith("A") ? "B" : "A"}`;
+      assert.equal((await open(e, forged, "POST")).status, 404);
+      const [id] = url.split("/").at(-1)!.split(".");
+      assert.equal(
+        (
+          await open(
+            e,
+            `https://factlot.com/account/free-key-delete/${id}.${"A".repeat(43)}`,
+            "POST",
+          )
+        ).status,
+        404,
+      );
+      assert.equal((await open(e, `${url}x`, "POST")).status, 404);
+      const rec = await createRecoveryToken(e, "sub_1", e.clock.t);
+      assert.equal(
+        (
+          await open(
+            e,
+            `https://factlot.com/account/free-key-delete/${rec}`,
+            "POST",
+          )
+        ).status,
+        404,
+      );
+      assert.equal((await lookups(e, api, key)).status, 200);
+      e.clock.t += 31 * 60_000;
+      assert.equal((await open(e, url, "POST")).status, 410);
+      assert.equal((await open(e, url, "GET")).status, 410);
+      assert.equal((await lookups(e, api, key)).status, 200, "expired: kept");
+    });
+
+    it("refuses a link POST from another site", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "csrf2@example.com");
+      await askDelete(e, "csrf2@example.com");
+      const url = delLinkOf(mail.sent.at(-1)!.text)!;
+      const r = await run(
+        e,
+        new Request(url, {
+          method: "POST",
+          headers: { origin: "https://evil.example", "cf-connecting-ip": IP },
+        }),
+      );
+      assert.equal(r.status, 403);
+      assert.equal(freeNames(e).length, 2);
+    });
+
+    it("waits per address between deletion emails, and rate limits per network address", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "slow@example.com");
+      const before = mail.sent.length;
+      await askDelete(e, "slow@example.com");
+      await askDelete(e, "SLOW@example.com");
+      assert.equal(mail.sent.length, before + 1, "one per 5 minutes");
+      waitPassed(e);
+      for (const k of [...e.KEYS.data.keys()])
+        if (k.startsWith("freedelwait:")) e.KEYS.data.delete(k);
+      await askDelete(e, "slow@example.com");
+      assert.equal(mail.sent.length, before + 2);
+      const tight = setup();
+      tight.e.RL_ANON = new CountingLimit(2);
+      const codes: number[] = [];
+      for (let i = 0; i < 3; i++)
+        codes.push((await askDelete(tight.e, "x@example.com")).status);
+      assert.deepEqual(codes, [202, 202, 429]);
+      const keyLimited = setup();
+      const k = await mint(keyLimited.e, keyLimited.mail, "lim@example.com");
+      keyLimited.e.RL_ANON = new CountingLimit(0);
+      assert.equal((await withKey(keyLimited.e, k)).status, 429);
+    });
+
+    it("stores nothing personal and logs nothing personal", async () => {
+      const { e, mail } = setup();
+      const logs = await captureLogs(async () => {
+        const k = await mint(e, mail, "Private.Name@Example.com");
+        await askDelete(e, "private.name@example.com");
+        await open(e, delLinkOf(mail.sent.at(-1)!.text)!, "POST");
+        await askDelete(e, "nobody.at.all@example.net");
+        await withKey(e, k);
+      });
+      assert.doesNotMatch(logs, /private\.name|nobody\.at|example\./i);
+      for (const [k, v] of e.KEYS.data)
+        assert.doesNotMatch(`${k} ${v}`, /private\.name|nobody\.at|@/i);
+      for (const name of e.limiter.objects.keys())
+        assert.doesNotMatch(String(name), /private\.name|nobody\.at|@/i);
+      for (const v of e.KEYS.data.values()) assert.doesNotMatch(v, /fl_free_/);
+      assert.ok(
+        [...e.KEYS.data.keys()].some((k) => k.startsWith("freedel:")),
+        "the used deletion link marker is kept (random id, no address)",
+      );
+    });
+
+    it("says so when email is off, and sends nothing for a malformed address", async () => {
+      const { e: off } = setup({ EMAIL: undefined });
+      assert.equal((await askDelete(off, "a@example.com")).status, 503);
+      const { e, mail } = setup();
+      assert.equal((await askDelete(e, 5)).status, 400);
+      assert.equal(mail.sent.length, 0);
+    });
+
+    it("the /account page offers the deletion form next to the issuance form", async () => {
+      const { e } = setup();
+      const on = await (
+        await run(e, new Request("https://factlot.com/account"))
+      ).text();
+      assert.match(on, /action="\/account\/free-key-delete"/);
+      assert.match(on, /DELETE \/v1\/keys\/free/);
+      const off = setup({ EMAIL: undefined });
+      const html = await (
+        await run(off.e, new Request("https://factlot.com/account"))
+      ).text();
+      assert.doesNotMatch(html, /free-key-delete/);
+    });
+
+    it("answers 404 and sends nothing with the variable off", async () => {
+      for (const over of [
+        { FREE_KEY_ENABLED: undefined },
+        { FREE_KEY_ENABLED: "TRUE" },
+        { FREE_KEY_ENABLED: "" },
+      ]) {
+        const { e, mail } = setup(over);
+        const token = `${"A".repeat(43)}.${"B".repeat(43)}`;
+        const tries: [string, string][] = [
+          ["POST", "https://api.factlot.com/v1/keys/free/delete"],
+          ["DELETE", "https://api.factlot.com/v1/keys/free"],
+          ["POST", "https://factlot.com/account/free-key-delete"],
+          ["GET", "https://factlot.com/account/free-key-delete"],
+          ["GET", `https://factlot.com/account/free-key-delete/${token}`],
+          ["POST", `https://factlot.com/account/free-key-delete/${token}`],
+        ];
+        for (const [method, url] of tries) {
+          const res = await handle(
+            new Request(url, {
+              method,
+              body:
+                method === "POST"
+                  ? JSON.stringify({ email: "a@example.com" })
+                  : undefined,
+              headers: {
+                "content-type": "application/json",
+                "cf-connecting-ip": IP,
+              },
+            }),
+            e,
+            {
+              fetch: async () =>
+                new Response('{"error":"NotFound"}', { status: 404 }),
+            },
+            { now: () => e.clock.t },
+          );
+          assert.equal(res.status, 404, `${method} ${url}`);
+        }
+        assert.equal(mail.sent.length, 0);
+        assert.equal(e.KEYS.data.size, 0);
+      }
+    });
+
+    it("an issuance request does not use up the deletion wait, and a deletion request not the issuance one", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "both@example.com");
+      waitPassed(e);
+      await ask(e, "both@example.com");
+      const n = mail.sent.length;
+      await askDelete(e, "both@example.com");
+      assert.equal(mail.sent.length, n + 1);
+    });
   });
 
   describe("with the variable off", () => {

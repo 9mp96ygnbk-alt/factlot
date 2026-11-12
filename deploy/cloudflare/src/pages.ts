@@ -349,9 +349,38 @@ function freeKeySection(state: RecoveryState): string {
 <form method="post" action="/account/free-key"><label for="free-email">Email</label><input id="free-email" name="email" type="email" autocomplete="email" required maxlength="254">
 <p><label><input type="checkbox" name="accept_terms" value="1" required> I accept the <a href="https://factlot.com/terms">terms</a> and <a href="https://factlot.com/privacy">privacy policy</a>.</label></p>
 <div class="buttons"><button type="submit" class="button">Email me a free key</button></div></form>
-<p class="small">We email one link, once. This is not a newsletter. A new key replaces your earlier free key.</p>`
+<p class="small">We email one link, once. This is not a newsletter. A new key replaces your earlier free key.</p>
+<h3>Delete my free key</h3>
+<form method="post" action="/account/free-key-delete"><label for="free-delete-email">Email the key was issued to</label><input id="free-delete-email" name="email" type="email" autocomplete="email" required maxlength="254">
+<div class="buttons"><button type="submit" class="button">Email me a deletion link</button></div></form>
+<p class="small">If that address has a free key, we email one link that works once for 30 minutes; it deletes only after you press the button. To delete without email, send <code>DELETE /v1/keys/free</code> with the key as the bearer token.</p>`
       : `<p>${escapeHtml(RECOVERY_SETUP_NOTICE)}</p>`;
   return `<section class="step" id="free-key" aria-labelledby="h-free-key"><h2 id="h-free-key">Get a free key</h2>${form}</section>`;
+}
+
+export const FREE_KEY_DELETE_SENT =
+  "If that address has a free key, a link is on its way. It works once and expires in 30 minutes. Nothing is deleted until you open it and press the button.";
+
+export function freeKeyDeleteSentPage(): Response {
+  return messagePage(202, "Check your email", FREE_KEY_DELETE_SENT);
+}
+
+export function freeKeyDeleteConfirmPage(token: string): Response {
+  return page(
+    "Delete my free key",
+    `<h1>Delete your free key</h1>
+<p class="lead">Press the button to delete your free key, any free key it replaced, and the records kept for your address. The key stops working (allow up to a minute everywhere) and this cannot be undone. This link then stops working.</p>
+<form method="post" action="/account/free-key-delete/${escapeHtml(token)}"><div class="buttons"><button type="submit" class="button primary">Delete my free key</button></div></form>`,
+    { formAction: "'self'" },
+  );
+}
+
+export function freeKeyDeletedPage(): Response {
+  return messagePage(
+    200,
+    "Free key deleted",
+    "Your free key and the records kept for your address are deleted. You can get a new free key from the account page at any time.",
+  );
 }
 
 export function freeKeySentPage(): Response {
