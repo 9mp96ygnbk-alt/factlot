@@ -5472,7 +5472,7 @@
                 "type": "boolean"
               },
               "as_of": {
-                "description": "Date (YYYY-MM-DD): return the facts and ownership links current on that date, from the snapshots dated on or before it, instead of the latest. With include_history, history stops at that date. Format: YYYY-MM-DD.",
+                "description": "Date (YYYY-MM-DD): return the facts and ownership links current on that date, from the snapshots dated on or before it, instead of the latest. With include_history, history stops at that date. On the hosted API a dated lookup needs a Pro or Team key. Format: YYYY-MM-DD.",
                 "type": "string"
               }
             },

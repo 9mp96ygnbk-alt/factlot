@@ -663,7 +663,7 @@ const registryTools: ToolSpec[] = [
           "Also return every fact from every snapshot, superseded ones included (history lists current facts too; a source loaded once has no superseded facts).",
         ),
       as_of: IsoDate.optional().describe(
-        "Date (YYYY-MM-DD): return the facts and ownership links current on that date, from the snapshots dated on or before it, instead of the latest. With include_history, history stops at that date.",
+        "Date (YYYY-MM-DD): return the facts and ownership links current on that date, from the snapshots dated on or before it, instead of the latest. With include_history, history stops at that date. On the hosted API a dated lookup needs a Pro or Team key.",
       ),
     }),
     path: "/v1/registry/get",
