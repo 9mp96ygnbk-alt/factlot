@@ -42,6 +42,7 @@ import { UseConflictInput, checkUseConflict } from "./uses.ts";
 import {
   RegistryUnavailableError,
   registryCoverage,
+  capRecordedFacts,
   registryFacts,
   registryGet,
   registryOwnedByResult,
@@ -683,7 +684,10 @@ const registryTools: ToolSpec[] = [
         );
       }
       return include_history
-        ? { ...record, history: registryFacts(urn, true, as_of) }
+        ? {
+            ...record,
+            history: capRecordedFacts(registryFacts(urn, true, as_of)).facts,
+          }
         : record;
     },
   },

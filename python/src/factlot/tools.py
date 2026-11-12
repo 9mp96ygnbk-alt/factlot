@@ -539,7 +539,11 @@ def _registry_get(args: dict[str, Any]) -> dict[str, Any]:
     if record is None:
         cov = _record_miss(reg, urn)
         raise _NotFound(f"no registry record for {urn}: {cov['message']}", cov)
-    return {**record, "history": reg.facts(urn, history=True, as_of=as_of)} if hist is True else record
+    if hist is not True:
+        return record
+    from .registry.store import capped_recorded_facts
+
+    return {**record, "history": capped_recorded_facts(reg.facts(urn, history=True, as_of=as_of))[0]}
 
 
 def _nonempty(args: dict[str, Any], key: str) -> str:

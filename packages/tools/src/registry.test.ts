@@ -12,6 +12,12 @@ import { fileURLToPath } from "node:url";
 import { countyName } from "./county_names.ts";
 
 import {
+  RECORDED_FACTS_LIMIT,
+  RECORDED_PREDICATES,
+  registryFacts,
+  registryGet,
+} from "./registry.ts";
+import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_WITHHELD_COUNTIES,
   addressPlace,
@@ -1043,6 +1049,80 @@ test("ownership links: only the owner the record shows is current, once per parc
       get("fl:parcel:us-48999:0001-000-0001").owners.map((o) => o[0]),
       ["fl:entity:us-tx:0801111111"],
     );
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
+test("registry_get keeps the newest RECORDED_FACTS_LIMIT recorded facts, with a summary; other records are unchanged", () => {
+  const db = join(
+    mkdtempSync(join(tmpdir(), "factlot-registry-cap-")),
+    "fixture.db",
+  );
+  execFileSync("python3", [join(spec, "build_fixture.py"), db]);
+  configureRegistry(db);
+  try {
+    const recorded = new Set<string>(RECORDED_PREDICATES);
+    const heavy = "fl:parcel:us-48999:0003-000-0001";
+    const all = registryFacts(heavy);
+    const allRecorded = all.filter((f) => recorded.has(String(f.predicate)));
+    assert.equal(allRecorded.length, 70);
+    const got = runTool("registry_get", { urn: heavy, include_history: true });
+    assert.ok(got.ok);
+    const rec = got.result as Record<string, unknown> & {
+      facts: Record<string, unknown>[];
+      history: Record<string, unknown>[];
+    };
+    const kept = rec.facts.filter((f) => recorded.has(String(f.predicate)));
+    // The newest 50, in the order registryFacts gives them; every other fact kept.
+    assert.deepEqual(kept, allRecorded.slice(0, RECORDED_FACTS_LIMIT));
+    assert.deepEqual(
+      rec.facts.filter((f) => !recorded.has(String(f.predicate))),
+      all.filter((f) => !recorded.has(String(f.predicate))),
+    );
+    const t = rec.recorded_facts_truncated as {
+      kept: number;
+      total: number;
+      by_predicate: Record<string, { kept: number; total: number }>;
+    };
+    assert.equal(t.kept, 50);
+    assert.equal(t.total, 70);
+    assert.deepEqual(
+      Object.fromEntries(
+        Object.entries(t.by_predicate).map(([p, v]) => [p, v.total]),
+      ),
+      {
+        "transaction.sale": 12,
+        "transaction.deed": 20,
+        "debt.mortgage_recorded": 30,
+        "debt.mortgage_satisfaction_recorded": 8,
+      },
+    );
+    assert.equal(
+      Object.values(t.by_predicate).reduce((n, v) => n + v.kept, 0),
+      50,
+    );
+    // include_history obeys the same cap.
+    assert.equal(
+      rec.history.filter((f) => recorded.has(String(f.predicate))).length,
+      RECORDED_FACTS_LIMIT,
+    );
+    // Withheld-party markers pass through untouched.
+    assert.ok(
+      JSON.stringify(rec.facts).includes(
+        '"grantees_withheld":{"count":1,"kinds":["personal trust"]}',
+      ),
+    );
+    // Every other parcel: the record's facts are registryFacts' exactly, with no summary.
+    for (const urn of [
+      "fl:parcel:us-48999:0001-000-0001",
+      "fl:parcel:us-48999:0001-000-0004",
+      "fl:parcel:us-48999:0002-000-1000",
+    ]) {
+      const r = registryGet(urn)!;
+      assert.equal(JSON.stringify(r.facts), JSON.stringify(registryFacts(urn)));
+      assert.ok(!("recorded_facts_truncated" in r), urn);
+    }
   } finally {
     configureRegistry(undefined);
   }

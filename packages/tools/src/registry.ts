@@ -258,6 +258,79 @@ export const MULTI_VALUED_PREDICATES: ReadonlySet<string> = new Set([
   "entity.parent",
 ]);
 
+/** The recorded sales and documents: a parcel holds one fact per event, and a record keeps the newest RECORDED_FACTS_LIMIT. */
+export const RECORDED_PREDICATES = [
+  "transaction.sale",
+  "transaction.deed",
+  "debt.mortgage_recorded",
+  "debt.mortgage_satisfaction_recorded",
+] as const;
+const RECORDED: ReadonlySet<string> = new Set(RECORDED_PREDICATES);
+
+/**
+ * The most recorded facts (RECORDED_PREDICATES together) a registry_get record or its history holds. Chosen so a
+ * record stays far below the hosted Workers' limits (the largest New York parcel holds 19,583) while all but about
+ * 0.1% of parcels hold fewer. The rest are read with registry_recorded_facts.
+ */
+export const RECORDED_FACTS_LIMIT = 50;
+
+function yearOf(f: Row): number | null {
+  const d = ((f.value ?? {}) as Row).date;
+  const m = typeof d === "string" ? /^(\d{4})/.exec(d) : null;
+  return m ? Number(m[1]) : null;
+}
+
+function yearSpan(facts: Row[]): Row {
+  const years = facts.map(yearOf).filter((y): y is number => y !== null);
+  return years.length
+    ? { from_year: Math.min(...years), to_year: Math.max(...years) }
+    : {};
+}
+
+/**
+ * Facts (newest first, as registryFacts gives them) with only the first `limit` recorded facts kept, in their
+ * places, and the summary of what was left out (`capped_recorded_facts` in Python). The summary is undefined
+ * when nothing was left out. Years are those of the facts left out (by their date).
+ */
+export function capRecordedFacts(
+  facts: Row[],
+  limit = RECORDED_FACTS_LIMIT,
+): { facts: Row[]; truncated?: Row } {
+  let n = 0;
+  const kept: Row[] = [];
+  const left: Row[] = [];
+  for (const f of facts) {
+    if (!RECORDED.has(String(f.predicate))) kept.push(f);
+    else if (n < limit) {
+      kept.push(f);
+      n += 1;
+    } else left.push(f);
+  }
+  if (left.length === 0) return { facts };
+  const byPredicate: Row = {};
+  for (const p of RECORDED_PREDICATES) {
+    const total = facts.filter((f) => f.predicate === p).length;
+    if (total === 0) continue;
+    const out = left.filter((f) => f.predicate === p);
+    byPredicate[p] = {
+      kept: total - out.length,
+      total,
+      ...yearSpan(out),
+    };
+  }
+  return {
+    facts: kept,
+    truncated: {
+      limit,
+      kept: n,
+      total: n + left.length,
+      ...yearSpan(left),
+      by_predicate: byPredicate,
+      rest: "registry_recorded_facts",
+    },
+  };
+}
+
 /** Order the facts of a many-valued predicate (sales) newest first, in the slots they occupy. */
 function newestFirst(facts: Row[]): Row[] {
   const slots: number[] = [];
@@ -406,7 +479,8 @@ export function registryGet(urn: string, asOf?: string): Row | null {
     .prepare("SELECT system, external_id FROM crosswalk WHERE urn = ?")
     .all(urn)
     .map((r) => ({ ...r }));
-  const facts = registryFacts(urn, false, asOf);
+  const capped = capRecordedFacts(registryFacts(urn, false, asOf));
+  const facts = capped.facts;
   const state = status(d, urn, asOf);
   return {
     urn,
@@ -416,6 +490,7 @@ export function registryGet(urn: string, asOf?: string): Row | null {
     ...(asOf === undefined ? {} : { as_of: asOf }),
     status: state,
     facts,
+    ...(capped.truncated ? { recorded_facts_truncated: capped.truncated } : {}),
     // No link before the record itself.
     relationships: state === "not_yet_recorded" ? [] : relationships,
     crosswalk,

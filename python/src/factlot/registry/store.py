@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass, field, replace
@@ -421,6 +422,52 @@ def improvement_warnings(facts: list[dict[str, Any]], building: dict[str, Any] |
                 "area, age and value."]
     return [f"{base}: it may be vacant land, the source may not publish building facts for it, or the building may "
             "be assessed on another account."]
+
+
+# The recorded sales and documents (RECORDED_PREDICATES and RECORDED_FACTS_LIMIT in TypeScript): a record keeps the
+# newest RECORDED_FACTS_LIMIT of them; registry_recorded_facts reads the rest.
+RECORDED_PREDICATES = ("transaction.sale", "transaction.deed", "debt.mortgage_recorded",
+                       "debt.mortgage_satisfaction_recorded")
+RECORDED_FACTS_LIMIT = 50
+
+
+def _year_of(f: dict[str, Any]) -> int | None:
+    d = f["value"].get("date") if isinstance(f["value"], dict) else None
+    m = re.match(r"(\d{4})", d) if isinstance(d, str) else None
+    return int(m[1]) if m else None
+
+
+def _year_span(facts: list[dict[str, Any]]) -> dict[str, int]:
+    years = [y for y in map(_year_of, facts) if y is not None]
+    return {"from_year": min(years), "to_year": max(years)} if years else {}
+
+
+def capped_recorded_facts(facts: list[dict[str, Any]], limit: int = RECORDED_FACTS_LIMIT
+                          ) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    """Facts (newest first) with only the first ``limit`` recorded facts kept in their places, and the summary of
+    what was left out, or ``None`` when nothing was (``capRecordedFacts`` in TypeScript)."""
+    kept: list[dict[str, Any]] = []
+    left: list[dict[str, Any]] = []
+    n = 0
+    for f in facts:
+        if f["predicate"] not in RECORDED_PREDICATES:
+            kept.append(f)
+        elif n < limit:
+            kept.append(f)
+            n += 1
+        else:
+            left.append(f)
+    if not left:
+        return facts, None
+    by_predicate: dict[str, Any] = {}
+    for p in RECORDED_PREDICATES:
+        total = sum(1 for f in facts if f["predicate"] == p)
+        if not total:
+            continue
+        out = [f for f in left if f["predicate"] == p]
+        by_predicate[p] = {"kept": total - len(out), "total": total, **_year_span(out)}
+    return kept, {"limit": limit, "kept": n, "total": n + len(left), **_year_span(left),
+                  "by_predicate": by_predicate, "rest": "registry_recorded_facts"}
 
 
 def _newest_first(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1480,14 +1527,17 @@ class Registry:
             f"SELECT from_urn, type, to_urn, as_of, method, confidence, basis, document_id FROM relationships r "
             f"WHERE (from_urn = ? OR to_urn = ?) AND {link} ORDER BY as_of DESC", (urn, urn, *params))]
         xw = [dict(r) for r in self.db.execute("SELECT system, external_id FROM crosswalk WHERE urn = ?", (urn,))]
-        facts = self.facts(urn, as_of=as_of)
+        facts, truncated = capped_recorded_facts(self.facts(urn, as_of=as_of))
         status = self.status(urn, as_of)
         if status == "not_yet_recorded":
             rels = []  # no link before the record itself
         record: dict[str, Any] = {"urn": urn, "kind": subj["kind"], "short": subj["short"], "label": subj["label"]}
         if as_of is not None:
             record["as_of"] = as_of
-        record.update({"status": status, "facts": facts, "relationships": rels, "crosswalk": xw})
+        record.update({"status": status, "facts": facts})
+        if truncated is not None:
+            record["recorded_facts_truncated"] = truncated
+        record.update({"relationships": rels, "crosswalk": xw})
         if subj["kind"] == "parcel":
             record["building"] = _buildings.building_of(self.db, urn)
             record["value_history"] = self.value_history(urn, as_of)

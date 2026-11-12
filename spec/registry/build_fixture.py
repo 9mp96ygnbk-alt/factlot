@@ -125,6 +125,11 @@ reg.ingest_parcel_facts([
         ("transaction.sale", {"date": "2025-03-14", "price_usd": 12500000, "building_class": "O4"}, None),
         ("transaction.sale", {"date": "2025-03-14", "price_usd": 9000000}, None),
     ], locator="row 5 (+2 more)"),
+    # A parcel with more recorded facts than a record keeps (RECORDED_FACTS_LIMIT): 12 sales here, 58 documents below.
+    ParcelFacts("999", "0003-000-0001", [
+        ("transaction.sale", {"date": f"{2008 + i}-0{1 + i % 9}-15", "price_usd": 1000000 + 250000 * i}, None)
+        for i in range(12)
+    ], locator="rows 40-51"),
 ], sales, state_fips="48")
 # Recorded documents (deeds, mortgages, satisfactions) and building energy reports: more many-valued and single-valued
 # predicates the readers in both languages must order and select alike. Synthetic; organisations only.
@@ -141,6 +146,20 @@ reg.ingest_parcel_facts([
         ("debt.mortgage_recorded", {"date": "2025-03-20", "doc_type": "MTGE", "amount_usd": 500000, "organizations_only": True}, None),
         ("debt.mortgage_satisfaction_recorded", {"date": "2024-11-05", "doc_type": "SAT", "organizations_only": True}, None),
     ], locator="document 1"),
+    ParcelFacts("999", "0003-000-0001", [
+        *[("transaction.deed", {"date": f"{2013 + i % 14}-0{1 + i % 9}-0{1 + i % 7}", "doc_type": "DEED",
+                                "amount_usd": 50000 * i, "document_id": f"FX-DEED-{i:03d}", "organizations_only": True,
+                                **({"grantees": [], "grantees_withheld": {"count": 1, "kinds": ["personal trust"]}}
+                                   if i % 10 == 3 else {"grantees": ["GULF LOGISTICS LP"]})}, None)
+          for i in range(20)],
+        *[("debt.mortgage_recorded", {"date": f"{2013 + i % 14}-1{i % 3}-1{i % 9}", "doc_type": "MTGE",
+                                      "amount_usd": 700000 + 1000 * i, "document_id": f"FX-MTGE-{i:03d}",
+                                      "lenders": ["EXAMPLE TEST BANK, N.A."], "organizations_only": True}, None)
+          for i in range(30)],
+        *[("debt.mortgage_satisfaction_recorded", {"date": f"{2014 + i}-06-30", "doc_type": "SAT",
+                                                   "document_id": f"FX-SAT-{i:03d}", "organizations_only": True}, None)
+          for i in range(8)],
+    ], locator="documents 2-59"),
 ], recorded, state_fips="48")
 reg.add_source(Source("test-energy", "Example City Buildings (synthetic)", "Energy benchmarking", "https://example.invalid/energy", "48",
                       county_fips="999", license="Synthetic test data", ai_use="permitted", redistribution="attribution_required",

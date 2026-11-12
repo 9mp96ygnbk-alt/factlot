@@ -1011,5 +1011,18 @@
     "arguments": {
       "entity_urn": "fl:entity:us-tx:0808888888"
     }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48999:0003-000-0001",
+      "include_history": true
+    }
   }
 ]
