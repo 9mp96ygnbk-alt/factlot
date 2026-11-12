@@ -45,6 +45,8 @@
     { "pattern": "factlot.com", "custom_domain": true },
     { "pattern": "www.factlot.com", "custom_domain": true },
   ],
+  // USAGE_COUNTERS_ENABLED is deliberately not set: add "USAGE_COUNTERS_ENABLED": "true" to vars to
+  // turn on the usage counters (src/usage.ts, README.md in this folder); remove it to turn them off.
   "vars": {
     "SITE_URL": "https://factlot.com",
     "API_URL": "https://api.factlot.com",

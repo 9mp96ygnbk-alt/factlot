@@ -5913,13 +5913,13 @@ describe("usage counters (USAGE_COUNTERS_ENABLED)", () => {
     const c = snapshot().counters;
     assert.equal(c["req|rest|/v1/plans|2xx"], 1);
     assert.equal(c["req|mcp|/mcp|2xx"], 1);
-    assert.equal(c["req|rest|/v1/registry/get|2xx"] >= 20, true);
-    assert.equal(c["req|rest|/v1/registry/get|4xx"] >= 2, true);
+    assert.equal((c["req|rest|/v1/registry/get|2xx"] ?? 0) >= 20, true);
+    assert.equal((c["req|rest|/v1/registry/get|4xx"] ?? 0) >= 2, true);
     assert.equal(c["mcp_call|registry_get|keyless"], 1);
-    assert.equal(c["lookup|registry_get|us-48|keyless"] >= 20, true);
-    assert.equal(c["history_note|rest|keyless"] >= 20, true);
+    assert.equal((c["lookup|registry_get|us-48|keyless"] ?? 0) >= 20, true);
+    assert.equal((c["history_note|rest|keyless"] ?? 0) >= 20, true);
     assert.equal(c["plan_required|dated|keyless"], 1);
-    assert.equal(c["quota_exhausted|keyless|day"] >= 1, true);
+    assert.equal((c["quota_exhausted|keyless|day"] ?? 0) >= 1, true);
     assert.equal(
       Object.keys(c).every((k) => !k.includes(IP) && !k.includes(urn)),
       true,
@@ -5967,6 +5967,9 @@ describe("usage counters (USAGE_COUNTERS_ENABLED)", () => {
       fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)),
       "utf8",
     );
-    assert.doesNotMatch(text, /USAGE_COUNTERS_ENABLED\s*"?\s*:/);
+    assert.doesNotMatch(
+      text.replace(/\/\/[^\n]*/g, ""),
+      /USAGE_COUNTERS_ENABLED/,
+    );
   });
 });

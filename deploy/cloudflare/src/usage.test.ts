@@ -265,7 +265,12 @@ test("helpers: tool calls by known name, history notes, checkout starts", async 
 
   const rest = Response.json({ history_available: "pro", history_note: "x" });
   await countHistoryWithheld(h.env, rest, "rest", "keyless");
-  assert.equal(await rest.json().then((b) => b.history_available), "pro"); // body still readable
+  assert.equal(
+    await rest
+      .json()
+      .then((b) => (b as { history_available: string }).history_available),
+    "pro",
+  ); // body still readable
   const mcp = Response.json([
     { id: 1, result: { structuredContent: { history_available: "pro" } } },
     { id: 2, result: { structuredContent: { value: 1 } } },
