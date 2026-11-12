@@ -4,6 +4,9 @@
 reports, per file:
 
 - owner-of-record facts the person rule (``normalize.is_organization``) reads as natural persons;
+- party names in recorded documents (deeds, mortgages, satisfactions: ``grantors``, ``grantees``, ``borrowers``,
+  ``lenders``) that the rule would not store as written (``normalize.organization_part``): a person, an estate, a
+  personal trust, a trustee named in person, a company followed by a personal trust;
 - owner and entity mailing addresses whose owner or entity name reads as a person's or a family's
   (``normalize.personal_style_organization``: "JOHN SMITH LLC", "SMITH FAMILY LP"), which ingest no longer
   stores because they are most often a home.
@@ -22,7 +25,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .normalize import is_organization, personal_style_organization
+from .normalize import is_organization, organization_part, personal_style_organization
+from .store import PARTY_LIST_PREDICATES, PARTY_ROLES
 
 _MAILING = (
     ("ownership.owner_of_record", "ownership.owner_mailing_address"),
@@ -52,6 +56,23 @@ def scan(path: str | Path) -> dict[str, Any]:
                 n_persons += 1
                 if len(persons) < SAMPLES:
                     persons.append(subject)
+        parties: list[str] = []
+        n_parties = 0
+        for subject, value_json in db.execute(
+                f"SELECT subject, value_json FROM facts WHERE predicate IN ({','.join('?' * len(PARTY_LIST_PREDICATES))})",
+                PARTY_LIST_PREDICATES):
+            try:
+                v = json.loads(value_json)
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(v, dict):
+                continue
+            bad = sum(1 for role in PARTY_ROLES for n in (v.get(role) if isinstance(v.get(role), list) else [])
+                      if not isinstance(n, str) or organization_part(n)[0] != n)
+            if bad:
+                n_parties += bad
+                if len(parties) < SAMPLES and subject not in parties:
+                    parties.append(subject)
         homes: list[str] = []
         n_homes = 0
         for name_predicate, mailing in _MAILING:
@@ -69,6 +90,8 @@ def scan(path: str | Path) -> dict[str, Any]:
     return {
         "person_owner_facts": n_persons,
         "person_owner_samples": persons,
+        "person_party_names": n_parties,
+        "person_party_samples": parties,
         "personal_style_mailing_addresses": n_homes,
         "personal_style_samples": homes,
     }
@@ -79,6 +102,9 @@ def problems(path: str | Path, report: dict[str, Any]) -> list[str]:
     if report["person_owner_facts"]:
         out.append(f"{path}: {report['person_owner_facts']} owner-of-record facts read as natural persons "
                    f"(e.g. {', '.join(report['person_owner_samples'])})")
+    if report["person_party_names"]:
+        out.append(f"{path}: {report['person_party_names']} party names in recorded documents read as natural persons "
+                   f"(e.g. {', '.join(report['person_party_samples'])})")
     if report["personal_style_mailing_addresses"]:
         out.append(f"{path}: {report['personal_style_mailing_addresses']} mailing addresses of owners or entities "
                    f"whose name reads as a person's or a family's (e.g. {', '.join(report['personal_style_samples'])})")
@@ -101,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps({"files": files, "problems": found}))
     else:
-        for line in found or ["clean: no person owners and no personal-style mailing addresses"]:
+        for line in found or ["clean: no person owners or parties and no personal-style mailing addresses"]:
             print(line)
     return 1 if found else 0
 

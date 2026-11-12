@@ -192,6 +192,36 @@ class TestReader(Fixture):
         self.assertIn("acris-legals-2099.csv BBL 1000090001 document 2099010100001001", out["1000090001"].locator)
         self.assertIn("more)", out["1000090001"].locator)
 
+    def test_withheld_parties_leave_a_count_by_kind_and_no_name(self):
+        out, _ = self.read()
+        v = next(v for p, v, _u in out["4005670089"].facts if p == "transaction.deed" and v["doc_type"] == "DEED")
+        self.assertEqual(v["grantors_withheld"], {"count": 1, "kinds": ["person"]})
+        self.assertEqual(v["grantees_withheld"], {"count": 1, "kinds": ["personal trust"]})
+        sale = next(v for p, v, _u in out["1000090001"].facts if p == "transaction.deed")
+        self.assertEqual(sale["grantors_withheld"], {"count": 1, "kinds": ["person"]})
+        self.assertEqual(sale["grantees_withheld"], {"count": 1, "kinds": ["person"]})
+        mortgage = next(v for p, v, _u in out["1000090001"].facts if p == "debt.mortgage_recorded")
+        self.assertNotIn("borrowers_withheld", mortgage)
+
+    def test_wrappers_estates_and_trustees_are_withheld_and_a_company_is_cut_out_when_clean(self):
+        self.parties.write_text(csv_text(ny_acris.PARTIES_COLUMNS, [
+            party("2099010100001001", "1", "EXAMPLE HOLDINGS LLC JOHN DOE REV TR DTD 1/1/2001"),
+            party("2099010100001001", "1", "ESTATE OF JANE ROE"),
+            party("2099010100001001", "2", "ROE JOHN SUCCESSOR TRUSTEE"),
+            party("2099010100001001", "2", "EXAMPLE BANK AS TRUSTEE OF THE JANE DOE LIVING TRUST"),
+        ]))
+        out, counts = self.read()
+        v = next(v for p, v, _u in out["1000090001"].facts if v["document_id"] == "2099010100001001")
+        self.assertEqual(v["grantors"], ["EXAMPLE HOLDINGS LLC"])
+        self.assertEqual(v["grantors_withheld"], {"count": 2, "kinds": ["company with a personal trust", "estate"]})
+        self.assertNotIn("grantees", v)
+        self.assertEqual(v["grantees_withheld"], {"count": 2, "kinds": ["personal trust", "trustee"]})
+        self.assertEqual((v["date"], v["amount_usd"]), ("2099-01-07", 12500000), "the document stays")
+        blob = json.dumps([p.facts for p in out.values()])
+        for gone in ("DOE", "ROE", "REV TR", "LIVING"):
+            self.assertNotIn(gone, blob)
+        self.assertEqual((counts.parties_dropped_not_organization, counts.parties_cut_to_organization), (3, 1))
+
     def test_organisation_names_longer_than_the_cap_are_truncated_and_flagged(self):
         many = [party("2099010100001001", "2", f"INVENTED TENANT {i} LLC") for i in range(ny_acris.MAX_PARTIES_PER_ROLE + 3)]
         self.parties.write_text(csv_text(ny_acris.PARTIES_COLUMNS, many))

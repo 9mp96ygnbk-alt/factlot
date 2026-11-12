@@ -29,10 +29,16 @@ Predicates (one fact per document and lot; all three are many-valued, newest fir
   mortgagee that satisfied. The Master and Legals tables do not say which mortgage a satisfaction ends, so the fact
   is an event on the lot, not a link to one mortgage.
 
-**Only organisations are stored.** A party is kept only if ``normalize.is_organization`` says it is one; every
-other party (any natural person, and any name the rule is not sure about) is dropped when the file is read and
-appears nowhere: not in a fact, a count, an index or a log. A fact says ``organizations_only: true`` so a deed to an
-individual (no grantee listed) is not mistaken for one with no grantee. ``lots_in_document`` is written when the
+**Only organisations are stored.** A party is kept only as ``normalize.organization_part`` returns it: an
+organisation (``is_organization``) as written, or the leading company of a "<company> LLC <person> REV TR" string
+when nothing of the person's name remains in it. Every other party (any natural person, an estate, a personal
+trust, a trustee named in person, and any name the rule is not sure about) is withheld when the file is read: its
+name appears nowhere, not in a fact, an index or a log. In its place each role carries a marker that says a party
+existed and what kind it was, never who: ``grantors_withheld`` (and ``grantees_withheld``, ``borrowers_withheld``,
+``lenders_withheld``) is ``{"count": 2, "kinds": ["estate", "person"]}``, with kinds from
+``normalize.WITHHELD_KINDS``. The document itself (date, type, amount, IDs, lot) is kept whatever its parties. A
+fact says ``organizations_only: true`` so a deed to an individual (no grantee listed) is not mistaken for one with
+no grantee. ``lots_in_document`` is written when the
 document affects more than one lot: the amount is for the document, published on every lot, and must not be
 summed or divided per lot. ``partial_lot``, ``air_rights`` and ``subterranean_rights`` are written (true) when
 the Legals row says so.
@@ -46,13 +52,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
 
-from ..normalize import is_organization
+from ..normalize import organization_part
 from ..store import IngestStats, ParcelFacts, Registry, Source
 from .ny_pluto import COUNTY_FIPS, STATE_FIPS
 
@@ -108,6 +114,7 @@ class Counts:
     lot_rows_easement_skipped: int = 0
     parties_read: int = 0
     parties_dropped_not_organization: int = 0
+    parties_cut_to_organization: int = 0
     documents_without_organization_party: int = 0
     facts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
 
@@ -193,11 +200,16 @@ def read_legals(path: str | Path, documents: set[str], counts: Counts
     return out
 
 
-def read_parties(path: str | Path, documents: set[str], counts: Counts) -> dict[str, tuple[list[str], list[str]]]:
-    """Document ID → (party-1 organisations, party-2 organisations) for the listed documents.
+Parties = tuple[list[str], list[str], Counter, Counter]
 
-    Names are kept only when ``is_organization`` says so; every other party is dropped here (counted, not kept)."""
-    out: dict[str, tuple[list[str], list[str]]] = {}
+
+def read_parties(path: str | Path, documents: set[str], counts: Counts) -> dict[str, Parties]:
+    """Document ID → (party-1 organisations, party-2 organisations, party-1 withheld kinds, party-2 withheld kinds).
+
+    Names are kept only as ``organization_part`` returns them: an organisation as written, the leading company of a
+    "<company> LLC <person> REV TR" string. Every other party is withheld here: its name is not kept, only the kind
+    of party it was ("person", "estate", "personal trust", "trustee", "company with a personal trust")."""
+    out: dict[str, Parties] = {}
     for _n, r in _rows(path):
         doc_id = _name(r.get("document_id"))
         if doc_id not in documents:
@@ -207,17 +219,30 @@ def read_parties(path: str | Path, documents: set[str], counts: Counts) -> dict[
             continue
         counts.parties_read += 1
         name = _name(r.get("name"))
-        if not name or not is_organization(name):
+        if not name:
             counts.parties_dropped_not_organization += 1
             continue
-        lists = out.setdefault(doc_id, ([], []))
+        kept, kind = organization_part(name)
+        lists = out.setdefault(doc_id, ([], [], Counter(), Counter()))
+        if kind is not None:
+            lists[int(role) + 1][kind] += 1
+        if kept is None:
+            counts.parties_dropped_not_organization += 1
+            continue
+        if kept != name:
+            counts.parties_cut_to_organization += 1
         target = lists[int(role) - 1]
-        if name not in target:
-            target.append(name)
+        if kept not in target:
+            target.append(kept)
     return out
 
 
-def document_value(doc_id: str, master: dict[str, object], parties: tuple[list[str], list[str]] | None,
+def withheld_value(kinds: Counter) -> dict[str, object]:
+    """The marker written in place of withheld parties: ``{"count": n, "kinds": [...]}`` (sorted kinds, no names)."""
+    return {"count": sum(kinds.values()), "kinds": sorted(kinds)}
+
+
+def document_value(doc_id: str, master: dict[str, object], parties: Parties | None,
                    lots: int, flags: dict[str, bool]) -> tuple[str, dict[str, object]]:
     """``(predicate, value)`` for one document on one lot."""
     predicate, description = DOC_TYPES[str(master["doc_type"])]
@@ -236,11 +261,14 @@ def document_value(doc_id: str, master: dict[str, object], parties: tuple[list[s
         value["crfn"] = master["crfn"]
     value["document_id"] = doc_id
     first, second = ROLES[predicate]
-    for key, names in ((first, parties[0] if parties else []), (second, parties[1] if parties else [])):
+    for i, key in enumerate((first, second)):
+        names = parties[i] if parties else []
         if names:
             value[key] = names[:MAX_PARTIES_PER_ROLE]
             if len(names) > MAX_PARTIES_PER_ROLE:
                 value[key + "_truncated"] = True
+        if parties and parties[i + 2]:
+            value[key + "_withheld"] = withheld_value(parties[i + 2])
     value["organizations_only"] = True
     if lots > 1:
         value["lots_in_document"] = lots
@@ -257,7 +285,7 @@ def read_acris(master_path: str | Path, legals_path: str | Path, parties_path: s
     legals = read_legals(legals_path, set(masters), counts)
     counts.documents_with_a_lot += len(legals)
     parties = read_parties(parties_path, set(legals), counts)
-    counts.documents_without_organization_party += sum(1 for d in legals if d not in parties)
+    counts.documents_without_organization_party += sum(1 for d in legals if not (d in parties and (parties[d][0] or parties[d][1])))
     label = label or Path(legals_path).name
     grouped: dict[tuple[str, str], list[tuple[str, str, dict[str, object]]]] = defaultdict(list)
     for doc_id, lot_list in legals.items():

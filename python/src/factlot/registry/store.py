@@ -39,6 +39,7 @@ from .normalize import (
     legacy_name_key,
     name_similarity,
     normalize_address,
+    organization_part,
     personal_style_organization,
     normalize_name,
     parcel_state,
@@ -306,6 +307,48 @@ _LINK_AT = (
 # Mailing-address predicates: stored without the contact names in them that are not organisations
 # (``normalize.scrub_mailing_address``).
 MAILING_PREDICATES = ("ownership.owner_mailing_address", "entity.mailing_address")
+# Recorded documents whose value lists their organisation parties by role (adapters/ny_acris.py), and the roles.
+# A withheld party leaves ``<role>_withheld``: ``{"count": n, "kinds": [...]}``, never a name.
+PARTY_LIST_PREDICATES = ("transaction.deed", "debt.mortgage_recorded", "debt.mortgage_satisfaction_recorded")
+PARTY_ROLES = ("grantors", "grantees", "borrowers", "lenders")
+
+
+def withhold_parties(value: dict[str, Any]) -> tuple[dict[str, Any], int, int]:
+    """A document value with every party ``organization_part`` rejects taken out of its role lists.
+
+    A rejected name is removed and counted in ``<role>_withheld`` (``{"count", "kinds"}``, merged with any count
+    already there); a "<company> LLC <person> REV TR" string is replaced by its leading company when nothing of the
+    person's name remains, and counted too. A role left with no name loses its list (and its ``_truncated`` flag); the
+    document's date, type, amount and IDs stay. Returns the value, the names withheld whole and the names cut."""
+    out = dict(value)
+    withheld = cut = 0
+    for role in PARTY_ROLES:
+        names = out.get(role)
+        if not isinstance(names, list):
+            continue
+        kept: list[Any] = []
+        kinds: Counter = Counter()
+        for n in names:
+            stored, kind = organization_part(n) if isinstance(n, str) else (None, "person")
+            if kind is not None:
+                kinds[kind] += 1
+            if stored is None:
+                withheld += 1
+            elif stored != n:
+                cut += 1
+            if stored is not None and stored not in kept:
+                kept.append(stored)
+        if not kinds:
+            continue
+        prior = out.get(role + "_withheld") if isinstance(out.get(role + "_withheld"), dict) else {}
+        out[role + "_withheld"] = {"count": int(prior.get("count") or 0) + sum(kinds.values()),
+                                   "kinds": sorted(set(prior.get("kinds") or []) | set(kinds))}
+        if kept:
+            out[role] = kept
+        else:
+            out.pop(role, None)
+            out.pop(role + "_truncated", None)
+    return out, withheld, cut
 # Floor-area ratio (improvement area ÷ land area) above which ``get`` warns (MAX_PLAUSIBLE_FAR in TypeScript).
 MAX_PLAUSIBLE_FAR = 40
 
@@ -1541,11 +1584,15 @@ class Registry:
         organisations, as ingest now does (``contact_names``; an address left empty is deleted),
         and deletes the mailing address of every owner and entity whose name reads as a person's or
         a family's (``personal_style_organization``: "JOHN SMITH LLC", "SMITH FAMILY LP"), as ingest
-        now does (``personal_addresses``). The parcel and its other facts stay. Run it once after
+        now does (``personal_addresses``). In recorded documents (deeds, mortgages, satisfactions) it takes every
+        party the rule now rejects out of the role lists and counts it in ``<role>_withheld`` (``withhold_parties``):
+        the document fact stays, with its date, type, amount and IDs, even when no party is left
+        (``documents_left_without_parties``). The parcel and its other facts stay. Run it once after
         upgrading; it is idempotent.
         """
         result = {"owner_facts": 0, "mailing_facts": 0, "ownership_links": 0, "review_rows": 0, "contact_names": 0,
-                  "personal_addresses": 0}
+                  "personal_addresses": 0, "party_names_withheld": 0, "party_names_cut_to_company": 0,
+                  "document_facts_rewritten": 0, "documents_left_without_parties": 0}
         rows = self.db.execute(
             "SELECT fact_id, subject, value_json, document_id FROM facts WHERE predicate = 'ownership.owner_of_record'"
         ).fetchall()
@@ -1566,6 +1613,26 @@ class Registry:
             for k in keys:
                 result["review_rows"] += self.db.execute(
                     "DELETE FROM owner_match_review WHERE owner_key = ?", (k,)).rowcount
+        for r in self.db.execute(
+                f"SELECT fact_id, subject, predicate, value_json, document_id FROM facts WHERE predicate IN "
+                f"({','.join('?' * len(PARTY_LIST_PREDICATES))})", PARTY_LIST_PREDICATES).fetchall():
+            old = json.loads(r["value_json"])
+            if not isinstance(old, dict) or not any(isinstance(old.get(k), list) for k in PARTY_ROLES):
+                continue
+            new, withheld, cut = withhold_parties(old)
+            if not (withheld or cut):
+                continue
+            result["party_names_withheld"] += withheld
+            result["party_names_cut_to_company"] += cut
+            result["document_facts_rewritten"] += 1
+            if not any(new.get(k) for k in PARTY_ROLES):
+                result["documents_left_without_parties"] += 1
+            value_json = json.dumps(new, sort_keys=True)
+            cur = self.db.execute("UPDATE OR IGNORE facts SET value_json = ?, fact_id = ? WHERE fact_id = ?",
+                                  (value_json, _fact_id(r["subject"], r["predicate"], value_json, r["document_id"]),
+                                   r["fact_id"]))
+            if cur.rowcount == 0:  # the rewritten fact is already there
+                self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
         rows = self.db.execute(
             f"SELECT fact_id, subject, predicate, value_json, document_id FROM facts WHERE predicate IN "
             f"({','.join('?' * len(MAILING_PREDICATES))})", MAILING_PREDICATES).fetchall()

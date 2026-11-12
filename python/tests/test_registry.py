@@ -231,6 +231,83 @@ class OrganizationRule(unittest.TestCase):
             self.assertFalse(is_organization(name), name)
 
 
+class PersonCarryingNames(unittest.TestCase):
+    """Organisation-style wrappers around a natural person (all names invented)."""
+
+    def assert_dropped(self, names, cls):
+        from factlot.registry.normalize import person_carrying_class
+        for name in names:
+            self.assertFalse(is_organization(name), name)
+            self.assertEqual(person_carrying_class(name), cls, name)
+
+    def test_probate_forms_are_persons(self):
+        self.assert_dropped(("ESTATE OF JANE EXAMPLE", "Estate of Example, John Q.", "EST OF JOHN SAMPLE",
+                             "HEIRS OF JOHN SAMPLE", "UNKNOWN HEIRS OF JANE EXAMPLE", "DOE JANE LIFE ESTATE",
+                             "ESTATE OF JOHN EXAMPLE LLC", "SAMPLE JOHN DECEASED HOLDINGS LLC",
+                             "ESTATE OF JANE EXAMPLE PROPERTIES"), "estate")
+
+    def test_personal_trusts_and_their_abbreviations_are_persons(self):
+        self.assert_dropped((
+            "EXAMPLE JANE LIVING TRUST", "SAMPLE JOHN REV TR DTD 1/2/2003", "SAMPLE JANE REVOC TRUST", "DOE FAM TR",
+            "ROE JOHN IRREV TR", "DOE JOHN TR U/A 3-4-1999", "DOE JOHN UTD 5/5/05 TRUST", "ROE JANE U/T/A DTD 2001",
+            "ROE MARY SURVIVOR'S TRUST", "ROE MARY SURVIVORS TRUST", "DOE JOHN MARITAL TRUST", "SAMPLE EXEMPTION TRUST",
+            "DOE JOHN TESTAMENTARY TRUST", "EXAMPLE FAMILY TRUST", "Example Family Trust, The", "DOE LIV TR",
+            "SAMPLE JANE REVOCABLE TRUST PROPERTIES", "SAMPLE JOHN PROPERTIES TRUST", "SAMPLE JOHN HOLDINGS TR",
+            "EXAMPLE BANK AS TRUSTEE OF THE JOHN DOE REVOCABLE TRUST", "DOE JANE REV TR ACME LLC",
+            "DOE JOHN CHARITABLE REMAINDER UNITRUST"), "personal_trust")
+
+    def test_a_trustee_named_in_person_is_a_person_in_either_order(self):
+        self.assert_dropped((
+            "ROE JANE TTEE", "SAMPLE JOHN CO-TRUSTEE", "DOE JANE SUCCESSOR TRUSTEE", "TRUSTEE JOHN SAMPLE",
+            "JOHN SAMPLE, TRUSTEE", "JOHN SAMPLE AS TRUSTEE", "TRUSTEES OF JANE DOE", "DOE JANE TRS",
+            "ROE JOHN & JANE TRUSTEES", "EXAMPLE TRUST CO TRUSTEES OF JOHN SAMPLE",
+            "EXAMPLE TRUST COMPANY AS TRUSTEE FOR JANE DOE", "BOARD OF TRUSTEES OF THE JOHN DOE TRUST",
+            "JOHN DOE TRUSTEE OF EXAMPLE PENSION FUND"), "trustee_person")
+
+    def test_a_company_followed_by_a_person_carrying_form_is_rejected_whole(self):
+        self.assert_dropped(("EXAMPLE HOLDINGS LLC JOHN DOE REV TR DTD 1/1/2001", "Example Holdings, L.L.C. Jane Roe Rev Tr",
+                             "EXAMPLE PROPERTIES LLC & JOHN DOE TRUSTEE", "ACME INC ESTATE OF JANE DOE",
+                             "ACME LP DOE JANE LIVING TRUST"), "wrapper")
+
+    def test_institutions_and_near_misses_stay_organisations(self):
+        for name in ("TRUSTMARK NATIONAL BANK", "FIRST TRUST CORPORATION", "TRINITY CHURCH TRUSTEES",
+                     "BOARD OF TRUSTEES OF EXAMPLE COLLEGE", "EXAMPLE COLLEGE BOARD OF TRUSTEES",
+                     "TRUSTEES OF EXAMPLE UNIVERSITY", "EXAMPLE REALTY TRUST", "TRAVIS COUNTY",
+                     "ESTATES AT EXAMPLE LAKE HOA", "EXAMPLE ESTATE HOMES LLC", "TR EXAMPLE HOLDINGS LLC",
+                     "EXAMPLE TRUST COMPANY", "EXAMPLE BANK & TRUST", "EXAMPLE TITLE AND TRUST", "EXAMPLE BANK NA AS TRUSTEE",
+                     "EXAMPLE TRUST CO AS TRUSTEE", "EXAMPLE TRUST COMPANY OF SOUTH EXAMPLE TRUSTEE",
+                     "EXAMPLE BANK, N.A., AS TRUSTEE FOR EXAMPLE MORTGAGE TRUST 2006-1 CERTIFICATEHOLDERS",
+                     "EXAMPLE BANK AS TRUSTEE UNDER TRUST NO 12345", "TRUST NO 12345", "LAND TRUST 4021",
+                     "EXAMPLE REAL ESTATE INVESTMENT TRUST", "EXAMPLE BUSINESS TRUST", "EXAMPLE STATUTORY TRUST",
+                     "EXAMPLE DELAWARE STATUTORY TRUST", "EXAMPLE INVESTMENT TRUST", "EXAMPLE PENSION FUND",
+                     "EXAMPLE LOCAL 3 PENSION FUND TRUSTEES", "EXAMPLE REAL ESTATE OF TEXAS LLC",
+                     "EXAMPLE COUNTY TRUSTEE FOR CITY OF EXAMPLE ET AL", "EXAMPLE ISD TRUSTEE",
+                     "100 EXAMPLE TRUSTEE, LLC", "EXAMPLE TRS LLC", "EXAMPLE TRUSTEE SERVICES INC",
+                     "EXAMPLE SENIOR LIVING TRUST LLC", "SMITH REVOCABLE HOLDINGS LLC", "SEPARATE PROPERTY INVESTORS LP",
+                     "EXAMPLE FAMILY TRUST LP", "EXAMPLE PROPERTIES LLC TRUSTEE", "CAMDEN PROPERTY TRUST",
+                     "STATE OF EXAMPLE", "CITY OF EXAMPLE"):
+            self.assertTrue(is_organization(name), name)
+
+    def test_personal_trust_words_in_a_company_name_withhold_its_mailing_address(self):
+        from factlot.registry.normalize import personal_style_organization
+        for name in ("SMITH REVOCABLE HOLDINGS LLC", "EXAMPLE FAMILY TRUST LP"):
+            self.assertTrue(personal_style_organization(name), name)
+
+    def test_organization_part_keeps_a_wrappers_company_only_when_no_person_remains(self):
+        from factlot.registry.normalize import organization_part
+        self.assertEqual(organization_part("ACME INC"), ("ACME INC", None))
+        self.assertEqual(organization_part("EXAMPLE HOLDINGS LLC JOHN DOE REV TR DTD 1/1/2001"),
+                         ("EXAMPLE HOLDINGS LLC", "company with a personal trust"))
+        self.assertEqual(organization_part("Example Holdings, L.L.C. Jane Roe Rev Tr"),
+                         ("Example Holdings, L.L.C.", "company with a personal trust"))
+        self.assertEqual(organization_part("ESTATE OF JOHN DOE"), (None, "estate"))
+        self.assertEqual(organization_part("DOE JANE REV TR"), (None, "personal trust"))
+        self.assertEqual(organization_part("ROE JANE TTEE"), (None, "trustee"))
+        self.assertEqual(organization_part("DOE JANE"), (None, "person"))
+        # the leading part is no organisation: nothing is kept
+        self.assertEqual(organization_part("ESTATE OF JOHN DOE LLC JANE ROE TRUSTEE")[0], None)
+
+
 class RegistryCore(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
@@ -492,6 +569,64 @@ class RegistryCore(unittest.TestCase):
         lonestar = factlot.entity_id("us-tx", "0801111111").urn
         self.assertEqual(len(self.reg.parcels_owned_by(lonestar)), 1, "organisation owners are untouched")
         self.assertEqual(self.reg.purge_person_owners()["owner_facts"], 0, "idempotent")
+
+    def test_purge_removes_owners_the_tightened_rule_rejects(self):
+        self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
+        parcel = factlot.parcel_id("48", "999", "0001-000-0002").urn
+        self.reg.db.execute(  # a wrapper an older rule stored as an organisation
+            "UPDATE facts SET value_json = ? WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
+            (json.dumps("EXAMPLE HOLDINGS LLC JOHN DOE REV TR DTD 1/1/2001"), parcel))
+        self.reg.db.commit()
+        self.assertEqual(self.reg.purge_person_owners()["owner_facts"], 1)
+        self.assertNotIn("DOE", str(self.reg.get(parcel)))
+
+    def _document_fact(self, value):
+        parcel = factlot.parcel_id("48", "999", "0001-000-0001").urn
+        self.reg.db.execute(
+            "INSERT INTO facts SELECT fact_id || 'd', subject, 'transaction.deed', ?, unit, as_of, method, confidence, "
+            "document_id, locator FROM facts WHERE subject = ? AND predicate = 'parcel.market_value'",
+            (json.dumps(value, sort_keys=True), parcel))
+        self.reg.db.commit()
+        return parcel
+
+    def test_purge_withholds_rejected_parties_and_keeps_the_document(self):
+        self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
+        parcel = self._document_fact({
+            "date": "2099-01-07", "doc_type": "DEED", "amount_usd": 1000000, "document_id": "2099000000000001",
+            "organizations_only": True,
+            "grantors": ["EXAMPLE SELLER LLC", "ESTATE OF JOHN DOE LLC", "EXAMPLE HOLDINGS LLC JANE ROE REV TR"],
+            "grantees": ["DOE JANE REV TR LLC ACME", "ROE JOHN TRUSTEE OF EXAMPLE HOLDINGS LLC"],
+            "grantees_truncated": True})
+        purged = self.reg.purge_person_owners()
+        self.assertEqual((purged["party_names_withheld"], purged["party_names_cut_to_company"],
+                          purged["document_facts_rewritten"], purged["documents_left_without_parties"]), (3, 1, 1, 0))
+        deed = next(f["value"] for f in self.reg.facts(parcel, history=True) if f["predicate"] == "transaction.deed")
+        self.assertEqual(deed["grantors"], ["EXAMPLE SELLER LLC", "EXAMPLE HOLDINGS LLC"])
+        self.assertEqual(deed["grantors_withheld"], {"count": 2, "kinds": ["company with a personal trust", "estate"]})
+        self.assertNotIn("grantees", deed)
+        self.assertNotIn("grantees_truncated", deed)
+        self.assertEqual(deed["grantees_withheld"], {"count": 2, "kinds": ["personal trust", "trustee"]})
+        self.assertEqual((deed["date"], deed["amount_usd"], deed["document_id"]), ("2099-01-07", 1000000, "2099000000000001"))
+        for gone in ("DOE", "ROE", "REV TR"):
+            self.assertNotIn(gone, json.dumps(self.reg.get(parcel)))
+        self.assertEqual(self.reg.purge_person_owners()["document_facts_rewritten"], 0, "idempotent")
+
+    def test_a_document_whose_parties_are_all_rejected_is_kept_without_names(self):
+        self.reg.ingest_parcels(ROLL_2025, self.snap25, state_fips="48")
+        parcel = self._document_fact({"date": "2099-02-01", "doc_type": "MTGE", "amount_usd": 500000,
+                                      "document_id": "2099000000000002", "organizations_only": True,
+                                      "grantors": ["DOE JANE TTEE"], "grantees": ["ESTATE OF JOHN ROE INC"]})
+        from factlot.registry import privacy_scan
+        path = self.tmp / "registry.db"
+        self.assertEqual(privacy_scan.scan(path)["person_party_names"], 2)
+        self.assertEqual(privacy_scan.main([str(path)]), 1)
+        self.assertEqual(self.reg.purge_person_owners()["documents_left_without_parties"], 1)
+        deed = next(f["value"] for f in self.reg.facts(parcel, history=True) if f["predicate"] == "transaction.deed")
+        self.assertEqual({k: deed[k] for k in ("date", "doc_type", "amount_usd", "document_id")},
+                         {"date": "2099-02-01", "doc_type": "MTGE", "amount_usd": 500000, "document_id": "2099000000000002"})
+        self.assertEqual((deed["grantors_withheld"]["count"], deed["grantees_withheld"]["count"]), (1, 1))
+        self.assertNotIn("grantors", deed)
+        self.assertEqual(privacy_scan.scan(path)["person_party_names"], 0)
 
     def test_personal_style_owner_keeps_its_name_but_not_its_mailing_address(self):
         roll = [ParcelRecord("999", "0001-000-0009", "F1", account="A9", situs_address="9 Oak Street",
