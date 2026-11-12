@@ -133,7 +133,7 @@ export function publicPlans(
         ? {
             free_key: {
               how: `${checkoutBase}/account#free-key, or POST /v1/keys/free {"email":"you@example.com","accept_terms":true}`,
-              note: `An optional free key (emailed link, shown once, one active key per address) gives the same free limits on your own meter instead of one shared per IP address: ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per key, ${reportLimits().per_month.free} reports a month. The free keys used from one IP address together share at most ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. A free key is a free caller: it has no access to paid tools${gating ? ", the earlier roll years in value history, an owner's parcels beyond the first three, registry batch tools or dated registry_get" : ""}.`,
+              note: `An optional free key (emailed link, shown once, one active key per address) gives the same free limits on your own meter instead of one shared per IP address: ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per key, ${reportLimits().per_month.free} reports a month. The free keys used from one IP address together share at most ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. A free key is a free caller: it has no access to paid tools${gating ? ", the earlier roll years in value history, an owner's parcels beyond the first three, a parcel's recorded sales and documents beyond the newest sale or deed, registry batch tools or dated registry_get" : ""}.`,
               auth: "bearer",
             },
           }
@@ -161,15 +161,15 @@ export function publicPlans(
     ...plans,
     free: {
       ...plans.free,
-      note: `${plans.free.note} Registry value history is limited to the current roll year, an owner's portfolio (registry_owned_by) to its first three parcels, and registry batch tools need Pro or Team.`,
+      note: `${plans.free.note} Registry value history is limited to the current roll year, an owner's portfolio (registry_owned_by) to its first three parcels, a parcel's recorded sales, deeds, mortgages and satisfactions (registry_get) to the newest sale or deed with counts of the rest, and registry batch tools need Pro or Team.`,
     },
     team: {
       ...team,
-      note: `${String(team.note)} Includes full registry value history, every parcel of an owner's portfolio and registry batch tools.`,
+      note: `${String(team.note)} Includes full registry value history, every parcel of an owner's portfolio, every recorded sale and document of a parcel and registry batch tools.`,
     },
     pro: {
       ...pro,
-      note: `${String(pro.note)} Includes full registry value history, every parcel of an owner's portfolio and registry batch tools.`,
+      note: `${String(pro.note)} Includes full registry value history, every parcel of an owner's portfolio, every recorded sale and document of a parcel and registry batch tools.`,
       price_yearly: `$${PRO_YEARLY.cents / 100} per year`,
       checkout_yearly: `${checkoutBase}/billing/checkout?plan=pro&interval=year`,
     },
@@ -181,6 +181,8 @@ export const GATING_INFO = {
   enabled: true,
   free_history: "current roll year only",
   free_portfolio: "first 3 parcels of an owner (registry_owned_by)",
+  free_sales:
+    "newest recorded sale or deed of a parcel, with counts and years of the rest (registry_get)",
   batch: "Pro and Team",
   dated_get: "Pro and Team",
   candidates_tax_year: "Pro and Team",

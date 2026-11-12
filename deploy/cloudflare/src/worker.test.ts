@@ -6886,6 +6886,7 @@ describe("paid gating (GATING_ENABLED)", () => {
         enabled: boolean;
         free_history: string;
         free_portfolio: string;
+        free_sales: string;
         batch: string;
         dated_get: string;
         candidates_tax_year: string;
@@ -6905,6 +6906,8 @@ describe("paid gating (GATING_ENABLED)", () => {
       enabled: true,
       free_history: "current roll year only",
       free_portfolio: "first 3 parcels of an owner (registry_owned_by)",
+      free_sales:
+        "newest recorded sale or deed of a parcel, with counts and years of the rest (registry_get)",
       batch: "Pro and Team",
       dated_get: "Pro and Team",
       candidates_tax_year: "Pro and Team",
@@ -8229,7 +8232,7 @@ describe("free key by email", () => {
       assert.match(note, /no access to paid tools/);
       assert.match(
         note,
-        /earlier roll years in value history, an owner's parcels beyond the first three, registry batch tools or dated registry_get/,
+        /earlier roll years in value history, an owner's parcels beyond the first three, a parcel's recorded sales and documents beyond the newest sale or deed, registry batch tools or dated registry_get/,
       );
       assert.equal(plans.plans.free.free_key.auth, "bearer");
     });
