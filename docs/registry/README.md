@@ -409,3 +409,18 @@ return.
      SDK's answer, including the county tier.
    - **Dated lookups.** `as_of` answers are stored per date at which a file's data changes, for
      Texas as for the other regions.
+   - **Counties loaded in part.** A parcel source that covers less than its county (the City of
+     Boston's file, in Suffolk County) is listed in `PARTIAL_COUNTY_SOURCES`
+     (`deploy/registry/src/hosted.ts`). `registry_coverage` then gives the county an `area` and
+     lists it under `hosted.partial_counties`, and a miss in it says which part is loaded.
+   - **Parallel builds.** `--jobs <n>` packs each registry file in its own process (at most `n`
+     at once) and writes the same files as one process; the build then takes about as long as
+     its slowest file. Texas parcels must be in one file. A pack that would exceed the Workers
+     limit of 100,000 static-asset files stops while building:
+     `npm run pack:registry -- --jobs 6 --out <pack> md.db dc.db ut.db tx.db ny.db ca.db ma.db co.db ct.db`
+   - **What the site says is hosted** comes from `site/_data/hosted.json`. After building a pack,
+     `node --experimental-strip-types --conditions=factlot-source scripts/site/gen-hosted.ts <pack>`
+     rewrites it from the pack's manifest, together with the marked spans in the pages, README,
+     docs and llms.txt; then run `python3 scripts/registry/gen_coverage_docs.py` and
+     `python3 scripts/registry/gen_coverage_map.py` (a newly hosted source also needs its
+     `hosted_areas` entry in `docs/registry/coverage-data.json`).
