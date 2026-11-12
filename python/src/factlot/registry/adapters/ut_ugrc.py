@@ -6,7 +6,8 @@ the feature-service field lists of the Salt Lake and Utah County layers): UGRC r
 county assessor's tax-year parcel file as the layer ``Parcels_<County>_LIR`` (ArcGIS Online items
 owned by ``UtahAGRC``, listed at https://gis.utah.gov/products/sgid/cadastre/parcels/). The Hub CSV
 export (``https://opendata.gis.utah.gov/api/download/v1/items/<item>/csv?layers=0``) is a UTF-8 (BOM)
-quoted file with one row per tax parcel and the **field aliases** as its header:
+quoted file with one row per tax parcel or per building (see "Several rows for one parcel" below) and the
+**field aliases** as its header:
 
     OBJECTID, County Name, County ID, County Assessor Info URL, County Recorder Info URL, Disclaimer URL,
     Current As Of, Parcel ID, Serial Number, Parcel Address, Parcel City, Tax Exempt Type, Tax District,
@@ -44,6 +45,27 @@ uses its own vocabulary (``Single Family``, ``Multi-Family``, ``Apartments``, ``
 ``Vacant Commercial``, ``Land``, ``DEFAULT``) with no published definitions, and its ``Commercial`` holds 24%
 of the county's rows. Carbon's classes are therefore not mapped (``UNMAPPED_COUNTIES``): its rows are read
 but every one is out of scope, and the config does not list its file.
+
+Several rows for one parcel (2026-11-12). The standard's goal is one row per tax notice, but most counties
+write one row per building, and some repeat a row for each polygon part of one tax parcel; the rows of one
+parcel need not be next to each other in the file. ``read_roll`` therefore groups the rows of a file by
+(county FIPS, ``Parcel ID``) and yields one record per parcel, rows taken in ``OBJECTID`` order (file order
+when there is none), so the result does not depend on row order:
+
+- building area: the sum of ``Square Footage`` (the publisher's "Square footage of primary bldg(s)") over the
+  parcel's distinct buildings, a building being one combination of the ``_BUILDING_KEYS`` fields; rows that
+  repeat a combination (a duplicate row or another polygon part) are counted once;
+- year built: the earliest ``Year Built`` of any row;
+- market value: ``Total Market Value`` is the publisher's "Total market value of parcel's land, structures,
+  and other improvements", so it is taken once, from whichever rows carry one; when rows carry different
+  positive values (Rich County writes one per building row with no land value) no market value is written,
+  since no row is the parcel's total and adding them up is not what the field means;
+- category: the in-scope categories of the parcel's rows, the first in ``CATEGORY_PRECEDENCE`` (``F2``, then
+  ``F1``, then ``B``); a parcel is in scope when any row is. ``local_use_code`` keeps every distinct row class
+  in row order, joined by ``CLASS_SEPARATOR``, so the choice can be audited;
+- situs address and land area (``Parcel Acres``): from the first row (in row order) that has one.
+
+A parcel with one row yields exactly what that row yielded before the grouping.
 
 Usage: ``python -m factlot.registry.adapters.ut_ugrc <county>.csv registry.db --as-of 2026-09-29``
 (one file per county; nothing is retired unless ``--full-roll`` is given, which is right only for a file
@@ -104,7 +126,19 @@ _KEYS = {
     "propclass": "prop_class", "propertyclass": "prop_class", "proptype": "prop_type",
     "propertytype": "prop_type", "bldgsqft": "sqft", "squarefootage": "sqft",
     "builtyr": "year_built", "yearbuilt": "year_built", "housecnt": "units", "numberofhousingunits": "units",
+    "effbuiltyr": "effective_year", "effectiveyearbuilt": "effective_year", "floorscnt": "floors",
+    "numberoffloors": "floors", "constmaterial": "material", "constructionmaterial": "material",
 }
+
+# The fields that describe a row's building. Rows of one parcel that agree on all of them describe one building
+# (a repeated row, or another polygon part of the same tax parcel), so its area is counted once.
+_BUILDING_KEYS = ("sqft", "year_built", "effective_year", "floors", "material")
+
+# When a parcel's in-scope rows map to different categories, the first of these that one of them maps to wins.
+CATEGORY_PRECEDENCE = ("F2", "F1", "B")
+
+# Separator between a parcel's distinct row classes in ``local_use_code`` when its rows carry more than one.
+CLASS_SEPARATOR = "; "
 
 SQFT_PER_ACRE = 43560.0
 
@@ -187,35 +221,64 @@ def _situs(r: dict[str, str]) -> str | None:
     return f"{street.upper()}, {city} UT" if city else f"{street.upper()}, UT"
 
 
-def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
-    """Yield one ``ParcelRecord`` per row of a county LIR export, in file order.
+_KEPT_KEYS = ("prop_class", "exempt", "address", "city", "acres", "total_value") + _BUILDING_KEYS
 
-    Every parcel is yielded; ``state_category`` is ``None`` for parcels outside the commercial scope,
-    which the registry counts as skipped. Rows without a parcel id or a Utah county id are dropped.
+
+def _row_order(r: dict[str, str], index: int) -> tuple[int, float, int]:
+    """Sort key of a row within its parcel: ``OBJECTID`` ascending, rows without one after, in file order."""
+    oid = _num(r.get("objectid"))
+    return (0, oid, index) if oid is not None else (1, 0.0, index)
+
+
+def _parcel_record(fips: str, parcel: str, rows: list[dict[str, str]]) -> ParcelRecord:
+    """One record from the rows of one parcel, already in row order (see "Several rows for one parcel")."""
+    classes = [" ".join((r.get("prop_class") or "").split()) for r in rows]
+    cats = {category(c, r.get("exempt"), fips) for c, r in zip(classes, rows)}
+    acres = next((a for r in rows if (a := _positive(r.get("acres")))), None)
+    years = [y for r in rows if (y := _positive(r.get("year_built")))]
+    values = {v for r in rows if (v := _positive(r.get("total_value")))}
+    area, buildings = 0.0, set()
+    for r in rows:
+        building = tuple(" ".join((r.get(k) or "").split()) for k in _BUILDING_KEYS)
+        if building not in buildings:
+            buildings.add(building)
+            area += _positive(r.get("sqft")) or 0.0
+    return ParcelRecord(
+        county_fips=fips,
+        apn=apn_for(parcel),
+        state_category=next((c for c in CATEGORY_PRECEDENCE if c in cats), None),
+        account=f"{fips}:{parcel}",
+        situs_address=next((s for r in rows if (s := _situs(r))), None),
+        owner_name=None,  # the LIR schema carries no owner
+        land_area_sf=round(acres * SQFT_PER_ACRE) if acres else None,
+        improvement_area_sf=area or None,
+        year_built=int(min(years)) if years else None,
+        market_value=next(iter(values)) if len(values) == 1 else None,
+        tax_year=None,
+        locator=f"county {fips} Parcel ID {parcel}",
+        local_use_code=CLASS_SEPARATOR.join(dict.fromkeys(c for c in classes if c)) or None,
+    )
+
+
+def read_roll(path: str | Path) -> Iterator[ParcelRecord]:
+    """Yield one ``ParcelRecord`` per parcel of a county LIR export, in the order of each parcel's first row.
+
+    The rows of a parcel are grouped by (county FIPS, ``Parcel ID``) over the whole file and collapsed as the
+    module docstring says ("Several rows for one parcel"). Every parcel is yielded; ``state_category`` is
+    ``None`` for parcels outside the commercial scope, which the registry counts as skipped. Rows without a
+    parcel id or a Utah county id are dropped.
     """
-    for r in _rows(path):
+    parcels: dict[tuple[str, str], list[tuple[tuple[int, float, int], dict[str, str]]]] = {}
+    for i, r in enumerate(_rows(path)):
         parcel = (r.get("parcel_id") or "").strip()
         fips = county_fips(r.get("county_id"))
         if not parcel or not fips:
             continue
-        prop_class = " ".join((r.get("prop_class") or "").split())
-        acres = _positive(r.get("acres"))
-        year = _positive(r.get("year_built"))
-        yield ParcelRecord(
-            county_fips=fips,
-            apn=apn_for(parcel),
-            state_category=category(prop_class, r.get("exempt"), fips),
-            account=f"{fips}:{parcel}",
-            situs_address=_situs(r),
-            owner_name=None,  # the LIR schema carries no owner
-            land_area_sf=round(acres * SQFT_PER_ACRE) if acres else None,
-            improvement_area_sf=_positive(r.get("sqft")),
-            year_built=int(year) if year else None,
-            market_value=_positive(r.get("total_value")),
-            tax_year=None,
-            locator=f"county {fips} Parcel ID {parcel}",
-            local_use_code=prop_class or None,
-        )
+        kept = {k: r[k] for k in _KEPT_KEYS if r.get(k)}
+        parcels.setdefault((fips, parcel), []).append((_row_order(r, i), kept))
+    for (fips, parcel), rows in parcels.items():
+        rows.sort(key=lambda x: x[0])
+        yield _parcel_record(fips, parcel, [r for _, r in rows])
 
 
 def build(snapshot_path: str | Path, db_path: str | Path, *, as_of: str, retrieved_at: str | None = None,

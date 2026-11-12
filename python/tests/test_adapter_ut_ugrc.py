@@ -255,5 +255,110 @@ class UtahLir(unittest.TestCase):
             reg.close()
 
 
+# Invented Davis County (County ID 6, FIPS 011) rows: several rows for one parcel.
+DAVIS = {"County Name": "Davis County", "County ID": "6"}
+MULTI_ROWS = [
+    # parcel A: three buildings, one repeated as a second polygon part; the value only on some rows
+    {**DAVIS, "OBJECTID": "11", "Parcel ID": "010010001", "Parcel Address": "10 N Example Rd", "Parcel City": "Layton",
+     "Total Market Value": "4000000", "Parcel Acres": "2", "Property Class": "Commercial - Retail",
+     "Square Footage": "10000", "Year Built": "1995", "Construction Material": "Cn"},
+    {**DAVIS, "OBJECTID": "12", "Parcel ID": "010010001", "Parcel Address": "10 N Example Rd", "Parcel City": "Layton",
+     "Total Market Value": "", "Parcel Acres": "2", "Property Class": "Commercial - Retail",
+     "Square Footage": "2500", "Year Built": "1978"},
+    {**DAVIS, "OBJECTID": "13", "Parcel ID": "010010001", "Parcel Address": "10 N Example Rd", "Parcel City": "Layton",
+     "Total Market Value": "4000000", "Parcel Acres": "2", "Property Class": "Commercial - Retail",
+     "Square Footage": "10000", "Year Built": "1995", "Construction Material": "Cn", "Shape__Area": "99"},
+    # parcel B: classes disagree (retail and industrial rows, and a residential row), values disagree
+    {**DAVIS, "OBJECTID": "21", "Parcel ID": "010010002", "Parcel Address": "", "Total Market Value": "800000",
+     "Parcel Acres": "", "Property Class": "Commercial - Retail", "Square Footage": "3000", "Year Built": "2001"},
+    {**DAVIS, "OBJECTID": "22", "Parcel ID": "010010002", "Parcel Address": "20 S Plant Ln", "Parcel City": "Clearfield",
+     "Total Market Value": "1900000", "Parcel Acres": "5", "Property Class": "Commercial - Industrial",
+     "Square Footage": "40000", "Year Built": "1988"},
+    {**DAVIS, "OBJECTID": "23", "Parcel ID": "010010002", "Parcel Address": "21 S Plant Ln", "Parcel City": "Clearfield",
+     "Total Market Value": "", "Parcel Acres": "6", "Property Class": "Residential", "Square Footage": "1500",
+     "Year Built": "0"},
+    # parcel C: one row, between the rows of parcel D
+    {**DAVIS, "OBJECTID": "31", "Parcel ID": "010010003", "Parcel Address": "30 W Single St", "Parcel City": "Bountiful",
+     "Total Market Value": "650000", "Parcel Acres": "0.25", "Property Class": "Commercial",
+     "Square Footage": "5200", "Year Built": "1970"},
+    # parcel D: apartments and offices, rows not next to each other
+    {**DAVIS, "OBJECTID": "41", "Parcel ID": "010010004", "Parcel Address": "40 E Mixed Ave", "Parcel City": "Kaysville",
+     "Total Market Value": "2200000", "Parcel Acres": "1", "Property Class": "Commercial - Apartment & Condo",
+     "Square Footage": "20000", "Year Built": "2010"},
+    # parcel E: every row out of scope
+    {**DAVIS, "OBJECTID": "51", "Parcel ID": "010010005", "Property Class": "Residential", "Square Footage": "1800"},
+    {**DAVIS, "OBJECTID": "42", "Parcel ID": "010010004", "Parcel Address": "40 E Mixed Ave", "Parcel City": "Kaysville",
+     "Total Market Value": "2200000", "Parcel Acres": "1", "Property Class": "Commercial - Office Space",
+     "Square Footage": "6000", "Year Built": "2012"},
+    {**DAVIS, "OBJECTID": "52", "Parcel ID": "010010005", "Property Class": "Residential", "Square Footage": "900"},
+]
+
+
+class UtahLirSeveralRows(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def read(self, rows, name="davis.csv"):
+        return {r.apn: r for r in ut_ugrc.read_roll(write_csv(self.tmp / name, HUB_HEADER, rows))}
+
+    def test_one_record_per_parcel(self):
+        recs = list(ut_ugrc.read_roll(write_csv(self.tmp / "davis.csv", HUB_HEADER, MULTI_ROWS)))
+        self.assertEqual([r.apn for r in recs], ["010010001", "010010002", "010010003", "010010004", "010010005"],
+                         "one record per parcel, in the order of each parcel's first row")
+
+    def test_buildings_summed_repeats_counted_once(self):
+        a = self.read(MULTI_ROWS)["010010001"]
+        self.assertEqual(a.improvement_area_sf, 12500, "10,000 + 2,500; the repeated polygon part is not added")
+        self.assertEqual(a.year_built, 1978, "the earliest year built")
+        self.assertEqual(a.market_value, 4000000, "the parcel's value, taken once; a blank row does not change it")
+        self.assertEqual((a.state_category, a.local_use_code), ("F1", "Commercial - Retail"))
+        self.assertEqual(a.land_area_sf, round(2 * 43560))
+        self.assertEqual(a.situs_address, "10 N EXAMPLE RD, LAYTON UT")
+        self.assertEqual((a.account, a.locator), ("011:010010001", "county 011 Parcel ID 010010001"))
+
+    def test_disagreeing_values(self):
+        b = self.read(MULTI_ROWS)["010010002"]
+        self.assertEqual(b.state_category, "F2", "F2 comes before F1 in the precedence")
+        self.assertEqual(b.local_use_code, "Commercial - Retail; Commercial - Industrial; Residential",
+                         "every row class is kept, in row order")
+        self.assertIsNone(b.market_value, "rows with different totals: no row is the parcel's total")
+        self.assertEqual(b.improvement_area_sf, 44500, "every building on the parcel, the residential row included")
+        self.assertEqual(b.year_built, 1988, "year 0 is no figure")
+        self.assertEqual(b.situs_address, "20 S PLANT LN, CLEARFIELD UT", "the first row that has an address")
+        self.assertEqual(b.land_area_sf, round(5 * 43560), "the first row that has acres")
+        d = self.read(MULTI_ROWS)["010010004"]
+        self.assertEqual((d.state_category, d.local_use_code),
+                         ("F1", "Commercial - Apartment & Condo; Commercial - Office Space"), "F1 comes before B")
+        self.assertEqual((d.improvement_area_sf, d.year_built, d.market_value), (26000, 2010, 2200000))
+        e = self.read(MULTI_ROWS)["010010005"]
+        self.assertEqual((e.state_category, e.local_use_code, e.improvement_area_sf), (None, "Residential", 2700))
+
+    def test_one_row_is_unchanged(self):
+        c = self.read(MULTI_ROWS)["010010003"]
+        alone = self.read([MULTI_ROWS[6]], "alone.csv")["010010003"]
+        self.assertEqual(c, alone)
+        self.assertEqual((c.state_category, c.local_use_code, c.improvement_area_sf, c.year_built, c.market_value,
+                          c.land_area_sf, c.situs_address),
+                         ("F1", "Commercial", 5200, 1970, 650000, round(0.25 * 43560), "30 W SINGLE ST, BOUNTIFUL UT"))
+
+    def test_row_order_does_not_matter(self):
+        forward = self.read(MULTI_ROWS)
+        backward = self.read(list(reversed(MULTI_ROWS)), "reversed.csv")
+        self.assertEqual(forward, backward, "rows are taken in OBJECTID order, not file order")
+
+    def test_build_writes_one_value_per_fact(self):
+        db = self.tmp / "davis.db"
+        stats = ut_ugrc.build(write_csv(self.tmp / "davis.csv", HUB_HEADER, MULTI_ROWS), db, as_of="2025-11-26")
+        self.assertEqual((stats.seen, stats.kept, stats.skipped_out_of_scope), (5, 4, 1))
+        reg = Registry.open_readonly(db)
+        try:
+            urn = reg.resolve_external("ugrc_lir", "011:010010002")
+            facts = [f["predicate"] for f in reg.facts(urn)]
+            self.assertEqual(len(facts), len(set(facts)), "one current value per fact")
+            self.assertNotIn("parcel.market_value", facts)
+        finally:
+            reg.close()
+
+
 if __name__ == "__main__":
     unittest.main()
