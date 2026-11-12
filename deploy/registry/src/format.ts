@@ -305,6 +305,25 @@ export class ShardEncoder {
   }
 }
 
+/**
+ * One field of an entry (an encoded object) without decoding the others: `r` of a record entry, skipping its
+ * dated variants. Undefined when the shard has no such entry or the entry no such field.
+ */
+export function decodeEntryField(
+  shard: EncodedShard,
+  key: string,
+  field: string,
+): unknown {
+  if (!Object.hasOwn(shard.e, key)) return undefined;
+  let top = shard.e[key];
+  if (Array.isArray(top) && (top[0] as number) < 0)
+    top = shard.t[-(top[0] as number) - 1];
+  if (!Array.isArray(top) || (top[0] as number) < 1) return undefined;
+  const i = shard.s[(top[0] as number) - 1]!.indexOf(field);
+  if (i < 0) return undefined;
+  return decodeEntry({ s: shard.s, t: shard.t, e: { v: top[i + 1] } }, "v");
+}
+
 /** Decode one entry of a shard (undefined when the shard has none under that key). */
 export function decodeEntry(shard: EncodedShard, key: string): unknown {
   if (!Object.hasOwn(shard.e, key)) return undefined;

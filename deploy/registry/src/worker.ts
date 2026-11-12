@@ -5,7 +5,9 @@
  *
  *   POST /run   {"tool": "registry_get", "input": {...}}  →  200 ToolOutcome
  *   GET /health                                           →  {ok, pack: {built_at, regions, counts}}
+ *   /pages/...                                            →  the property pages' enumeration (pages.ts)
  */
+import { pagesRoute } from "./pages.ts";
 import { Pack, type AssetFetcher } from "./store.ts";
 import { runRegistryTool } from "./tools.ts";
 
@@ -45,6 +47,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
       },
     });
   }
+  if (pathname.startsWith("/pages/")) return pagesRoute(request, p);
   if (pathname !== "/run") return fail(404, "NotFound", "not found");
   if (request.method !== "POST")
     return fail(405, "MethodNotAllowed", "POST a JSON body to /run");
