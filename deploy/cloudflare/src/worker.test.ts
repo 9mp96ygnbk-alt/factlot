@@ -74,6 +74,7 @@ import {
   verifyStripeSignature,
 } from "./stripe.ts";
 import type { Env, KV, MeterService, RateLimit } from "./types.ts";
+import { resetUsageForTests, snapshot } from "./usage.ts";
 
 class MemoryKV implements KV {
   readonly data = new Map<string, string>();
@@ -5846,5 +5847,126 @@ describe("paid gating (GATING_ENABLED)", () => {
     assert.doesNotMatch(String(off.plans.free.note), /roll year/);
     assert.equal(off.plans.pro.price_yearly, undefined);
     assert.deepEqual(off.quotas, enabled.quotas, "counting rules unchanged");
+  });
+});
+
+describe("usage counters (USAGE_COUNTERS_ENABLED)", () => {
+  const urn = "fl:parcel:us-48-453-0001";
+  /** An inner handler whose registry_get answer carries two roll years. */
+  const historyApi = () => {
+    const parcel = {
+      urn,
+      value_history: [
+        { tax_year: 2026, market_value: 200 },
+        { tax_year: 2025, market_value: 100 },
+      ],
+      coverage: { county_loaded: true },
+    };
+    const json = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
+    return {
+      api: {
+        fetch: async (r: Request) => {
+          const body = await r.text();
+          if (new URL(r.url).pathname === "/mcp") {
+            const m = JSON.parse(body) as { id: number };
+            return json({
+              jsonrpc: "2.0",
+              id: m.id,
+              result: {
+                content: [{ type: "text", text: JSON.stringify(parcel) }],
+                structuredContent: parcel,
+              },
+            });
+          }
+          return json(parcel);
+        },
+      },
+    };
+  };
+  const flows = async (e: ReturnType<typeof env>) => {
+    const { api } = historyApi();
+    const out: unknown[] = [];
+    const seen = async (p: Promise<Response>) => {
+      const r = await p;
+      out.push([r.status, await r.text()]);
+    };
+    await seen(call(e, api, "/v1/registry/get", { body: { urn } }));
+    await seen(
+      call(e, api, "/v1/registry/get", { body: { urn, as_of: "2024-01-01" } }),
+    );
+    await seen(call(e, api, "/v1/plans", { method: "GET" }));
+    await seen(call(e, api, "/mcp", { body: toolCall("registry_get") }));
+    for (let i = 0; i < 26; i++)
+      await seen(call(e, api, "/v1/registry/get", { body: { urn } }));
+    return out;
+  };
+  const withUsage = (over: Partial<Env> = {}) =>
+    env({ GATING_ENABLED: "true", ...over });
+
+  it("on: counts requests, lookups by tool and region, history notes, refusals and exhausted quota", async () => {
+    resetUsageForTests({ waitUntil: () => {}, sleep: async () => {} });
+    const e = withUsage({ USAGE_COUNTERS_ENABLED: "true" });
+    await flows(e);
+    const c = snapshot().counters;
+    assert.equal(c["req|rest|/v1/plans|2xx"], 1);
+    assert.equal(c["req|mcp|/mcp|2xx"], 1);
+    assert.equal(c["req|rest|/v1/registry/get|2xx"] >= 20, true);
+    assert.equal(c["req|rest|/v1/registry/get|4xx"] >= 2, true);
+    assert.equal(c["mcp_call|registry_get|keyless"], 1);
+    assert.equal(c["lookup|registry_get|us-48|keyless"] >= 20, true);
+    assert.equal(c["history_note|rest|keyless"] >= 20, true);
+    assert.equal(c["plan_required|dated|keyless"], 1);
+    assert.equal(c["quota_exhausted|keyless|day"] >= 1, true);
+    assert.equal(
+      Object.keys(c).every((k) => !k.includes(IP) && !k.includes(urn)),
+      true,
+    );
+    const sketch = snapshot();
+    assert.ok(sketch.callers["keyless"], "a distinct-caller sketch was kept");
+    assert.equal(JSON.stringify(sketch).includes(IP), false);
+  });
+
+  it("off (unset or not exactly true): nothing counted, nothing written, answers identical to on", async () => {
+    resetUsageForTests({ waitUntil: () => {}, sleep: async () => {} });
+    const on = withUsage({ USAGE_COUNTERS_ENABLED: "true" });
+    const onAnswers = await flows(on);
+    for (const v of [undefined, "false", "1"]) {
+      resetUsageForTests({ waitUntil: () => {}, sleep: async () => {} });
+      const off = withUsage(
+        v === undefined ? {} : { USAGE_COUNTERS_ENABLED: v },
+      );
+      const answers = await flows(off);
+      assert.deepEqual(snapshot().counters, {});
+      assert.deepEqual(
+        [...(off.KEYS as unknown as MemoryKV).data.keys()].filter((k) =>
+          k.startsWith("usage:"),
+        ),
+        [],
+      );
+      assert.deepEqual(answers, onAnswers);
+    }
+  });
+
+  it("a failing counter store never breaks a request", async () => {
+    resetUsageForTests({ sleep: async () => {} });
+    const e = withUsage({ USAGE_COUNTERS_ENABLED: "true" });
+    (e.KEYS as unknown as MemoryKV).put = async () => {
+      throw new Error("kv down");
+    };
+    const { api } = historyApi();
+    const r = await call(e, api, "/v1/registry/get", { body: { urn } });
+    assert.equal(r.status, 200);
+    await new Promise((res) => setTimeout(res, 5));
+  });
+
+  it("the production wrangler config leaves the counters off", () => {
+    const text = readFileSync(
+      fileURLToPath(new URL("../wrangler.jsonc", import.meta.url)),
+      "utf8",
+    );
+    assert.doesNotMatch(text, /USAGE_COUNTERS_ENABLED\s*"?\s*:/);
   });
 });
