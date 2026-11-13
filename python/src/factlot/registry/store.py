@@ -1560,6 +1560,7 @@ class Registry:
         (``address_street_hint_from``) for the miss."""
         # The unit as asked: rebuilding a query without a comma leaves the unit out of its street line.
         unit = address_unit(address)
+        asked = address
         address = address_query_with_place(address)
         mode = address_query(address)["mode"]
         if mode is None:
@@ -1569,7 +1570,8 @@ class Registry:
         if mode == "street" and all(len(w) == 1 for w in runs):
             rows = self._search_address_runs(mode, runs, limit, place)
             return [{**r, **self._address_card(r["urn"], r["label"])} for r in rows], None
-        forms = address_forms(runs)
+        # A query rebuilt with a comma still finds the address it was, exactly, first.
+        forms = address_forms(runs, [] if address == asked else self._address_search_keys(asked.split(",")[0]))
         ordered = self._address_matches(mode, forms, place, unit)
         end = address_window_end(ordered, limit)
         results = address_result_rows([(m, self._address_card(m["urn"], m["label"])) for m in ordered[:end]], limit)

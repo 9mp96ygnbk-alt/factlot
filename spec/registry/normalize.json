@@ -1998,7 +1998,7 @@
     ["500 E 4TH ST AUSTIN TX 78701", "500 E 4TH ST, AUSTIN TX 78701"],
     [
       "1100 15th St NW Washington DC 20005",
-      "1100 15TH ST NW, WASHINGTON DC 20005"
+      "1100 15th St NW Washington DC 20005"
     ],
     ["220 36th St Brooklyn", "220 36th St Brooklyn"],
     ["1600 Smith St, Houston, TX", "1600 Smith St, Houston, TX"],
@@ -2006,16 +2006,22 @@
     ["1801 California Denver CO 80202", "1801 California Denver CO 80202"],
     ["100 Park Ave S New York NY 10003", "100 PARK AVE S, NEW YORK NY 10003"],
     ["12 St Johns Pl Brooklyn NY 11201", "12 St Johns Pl Brooklyn NY 11201"],
-    ["233 S Wacker Dr Chicago IL", "233 S WACKER DR, CHICAGO IL"],
+    ["233 S Wacker Dr Chicago IL", "233 S Wacker Dr Chicago IL"],
     [
       "2112 F ST NW # 802-B WASHINGTON DC 20037-2715",
-      "2112 F ST NW, WASHINGTON DC 20037 2715"
+      "2112 F ST NW # 802-B WASHINGTON DC 20037-2715"
     ],
     [
       "633 E FERNHURST DR 1102  KATY TX 77450",
       "633 E FERNHURST DR 1102, KATY TX 77450"
     ],
-    ["100 Main St 5 TX 77002", "100 MAIN ST 5, TX 77002"]
+    ["100 Main St 5 TX 77002", "100 Main St 5 TX 77002"],
+    [
+      "11050 W LITTLE YORK RD P  HOUSTON TX 77041",
+      "11050 W LITTLE YORK RD P, HOUSTON TX 77041"
+    ],
+    ["391-393 AVENUE OF THE AMER NY", "391-393 AVENUE OF THE AMER NY"],
+    ["1834 SNAKE RIVER RD C TX", "1834 SNAKE RIVER RD C TX"]
   ],
   "address_units": [
     ["300 Harbor Dr Unit 101, Example City TX 77999", "101"],
@@ -2028,6 +2034,7 @@
     ["880 N ALAMEDA ST UNIT NO 223, LOS ANGELES CA 90012", "223"],
     ["100 MAIN ST UNIT 1 A, BALTIMORE MD 21230", "1 A"],
     ["2112 F ST NW # 802-B WASHINGTON DC 20037-2715", "802-B"],
-    ["100 MAIN ST UNIT NO, X", "NO"]
+    ["100 MAIN ST UNIT NO, X", "X"],
+    ["13740 RESEARCH BLVD, BLDG #M UNIT 4 (1st FL), AUSTIN TX 78750", "M 4"]
   ]
 }

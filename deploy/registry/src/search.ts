@@ -161,7 +161,16 @@ export async function searchAddress(
       results.push({ ...r, ...(await cardOf(pack, r.urn, r.label)) });
     return { results, hint: null };
   }
-  const forms = addressForms([words]);
+  // A query rebuilt with a comma still finds the address it was, exactly, first.
+  const forms = addressForms(
+    [words],
+    query === asked
+      ? []
+      : addressSearchKeysFor(
+          m.versions.address_key_version,
+          asked.split(",")[0] ?? "",
+        ),
+  );
   const sorted = await addressMatches(
     pack,
     m,
@@ -240,9 +249,10 @@ async function addressMatches(
     if (t[0] === was.tier && t[1]) was.exact = true;
     return false;
   };
-  const exact =
-    (await dictionary<ExactList>(pack, m, `E:${first.join(" ")}`)) ?? [];
-  for (const [urn, label] of exact) put(urn, label, null);
+  for (const key of [first.join(" "), ...forms.exact]) {
+    const exact = (await dictionary<ExactList>(pack, m, `E:${key}`)) ?? [];
+    for (const [urn, label] of exact) put(urn, label, null);
+  }
   let done = unit === null && full >= limit;
   const written = addressListKey(mode, first);
   const lists: string[] = [];

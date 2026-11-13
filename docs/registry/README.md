@@ -368,9 +368,10 @@ more is not read as a range (11 lots in the registry's rolls, typing slips such 
 AV" or a whole street's numbers). The street must start with the same
 word, and every other word of the query must follow the range. In Queens, NY a hyphenated house
 number is one number ("37-20 80 Street"), never a range. A query without a comma whose street line
-goes on after its street type with a place ending in a state or ZIP code ("6700 Bissonnet St
-Houston TX 77074") is read as if a comma came before the place; words between the street type and
-the city (a bare unit number) stay in the street line, and a unit is read from the query as asked. In each place group, matches of the
+goes on after its street type with a city the city table knows and its state ("6700 Bissonnet St
+Houston TX 77074") is read as if a comma came before the city; words between the street type and
+the city (a bare unit number) stay in the street line, the street line as asked still counts as an
+exact address, and a unit is read from the whole query as asked ("BLDG #M UNIT 4" is "M 4"). In each place group, matches of the
 words as written come first, then the other spellings, then ranges; then an exact address, then the
 parcel whose label names the unit the query names ("#310"; a unit never filters), then by label.
 Parcels sharing one label come largest improvement area first, and those the roll records as land

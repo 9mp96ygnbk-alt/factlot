@@ -1130,11 +1130,17 @@ export function addressRangeListKey(
 export interface AddressForms {
   first: string[][];
   other: string[][];
+  /** Keys that also count as exact for the words as written: the street line of a query without a comma as asked. */
+  exact: string[];
 }
 
 /** `addressSearchForms` of each key version's words, the written ones first (`address_forms` in Python). */
-export function addressForms(runs: string[][]): AddressForms {
+export function addressForms(
+  runs: string[][],
+  asked: string[] = [],
+): AddressForms {
   const first = runs;
+  const exact = asked.filter((k) => !first.some((w) => w.join(" ") === k));
   const seen = new Set(first.map((w) => w.join(" ")));
   const other: string[][] = [];
   for (const run of runs)
@@ -1143,7 +1149,7 @@ export function addressForms(runs: string[][]): AddressForms {
         seen.add(f.join(" "));
         other.push(f);
       }
-  return { first, other };
+  return { first, other, exact };
 }
 
 /**
@@ -1160,7 +1166,11 @@ export function addressRowTier(
 ): [0 | 1 | 2, boolean] | null {
   for (const w of forms.first)
     if (addressKeyMatches(mode, w, key))
-      return [0, forms.first.some((x) => x.join(" ") === key)];
+      return [
+        0,
+        forms.first.some((x) => x.join(" ") === key) ||
+          forms.exact.includes(key),
+      ];
   if (forms.other.some((w) => addressKeyMatches(mode, w, key)))
     return [1, forms.other.some((x) => x.join(" ") === key)];
   if (
@@ -1193,8 +1203,8 @@ export function addressStreetWords(words: string[]): string[] | null {
 }
 
 /**
- * A query with a house number and no comma whose street line goes on after its street type with a place that ends in
- * a state or a ZIP code ("6700 Bissonnet St Houston TX 77074"), with a comma put before the place, so the place is
+ * A query with a house number and no comma whose street line goes on after its street type with a city the city
+ * table knows and its state ("6700 Bissonnet St Houston TX 77074"), with a comma put before the city, so the place is
  * read as one (`address_query_with_place` in Python); any other query unchanged. The street line is rebuilt from its
  * address words, which leave out a unit designator and its value: the search reads the unit from the query as asked.
  */
@@ -1206,17 +1216,17 @@ export function addressQueryWithPlace(query: string): string {
   if (!street) return query;
   const end = 1 + street.length;
   const rest = q.tokens.slice(end);
-  // The place starts at the first word from which a city with a state or ZIP code is read; words before it (a bare
-  // unit number, "633 E FERNHURST DR 1102 KATY TX 77450") stay in the street line. Without a city, the place is the
-  // shortest tail read as a state or ZIP code.
+  // The place starts at the first word from which a city the city table knows in the state read after it begins;
+  // words before it (a bare unit number, "633 E FERNHURST DR 1102 KATY TX 77450") stay in the street line.
   let at = -1;
   for (let i = 0; i < rest.length && at < 0; i++) {
     const p = addressPlace(`x, ${rest.slice(i).join(" ")}`);
-    if ((p.state !== null || p.zip !== null) && p.city !== null) at = i;
-  }
-  for (let i = rest.length - 1; i >= 0 && at < 0; i--) {
-    const p = addressPlace(`x, ${rest.slice(i).join(" ")}`);
-    if (p.state !== null || p.zip !== null) at = i;
+    if (
+      p.state !== null &&
+      p.city !== null &&
+      placeCounties(p.state, p.city) !== null
+    )
+      at = i;
   }
   if (at < 0) return query;
   return `${q.tokens.slice(0, end + at).join(" ")}, ${rest.slice(at).join(" ")}`;
@@ -1261,11 +1271,17 @@ function cardText(v: unknown): string | null {
       : null;
 }
 
-/** The unit a label or query names after a designator in its street line ("Unit 101", "#103"), or null. */
+/**
+ * The unit a label or query names after its designators ("Unit 101", "#103"; "BLDG #M UNIT 4" is "M 4"), anywhere in
+ * it, or null (`address_unit` in Python).
+ */
 export function addressUnit(text: unknown): string | null {
   if (typeof text !== "string") return null;
-  const line = upperAscii(text.split(",")[0] ?? "").replaceAll("#", " # ");
-  return LABEL_UNIT.exec(line)?.[1] ?? null;
+  const t = upperAscii(text).replaceAll(",", " ").replaceAll("#", " # ");
+  const values = [...t.matchAll(new RegExp(LABEL_UNIT.source, "g"))].map(
+    (m) => m[1]!,
+  );
+  return values.length ? values.join(" ") : null;
 }
 
 /**
@@ -2009,7 +2025,11 @@ function searchAddress(
       hint: null,
     };
   }
-  const forms = addressForms(runs);
+  // A query rebuilt with a comma still finds the address it was, exactly, first.
+  const forms = addressForms(
+    runs,
+    address === query ? [] : addressSearchKeys(d, query.split(",")[0] ?? ""),
+  );
   // The unit as asked: rebuilding a query without a comma leaves the unit out of its street line.
   const sorted = addressMatches(d, mode, forms, place, addressUnit(query));
   const end = addressWindowEnd(sorted, limit);

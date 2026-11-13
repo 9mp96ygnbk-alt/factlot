@@ -7,6 +7,7 @@ from difflib import SequenceMatcher
 from typing import Any
 
 from ..ids import address_tokens
+from .address_places import place_counties
 
 # Texas State Property Tax Code categories kept by default (data policy §3):
 # B multifamily, F1 commercial real property, F2 industrial/manufacturing real property.
@@ -1418,7 +1419,7 @@ def address_range_list_key(words: list[str], start: int) -> str | None:
     return None
 
 
-def address_forms(runs: list[list[str]]) -> dict[str, list[list[str]]]:
+def address_forms(runs: list[list[str]], asked: list[str] | None = None) -> dict[str, Any]:
     """``address_search_forms`` of each key version's words, the written ones first (``addressForms`` in TS)."""
     seen = {" ".join(w) for w in runs}
     other: list[list[str]] = []
@@ -1427,7 +1428,8 @@ def address_forms(runs: list[list[str]]) -> dict[str, list[list[str]]]:
             if " ".join(f) not in seen:
                 seen.add(" ".join(f))
                 other.append(f)
-    return {"first": runs, "other": other}
+    exact = [k for k in (asked or []) if not any(" ".join(w) == k for w in runs)]
+    return {"first": runs, "other": other, "exact": exact}
 
 
 def address_row_tier(mode: str, forms: dict[str, list[list[str]]], urn: str, label: Any,
@@ -1436,7 +1438,7 @@ def address_row_tier(mode: str, forms: dict[str, list[list[str]]], urn: str, lab
     spelling, (2, False) inside a house-number range only, else None."""
     for w in forms["first"]:
         if address_key_matches(mode, w, key):
-            return 0, any(" ".join(x) == key for x in forms["first"])
+            return 0, any(" ".join(x) == key for x in forms["first"]) or key in forms.get("exact", [])
     if any(address_key_matches(mode, w, key) for w in forms["other"]):
         return 1, any(" ".join(x) == key for x in forms["other"])
     if mode == "house_number" and any(address_range_matches(w, urn, label, key)
@@ -1561,12 +1563,12 @@ def _js_number(v: float) -> str:
 
 
 def address_unit(text: Any) -> str | None:
-    """The unit a label or query names after a designator in its street line ("Unit 101", "#103"), or None
-    (``addressUnit`` in TS)."""
+    """The unit a label or query names after its designators ("Unit 101", "#103"; "BLDG #M UNIT 4" is "M 4"), anywhere
+    in it, or None (``addressUnit`` in TS)."""
     if not isinstance(text, str):
         return None
-    m = _LABEL_UNIT.search(_upper_ascii(text.split(",")[0]).replace("#", " # "))
-    return m.group(1) if m else None
+    values = [m.group(1) for m in _LABEL_UNIT.finditer(_upper_ascii(text).replace(",", " ").replace("#", " # "))]
+    return " ".join(values) if values else None
 
 
 def address_card(label: Any, facts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1699,8 +1701,8 @@ def address_place_with(query: str, where: dict[str, str] | None = None) -> dict[
 
 
 def address_query_with_place(query: str) -> str:
-    """A query with a house number and no comma whose street line goes on after its street type with a place ending in a
-    state or a ZIP code, with a comma put before the place (``addressQueryWithPlace`` in TS); any other unchanged."""
+    """A query with a house number and no comma whose street line goes on after its street type with a city the city
+    table knows and its state, with a comma put before the city (``addressQueryWithPlace`` in TS); any other unchanged."""
     if "," in query:
         return query
     q = address_query(query)
@@ -1711,13 +1713,10 @@ def address_query_with_place(query: str) -> str:
         return query
     end = 1 + len(street)
     rest = q["tokens"][end:]
-    # The place starts at the first word from which a city with a state or ZIP code is read; words before it (a bare
-    # unit number) stay in the street line. Without a city, the place is the shortest tail read as a state or ZIP code.
-    at = next((i for i in range(len(rest)) if (p := address_place("x, " + " ".join(rest[i:])))["city"] is not None
-               and (p["state"] is not None or p["zip"] is not None)), None)
-    if at is None:
-        at = next((i for i in range(len(rest) - 1, -1, -1) if (p := address_place("x, " + " ".join(rest[i:])))["state"]
-                   is not None or p["zip"] is not None), None)
+    # The place starts at the first word from which a city the city table knows in the state read after it begins;
+    # words before it (a bare unit number) stay in the street line.
+    at = next((i for i in range(len(rest)) if (p := address_place("x, " + " ".join(rest[i:])))["state"] is not None
+               and p["city"] is not None and place_counties(p["state"], p["city"]) is not None), None)
     if at is None:
         return query
     return " ".join(q["tokens"][:end + at]) + ", " + " ".join(rest[at:])
