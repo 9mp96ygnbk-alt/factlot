@@ -6,3 +6,5 @@ collected/
 .wrangler/
 deploy/cloudflare/public/
 site/_content/coverage-geometry.json
+site/_data/stories/
+scripts/site/fixtures/
