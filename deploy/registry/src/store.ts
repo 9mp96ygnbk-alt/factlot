@@ -50,15 +50,13 @@ export class Pack {
   private readonly source: PackSource;
 
   /**
-   * `source`: the backend, or an assets fetcher (the static-assets backend). `pinned`: files kept from an earlier
-   * reader of the same pack (the checker uses it to time a warm isolate; the object-storage backend passes the
-   * manifest it has already read and checked).
+   * `source`: the backend, chosen by the caller (`assetsSource(env.ASSETS)` for static assets, `objectSource` for
+   * object storage). Never decided by probing the value: the real ASSETS binding is an RPC-capable Fetcher, which
+   * answers `"read" in` as true. `pinned`: files kept from an earlier reader of the same pack (the checker uses it
+   * to time a warm isolate; the object-storage backend passes the manifest it has already read and checked).
    */
-  constructor(
-    source: AssetFetcher | PackSource,
-    pinned = new Map<string, unknown>(),
-  ) {
-    this.source = "read" in source ? source : assetsSource(source);
+  constructor(source: PackSource, pinned = new Map<string, unknown>()) {
+    this.source = source;
     this.pinned = pinned;
   }
 

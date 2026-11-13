@@ -66,7 +66,7 @@ import {
   bucketText,
   packKey,
 } from "./r2_pack.ts";
-import { Pack } from "./store.ts";
+import { Pack, assetsSource } from "./store.ts";
 import { runRegistryTool } from "./tools.ts";
 import { handle, type Env } from "./worker.ts";
 
@@ -807,7 +807,7 @@ test("candidate lists split into chunks count and order like the whole list", as
       row: decodeRow(h, docs, r),
       docs: ["doc-0"],
     }));
-    const pack = new Pack(fileAssets(root));
+    const pack = new Pack(assetsSource(fileAssets(root)));
     for (let t = 0; t < 40; t++) {
       const subject = pool[Math.floor(rand() * pool.length)]!;
       const params = {
@@ -856,7 +856,7 @@ test("long lists share pages and read back whole", async () => {
     writeFileSync(join(root, path), JSON.stringify(v));
   });
   assert.equal(written, Math.ceil(60 / 6));
-  const pack = new Pack(fileAssets(root));
+  const pack = new Pack(assetsSource(fileAssets(root)));
   for (const [i, list] of lists.entries()) {
     const got: number[] = [];
     for await (const rows of listPages<number>(pack, "p", 6, at[i]!))
@@ -1030,7 +1030,7 @@ test("every parcel label of the fixture, used as the query, finds its parcel thr
 });
 
 test("a state the pack does not hold is answered without reading the address lists", async () => {
-  const pack = new Pack(fileAssets(join(dir, "pack")));
+  const pack = new Pack(assetsSource(fileAssets(join(dir, "pack"))));
   await pack.manifest();
   const before = pack.reads;
   const out = await runRegistryTool(pack, "registry_search_address", {
@@ -1107,7 +1107,7 @@ test("every pack withholds Tarrant, even when --exclude-county is left out", asy
   );
   assert.equal(refused.objects.size, 0);
   // And the Worker answers nothing of a withheld county, even from such a pack, on either backend.
-  const store = new Pack(fileAssets(pack));
+  const store = new Pack(assetsSource(fileAssets(pack)));
   assert.equal(await store.entry("fl:parcel:us-48439:1"), undefined);
   const bucket = new MemoryBucket();
   await rawLoad(bucket, pack, "bad");
@@ -1154,7 +1154,7 @@ test("the suppression list: an entity is not served, a parcel loses its owner bu
     },
   );
   assert.ok(stats.files > 0);
-  const store = new Pack(fileAssets(pack));
+  const store = new Pack(assetsSource(fileAssets(pack)));
   assert.equal(await store.entry(entity!), undefined, "the entity is gone");
   const parcel = await store.entry(owned!.urn);
   assert.ok(parcel, "the parcel is still served");
