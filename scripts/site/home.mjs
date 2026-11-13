@@ -281,3 +281,31 @@ export function coveragePreview(geo, counties) {
 ${INSETS.map((i) => `<div class="insetfig">\n${insetSvg(geo, i, shown, { idPrefix: "home" })}\n<p>${esc(i.name)}</p>\n</div>`).join("\n")}
 </div>`;
 }
+
+/**
+ * One way to connect, for the home page's tiles: the path's name (a link to its place on the
+ * connect page) and what to paste, the first command of its snippet or its URL.
+ * `data`: connect.json with the version filled in (connectData). `id`: a path id.
+ */
+export function connectTile(data, id) {
+  const p = data.surfaces.flatMap((s) => s.paths).find((x) => x.id === id);
+  if (!p) throw new Error(`home: connect.json has no path ${id}`);
+  const code = p.snippet ? p.snippet.text.split("\n\n")[0] : p.url;
+  if (!code) throw new Error(`home: the path ${id} has nothing to paste`);
+  return `<p class="tile-label"><a href="/connect/#${esc(p.id)}">${esc(p.name)}</a></p>
+<pre><code>${esc(code)}</code></pre>`;
+}
+
+/**
+ * The sentence that says what FactLot is not in Texas, exactly as the Texas page has it.
+ * `texasHtml`: site/_content/texas.html.
+ */
+export function texasSoftwareSentence(texasHtml) {
+  const flat = texasHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const m =
+    /FactLot is software\. It is not a property tax consultant[^.]*\./.exec(
+      flat,
+    );
+  if (!m) throw new Error("home: the Texas page no longer has the sentence");
+  return m[0];
+}

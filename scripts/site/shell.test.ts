@@ -24,11 +24,13 @@ import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import { marketBody, marketCard, hostedMarkets } from "./market-pages.mjs";
 import * as shell from "./shell.mjs";
 import {
+  connectTile,
   coveragePreview,
   factCard,
   flowTall,
   flowWide,
   platSvg,
+  texasSoftwareSentence,
 } from "./home.mjs";
 import {
   countyReadouts,
@@ -586,6 +588,105 @@ describe("the built site", () => {
           ),
           slug,
         );
+      // The home page: the shell, and every figure and plan number from the data, none typed.
+      const homeSource = read("site/index.html");
+      const home = readFileSync(`${out}/index.html`, "utf8");
+      assert.ok(
+        home.includes(shell.siteHeader({ current: "/", brandHref: "#top" })),
+      );
+      assert.ok(home.includes(shell.siteFooter()));
+      assert.ok(home.includes(shell.headLinks()));
+      assert.doesNotMatch(home, /\{\{[A-Z_]+\}\}|\sstyle=/);
+      const harris = json<{ examples: { county: string }[] }>(
+        "site/_data/texas-examples.json",
+      ).examples.find((e) => e.county === "harris")!;
+      assert.ok(home.includes(factCard(harris, "/texas/harris/example/")));
+      assert.ok(home.includes(flowWide(harris)));
+      assert.ok(home.includes(flowTall(harris)));
+      assert.ok(home.includes(platSvg()));
+      assert.equal(
+        home.split('class="cty cov-hosted"').length - 1,
+        hosted.counties.length,
+      );
+      const calculators = json<{ tools: { name: string }[] }>(
+        "spec/schemas/tools.json",
+      ).tools.filter((t) => t.name.startsWith("calc_")).length;
+      assert.match(
+        home,
+        new RegExp(`<dt>Calculators</dt>\\s*<dd>${calculators}</dd>`),
+      );
+      assert.ok(homeSource.includes("<dd>{{CALC_COUNT}}</dd>"));
+      // The plan cards and the sentences that give a plan's limits carry no number of their own.
+      const plans = json<{
+        free: Record<string, number>;
+        paid: Record<string, number>[];
+      }>("site/_data/plans.json");
+      const n = (v: number | undefined) => (v ?? NaN).toLocaleString("en-US");
+      const cards = /<div class="plans">[\s\S]*?<div class="fine">/.exec(
+        homeSource,
+      )![0];
+      for (const id of ["plan-free", "plan-pro", "plan-team"]) {
+        const card = cards
+          .slice(cards.indexOf(`id="${id}"`))
+          .split("</article>")[0]!;
+        assert.doesNotMatch(
+          words(card).replace("$0", ""),
+          /\d/,
+          `${id} states a number by hand`,
+        );
+      }
+      assert.doesNotMatch(
+        homeSource.replace(/\s+/g, " "),
+        /\d[\d,]* (?:requests a minute|registry lookups|reports a month|a day free|a month on (?:Pro|Team))/,
+      );
+      const homeText = words(home);
+      const [pro, team] = plans.paid as [
+        Record<string, number>,
+        Record<string, number>,
+      ];
+      for (const t of [
+        `${n(plans.free.requests_per_minute)} requests a minute per IP address`,
+        `${n(plans.free.registry_lookups_per_day)} registry lookups a day per IP address`,
+        `${n(plans.free.reports_per_month)} reports a month per IP address`,
+        `$${pro.usd_per_month} a month, or $${pro.usd_per_year} a year`,
+        `${pro.keys} API key ${n(pro.requests_per_minute)} requests a minute ${n(pro.registry_lookups_per_month)} registry lookups a month ${n(pro.reports_per_month)} reports a month`,
+        `$${team.usd_per_month} a month`,
+        `Up to ${team.keys} API keys ${n(team.requests_per_minute)} requests a minute ${n(team.registry_lookups_per_month)} registry lookups a month ${n(team.reports_per_month)} reports a month`,
+        `${n(plans.free.registry_lookups_per_day)} a day free, ${n(pro.registry_lookups_per_month)} a month on Pro, ${n(team.registry_lookups_per_month)} a month on Team`,
+      ])
+        assert.ok(homeText.includes(t), t);
+      // What FactLot is not in Texas: the Texas page's own sentence, taken from it at build.
+      const sentence = texasSoftwareSentence(read("site/_content/texas.html"));
+      assert.equal(
+        sentence,
+        "FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152, does not prepare, file or advise on protests, and does not represent owners before an appraisal review board.",
+      );
+      assert.ok(homeText.includes(sentence));
+      assert.ok(words(read("site/_content/texas.html")).includes(sentence));
+      assert.ok(!homeSource.includes("Occupations Code"));
+      // The connect tiles: each path's own name and first command, from connect.json.
+      const connect = connectData(json("site/_data/connect.json"), version);
+      for (const id of [
+        "claude-code",
+        "chatgpt-app",
+        "gemini-cli",
+        "copilot-studio-mcp",
+        "bedrock-agents",
+        "other-clients",
+      ]) {
+        assert.ok(home.includes(connectTile(connect, id)), id);
+        assert.ok(home.includes(`href="/connect/#${id}"`), id);
+      }
+      // The social image's declared size is the file's.
+      const png = readFileSync(new URL("site/social-preview.png", root));
+      assert.ok(
+        home.includes(
+          `<meta property="og:image:width" content="${png.readUInt32BE(16)}" />`,
+        ) &&
+          home.includes(
+            `<meta property="og:image:height" content="${png.readUInt32BE(20)}" />`,
+          ),
+      );
       const coverage = readFileSync(`${out}/coverage/index.html`, "utf8");
       assert.equal(coverage.split('class="covsvg inset"').length - 1, 3);
       const texasHub = readFileSync(`${out}/texas/index.html`, "utf8");

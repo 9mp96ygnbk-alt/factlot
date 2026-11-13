@@ -29,7 +29,21 @@ import {
   countyReadouts,
   texasMap,
 } from "./texas-pages.mjs";
-import { connectBody, connectFigure, connectJson } from "./connect.mjs";
+import {
+  connectBody,
+  connectData,
+  connectFigure,
+  connectJson,
+} from "./connect.mjs";
+import {
+  connectTile,
+  coveragePreview,
+  factCard,
+  flowTall,
+  flowWide,
+  platSvg,
+  texasSoftwareSentence,
+} from "./home.mjs";
 import {
   buildCoverageCatalog,
   loadSourceConfigs,
@@ -936,6 +950,7 @@ if (stories.length) {
 
 let coverageJson;
 let coverageMini;
+let homeCoverage;
 {
   const covRel = "docs/registry/coverage-counties.json";
   const cov = readJson(covRel);
@@ -1005,6 +1020,10 @@ ${shapes}
 ${INSETS.map((i) => `<div class="insetfig">\n${insetSvg(geo, i, classed, { idPrefix: "cov", refs: true })}\n<p>${esc(i.name)}</p>\n</div>`).join("\n")}
 </div>`;
   coverageMini = miniMapSvg(geo, hostedFips);
+  homeCoverage = coveragePreview(
+    geo,
+    classed.filter((c) => c.cls === "hosted"),
+  );
   // The hosted counties are the field table's rows; this list is the counties the hosted API does not serve.
   const byState = {};
   for (const [fips, c] of entries)
@@ -1323,11 +1342,53 @@ for (const [file, urlPath] of [
     );
   fs.writeFileSync(file, `${css}\n`);
 }
-// The home page states plan facts through the same placeholders as the generated pages.
-fs.writeFileSync(
-  path.join(out, "index.html"),
-  fill(read("site/index.html"), PLAN_VARS),
-);
+// The home page states plan facts through the same placeholders as the generated pages, takes the
+// shared shell, and its figures are drawn here from the data other pages are built from: the
+// Harris County worked example, the coverage geometry, connect.json and plans.json.
+{
+  const harris = readJson("site/_data/texas-examples.json").examples.find(
+    (e) => e.county === "harris",
+  );
+  if (!harris) throw new Error("home: no Harris County worked example");
+  const connect = connectData(connectRaw, VERSION);
+  const n = (v) => v.toLocaleString("en-US");
+  const team = plansData.paid.find((p) => p.id === "team");
+  fs.writeFileSync(
+    path.join(out, "index.html"),
+    fill(read("site/index.html"), {
+      ...PLAN_VARS,
+      HEAD_LINKS: headLinks(),
+      SITE_HEADER: siteHeader({ current: "/", brandHref: "#top" }),
+      SITE_FOOTER: siteFooter({ stories: stories.length > 0 }),
+      PLAT: platSvg(),
+      FACT_CARD: factCard(harris, "/texas/harris/example/"),
+      FLOW: `${flowWide(harris)}\n${flowTall(harris)}`,
+      COVERAGE_PREVIEW: homeCoverage,
+      CALC_COUNT: String(calcTools.length),
+      TEXAS_SOFTWARE_SENTENCE: esc(
+        texasSoftwareSentence(read("site/_content/texas.html")),
+      ),
+      CONNECT_CLAUDE: connectTile(connect, "claude-code"),
+      CONNECT_CHATGPT: connectTile(connect, "chatgpt-app"),
+      CONNECT_GEMINI: connectTile(connect, "gemini-cli"),
+      CONNECT_MICROSOFT: connectTile(connect, "copilot-studio-mcp"),
+      CONNECT_AMAZON: connectTile(connect, "bedrock-agents"),
+      CONNECT_OTHERS: connectTile(connect, "other-clients"),
+      PLAN_FREE_RPM: n(plansData.free.requests_per_minute),
+      PLAN_FREE_LOOKUPS_DAY: n(plansData.free.registry_lookups_per_day),
+      PLAN_FREE_REPORTS: n(plansData.free.reports_per_month),
+      PLAN_PRO_KEYS: n(proPlan.keys),
+      PLAN_PRO_RPM: n(proPlan.requests_per_minute),
+      PLAN_PRO_LOOKUPS: n(proPlan.registry_lookups_per_month),
+      PLAN_PRO_REPORTS: n(proPlan.reports_per_month),
+      PLAN_TEAM_MONTHLY_USD: String(team.usd_per_month),
+      PLAN_TEAM_KEYS: n(team.keys),
+      PLAN_TEAM_RPM: n(team.requests_per_minute),
+      PLAN_TEAM_LOOKUPS: n(team.registry_lookups_per_month),
+      PLAN_TEAM_REPORTS: n(team.reports_per_month),
+    }),
+  );
+}
 for (const p of pages) {
   const file = path.join(out, p.urlPath, "index.html");
   fs.mkdirSync(path.dirname(file), { recursive: true });

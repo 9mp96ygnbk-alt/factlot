@@ -1525,34 +1525,6 @@ h3 > .cite {
   max-width: 34rem;
 }
 
-.hero-endpoint {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.75rem;
-  margin: 1.5rem 0 0;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.hero-endpoint code {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  padding: 0.25rem 0.55rem;
-  color: var(--ink);
-  user-select: all;
-}
-
-.hero-links {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.hero-links a {
-  margin-right: 1.25rem;
-  white-space: nowrap;
-}
-
 .hero-copy {
   position: relative;
   z-index: 1;
@@ -1848,15 +1820,14 @@ h3 > .cite {
     padding-left: 0;
   }
 
-  .readouts dl > div:last-child {
-    grid-column: 1 / -1;
+  .readouts dl > div:nth-last-child(-n + 2) {
     border-bottom: 0;
   }
 }
 
 @media (min-width: 48rem) {
   .readouts dl {
-    grid-template-columns: 1.5fr repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr));
   }
 
   .readouts dl > div {
@@ -1893,81 +1864,88 @@ h3 > .cite {
 
 .audience svg {
   width: 100%;
-  height: 5.5rem;
+  height: 6rem;
   margin-bottom: 1.5rem;
-  color: var(--ink);
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.audience svg .ln {
-  fill: none;
-  stroke: currentColor;
+/* The drawings share one set of strokes: ink outlines, muted rules, one accent, green for a cited value. */
+.audience .a-f {
+  fill: var(--paper-2);
+  stroke: var(--ink);
   stroke-width: 1.25;
 }
 
-.audience svg .lt {
-  fill: none;
-  stroke: var(--line-2);
-  stroke-width: 1;
+.audience .a-l {
+  stroke: var(--ink);
+  stroke-width: 1.5;
 }
 
-.audience svg .ac {
+.audience .a-m {
+  stroke: var(--line-2);
+}
+
+.audience .a-ink {
+  fill: var(--ink);
+}
+
+.audience .a-a {
   fill: var(--accent);
 }
 
-.audience svg .acl {
-  fill: none;
+.audience .a-al {
+  stroke: var(--accent);
+  stroke-width: 1.75;
+}
+
+.audience .a-as {
+  fill: var(--accent-soft);
   stroke: var(--accent);
   stroke-width: 1.5;
 }
 
-.audience svg .ci {
-  fill: var(--cited-bg);
-  stroke: var(--cited);
-  stroke-width: 1;
+.audience .a-mon {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1.75;
 }
 
-.audience svg .fl {
-  fill: var(--paper-2);
-  stroke: currentColor;
-  stroke-width: 1.25;
+.audience .a-c {
+  fill: var(--cited-bg);
+  stroke: var(--cited);
+}
+
+.audience .a-lc {
+  stroke: var(--cited);
+  stroke-width: 1.5;
+}
+
+.audience .a-d {
+  stroke: var(--line-2);
+  stroke-dasharray: 3 3;
 }
 
 .audience h3 {
   margin: 0 0 0.75rem;
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
-.audience ul {
-  flex: 1;
-  margin: 0 0 1.5rem;
-  padding: 0;
-  list-style: none;
-}
-
-.audience li {
-  position: relative;
-  margin: 0;
-  padding: 0.6rem 0 0.6rem 1.4rem;
-  border-top: 1px solid var(--line);
+.audience p {
   color: var(--ink-2);
-  font-size: 0.975rem;
 }
 
-.audience li::before {
-  content: "";
-  position: absolute;
-  left: 0.1rem;
-  top: 1.1rem;
-  width: 0.45rem;
-  height: 0.45rem;
-  border: 1.5px solid var(--cited);
-  border-radius: 50%;
+.audience .small {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
 }
 
-.audience p:last-child {
-  margin: 0;
-  font-weight: 600;
+.audience .actions {
+  margin: auto 0 0;
+  padding-top: 0.75rem;
 }
 
 @media (min-width: 60rem) {
@@ -2224,6 +2202,27 @@ h3 > .cite {
   margin: 0 0 0.75rem;
 }
 
+/* The numbered steps: the number is the tab, the step's heading titles its panel. */
+.steps > label {
+  justify-content: center;
+  min-width: 2.75rem;
+  font-family: var(--mono);
+}
+
+.steps h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.example {
+  align-items: start;
+}
+
+.example > div:first-child {
+  color: var(--ink-2);
+}
+
 /* A client tile: what to do on the left, the exact text to copy on the right. */
 
 .tile {
@@ -2237,12 +2236,6 @@ h3 > .cite {
 
 .tile-info {
   padding: 1.4rem 1.5rem;
-}
-
-.tile-info h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1.3rem;
-  letter-spacing: -0.02em;
 }
 
 .tile-info p {
@@ -2266,10 +2259,13 @@ h3 > .cite {
 .tile-code p {
   margin: 0;
   font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
   color: var(--code-muted);
+}
+
+.tile-code a {
+  color: inherit;
 }
 
 .tile-code pre {
@@ -2315,14 +2311,6 @@ h3 > .cite {
   letter-spacing: -0.03em;
 }
 
-.layer .tag {
-  margin: 0 0 0.5rem;
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--accent);
-  letter-spacing: 0.06em;
-}
-
 .layer-body > p {
   max-width: 42rem;
   color: var(--ink-2);
@@ -2336,39 +2324,6 @@ h3 > .cite {
   .layer {
     grid-template-columns: 15rem minmax(0, 1fr);
   }
-}
-
-details.more {
-  max-width: 42rem;
-  margin: 0 0 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.band details.more {
-  background: var(--paper);
-}
-
-details.more summary {
-  padding: 0.7rem 1rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-details.more summary::marker {
-  color: var(--accent);
-}
-
-details.more[open] summary {
-  border-bottom: 1px solid var(--line);
-}
-
-details.more > :not(summary) {
-  margin: 0.9rem 1rem;
-  font-size: 0.925rem;
-  color: var(--ink-2);
 }
 
 .linkrow {
@@ -2407,50 +2362,61 @@ details.more > :not(summary) {
   height: auto;
 }
 
-.cov-preview .places {
+.cov-preview .insets {
+  margin: 0;
+}
+
+.cov-text {
   color: var(--ink-2);
 }
 
+/* The national map beside the list of places; the insets run across below both. */
 @media (min-width: 60rem) {
   .cov-preview {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  }
+
+  .cov-preview .insets {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 /* Tool index (For AI agents) */
 
-.toolindex {
-  margin: 1.5rem 0;
+.toollist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   border-top: 1px solid var(--ink);
 }
 
-.toolindex > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.35rem 2rem;
-  padding: 0.9rem 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.toolindex dt {
-  font-weight: 600;
-}
-
-.toolindex dd {
+.toollist li {
   margin: 0;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
   color: var(--ink-2);
-  font-size: 0.925rem;
-  line-height: 1.9;
+  line-height: 1.85;
 }
 
-@media (min-width: 54rem) {
-  .toolindex > div {
-    grid-template-columns: 11rem minmax(0, 1fr);
-  }
+.toollist strong {
+  color: var(--ink);
+}
 
-  .toolindex dd code {
-    white-space: nowrap;
-  }
+.home .kicker {
+  margin: 0 0 0.75rem;
+}
+
+/* The developer introduction: the claim on the left, what answers it on the right. */
+.hero-claim {
+  max-width: 20ch;
+}
+
+.home .note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .two-col {
@@ -2504,31 +2470,28 @@ details.more > :not(summary) {
 }
 
 .plan .price {
-  margin: 0 0 0.25rem;
-  font-size: 2.6rem;
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.plan .price strong {
+  font-weight: 500;
+}
+
+.plan .amt {
+  margin-right: 0.15em;
+  color: var(--ink);
+  font-size: 2.5rem;
   font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 1;
 }
 
-.plan .price small {
-  font-size: 1rem;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--muted);
-}
-
-.plan .price.quote {
-  font-size: 1.45rem;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-.plan .terms {
-  min-height: 1.5rem;
-  margin: 0 0 1.25rem;
-  color: var(--muted);
-  font-size: 0.9rem;
+.plan .amt.words {
+  font-size: 1.7rem;
+  letter-spacing: -0.03em;
 }
 
 .plan ul {
@@ -2546,13 +2509,6 @@ details.more > :not(summary) {
   color: var(--ink-2);
 }
 
-.plan li b {
-  color: var(--ink);
-  font-family: var(--mono);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
 .plan .button {
   width: 100%;
   margin-bottom: 0.5rem;
@@ -2565,6 +2521,24 @@ details.more > :not(summary) {
 .plan .small {
   margin-top: 0.5rem;
   font-size: 0.8rem;
+}
+
+.fine {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: 0 3rem;
+  margin-bottom: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-2);
+}
+
+#pricing .sec-head {
+  align-items: start;
+}
+
+#early-access {
+  margin-top: 0;
+  font-size: 1.2rem;
 }
 
 /* Principles */

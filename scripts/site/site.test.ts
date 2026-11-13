@@ -204,7 +204,7 @@ describe("pricing page", () => {
 
 describe("home page", () => {
   const html = read("site/index.html");
-  it("opens with the three promises, each linking to its page, above the developer material", () => {
+  it("puts the three promises, each linking to its page, above the developer material", () => {
     const promises = html.indexOf('id="promise-title"');
     const developer = html.indexOf('id="hero-title"');
     assert.ok(promises > 0 && developer > promises);

@@ -27,8 +27,8 @@
       property="og:image"
       content="https://factlot.com/social-preview.png"
     />
-    <meta property="og:image:width" content="1280" />
-    <meta property="og:image:height" content="640" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
       content="FactLot: an open fact layer for commercial real estate AI agents"
@@ -49,6 +49,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/icon-48.png" sizes="48x48" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {{HEAD_LINKS}}
     <link rel="stylesheet" href="/styles.css" />
     <script type="application/ld+json">
       {
@@ -85,7 +86,7 @@
           {
             "@type": "Offer",
             "name": "Free",
-            "description": "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address. No key needed; an optional free key by email counts requests and lookups on its own meter, while reports stay counted per IP address too.",
+            "description": "Every calculator, ID, fact, rules and document tool at {{PLAN_FREE_RPM}} requests a minute per IP address, and {{PLAN_FREE_LOOKUPS_DAY}} registry lookups a day per IP address. No key needed; an optional free key by email counts requests and lookups on its own meter, while reports stay counted per IP address too.",
             "price": "0",
             "priceCurrency": "USD",
             "url": "https://factlot.com/#pricing"
@@ -93,7 +94,7 @@
           {
             "@type": "Offer",
             "name": "Pro",
-            "description": "1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. Renews monthly until cancelled.",
+            "description": "{{PLAN_PRO_KEYS}} API key, {{PLAN_PRO_RPM}} requests a minute, {{PLAN_PRO_LOOKUPS}} registry lookups a month, email support. Renews monthly until cancelled.",
             "price": "{{PLAN_PRO_MONTHLY_USD}}",
             "priceCurrency": "USD",
             "priceSpecification": {
@@ -111,7 +112,7 @@
           {
             "@type": "Offer",
             "name": "Pro, billed yearly",
-            "description": "The same limits as monthly Pro: 1 API key, 600 requests a minute, 5,000 registry lookups a month, email support. Renews yearly until cancelled.",
+            "description": "The same limits as monthly Pro: {{PLAN_PRO_KEYS}} API key, {{PLAN_PRO_RPM}} requests a minute, {{PLAN_PRO_LOOKUPS}} registry lookups a month, email support. Renews yearly until cancelled.",
             "price": "{{PLAN_PRO_YEARLY_USD}}",
             "priceCurrency": "USD",
             "priceSpecification": {
@@ -129,12 +130,12 @@
           {
             "@type": "Offer",
             "name": "Team",
-            "description": "Up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, priority support, and a vote on which regions open next. Renews monthly until cancelled.",
-            "price": "599",
+            "description": "Up to {{PLAN_TEAM_KEYS}} API keys, {{PLAN_TEAM_RPM}} requests a minute, {{PLAN_TEAM_LOOKUPS}} registry lookups a month, priority support, and a vote on which regions open next. Renews monthly until cancelled.",
+            "price": "{{PLAN_TEAM_MONTHLY_USD}}",
             "priceCurrency": "USD",
             "priceSpecification": {
               "@type": "UnitPriceSpecification",
-              "price": "599",
+              "price": "{{PLAN_TEAM_MONTHLY_USD}}",
               "priceCurrency": "USD",
               "referenceQuantity": {
                 "@type": "QuantitativeValue",
@@ -148,79 +149,199 @@
       }
     </script>
   </head>
-  <body>
+  <body class="home">
     <a class="skip" href="#main">Skip to content</a>
 
-    <header class="site-header">
-      <div class="wrap row">
-        <a class="brand" href="#top" aria-label="FactLot home">FactLot</a>
-        <nav aria-label="Page sections">
-          <ul>
-            <li><a href="/try/">Try it</a></li>
-            <li><a href="/calculators/">Calculators</a></li>
-            <li><a href="/mcp-server/">MCP server</a></li>
-            <li><a href="/connect/">Connect</a></li>
-            <li><a href="/texas/">Texas</a></li>
-            <li><a href="/coverage/">Coverage</a></li>
-            <li><a href="#layers">Layers</a></li>
-            <li><a href="#how">How it works</a></li>
-            <li><a href="#connect">Connect</a></li>
-            <li><a href="#agents">For AI agents</a></li>
-            <li><a href="/pricing/">Pricing</a></li>
-            <li><a href="#open-source">Open source</a></li>
-            <li><a href="#principles">Principles</a></li>
-          </ul>
-        </nav>
-      </div>
-    </header>
+    {{SITE_HEADER}}
 
     <main id="main">
-      <section class="hero" id="top" aria-labelledby="promise-title">
+      <section class="hero" id="top" aria-labelledby="top-title">
+        <div class="wrap hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">
+              Commercial real estate facts that cite their source
+            </p>
+            <h1 id="top-title">Every number has a <em>source</em>.</h1>
+            <p class="lede">
+              Each fact names its method, its source document and record, and
+              the rights that travel with it.
+            </p>
+            <p class="actions">
+              <a class="button primary" href="/try/">Try a lookup</a>
+              <a class="button" href="/connect/">Connect Claude or ChatGPT</a>
+            </p>
+          </div>
+          <div class="hero-art">{{PLAT}} {{FACT_CARD}}</div>
+        </div>
+      </section>
+
+      <section class="readouts" aria-label="What the hosted API holds">
         <div class="wrap">
-          <p class="eyebrow">
-            Commercial real estate facts that cite their source
-          </p>
-          <h1 id="promise-title">What FactLot does for you, by who you are</h1>
-          <div class="cards">
-            <article class="card">
-              <h2 class="card-title">
+          <dl>
+            <div>
+              <dt>Commercial parcels on the hosted API</dt>
+              <dd><!-- hosted:parcels -->891,631<!-- /hosted:parcels --></dd>
+            </div>
+            <div>
+              <dt>Counties hosted</dt>
+              <dd><!-- hosted:counties -->60<!-- /hosted:counties --></dd>
+            </div>
+            <div>
+              <dt>Texas counties hosted</dt>
+              <dd>
+                <!-- hosted:texas-counties -->16<!-- /hosted:texas-counties -->
+              </dd>
+            </div>
+            <div>
+              <dt>Calculators</dt>
+              <dd>{{CALC_COUNT}}</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section id="promises" aria-labelledby="promise-title">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 id="promise-title">
+              What FactLot does for you, by who you are
+            </h2>
+          </div>
+          <div class="audiences">
+            <article class="audience">
+              <svg
+                viewBox="0 0 320 112"
+                preserveAspectRatio="xMinYMid meet"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect class="a-f" x="1" y="6" width="128" height="100" rx="4" />
+                <path
+                  class="a-m"
+                  d="M1 24h128M1 40h128M1 72h128M1 88h128M40 6v100M88 6v100"
+                />
+                <rect class="a-as" x="1" y="40" width="128" height="16" />
+                <rect
+                  class="a-c"
+                  x="92"
+                  y="43.5"
+                  width="33"
+                  height="9"
+                  rx="2"
+                />
+                <path class="a-l" d="M8 15h24M48 15h30M96 15h22" />
+                <path class="a-m" d="M150 100.5h170" />
+                <path
+                  class="a-f"
+                  d="M156 100V62h20v38zM182 100V48h20v52zM208 100V68h20v32zM260 100V56h20v44zM286 100V64h20v36z"
+                />
+                <path class="a-as" d="M234 100V26h20v74z" />
+                <path class="a-al" d="M150 59.5h170" stroke-dasharray="4 5" />
+                <circle class="a-mon" cx="234" cy="26" r="3.5" />
+                <circle class="a-mon" cx="254" cy="26" r="3.5" />
+              </svg>
+              <h3>
                 Texas property-tax consultants, attorneys and in-house tax staff
-              </h2>
+              </h3>
               <p>
                 A commercial account's roll values by year (earlier years with
                 Pro or Team), candidate comparables under a stated rule, and the
                 unequal-appraisal arithmetic in a workbook you can review and
                 share. Each figure is cited to the district's file.
               </p>
-              <p>
+              <p class="small">{{TEXAS_SOFTWARE_SENTENCE}}</p>
+              <p class="actions">
                 <a class="button primary" href="/texas/">Texas tax evidence</a>
               </p>
             </article>
-            <article class="card">
-              <h2 class="card-title">
-                People building commercial real estate agents
-              </h2>
+            <article class="audience">
+              <svg
+                viewBox="0 0 320 112"
+                preserveAspectRatio="xMinYMid meet"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect class="a-f" x="1" y="10" width="136" height="92" rx="5" />
+                <path
+                  class="a-l"
+                  d="M11 25l6 5-6 5M30 30h56M30 46h84M30 62h44M30 78h66"
+                />
+                <path class="a-m" d="M137 56h40" />
+                <path class="a-a" d="M183 56l-9-5v10z" />
+                <rect
+                  class="a-f"
+                  x="186"
+                  y="10"
+                  width="133"
+                  height="92"
+                  rx="5"
+                />
+                <rect
+                  class="a-ink"
+                  x="198"
+                  y="26"
+                  width="76"
+                  height="12"
+                  rx="2"
+                />
+                <rect
+                  class="a-c"
+                  x="198"
+                  y="46"
+                  width="108"
+                  height="13"
+                  rx="3"
+                />
+                <path class="a-m" d="M198 74h96M198 88h62" />
+              </svg>
+              <h3>People building commercial real estate agents</h3>
               <p>
                 Make your agent's numbers checkable: calculators with audit
                 trails, quote-on-page verification, and facts that cite their
                 document and licence. Free, no key.
               </p>
-              <p>
+              <p class="actions">
                 <a class="button primary" href="/mcp-server/">MCP server</a>
                 <a class="button" href="#layers">What is in it</a>
               </p>
             </article>
-            <article class="card">
-              <h2 class="card-title">
+            <article class="audience">
+              <svg
+                viewBox="0 0 320 112"
+                preserveAspectRatio="xMinYMid meet"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  class="a-f"
+                  d="M7 14h86a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6H40l-14 13V60H7a6 6 0 0 1-6-6V20a6 6 0 0 1 6-6z"
+                />
+                <path class="a-l" d="M14 30h66M14 44h42" />
+                <path class="a-m" d="M99 37h38M196 37h36M166 62v20M166 82h66" />
+                <path class="a-as" d="M139 22l52-9 6 46-54 9z" />
+                <circle class="a-mon" cx="191" cy="13" r="3.5" />
+                <circle class="a-c" cx="258" cy="37" r="24" />
+                <circle class="a-lc" cx="258" cy="37" r="16" />
+                <path class="a-al" d="M250 37l6 6 11-12" />
+                <path
+                  class="a-f"
+                  d="M234 74l16-3 2 18-17 3zM258 74l16-3 2 18-17 3z"
+                />
+                <path
+                  class="a-d"
+                  d="M282 74l16-3 2 18-17 3zM304 74l14-3 1 18-14 3z"
+                />
+              </svg>
+              <h3>
                 People who use Claude or ChatGPT for commercial real estate
-              </h2>
+              </h3>
               <p>
                 Ask your assistant which company owns a commercial building, a
                 few of its other parcels (all of them with Pro or Team) and what
                 the building is assessed at. Every answer cites the public
                 record.
               </p>
-              <p>
+              <p class="actions">
                 <a class="button primary" href="/try/">Try a lookup</a>
                 <a class="button" href="/connect/">Connect Claude or ChatGPT</a>
               </p>
@@ -229,116 +350,309 @@
         </div>
       </section>
 
-      <section class="hero" id="agents-hero" aria-labelledby="hero-title">
-        <div class="wrap">
-          <p class="eyebrow">
-            An open fact layer for commercial real estate AI agents
-          </p>
-          <h2 class="hero-claim" id="hero-title">
-            AI agents are fluent about commercial real estate, and often wrong
-            about the facts.
-          </h2>
-          <p class="lede">
-            FactLot gives them cited facts and deterministic math: 26
-            calculators with audit trails, canonical IDs, and a public-record
-            registry where every fact points at the document it came from.
-          </p>
-          <p class="actions">
-            <a class="button primary" href="/try/">Try a lookup</a>
-            <a
-              class="button"
-              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
-              >Add to your agent</a
-            >
-            <a class="button" href="https://github.com/9mp96ygnbk-alt/factlot"
-              >Read the source</a
-            >
-            <a class="button" href="#pricing">Pricing</a>
-          </p>
-          <p class="note">
-            One line for any MCP client, no API key:
-            <code
-              >npx -y
-              https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz</code
-            >. Or connect with no install: remote MCP at
-            <code>https://api.factlot.com/mcp</code>, free at 60 requests a
-            minute. Claude Code users can install the plugin with twelve CRE
-            skills: <code>/plugin marketplace add 9mp96ygnbk-alt/factlot</code>.
-            Listed in the official MCP Registry as
-            <code>io.github.9mp96ygnbk-alt/factlot</code>.
-          </p>
+      <section class="band" id="agents-hero" aria-labelledby="hero-title">
+        <div class="wrap two-col">
+          <div>
+            <p class="eyebrow">
+              An open fact layer for commercial real estate AI agents
+            </p>
+            <h2 class="hero-claim" id="hero-title">
+              AI agents are fluent about commercial real estate, and often wrong
+              about the facts.
+            </h2>
+          </div>
+          <div>
+            <p class="lede">
+              FactLot gives them cited facts and deterministic math: 26
+              calculators with audit trails, canonical IDs, and a public-record
+              registry where every fact points at the document it came from.
+            </p>
+            <p class="actions">
+              <a class="button primary" href="/try/">Try a lookup</a>
+              <a
+                class="button"
+                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
+                >Add to your agent</a
+              >
+              <a class="button" href="https://github.com/9mp96ygnbk-alt/factlot"
+                >Read the source</a
+              >
+              <a class="button" href="#pricing">Pricing</a>
+            </p>
+            <p class="note">
+              One line for any MCP client, no API key:
+              <code
+                >npx -y
+                https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz</code
+              >. Or connect with no install: remote MCP at
+              <code>https://api.factlot.com/mcp</code>, free at
+              {{PLAN_FREE_RPM}} requests a minute. Claude Code users can install
+              the plugin with twelve CRE skills:
+              <code>/plugin marketplace add 9mp96ygnbk-alt/factlot</code>.
+              Listed in the official MCP Registry as
+              <code>io.github.9mp96ygnbk-alt/factlot</code>.
+            </p>
+          </div>
         </div>
       </section>
 
-      <section id="layers" aria-labelledby="layers-title">
+      <section id="how" aria-labelledby="how-title">
         <div class="wrap">
-          <h2 id="layers-title">Three layers</h2>
-          <div class="cards">
-            <article class="card">
+          <div class="sec-head">
+            <h2 id="how-title">How it works</h2>
+          </div>
+          <figure class="diagram">{{FLOW}}</figure>
+          <div class="two-col example">
+            <div>
+              <p>
+                An agent calls a tool instead of doing the math in context, then
+                reports the formula and points to the steps. The inputs and
+                values below are the project's shared test vector for net
+                effective rent
+                (<code>spec/vectors/calc/net_effective_rent.json</code>), which
+                both the TypeScript and Python SDKs must reproduce to the last
+                digit. The <code>steps</code> array is elided.
+              </p>
+              <p>
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md"
+                  >Agent guide: which tool to call when</a
+                >
+              </p>
+            </div>
+            <div
+              class="tabs steps"
+              role="group"
+              aria-label="The example, step by step"
+            >
+              <input type="radio" name="step" id="step-1" checked />
+              <label for="step-1">1</label>
+              <input type="radio" name="step" id="step-2" />
+              <label for="step-2">2</label>
+              <input type="radio" name="step" id="step-3" />
+              <label for="step-3">3</label>
+              <div class="tabpanel">
+                <h3>1. The agent calls <code>calc_net_effective_rent</code></h3>
+                <pre><code>{
+  <span class="k">"schedule"</span>: {
+    <span class="k">"commencement_date"</span>: <span class="s">"2026-01-01"</span>,
+    <span class="k">"term_months"</span>: 120,
+    <span class="k">"area_sf"</span>: 10000,
+    <span class="k">"starting_rent_psf_annual"</span>: 40,
+    <span class="k">"abated_months"</span>: [1, 2, 3, 4, 5, 6]
+  },
+  <span class="k">"ti_allowance_psf"</span>: 50,
+  <span class="k">"leasing_commissions"</span>: 100000,
+  <span class="k">"discount_rate_annual"</span>: 0.08
+}</code></pre>
+              </div>
+              <div class="tabpanel">
+                <h3>
+                  2. The tool answers with the value, the formula, and an audit
+                  trail
+                </h3>
+                <pre><code>{
+  <span class="k">"value"</span>: {
+    <span class="k">"total_rent_due"</span>: 3799999.62,
+    <span class="k">"total_landlord_costs"</span>: 600000,
+    <span class="k">"effective_rent_psf"</span>: 38,
+    <span class="k">"net_effective_rent_psf"</span>: 32,
+    <span class="k">"pv_rent"</span>: 2568980.49,
+    <span class="k">"discounted_net_effective_rent_psf"</span>: 28.4772
+  },
+  <span class="k">"formula"</span>: { <span class="k">"id"</span>: <span class="s">"calc.net_effective_rent"</span>, <span class="k">"version"</span>: 1 },
+  <span class="k">"steps"</span>: [ <span class="c">… every intermediate value, with its formula …</span> ],
+  <span class="k">"warnings"</span>: []
+}</code></pre>
+              </div>
+              <div class="tabpanel">
+                <h3>3. A registry lookup comes back cited</h3>
+                <p class="small">
+                  Schematic example. This is the documented shape of a registry
+                  fact (method, source snapshot, record locator, rights); the
+                  owner name is a placeholder and the account number is the one
+                  used in the registry documentation.
+                </p>
+                <pre><code>{
+  <span class="k">"subject"</span>: <span class="s">"fl:parcel:us-48201:0011440000001"</span>,
+  <span class="k">"predicate"</span>: <span class="s">"ownership.owner_of_record"</span>,
+  <span class="k">"value"</span>: <span class="s">"ACME PROPERTIES, L.L.C."</span>,
+  <span class="k">"as_of"</span>: <span class="s">"2026-07-25"</span>,
+  <span class="k">"provenance"</span>: {
+    <span class="k">"method"</span>: <span class="s">"public_record"</span>,
+    <span class="k">"sources"</span>: [
+      {
+        <span class="k">"document_id"</span>: <span class="s">"fl:document:sha256-…"</span>,
+        <span class="k">"title"</span>: <span class="s">"Harris Central Appraisal District: Appraisal roll (real_acct.zip)"</span>,
+        <span class="k">"uri"</span>: <span class="s">"https://…"</span>,
+        <span class="k">"retrieved_at"</span>: <span class="s">"2026-11-02T…"</span>,
+        <span class="k">"section"</span>: <span class="s">"account 0011440000001"</span>
+      }
+    ]
+  },
+  <span class="k">"rights"</span>: { <span class="k">"ai_use"</span>: <span class="s">"…"</span>, <span class="k">"redistribution"</span>: <span class="s">"…"</span>, <span class="k">"license"</span>: <span class="s">"public record"</span> }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="layers" aria-labelledby="layers-title">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 id="layers-title">Three layers</h2>
+          </div>
+          <div class="layers">
+            <article class="layer">
               <h3>Tools</h3>
-              <p>
-                26 deterministic calculators: rent schedules, net effective
-                rent, proposal comparison, percentage rent, CAM reconciliation,
-                debt sizing, ASC 842 remeasurement, prepayment and defeasance,
-                WALT, NPV, IRR, lease vs. own, renew vs. relocate, hotel
-                metrics, property DCF pro forma, direct cap, loan amortization,
-                LP/GP equity waterfalls, 1031 exchange checks, multifamily rent
-                rolls, capital expenditure recovery, building-wide CAM, lease
-                critical dates, Texas unequal-appraisal comparisons, and
-                tie-outs of a DCF or CAM reconciliation against your own model.
-                Every result carries
-                <code>steps</code> (the audit trail), <code>warnings</code>, and
-                a versioned formula ID such as
-                <code>calc.net_effective_rent@1</code>.
-              </p>
-              <p>
-                Stable FactLot IDs for parcels, legal entities, buildings (from
-                the street address), spaces, and documents, computable offline;
-                leases get IDs minted by a registry. A fact schema in which
-                every claim carries its provenance (document, page, clause,
-                method) and its AI-use rights.
-              </p>
-              <p>
-                <a href="/calculators/">Calculators</a>
-                ·
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md"
-                  >ID specification</a
-                >
-                ·
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/fact-model.md"
-                  >Fact model</a
-                >
-              </p>
+              <div class="layer-body">
+                <p>
+                  26 deterministic calculators: rent schedules, net effective
+                  rent, proposal comparison, percentage rent, CAM
+                  reconciliation, debt sizing, ASC 842 remeasurement, prepayment
+                  and defeasance, WALT, NPV, IRR, lease vs. own, renew vs.
+                  relocate, hotel metrics, property DCF pro forma, direct cap,
+                  loan amortization, LP/GP equity waterfalls, 1031 exchange
+                  checks, multifamily rent rolls, capital expenditure recovery,
+                  building-wide CAM, lease critical dates, Texas
+                  unequal-appraisal comparisons, and tie-outs of a DCF or CAM
+                  reconciliation against your own model. Every result carries
+                  <code>steps</code> (the audit trail), <code>warnings</code>,
+                  and a versioned formula ID such as
+                  <code>calc.net_effective_rent@1</code>.
+                </p>
+                <p>
+                  Stable FactLot IDs for parcels, legal entities, buildings
+                  (from the street address), spaces, and documents, computable
+                  offline; leases get IDs minted by a registry. A fact schema in
+                  which every claim carries its provenance (document, page,
+                  clause, method) and its AI-use rights.
+                </p>
+                <p class="linkrow">
+                  <a href="/calculators/">Calculators</a>
+                  ·
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/id-spec.md"
+                    >ID specification</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/fact-model.md"
+                    >Fact model</a
+                  >
+                </p>
+              </div>
             </article>
 
-            <article class="card">
+            <article class="layer">
               <h3>Registry</h3>
-              <p>
-                Parcel to owner of record to registered entity, from public
-                records only. Every fact cites the public file it was read from,
-                with the record locator, the publisher's licence, and its AI-use
-                and redistribution status.
-              </p>
-              <dl class="stats">
-                <div>
-                  <dt>Commercial parcels on the hosted API</dt>
-                  <dd>
-                    <!-- hosted:parcels -->891,631<!-- /hosted:parcels -->
-                  </dd>
-                </div>
-                <div>
-                  <dt>Counties hosted</dt>
-                  <dd><!-- hosted:counties -->60<!-- /hosted:counties --></dd>
-                </div>
-                <div>
-                  <dt>Texas counties hosted</dt>
-                  <dd>
-                    <!-- hosted:texas-counties -->16<!-- /hosted:texas-counties -->
-                  </dd>
-                </div>
-              </dl>
+              <div class="layer-body">
+                <p>
+                  Parcel to owner of record to registered entity, from public
+                  records only. Every fact cites the public file it was read
+                  from, with the record locator, the publisher's licence, and
+                  its AI-use and redistribution status.
+                </p>
+                <p class="small">
+                  The pipeline also holds zoning, recorded sales, deeds and
+                  mortgages, energy benchmarks, CMBS loan data and 6,994 federal
+                  lease comps for the metros the
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
+                    >coverage page</a
+                  >
+                  lists. The hosted API also serves the 6,994 GSA lease comps
+                  (<code>lease_comp_search</code>; the federal government is the
+                  tenant, so they are not private-market comps).
+                  <!-- hosted:withheld -->Tarrant County is not served by the
+                  hosted registry while the publisher's terms for AI use are
+                  unclear.<!-- /hosted:withheld -->
+                  Call <code>registry_coverage</code> first to see what is
+                  hosted. The other regions are built and verified in the
+                  project's pipeline and run on your own FactLot with a registry
+                  file; more hosted regions open as their terms allow.
+                </p>
+                <p class="linkrow">
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md"
+                    >Registry</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md"
+                    >Source catalog</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-07"
+                    >Try it: DC sample (23.5 MB)</a
+                  >
+                </p>
+              </div>
+            </article>
+
+            <article class="layer">
+              <h3>Rules and document verification</h3>
+              <div class="layer-body">
+                <p>
+                  Rules packs turn jurisdiction law into code. Each pack cites
+                  its statute, carries a version, and stays
+                  <code>draft</code> until a maintainer has checked it against
+                  the official text; the pack records who checked it and when.
+                  One pack is verified today: the Texas property-tax protest
+                  deadline (checked 2026-11-02).
+                </p>
+                <p>
+                  Document verification checks what your agent reads from a
+                  lease. Your agent extracts each term with its verbatim quote
+                  and page; FactLot confirms the quote is on that page and
+                  states the value ("$1,250,000.00", "June 30, 2031", "five
+                  percent (5%)") and returns a cited fact, or the reason it
+                  could not. It also builds a current-state abstract with
+                  amendment precedence, compares an estoppel or rent roll to the
+                  lease, and checks a single claim. No model runs on our side,
+                  and the checks are textual: they do not find terms your agent
+                  missed. Live on the hosted API; nothing is stored. It also
+                  spreads a T-12 onto a published chart of accounts with every
+                  line cited, checks a proposed use against a center's
+                  exclusives, and packages verified facts so a counterparty can
+                  check them, signed with your own key.
+                </p>
+                <p class="linkrow">
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/rules.md"
+                    >Rules packs</a
+                  >
+                  ·
+                  <a href="/texas/property-tax-protest-deadline/"
+                    >Texas protest deadline</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/ingest.md"
+                    >Lease ingestion</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/document-verification.md"
+                    >Document verification</a
+                  >
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="coverage" aria-labelledby="coverage-title">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 id="coverage-title">Counties hosted</h2>
+          </div>
+          <div class="cov-preview">
+            {{COVERAGE_PREVIEW}}
+            <div class="cov-text">
               <p class="small">
                 Hosted:
                 <!-- hosted:places -->Maryland (all 24 jurisdictions), the
@@ -358,274 +672,148 @@
                 <a href="/coverage/">coverage map</a> shows both, county by
                 county.
               </p>
-              <p class="small">
-                The pipeline also holds zoning, recorded sales, deeds and
-                mortgages, energy benchmarks, CMBS loan data and 6,994 federal
-                lease comps for the metros the
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
-                  >coverage page</a
-                >
-                lists. The hosted API also serves the 6,994 GSA lease comps
-                (<code>lease_comp_search</code>; the federal government is the
-                tenant, so they are not private-market comps).
-                <!-- hosted:withheld -->Tarrant County is not served by the
-                hosted registry while the publisher's terms for AI use are
-                unclear.<!-- /hosted:withheld -->
-                Call <code>registry_coverage</code> first to see what is hosted.
-                The other regions are built and verified in the project's
-                pipeline and run on your own FactLot with a registry file; more
-                hosted regions open as their terms allow.
-              </p>
-              <p>
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md"
-                  >Registry</a
-                >
-                ·
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/README.md"
-                  >Source catalog</a
-                >
-                ·
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/releases/tag/registry-sample-dc-2026-11-07"
-                  >Try it: DC sample (23.5 MB)</a
-                >
-              </p>
-            </article>
-
-            <article class="card">
-              <h3>Rules and document verification</h3>
-              <p>
-                Rules packs turn jurisdiction law into code. Each pack cites its
-                statute, carries a version, and stays <code>draft</code> until a
-                maintainer has checked it against the official text; the pack
-                records who checked it and when. One pack is verified today: the
-                Texas property-tax protest deadline (checked 2026-11-02).
-              </p>
-              <p>
-                Document verification checks what your agent reads from a lease.
-                Your agent extracts each term with its verbatim quote and page;
-                FactLot confirms the quote is on that page and states the value
-                ("$1,250,000.00", "June 30, 2031", "five percent (5%)") and
-                returns a cited fact, or the reason it could not. It also builds
-                a current-state abstract with amendment precedence, compares an
-                estoppel or rent roll to the lease, and checks a single claim.
-                No model runs on our side, and the checks are textual: they do
-                not find terms your agent missed. Live on the hosted API;
-                nothing is stored. It also spreads a T-12 onto a published chart
-                of accounts with every line cited, checks a proposed use against
-                a center's exclusives, and packages verified facts so a
-                counterparty can check them, signed with your own key.
-              </p>
-              <p>
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/rules.md"
-                  >Rules packs</a
-                >
-                ·
-                <a href="/texas/property-tax-protest-deadline/"
-                  >Texas protest deadline</a
-                >
-                ·
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/ingest.md"
-                  >Lease ingestion</a
-                >
-                ·
-                <a
-                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/document-verification.md"
-                  >Document verification</a
-                >
-              </p>
-            </article>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="how" aria-labelledby="how-title">
+      <section class="band" id="connect" aria-labelledby="connect-title">
         <div class="wrap">
-          <h2 id="how-title">How it works</h2>
-          <p>
-            An agent calls a tool instead of doing the math in context, then
-            reports the formula and points to the steps. The inputs and values
-            below are the project's shared test vector for net effective rent
-            (<code>spec/vectors/calc/net_effective_rent.json</code>), which both
-            the TypeScript and Python SDKs must reproduce to the last digit. The
-            <code>steps</code> array is elided.
-          </p>
-          <div class="example">
-            <h3>1. The agent calls <code>calc_net_effective_rent</code></h3>
-            <pre><code>{
-  "schedule": {
-    "commencement_date": "2026-01-01",
-    "term_months": 120,
-    "area_sf": 10000,
-    "starting_rent_psf_annual": 40,
-    "abated_months": [1, 2, 3, 4, 5, 6]
-  },
-  "ti_allowance_psf": 50,
-  "leasing_commissions": 100000,
-  "discount_rate_annual": 0.08
-}</code></pre>
-            <h3>
-              2. The tool answers with the value, the formula, and an audit
-              trail
-            </h3>
-            <pre><code>{
-  "value": {
-    "total_rent_due": 3799999.62,
-    "total_landlord_costs": 600000,
-    "effective_rent_psf": 38,
-    "net_effective_rent_psf": 32,
-    "pv_rent": 2568980.49,
-    "discounted_net_effective_rent_psf": 28.4772
-  },
-  "formula": { "id": "calc.net_effective_rent", "version": 1 },
-  "steps": [ … every intermediate value, with its formula … ],
-  "warnings": []
-}</code></pre>
-            <h3>3. A registry lookup comes back cited</h3>
-            <p class="small">
-              Schematic example. This is the documented shape of a registry fact
-              (method, source snapshot, record locator, rights); the owner name
-              is a placeholder and the account number is the one used in the
-              registry documentation.
+          <div class="sec-head">
+            <h2 id="connect-title">Connect</h2>
+            <p>
+              Every platform serves the same tools, generated from one catalog,
+              so a calculation returns the identical answer, steps, and formula
+              ID wherever it was called from.
             </p>
-            <pre><code>{
-  "subject": "fl:parcel:us-48201:0011440000001",
-  "predicate": "ownership.owner_of_record",
-  "value": "ACME PROPERTIES, L.L.C.",
-  "as_of": "2026-07-25",
-  "provenance": {
-    "method": "public_record",
-    "sources": [
-      {
-        "document_id": "fl:document:sha256-…",
-        "title": "Harris Central Appraisal District: Appraisal roll (real_acct.zip)",
-        "uri": "https://…",
-        "retrieved_at": "2026-11-02T…",
-        "section": "account 0011440000001"
-      }
-    ]
-  },
-  "rights": { "ai_use": "…", "redistribution": "…", "license": "public record" }
-}</code></pre>
           </div>
-          <p>
-            <a
-              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md"
-              >Agent guide: which tool to call when</a
+          <div
+            class="tabs clients"
+            role="group"
+            aria-label="Platforms and their connector guides"
+          >
+            <input type="radio" name="client" id="client-claude" checked />
+            <label for="client-claude">Claude</label>
+            <input type="radio" name="client" id="client-chatgpt" />
+            <label for="client-chatgpt">ChatGPT and OpenAI</label>
+            <input type="radio" name="client" id="client-gemini" />
+            <label for="client-gemini">Google Gemini</label>
+            <input type="radio" name="client" id="client-microsoft" />
+            <label for="client-microsoft">Microsoft Copilot</label>
+            <input type="radio" name="client" id="client-amazon" />
+            <label for="client-amazon">Amazon Bedrock</label>
+            <input type="radio" name="client" id="client-others" />
+            <label for="client-others"
+              >Mistral, xAI, Llama, DeepSeek, and others</label
             >
-          </p>
-        </div>
-      </section>
-
-      <section id="connect" aria-labelledby="connect-title">
-        <div class="wrap">
-          <h2 id="connect-title">Connect</h2>
-          <p>
-            Every platform serves the same tools, generated from one catalog, so
-            a calculation returns the identical answer, steps, and formula ID
-            wherever it was called from.
-          </p>
-          <table>
-            <caption class="visually-hidden">
-              Platforms and their connector guides
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Platform</th>
-                <th scope="col">How to connect</th>
-                <th scope="col">Guide</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th scope="row">Claude</th>
-                <td>
-                  Custom connector (remote MCP), one-click Desktop extension,
-                  Claude Code plugin with twelve CRE skills (<code
-                    >/plugin marketplace add 9mp96ygnbk-alt/factlot</code
-                  >), Claude API
-                </td>
-                <td>
-                  <a
-                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/claude/README.md"
-                    >Claude guide</a
-                  >
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">ChatGPT and OpenAI</th>
-                <td>
-                  ChatGPT app (developer mode, deep research), Custom GPT
-                  Action, Responses API remote MCP, function calling
-                </td>
-                <td>
-                  <a
-                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/chatgpt/README.md"
-                    >ChatGPT guide</a
-                  >
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Google Gemini</th>
-                <td>
-                  Gemini API function calling, Gemini CLI over MCP, Vertex AI
-                </td>
-                <td>
-                  <a
-                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/gemini/README.md"
-                    >Gemini guide</a
-                  >
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Microsoft Copilot</th>
-                <td>
-                  Copilot Studio (MCP), Power Platform custom connector,
-                  Microsoft 365 Copilot
-                </td>
-                <td>
-                  <a
-                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/microsoft/README.md"
-                    >Copilot guide</a
-                  >
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Amazon Bedrock</th>
-                <td>
-                  Converse API tool config, Bedrock Agents action group (Lambda)
-                </td>
-                <td>
-                  <a
-                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/amazon/README.md"
-                    >Bedrock guide</a
-                  >
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Mistral, xAI, Llama, DeepSeek, and others</th>
-                <td>
-                  OpenAI-compatible function calling, MCP clients, plain HTTP
-                </td>
-                <td>
-                  <a
-                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/others/README.md"
-                    >Others guide</a
-                  >
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="small">
+            <div class="tabpanel">
+              <div class="tile">
+                <div class="tile-info">
+                  <p>
+                    Custom connector (remote MCP), one-click Desktop extension,
+                    Claude Code plugin with twelve CRE skills (<code
+                      >/plugin marketplace add 9mp96ygnbk-alt/factlot</code
+                    >), Claude API
+                  </p>
+                  <p>
+                    <a
+                      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/claude/README.md"
+                      >Claude guide</a
+                    >
+                  </p>
+                </div>
+                <div class="tile-code">{{CONNECT_CLAUDE}}</div>
+              </div>
+            </div>
+            <div class="tabpanel">
+              <div class="tile">
+                <div class="tile-info">
+                  <p>
+                    ChatGPT app (developer mode, deep research), Custom GPT
+                    Action, Responses API remote MCP, function calling
+                  </p>
+                  <p>
+                    <a
+                      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/chatgpt/README.md"
+                      >ChatGPT guide</a
+                    >
+                  </p>
+                </div>
+                <div class="tile-code">{{CONNECT_CHATGPT}}</div>
+              </div>
+            </div>
+            <div class="tabpanel">
+              <div class="tile">
+                <div class="tile-info">
+                  <p>
+                    Gemini API function calling, Gemini CLI over MCP, Vertex AI
+                  </p>
+                  <p>
+                    <a
+                      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/gemini/README.md"
+                      >Gemini guide</a
+                    >
+                  </p>
+                </div>
+                <div class="tile-code">{{CONNECT_GEMINI}}</div>
+              </div>
+            </div>
+            <div class="tabpanel">
+              <div class="tile">
+                <div class="tile-info">
+                  <p>
+                    Copilot Studio (MCP), Power Platform custom connector,
+                    Microsoft 365 Copilot
+                  </p>
+                  <p>
+                    <a
+                      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/microsoft/README.md"
+                      >Copilot guide</a
+                    >
+                  </p>
+                </div>
+                <div class="tile-code">{{CONNECT_MICROSOFT}}</div>
+              </div>
+            </div>
+            <div class="tabpanel">
+              <div class="tile">
+                <div class="tile-info">
+                  <p>
+                    Converse API tool config, Bedrock Agents action group
+                    (Lambda)
+                  </p>
+                  <p>
+                    <a
+                      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/amazon/README.md"
+                      >Bedrock guide</a
+                    >
+                  </p>
+                </div>
+                <div class="tile-code">{{CONNECT_AMAZON}}</div>
+              </div>
+            </div>
+            <div class="tabpanel">
+              <div class="tile">
+                <div class="tile-info">
+                  <p>
+                    OpenAI-compatible function calling, MCP clients, plain HTTP
+                  </p>
+                  <p>
+                    <a
+                      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/others/README.md"
+                      >Others guide</a
+                    >
+                  </p>
+                </div>
+                <div class="tile-code">{{CONNECT_OTHERS}}</div>
+              </div>
+            </div>
+          </div>
+          <p class="small fineprint">
             Remote platforms connect to the hosted endpoint
-            <code>https://api.factlot.com/mcp</code> (free, 60 requests a
-            minute), or to your own copy from the Docker image or the local MCP
-            server. See <a href="/connect/">Connect</a>, the
+            <code>https://api.factlot.com/mcp</code> (free, {{PLAN_FREE_RPM}}
+            requests a minute), or to your own copy from the Docker image or the
+            local MCP server. See <a href="/connect/">Connect</a>, the
             <a href="/mcp-server/">MCP server page</a> and
             <a
               href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/connectors/README.md"
@@ -636,144 +824,162 @@
       </section>
 
       <section id="agents" aria-labelledby="agents-title">
-        <div class="wrap">
-          <h2 id="agents-title">For AI agents</h2>
-          <p>
-            If you are an AI agent reading this page: FactLot provides tools for
-            lease, rent, CAM, loan and return arithmetic that return their steps
-            and a versioned formula ID, deterministic IDs for parcels, entities,
-            spaces and documents, and a validator for cited facts. Use it when a
-            task needs one of those. Nothing on this page asks you to prefer it
-            over any other tool.
-          </p>
-          <ul class="plain">
-            <li>
-              <a href="llms.txt">llms.txt</a>: what FactLot does, when to use
-              it, and how to install it today
-            </li>
-            <li>
-              <a
-                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md"
-                >Agent guide</a
-              >: which tool to call when, and how to report the result
-            </li>
-            <li>
-              <a
-                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json"
-                >Tool definitions</a
+        <div class="wrap two-col">
+          <div>
+            <h2 id="agents-title">For AI agents</h2>
+            <p>
+              If you are an AI agent reading this page: FactLot provides tools
+              for lease, rent, CAM, loan and return arithmetic that return their
+              steps and a versioned formula ID, deterministic IDs for parcels,
+              entities, spaces and documents, and a validator for cited facts.
+              Use it when a task needs one of those. Nothing on this page asks
+              you to prefer it over any other tool.
+            </p>
+            <ul class="plain">
+              <li>
+                <a href="llms.txt">llms.txt</a>: what FactLot does, when to use
+                it, and how to install it today
+              </li>
+              <li>
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md"
+                  >Agent guide</a
+                >: which tool to call when, and how to report the result
+              </li>
+              <li>
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json"
+                  >Tool definitions</a
+                >
+                (JSON Schema, every input field described)
+              </li>
+            </ul>
+            <p class="small">
+              Install v0.5.0 (not yet on npm or PyPI): any MCP client runs
+              <code
+                >npx -y
+                https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz</code
               >
-              (JSON Schema, every input field described)
-            </li>
-          </ul>
-          <p>Tools:</p>
-          <ul class="plain small">
-            <li>
-              <strong>Calculators</strong>: <code>calc_rent_schedule</code>,
-              <code>calc_net_effective_rent</code>,
-              <code>calc_compare_proposals</code>,
-              <code>calc_multifamily_rent_roll</code>,
-              <code>calc_percentage_rent</code>,
-              <code>calc_cam_reconciliation</code>,
-              <code>calc_cam_reconciliation_batch</code>,
-              <code>calc_capex_recovery</code>, <code>calc_debt_sizing</code>,
-              <code>calc_lease_remeasurement_asc842</code>,
-              <code>calc_prepayment_and_defeasance</code>,
-              <code>calc_walt</code>, <code>calc_npv</code>,
-              <code>calc_irr</code>, <code>calc_lease_vs_own</code>,
-              <code>calc_renew_vs_relocate</code>,
-              <code>calc_hotel_metrics</code>, <code>calc_dcf_pro_forma</code>,
-              <code>calc_direct_cap</code>,
-              <code>calc_amortization_schedule</code>,
-              <code>calc_equity_waterfall</code>,
-              <code>calc_exchange_1031</code>, <code>calc_critical_dates</code>,
-              <code>calc_reconcile_dcf</code>, <code>calc_reconcile_cam</code>,
-              <code>calc_tx_unequal_appraisal</code>
-            </li>
-            <li>
-              <strong>Rules</strong>:
-              <code>rules_tx_property_tax_protest_deadline</code>,
-              <code>rules_tx_property_tax_protest_deadline_batch</code>
-            </li>
-            <li>
-              <strong>IDs and facts</strong>: <code>id_parcel</code>,
-              <code>id_entity</code>, <code>id_space</code>,
-              <code>id_building</code>, <code>id_document</code>,
-              <code>id_parse</code>, <code>fact_validate</code>,
-              <code>fact_package_create</code>,
-              <code>fact_package_verify</code>,
-              <code>lease_comp_validate</code>,
-              <code>lease_comp_search</code>
-            </li>
-            <li>
-              <strong>Documents</strong>: <code>doc_verify_facts</code>,
-              <code>doc_abstract_lease</code>, <code>doc_compare</code>,
-              <code>doc_verify_claim</code>, <code>doc_spread_statement</code>,
-              <code>doc_check_use_conflict</code>, <code>doc_predicates</code>
-            </li>
-            <li>
-              <strong>Reports</strong> (hosted only): <code>report_create</code>
-              builds an XLSX, PDF or ICS file from a tool result, by code with
-              no model
-            </li>
-            <li>
-              <strong>Discovery</strong>: <code>search</code>,
-              <code>fetch</code>, <code>schema_get</code>
-            </li>
-            <li>
-              <strong>Registry</strong>: eleven <code>registry_*</code> lookups,
-              hosted for the regions <code>registry_coverage</code> lists and
-              available on a self-hosted FactLot with a registry file
-            </li>
-          </ul>
-          <p class="small">
-            Install v0.5.0 (not yet on npm or PyPI): any MCP client runs
-            <code
-              >npx -y
-              https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz</code
-            >
-            (Node.js 22.6 or newer); Claude Desktop opens
-            <a
-              href="https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb"
-              >factlot-0.5.0.mcpb</a
-            >; Docker runs <code>ghcr.io/9mp96ygnbk-alt/factlot:0.5.0</code>;
-            Python installs from git. It needs no API key. The local package is
-            release v0.5.0. Its next release brings what the hosted server
-            already runs: the tools <code>registry_lookup_batch</code> and
-            <code>registry_recorded_facts</code>, new inputs on existing tools
-            (<code>registry_search_address</code> <code>address</code>,
-            <code>city</code>, <code>state</code>, <code>postal_code</code> and
-            <code>county_fips</code>; <code>registry_coverage</code>
-            <code>fields</code>; <code>same_building_class</code>,
-            <code>same_local_use_code</code> and <code>local_use_codes</code> on
-            the equity-candidate tools; <code>address</code> and
-            <code>label</code> on the subject and comparables of
-            <code>calc_tx_unequal_appraisal</code>; <code>as_of</code> on the
-            Texas deadline rules), and MCP resources and prompts.
-            <code>report_create</code>, the account tools and the model-backed
-            tools are hosted only.
-          </p>
+              (Node.js 22.6 or newer); Claude Desktop opens
+              <a
+                href="https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb"
+                >factlot-0.5.0.mcpb</a
+              >; Docker runs <code>ghcr.io/9mp96ygnbk-alt/factlot:0.5.0</code>;
+              Python installs from git. It needs no API key. The local package
+              is release v0.5.0. Its next release brings what the hosted server
+              already runs: the tools <code>registry_lookup_batch</code> and
+              <code>registry_recorded_facts</code>, new inputs on existing tools
+              (<code>registry_search_address</code> <code>address</code>,
+              <code>city</code>, <code>state</code>,
+              <code>postal_code</code> and <code>county_fips</code>;
+              <code>registry_coverage</code> <code>fields</code>;
+              <code>same_building_class</code>,
+              <code>same_local_use_code</code> and
+              <code>local_use_codes</code> on the equity-candidate tools;
+              <code>address</code> and <code>label</code> on the subject and
+              comparables of <code>calc_tx_unequal_appraisal</code>;
+              <code>as_of</code> on the Texas deadline rules), and MCP resources
+              and prompts. <code>report_create</code>, the account tools and the
+              model-backed tools are hosted only.
+            </p>
+          </div>
+          <div>
+            <p class="kicker">Tools:</p>
+            <ul class="plain small toollist">
+              <li>
+                <strong>Calculators</strong>: <code>calc_rent_schedule</code>,
+                <code>calc_net_effective_rent</code>,
+                <code>calc_compare_proposals</code>,
+                <code>calc_multifamily_rent_roll</code>,
+                <code>calc_percentage_rent</code>,
+                <code>calc_cam_reconciliation</code>,
+                <code>calc_cam_reconciliation_batch</code>,
+                <code>calc_capex_recovery</code>, <code>calc_debt_sizing</code>,
+                <code>calc_lease_remeasurement_asc842</code>,
+                <code>calc_prepayment_and_defeasance</code>,
+                <code>calc_walt</code>, <code>calc_npv</code>,
+                <code>calc_irr</code>, <code>calc_lease_vs_own</code>,
+                <code>calc_renew_vs_relocate</code>,
+                <code>calc_hotel_metrics</code>,
+                <code>calc_dcf_pro_forma</code>, <code>calc_direct_cap</code>,
+                <code>calc_amortization_schedule</code>,
+                <code>calc_equity_waterfall</code>,
+                <code>calc_exchange_1031</code>,
+                <code>calc_critical_dates</code>,
+                <code>calc_reconcile_dcf</code>,
+                <code>calc_reconcile_cam</code>,
+                <code>calc_tx_unequal_appraisal</code>
+              </li>
+              <li>
+                <strong>Rules</strong>:
+                <code>rules_tx_property_tax_protest_deadline</code>,
+                <code>rules_tx_property_tax_protest_deadline_batch</code>
+              </li>
+              <li>
+                <strong>IDs and facts</strong>: <code>id_parcel</code>,
+                <code>id_entity</code>, <code>id_space</code>,
+                <code>id_building</code>, <code>id_document</code>,
+                <code>id_parse</code>, <code>fact_validate</code>,
+                <code>fact_package_create</code>,
+                <code>fact_package_verify</code>,
+                <code>lease_comp_validate</code>,
+                <code>lease_comp_search</code>
+              </li>
+              <li>
+                <strong>Documents</strong>: <code>doc_verify_facts</code>,
+                <code>doc_abstract_lease</code>, <code>doc_compare</code>,
+                <code>doc_verify_claim</code>,
+                <code>doc_spread_statement</code>,
+                <code>doc_check_use_conflict</code>,
+                <code>doc_predicates</code>
+              </li>
+              <li>
+                <strong>Reports</strong> (hosted only):
+                <code>report_create</code> builds an XLSX, PDF or ICS file from
+                a tool result, by code with no model
+              </li>
+              <li>
+                <strong>Discovery</strong>: <code>search</code>,
+                <code>fetch</code>, <code>schema_get</code>
+              </li>
+              <li>
+                <strong>Registry</strong>: eleven <code>registry_*</code>
+                lookups, hosted for the regions
+                <code>registry_coverage</code> lists and available on a
+                self-hosted FactLot with a registry file
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
 
-      <section id="pricing" aria-labelledby="pricing-title">
+      <section class="band" id="pricing" aria-labelledby="pricing-title">
         <div class="wrap">
-          <h2 id="pricing-title">Pricing</h2>
-          <p>
-            The tools are open source and free to run yourself, with no limits.
-            The hosted endpoint at <code>https://api.factlot.com</code> saves
-            you running it. {{PLAN_PAID_ONLY}} Plans also differ in request
-            rate, registry lookups, reports, keys and support.
-            <a href="/pricing/">Full comparison</a>.
-          </p>
-          <div class="cards">
-            <article class="card" id="plan-free">
+          <div class="sec-head">
+            <h2 id="pricing-title">Pricing</h2>
+            <p>
+              The tools are open source and free to run yourself, with no
+              limits. The hosted endpoint at
+              <code>https://api.factlot.com</code> saves you running it.
+              {{PLAN_PAID_ONLY}} Plans also differ in request rate, registry
+              lookups, reports, keys and support.
+              <a href="/pricing/">Full comparison</a>.
+            </p>
+          </div>
+          <div class="plans">
+            <article class="plan" id="plan-free">
               <h3>Free</h3>
-              <p><strong>$0</strong>, no key needed</p>
-              <ul class="plain">
+              <p class="price">
+                <strong class="amt">$0</strong>, no key needed
+              </p>
+              <ul>
                 <li>Every calculator, ID, fact, rules and document tool</li>
-                <li>60 requests a minute per IP address</li>
-                <li>25 registry lookups a day per IP address</li>
-                <li>3 reports a month per IP address</li>
+                <li>{{PLAN_FREE_RPM}} requests a minute per IP address</li>
+                <li>
+                  {{PLAN_FREE_LOOKUPS_DAY}} registry lookups a day per IP
+                  address
+                </li>
+                <li>{{PLAN_FREE_REPORTS}} reports a month per IP address</li>
                 <li>
                   Optional
                   <a href="https://factlot.com/account#free-key"
@@ -783,24 +989,25 @@
               </ul>
               <p>
                 <a
+                  class="button"
                   href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
                   >Get started</a
                 >
               </p>
             </article>
-            <article class="card" id="plan-pro">
+            <article class="plan featured" id="plan-pro">
               <h3>Pro</h3>
-              <p>
+              <p class="price">
                 <strong
-                  >${{PLAN_PRO_MONTHLY_USD}} a month, or
-                  ${{PLAN_PRO_YEARLY_USD}} a year</strong
+                  ><span class="amt">${{PLAN_PRO_MONTHLY_USD}}</span> a month,
+                  or ${{PLAN_PRO_YEARLY_USD}} a year</strong
                 >
               </p>
-              <ul class="plain">
-                <li>1 API key</li>
-                <li>600 requests a minute</li>
-                <li>5,000 registry lookups a month</li>
-                <li>50 reports a month</li>
+              <ul>
+                <li>{{PLAN_PRO_KEYS}} API key</li>
+                <li>{{PLAN_PRO_RPM}} requests a minute</li>
+                <li>{{PLAN_PRO_LOOKUPS}} registry lookups a month</li>
+                <li>{{PLAN_PRO_REPORTS}} reports a month</li>
                 <li>Email support</li>
               </ul>
               <p>
@@ -824,14 +1031,19 @@
                 <a href="https://factlot.com/terms#billing">Terms</a>
               </p>
             </article>
-            <article class="card" id="plan-team">
+            <article class="plan" id="plan-team">
               <h3>Team</h3>
-              <p><strong>$599 a month</strong></p>
-              <ul class="plain">
-                <li>Up to 5 API keys</li>
-                <li>3,000 requests a minute</li>
-                <li>100,000 registry lookups a month</li>
-                <li>1,000 reports a month</li>
+              <p class="price">
+                <strong
+                  ><span class="amt">${{PLAN_TEAM_MONTHLY_USD}}</span> a
+                  month</strong
+                >
+              </p>
+              <ul>
+                <li>Up to {{PLAN_TEAM_KEYS}} API keys</li>
+                <li>{{PLAN_TEAM_RPM}} requests a minute</li>
+                <li>{{PLAN_TEAM_LOOKUPS}} registry lookups a month</li>
+                <li>{{PLAN_TEAM_REPORTS}} reports a month</li>
                 <li>Priority support</li>
                 <li>A vote on which regions open next</li>
               </ul>
@@ -841,18 +1053,20 @@
                 >
               </p>
               <p class="small">
-                $599 a month, renews monthly until cancelled. Cancel any time.
+                ${{PLAN_TEAM_MONTHLY_USD}} a month, renews monthly until
+                cancelled. Cancel any time.
                 <a href="https://factlot.com/terms#billing">Terms</a>
               </p>
             </article>
-            <article class="card" id="plan-enterprise">
+            <article class="plan" id="plan-enterprise">
               <h3>Enterprise and data licence</h3>
-              <p>
+              <p class="price">
                 <strong
-                  >By quote; data licence $2,400 a year per state file</strong
+                  ><span class="amt words">By quote</span>; data licence $2,400
+                  a year per state file</strong
                 >
               </p>
-              <ul class="plain">
+              <ul>
                 <li>
                   Enterprise: private deployment, invoicing, a signed
                   data-processing agreement with a no-training commitment, and
@@ -874,33 +1088,35 @@
               </p>
             </article>
           </div>
-          <p class="small">
-            <strong>How quotas work.</strong> Limits are hard caps with no
-            overage charges. Free registry lookups count per IP address per day;
-            paid lookups count per subscription per month, shared by a plan's
-            keys. {{PLAN_LOOKUP_COUNTED}} Days and months are UTC. At a cap the
-            call returns HTTP 429 with the reset time and a link to this page.
-            Calculator, ID, fact, rules and document tools never count toward a
-            lookup quota.
-          </p>
-          <p class="small">
-            Checkout is by Stripe; prices are in US dollars and exclude taxes.
-            Your API key is shown once on the page Stripe returns you to;
-            FactLot stores only a hash of it, and a new key can take up to a
-            minute to start working. Cancel any time at
-            <a href="https://factlot.com/account">factlot.com/account</a>, in
-            the Stripe billing portal, or by email to contact@factlot.com with
-            the subject "Cancel" from your account email; your key works to the
-            end of the period you have paid for (a month, or a year on Pro
-            yearly), and there are no refunds for a partial period except as the
-            <a href="https://factlot.com/terms#billing">terms</a> say. Agents
-            can start checkout with
-            <code>POST https://api.factlot.com/v1/billing/checkout</code>, hand
-            the link to their human, and collect the key from the
-            <code>claim_url</code> it returns. See the
-            <a href="https://factlot.com/terms">terms</a> and the
-            <a href="https://factlot.com/privacy">privacy notice</a>.
-          </p>
+          <div class="fine">
+            <p class="small">
+              <strong>How quotas work.</strong> Limits are hard caps with no
+              overage charges. Free registry lookups count per IP address per
+              day; paid lookups count per subscription per month, shared by a
+              plan's keys. {{PLAN_LOOKUP_COUNTED}} Days and months are UTC. At a
+              cap the call returns HTTP 429 with the reset time and a link to
+              this page. Calculator, ID, fact, rules and document tools never
+              count toward a lookup quota.
+            </p>
+            <p class="small">
+              Checkout is by Stripe; prices are in US dollars and exclude taxes.
+              Your API key is shown once on the page Stripe returns you to;
+              FactLot stores only a hash of it, and a new key can take up to a
+              minute to start working. Cancel any time at
+              <a href="https://factlot.com/account">factlot.com/account</a>, in
+              the Stripe billing portal, or by email to contact@factlot.com with
+              the subject "Cancel" from your account email; your key works to
+              the end of the period you have paid for (a month, or a year on Pro
+              yearly), and there are no refunds for a partial period except as
+              the <a href="https://factlot.com/terms#billing">terms</a> say.
+              Agents can start checkout with
+              <code>POST https://api.factlot.com/v1/billing/checkout</code>,
+              hand the link to their human, and collect the key from the
+              <code>claim_url</code> it returns. See the
+              <a href="https://factlot.com/terms">terms</a> and the
+              <a href="https://factlot.com/privacy">privacy notice</a>.
+            </p>
+          </div>
           <h3 id="early-access">Regions not hosted yet</h3>
           <p>
             Need a region that is not hosted yet? Email
@@ -918,13 +1134,33 @@
       </section>
 
       <section id="open-source" aria-labelledby="os-title">
-        <div class="wrap">
-          <h2 id="os-title">Open source</h2>
-          <p>
-            Every tool is open source and self-hostable, which matters when
-            leases are confidential. The hosted endpoint runs the same code.
-          </p>
-          <ul class="plain">
+        <div class="wrap two-col">
+          <div>
+            <h2 id="os-title">Open source</h2>
+            <p>
+              Every tool is open source and self-hostable, which matters when
+              leases are confidential. The hosted endpoint runs the same code.
+            </p>
+            <p class="linkrow">
+              <a href="https://github.com/9mp96ygnbk-alt/factlot">Source</a>
+              ·
+              <a
+                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/CONTRIBUTING.md"
+                >Contributing</a
+              >
+              ·
+              <a
+                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/SECURITY.md"
+                >Security</a
+              >
+              ·
+              <a
+                href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/CHANGELOG.md"
+                >Changelog</a
+              >
+            </p>
+          </div>
+          <ul class="plain toollist">
             <li>
               <strong>Schema and SDKs</strong>: <code>@factlot/schema</code>,
               <code>@factlot/tools</code> and the client SDKs. MIT.
@@ -936,36 +1172,21 @@
             </li>
             <li>
               <strong>Hosted</strong>: <code>https://api.factlot.com</code>,
-              free at 60 requests a minute, with paid plans for higher limits.
-              Registry lookups are on every plan: 25 a day free, 5,000 a month
-              on Pro, 100,000 a month on Team.
+              free at {{PLAN_FREE_RPM}} requests a minute, with paid plans for
+              higher limits. Registry lookups are on every plan:
+              {{PLAN_FREE_LOOKUPS_DAY}} a day free, {{PLAN_PRO_LOOKUPS}} a month
+              on Pro, {{PLAN_TEAM_LOOKUPS}} a month on Team.
             </li>
           </ul>
-          <p>
-            <a href="https://github.com/9mp96ygnbk-alt/factlot">Source</a>
-            ·
-            <a
-              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/CONTRIBUTING.md"
-              >Contributing</a
-            >
-            ·
-            <a
-              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/SECURITY.md"
-              >Security</a
-            >
-            ·
-            <a
-              href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/CHANGELOG.md"
-              >Changelog</a
-            >
-          </p>
         </div>
       </section>
 
-      <section id="principles" aria-labelledby="principles-title">
+      <section class="band" id="principles" aria-labelledby="principles-title">
         <div class="wrap">
-          <h2 id="principles-title">Principles</h2>
-          <ul class="principles">
+          <div class="sec-head">
+            <h2 id="principles-title">Principles</h2>
+          </div>
+          <ul class="principles principles-grid">
             <li>
               <strong>Public records only, obtained ethically.</strong> Official
               bulk downloads, open-data portals, public APIs within their terms,
@@ -998,28 +1219,6 @@
       </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="wrap">
-        <p>
-          <a href="https://github.com/9mp96ygnbk-alt/factlot">GitHub</a> ·
-          <a href="mailto:contact@factlot.com">contact@factlot.com</a> ·
-          <a href="https://factlot.com/privacy">Privacy</a> ·
-          <a href="https://factlot.com/terms">Terms</a> ·
-          <a href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/LICENSE"
-            >Apache-2.0 (platform) and MIT (schema and SDKs)</a
-          >
-        </p>
-        <p>
-          Trust:
-          <a href="/status/">Status</a> · <a href="/security/">Security</a> ·
-          <a href="/sla/">Service levels</a> ·
-          <a href="/assurance/">Assurance</a>
-        </p>
-        <p class="small">
-          "FactLot" and the FactLot logo are trademarks of their owner. The
-          open-source licences cover the code, not the name.
-        </p>
-      </div>
-    </footer>
+    {{SITE_FOOTER}}
   </body>
 </html>

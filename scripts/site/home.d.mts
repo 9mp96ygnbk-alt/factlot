@@ -6,3 +6,5 @@ export function coveragePreview(
   geo: unknown,
   counties: { fips: string; title: string }[],
 ): string;
+export function connectTile(data: unknown, id: string): string;
+export function texasSoftwareSentence(texasHtml: string): string;
