@@ -331,6 +331,10 @@
     "Not shown: the owner of record is written like a person's estate or trust.";
   var BOUNDARY =
     "Public-record values as their publisher released them. Not an appraisal or an opinion of value; not legal or tax advice.";
+  var SHEET_UNSURE =
+    "No answer came back in time, so the sheet may or may not have been made: one report and one lookup may have been counted. Check the free lookups left above, and wait a minute before trying again.";
+  var SHEET_NO_LINK =
+    "The sheet was made and one report and one lookup were counted, but the download link that came back is not one this page can open. Email contact@factlot.com with the time of this lookup.";
   var SHEET_NOTE =
     "The sheet uses one of the free tier's 3 reports a month and one lookup.";
 
@@ -586,9 +590,12 @@
       })
         .then(function (r) {
           clear(out);
+          showQuota(r.headers);
           var d = r.data || {};
           var link = r.status === 201 ? downloadLink(d.download_url) : null;
-          if (link) {
+          if (r.status === 201 && !link) {
+            out.textContent = SHEET_NO_LINK;
+          } else if (link) {
             out.appendChild(
               el("a", { href: link, text: "Your sheet is ready: download it" }),
             );
@@ -610,8 +617,8 @@
           }
         })
         .catch(function () {
-          out.textContent =
-            "The sheet could not be made: the service did not answer. Nothing was counted.";
+          // A timeout or a dropped connection: the server may still have made the sheet.
+          out.textContent = SHEET_UNSURE;
           b.disabled = false;
         });
     });

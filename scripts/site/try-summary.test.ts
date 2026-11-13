@@ -139,6 +139,23 @@ describe("/try/ plain summary", () => {
       assert.ok(summary.includes(`"${label}"`), label);
   });
 
+  it("never says nothing was counted when the answer did not come back, and says a report was used when the link is unusable", () => {
+    const sheet = summary.slice(summary.indexOf("function sheetAction"));
+    const action = sheet.slice(0, sheet.indexOf("function pageAction"));
+    assert.ok(!/Nothing was counted/i.test(action));
+    assert.match(constant("SHEET_UNSURE"), /may have been counted/);
+    assert.match(
+      constant("SHEET_NO_LINK"),
+      /one report and one lookup were counted/,
+    );
+    assert.match(action, /\.catch\(function \(\) \{[\s\S]*?SHEET_UNSURE/);
+    assert.match(
+      action,
+      /r\.status === 201 && !link\) \{\s*out\.textContent = SHEET_NO_LINK/,
+    );
+    assert.match(action, /showQuota\(r\.headers\)/);
+  });
+
   it("loads nothing from another origin: every request is a same-origin path", () => {
     assert.ok(!/https?:\/\//.test(js), "no absolute URL in the script");
     assert.equal([...js.matchAll(/\bfetch\(/g)].length, 2);
