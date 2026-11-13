@@ -3,6 +3,8 @@
 // site/_content, and return the page body. build.mjs writes the pages; site.test.ts calls these
 // same functions, so a page cannot say a number the data files do not hold.
 
+import { INSETS, insetSvg } from "./coverage-maps.mjs";
+
 export const esc = (s) =>
   String(s)
     .replaceAll("&", "&amp;")
@@ -330,6 +332,70 @@ export function hubRollSentence(counties) {
   if (none.length)
     parts[0] += `, and ${none.map((c) => c.name).join(" and ")} has no values because the publisher's file has none`;
   return `${parts[0].charAt(0).toUpperCase()}${parts[0].slice(1)}.`;
+}
+
+const readouts = (rows) => `<dl class="stats">
+${rows.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("\n")}
+</dl>`;
+
+/** The hub's figures under its title: the table's total, its row count and the roll sentence's first count. */
+export function hubReadouts(counties) {
+  return readouts([
+    [
+      "Commercial parcels hosted in Texas",
+      int.format(counties.reduce((a, c) => a + c.hosted_parcels, 0)),
+    ],
+    ["Counties hosted", String(counties.length)],
+    [
+      "Counties with more than one roll year",
+      String(counties.filter((c) => c.rolls.length > 1).length),
+    ],
+  ]);
+}
+
+/** A county page's figures under its title, as its first paragraph and roll table give them. */
+export function countyReadouts(c) {
+  return readouts([
+    ["Commercial parcels hosted", int.format(c.hosted_parcels)],
+    ...(hasValues(c)
+      ? [
+          ["Roll years held", String(c.rolls.length)],
+          ["Latest roll (tax year)", String(latestRoll(c).tax_year)],
+        ]
+      : []),
+  ]);
+}
+
+/**
+ * Texas with its hosted counties, each a link to its page. `geo`: site/_content/coverage-geometry.json.
+ * `current`: the slug of the county whose page this is; the others are drawn fainter.
+ */
+export function texasMap(geo, counties, current) {
+  const inset = INSETS.find((i) => i.id === "texas");
+  const svg = insetSvg(
+    geo,
+    current
+      ? {
+          ...inset,
+          labels: inset.labels.filter(
+            ([fips]) =>
+              fips ===
+              `48${counties.find((c) => c.slug === current).county_fips}`,
+          ),
+        }
+      : inset,
+    counties.map((c) => ({
+      fips: `48${c.county_fips}`,
+      cls: current && c.slug !== current ? "hosted other" : "hosted",
+      title: `${c.name} County: ${int.format(c.hosted_parcels)} commercial parcels`,
+      href: `/texas/${c.slug}/`,
+    })),
+    { idPrefix: "tx" },
+  );
+  return `<figure class="txmap">
+${svg}
+<figcaption>${current ? "Hosted Texas counties; this page's county is the one named." : "Hosted Texas counties. Each links to its page."}</figcaption>
+</figure>`;
 }
 
 /** The hub's list of county pages. */

@@ -266,6 +266,48 @@ ${d.holds.owner_of_record ? "<li><code>registry_search_entities</code> and <code
   });
 }
 
+/**
+ * The page's worked example as a fact card: the parcel the tools' section names, its value and
+ * year, and the source they are cited to. Every value is one the page's body states.
+ */
+export function marketCard(d) {
+  const s = d.sample;
+  const src = d.sources[0];
+  const value =
+    s.market_value !== null
+      ? ["Market value", usd.format(s.market_value)]
+      : s.appraised_value !== null
+        ? ["Appraised value", usd.format(s.appraised_value)]
+        : null;
+  const chip = `<dd class="src"><span class="cite"><b>1</b> ${esc(src.source_id)}</span></dd>`;
+  const rows = [
+    ...(value
+      ? [
+          `<div><dt>${value[0]}</dt><dd class="big">${value[1]}</dd>${chip}</div>`,
+        ]
+      : []),
+    ...(s.tax_year !== null
+      ? [`<div><dt>Tax year</dt><dd>${s.tax_year}</dd>${chip}</div>`]
+      : []),
+    `<div><dt>The county's own number</dt><dd>${esc(s.external_id)}</dd><dd class="src"><span class="cite">${esc(d.id_system)}</span></dd></div>`,
+  ];
+  return `<div class="factcard">
+<p class="factcard-bar"><span><b>registry_search_address</b> · ${esc(s.query)}</span></p>
+<div class="factcard-head">
+<p class="factcard-title">${esc(s.label)}</p>
+<p>${esc(s.urn)}</p>
+</div>
+<dl class="factrows">
+${rows.join("\n")}
+</dl>
+<div class="factcard-foot">
+<ol>
+<li>${esc(src.publisher)}: ${esc(src.title)}</li>
+</ol>
+</div>
+</div>`;
+}
+
 /** The coverage page's section on the places with a page of their own ("" when none). */
 export function marketLinks(hosted) {
   const ms = hostedMarkets(hosted);

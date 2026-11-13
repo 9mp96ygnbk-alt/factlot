@@ -1,9 +1,10 @@
 /**
  * The HTML pages the Worker serves: onboarding after checkout, /account, recovery and messages.
  *
- * They share the site's look: the served /styles.css (tokens, header, footer, dark mode) plus a
- * small nonce'd style block for the parts the landing page does not have (steps, copy buttons,
- * forms). Every interpolated value is escaped. Scripts run only with the response's nonce and
+ * They share the site's look: the header and footer come from the site's own shell
+ * (scripts/site/shell.mjs) and every style from the served /styles.css, which has a section for
+ * the parts only these pages have (steps, copy buttons, forms). No style is inline.
+ * Every interpolated value is escaped. Scripts run only with the response's nonce and
  * only do two things: copy a block to the clipboard and call GET /v1/account for "Test your key".
  * Forms post to the Worker; a key never travels in a URL.
  */
@@ -31,6 +32,12 @@ import {
   type Plan,
 } from "./plans.ts";
 import type { UsageSummary } from "./types.ts";
+import {
+  NAV,
+  headLinks,
+  siteFooter,
+  siteHeader,
+} from "../../../scripts/site/shell.mjs";
 
 export { escapeHtml };
 
@@ -45,44 +52,11 @@ const DEFAULT_SITE = "https://factlot.com";
 const DEFAULT_API = "https://api.factlot.com";
 const trim = (u: string) => u.replace(/\/$/, "");
 
-const EXTRA_CSS = `
-.flow{padding:2.25rem 0 3rem;border-bottom:0;background:var(--bg)}
-.narrow{max-width:46rem}
-.flow h1{margin-bottom:1rem}
-.lead{font-size:1.1rem;color:var(--muted);max-width:60ch}
-.flow section.step{margin:2.5rem 0 0;padding:0;border:0;background:none}
-.step>h2{font-size:1.35rem;display:flex;gap:.6rem;align-items:baseline;margin-bottom:.6rem}
-.step>h2 .n{color:var(--muted);font-size:1rem;font-variant-numeric:tabular-nums}
-.block{position:relative;margin:.5rem 0 1rem}
-.block .label{margin:0 0 .25rem;font-size:.85rem;color:var(--muted)}
-.block pre{margin:0;padding-right:4.75rem;white-space:pre-wrap;word-break:break-all}
-.block.key pre{border:2px solid var(--accent);font-size:1rem}
-.copy{position:absolute;right:.5rem;bottom:.5rem;font:inherit;font-size:.8rem;padding:.25rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);cursor:pointer}
-.notice{border-left:3px solid var(--accent);background:var(--bg-alt);padding:.75rem 1rem;border-radius:0 6px 6px 0;margin:0 0 1.5rem}
-.notice.warn{border-left-color:var(--focus)}
-.notice p:last-child{margin:0}
-.warn{color:var(--focus)}
-details.client{border:1px solid var(--border);border-radius:8px;margin:.5rem 0;padding:0 1rem}
-details.client>summary{cursor:pointer;padding:.8rem 0;font-weight:600}
-details.client[open]>summary{border-bottom:1px solid var(--border);margin-bottom:.75rem}
-details.client ol{padding-left:1.25rem}
-dl.facts{display:grid;grid-template-columns:minmax(8.5rem,max-content) 1fr;gap:.45rem 1.25rem;margin:0 0 1rem}
-dl.facts dt{color:var(--muted)}dl.facts dd{margin:0}
-label{display:block;font-weight:600;margin:0 0 .35rem}
-input[type=password],input[type=email],input[type=text]{width:100%;font:1rem ui-monospace,SFMono-Regular,Menlo,monospace;padding:.65rem .75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)}
-input[type=email]{font-family:inherit}
-form{margin:0}
-.buttons{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin:1rem 0}
-button.button{font:inherit;font-weight:600;cursor:pointer;background:transparent}
-button.button.primary{background:var(--accent);color:var(--accent-text)}
-button.link{font:inherit;background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer}
-progress{width:100%;height:.7rem;accent-color:var(--accent)}
-.out{min-height:1.5rem}
-.spark{display:block;width:100%;height:56px;color:var(--accent)}
-table.keys td,table.keys th{padding-right:1rem}
-table.keys form{display:inline}
-@media (max-width:40rem){dl.facts{grid-template-columns:1fr;gap:.1rem}dl.facts dd{margin-bottom:.6rem}table.keys td[data-label]::before{content:attr(data-label) ": ";color:var(--muted)}}
-`;
+/** The site's navigation with the account in the button's place: these pages are where a key is managed. */
+const ACCOUNT_NAV: [string, string][] = [
+  ...NAV.slice(0, -1),
+  ["/account", "Account"],
+];
 
 const COPY_JS = `document.querySelectorAll("button.copy").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-copy"));if(!t)return;var done=function(m){b.textContent=m;setTimeout(function(){b.textContent="Copy"},2000)};if(navigator.clipboard){navigator.clipboard.writeText(t.textContent).then(function(){done("Copied")},function(){done("Select and copy")})}else done("Select and copy")})});`;
 
@@ -112,18 +86,21 @@ export function page(
     .filter(Boolean)
     .join("\n");
   const html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>${escapeHtml(title)} · FactLot</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style nonce="${nonce}">${EXTRA_CSS}</style></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>${escapeHtml(title)} · FactLot</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+${headLinks()}
+<link rel="stylesheet" href="/styles.css"></head>
 <body><a class="skip" href="#main">Skip to content</a>
-<header class="site-header"><div class="wrap row"><a class="brand" href="${site}/" aria-label="FactLot home">FactLot</a><nav aria-label="Site"><ul><li><a href="${site}/pricing/">Pricing</a></li><li><a href="${site}/account">Account</a></li><li><a href="mailto:${CONTACT}">Help</a></li></ul></nav></div></header>
+${siteHeader({ base: site, nav: ACCOUNT_NAV })}
 <main id="main"><section class="flow"><div class="wrap narrow">
 ${body}
 </div></section></main>
-<footer class="site-footer"><div class="wrap"><p><a href="${REPO}">GitHub</a> · <a href="mailto:${CONTACT}">${CONTACT}</a> · <a href="${site}/privacy">Privacy</a> · <a href="${site}/terms">Terms</a></p></div></footer>
+${siteFooter({ base: site })}
 ${scripts ? `<script nonce="${nonce}">${scripts}</script>` : ""}
 </body></html>`;
   const csp = [
     "default-src 'none'",
-    `style-src 'self' 'nonce-${nonce}'`,
+    "style-src 'self'",
+    "font-src 'self'",
     "img-src 'self'",
     `script-src 'nonce-${nonce}'`,
     `connect-src ${o.testApi ? trim(o.testApi) : "'none'"}`,

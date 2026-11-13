@@ -3764,7 +3764,10 @@ describe("onboarding page", () => {
     const nonce = csp.match(/script-src 'nonce-([A-Za-z0-9_-]+)'/)?.[1];
     assert.ok(nonce);
     assert.ok(html.includes(`<script nonce="${nonce}">`));
-    assert.ok(html.includes(`<style nonce="${nonce}">`));
+    // Every style comes from the stylesheet: the page carries no style block and the policy allows none.
+    assert.doesNotMatch(html, /<style\b|\sstyle=/);
+    assert.match(csp, /style-src 'self';/);
+    assert.match(csp, /font-src 'self';/);
     assert.match(csp, /connect-src https:\/\/api\.factlot\.com;/);
     assert.match(csp, /default-src 'none'/);
     assert.doesNotMatch(csp, /unsafe-inline/);

@@ -975,9 +975,14 @@ async function route(
   )
     return mcpBrowserPage(site, apiBase);
 
-  // The pages' stylesheet and icon, on every host (billing and account pages can be served on
-  // the API host too).
-  if ((path === "/styles.css" || path === "/favicon.svg") && env.ASSETS)
+  // The pages' stylesheet, fonts and icon, on every host (billing and account pages can be served
+  // on the API host too).
+  if (
+    (path === "/styles.css" ||
+      path === "/favicon.svg" ||
+      path.startsWith("/fonts/")) &&
+    env.ASSETS
+  )
     return env.ASSETS.fetch(request);
 
   // Billing pages for people (any host). Both reach Stripe, so both count against the

@@ -41,7 +41,7 @@ import {
 } from "../../registry/src/page-rules.ts";
 
 import { siteUrl } from "./billing.ts";
-import { CONTACT, REPO } from "./contact.ts";
+import { CONTACT } from "./contact.ts";
 import {
   limitHistory,
   limitSales,
@@ -54,6 +54,11 @@ import { addressSubject } from "./limiter.ts";
 import { REGISTRY_RUN_URL } from "./registry.ts";
 import { noticesFor } from "./source-notices.ts";
 import type { Env, Fetcher } from "./types.ts";
+import {
+  headLinks,
+  siteFooter,
+  siteHeader,
+} from "../../../scripts/site/shell.mjs";
 
 /** The Worker variables this feature reads (kept out of types.ts so the shared Env stays as it is). */
 export type PagesEnv = Env & {
@@ -66,13 +71,14 @@ export type PagesEnv = Env & {
 /** Pages and sitemaps per minute per address. A crawler fetching one page a second stays well inside it. */
 export const PROPERTY_PAGES_PER_MINUTE = 120;
 /** Bumped when the page's HTML changes, so cached pages are not served across a renderer change. */
-export const PAGE_RENDER_VERSION = "2";
+export const PAGE_RENDER_VERSION = "3";
 export const SITEMAP_INDEX_PATH = "/sitemaps/properties.xml";
 const SITEMAP_CHILD = /^\/sitemaps\/properties\/([a-z0-9]+)-(\d{1,6})\.xml$/;
-/** Pages carry no script and no inline style: only the site's stylesheet loads. */
+/** Pages carry no script and no inline style: only the site's stylesheet and its fonts load. */
 export const PROPERTY_PAGE_CSP = [
   "default-src 'none'",
   "style-src 'self'",
+  "font-src 'self'",
   "img-src 'self'",
   "script-src 'none'",
   "connect-src 'none'",
@@ -563,16 +569,6 @@ const usd = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-const NAV: [string, string][] = [
-  ["/try/", "Try it"],
-  ["/calculators/", "Calculators"],
-  ["/mcp-server/", "MCP server"],
-  ["/texas/", "Texas"],
-  ["/coverage/", "Coverage"],
-  [`${REPO}/blob/main/docs/getting-started.md`, "Docs"],
-  ["/pricing/", "Pricing"],
-];
-
 /** The site page for a county or market, when the site has one; else the coverage page. */
 const MARKET_PAGES: Record<string, string> = {
   "us-36005": "/new-york-city/",
@@ -690,12 +686,12 @@ export function renderPropertyPage(input: RenderInput): string {
     const bits = [locator ? e(locator) : "", asOf ? `as of ${e(asOf)}` : ""]
       .filter(Boolean)
       .join(", ");
-    return `<a href="#source-${d.n}">[${d.n}]</a>${bits ? ` ${bits}` : ""}`;
+    return `<a class="cite" href="#source-${d.n}"><b>${d.n}</b>${bits ? ` ${bits}` : ""}</a>`;
   };
   const factCite = (f: Fact): string =>
     (f.provenance?.sources ?? [])
       .map((s) => cite(s.document_id, f, s.section, f.as_of))
-      .join("; ");
+      .join(" ");
 
   const one = (p: string) => factsOf(rec, [p])[0];
   const address = situsAddress(rec);
@@ -704,7 +700,7 @@ export function renderPropertyPage(input: RenderInput): string {
   const rows: string[] = [];
   const row = (label: string, value: string, source: string) =>
     rows.push(
-      `<tr><th scope="row">${e(label)}</th><td>${value}</td><td class="small">${source}</td></tr>`,
+      `<tr><th scope="row">${e(label)}</th><td>${value}</td><td class="cited">${source}</td></tr>`,
     );
   const factRow = (
     label: string,
@@ -738,6 +734,7 @@ export function renderPropertyPage(input: RenderInput): string {
   // Values: the current roll year only (the free view). Without value_history, the current value facts.
   const entries = currentValueEntries(rec.value_history);
   const valueRows: string[] = [];
+  const valueCard: string[] = [];
   const vEntry: ValueEntry | undefined = entries[0];
   const taxYearFact = one("parcel.tax_year");
   for (const [field, label] of [
@@ -771,7 +768,10 @@ export function renderPropertyPage(input: RenderInput): string {
         ? `the publisher's ${year} ${kind}roll`
         : `the publisher's ${kind}roll`;
     valueRows.push(
-      `<tr><th scope="row">${e(label)}</th><td>${e(usd.format(amount))}<br><span class="small">${e(`figure from ${roll}${asOf ? `, as of ${asOf}` : ""}`)}</span></td><td class="small">${source}</td></tr>`,
+      `<tr><th scope="row">${e(label)}</th><td>${e(usd.format(amount))}<br><span class="small">${e(`figure from ${roll}${asOf ? `, as of ${asOf}` : ""}`)}</span></td><td class="cited">${source}</td></tr>`,
+    );
+    valueCard.push(
+      `<div><dt>${e(label)}</dt><dd class="big">${e(usd.format(amount))}</dd><dd class="src">${source}</dd></div>`,
     );
   }
 
@@ -785,14 +785,14 @@ export function renderPropertyPage(input: RenderInput): string {
     !ownerNamesAPerson(owner.value)
   ) {
     ownerHtml.push(
-      `<tr><th scope="row">Owner of record</th><td>${e(owner.value)}</td><td class="small">${factCite(owner)}</td></tr>`,
+      `<tr><th scope="row">Owner of record</th><td>${e(owner.value)}</td><td class="cited">${factCite(owner)}</td></tr>`,
     );
     const name = entity ? factsOf(entity, ["entity.legal_name"])[0] : undefined;
     if (entity && name && typeof name.value === "string") {
       const jurisdiction = regionOf(entity.urn);
       entityShown = true;
       ownerHtml.push(
-        `<tr><th scope="row">Registered entity</th><td>${e(name.value)}<br><span class="small">${e(`registry ${jurisdiction} (${jurisdiction.replace(/^us-/, "").toUpperCase()})`)}</span></td><td class="small">${factCite(name)}</td></tr>`,
+        `<tr><th scope="row">Registered entity</th><td>${e(name.value)}<br><span class="small">${e(`registry ${jurisdiction} (${jurisdiction.replace(/^us-/, "").toUpperCase()})`)}</span></td><td class="cited">${factCite(name)}</td></tr>`,
       );
     }
     if (input.otherCount !== null) {
@@ -801,7 +801,7 @@ export function renderPropertyPage(input: RenderInput): string {
         ? `<ul class="plain">${input.links.map((l) => `<li><a href="${e(l.path)}">${e(l.label)}</a></li>`).join("")}</ul>`
         : "";
       ownerHtml.push(
-        `<tr><th scope="row">Other hosted parcels of this entity</th><td>${e(int.format(n))}${list}</td><td class="small"></td></tr>`,
+        `<tr><th scope="row">Other hosted parcels of this entity</th><td>${e(int.format(n))}${list}</td><td class="cited"></td></tr>`,
       );
     }
   }
@@ -815,7 +815,7 @@ export function renderPropertyPage(input: RenderInput): string {
     const source = factCite(sale);
     const saleRow = (label: string, value: string) =>
       saleHtml.push(
-        `<tr><th scope="row">${e(label)}</th><td>${value}</td><td class="small">${source}</td></tr>`,
+        `<tr><th scope="row">${e(label)}</th><td>${value}</td><td class="cited">${source}</td></tr>`,
       );
     if (typeof v.date === "string")
       saleRow(deed ? "Date recorded" : "Sale date", e(v.date));
@@ -907,8 +907,8 @@ ${proLines.join("\n")}
         ["Redistribution", e(r.redistribution ?? "not recorded")],
         ["AI use", e(r.ai_use ?? "not recorded")],
       ];
-      return `<h3 id="source-${d.n}">[${d.n}] ${e(publisher || d.title)}</h3>
-<table><tbody>${items.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join("")}</tbody></table>`;
+      return `<h3 id="source-${d.n}"><span class="cite"><b>${d.n}</b></span> ${e(publisher || d.title)}</h3>
+<div class="tablewrap"><table><tbody>${items.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join("")}</tbody></table></div>`;
     })
     .join("\n");
 
@@ -922,6 +922,34 @@ ${proLines.join("\n")}
     typeof vEntry?.tax_year === "number" ? `${vEntry.tax_year} ` : "";
   const description = `Public-record facts for ${h1}${placeText ? `, ${placeText}` : ""}: parcel ID, property category, areas, year built and the publisher's ${year}roll values, each cited to its source. Not an appraisal.`;
 
+  const sheet = (rowsHtml: string[], head = "") =>
+    `<div class="tablewrap"><table class="sheet">${head}<tbody>\n${rowsHtml.join("\n")}\n</tbody></table></div>`;
+  const body = [
+    ["facts", "Parcel"],
+    ...(valueRows.length ? [["values", "Roll values"]] : []),
+    ...(ownerHtml.length ? [["owner", "Owner"]] : []),
+    ...(saleHtml.length ? [["sale", "Latest recorded sale"]] : []),
+    ...(pro ? [["pro", "What a Pro or Team key adds"]] : []),
+    ["sources", "Sources"],
+    ...(notices.length ? [["notices", "Source notices"]] : []),
+    ["more", "More"],
+  ] as [string, string][];
+  // The current roll's values, each with its citation, beside the title.
+  const card = valueCard.length
+    ? `<div class="doc-figure">
+<div class="factcard">
+<p class="factcard-bar"><span><b>registry_get</b></span><span>${e(placeText || place.region)}</span></p>
+<div class="factcard-head">
+<p class="factcard-title">${e(h1)}</p>
+<p>${e(rec.urn)}</p>
+</div>
+<dl class="factrows">
+${valueCard.join("\n")}
+</dl>
+</div>
+</div>`
+    : "";
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -932,33 +960,29 @@ ${proLines.join("\n")}
 <meta name="description" content="${e(description)}" />
 ${address ? "" : '<meta name="robots" content="noindex" />\n'}<link rel="canonical" href="${e(canonical)}" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+${headLinks()}
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="site-header">
-<div class="wrap row">
-<a class="brand" href="/" aria-label="FactLot home">FactLot</a>
-<nav aria-label="Site">
-<ul>
-${NAV.map(([href, label]) => `<li><a href="${e(href)}">${e(label)}</a></li>`).join("\n")}
-</ul>
-</nav>
-</div>
-</header>
+${siteHeader()}
 <main id="main">
 <section aria-labelledby="page-title">
-<div class="wrap">
+<div class="wrap doc has-toc">
+<header class="doc-head${card ? " has-figure" : ""}">
+<div class="doc-title">
 <p class="small breadcrumbs"><a href="/">FactLot</a> › <a href="${e(market.href)}">${e(market.label)}</a> › Property</p>
 <h1 id="page-title">${e(h1)}</h1>
 <p class="lede">A commercial parcel in ${e(placeText || place.region)}, as its public records describe it. FactLot ID <code>${e(rec.urn)}</code>.</p>
+</div>
+${card}
+</header>
+<div class="doc-body">
 <h2 id="facts">Parcel</h2>
-<table><thead><tr><th scope="col">Fact</th><th scope="col">Value</th><th scope="col">Source</th></tr></thead><tbody>
-${rows.join("\n")}
-</tbody></table>
-${valueRows.length ? `<h2 id="values">Roll values</h2>\n<p class="small">The publisher's own roll figures for the current roll year, as released.</p>\n<table><tbody>\n${valueRows.join("\n")}\n</tbody></table>` : ""}
-${ownerHtml.length ? `<h2 id="owner">Owner</h2>\n<table><tbody>\n${ownerHtml.join("\n")}\n</tbody></table>` : ""}
-${saleHtml.length ? `<h2 id="sale">Latest recorded sale</h2>\n<p class="small">The newest sale or deed the public record holds for this parcel, as recorded. The record does not say whether a sale was at arm's length, and a price is shown as recorded, zero included.</p>\n<table><tbody>\n${saleHtml.join("\n")}\n</tbody></table>` : ""}
+${sheet(rows, '<thead><tr><th scope="col">Fact</th><th scope="col">Value</th><th scope="col">Source</th></tr></thead>')}
+${valueRows.length ? `<h2 id="values">Roll values</h2>\n<p class="small">The publisher's own roll figures for the current roll year, as released.</p>\n${sheet(valueRows)}` : ""}
+${ownerHtml.length ? `<h2 id="owner">Owner</h2>\n${sheet(ownerHtml)}` : ""}
+${saleHtml.length ? `<h2 id="sale">Latest recorded sale</h2>\n<p class="small">The newest sale or deed the public record holds for this parcel, as recorded. The record does not say whether a sale was at arm's length, and a price is shown as recorded, zero included.</p>\n${sheet(saleHtml)}` : ""}
 ${pro}
 <h2 id="sources">Sources</h2>
 <p class="small">Each fact above cites the file it was read from. Licence, attribution, redistribution and AI use are as recorded for that source.</p>
@@ -972,18 +996,16 @@ ${market.href === "/coverage/" ? "" : `<li><a href="${e(market.href)}">${e(marke
 </ul>
 <p class="small">A record shown here is a public-record fact as its publisher released it. It is not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for checking the source. If a record names you as a person, or is wrong, email <a href="mailto:${CONTACT}">${CONTACT}</a> and we will remove or correct it.</p>
 </div>
+<nav class="toc" aria-label="On this page">
+<p>On this page</p>
+<ol>
+${body.map(([id, label]) => `<li><a href="#${id}">${label}</a></li>`).join("\n")}
+</ol>
+</nav>
+</div>
 </section>
 </main>
-<footer class="site-footer">
-<div class="wrap">
-<p>
-<a href="${REPO}">GitHub</a> ·
-<a href="mailto:${CONTACT}">${CONTACT}</a> ·
-<a href="/privacy">Privacy</a> ·
-<a href="/terms">Terms</a>
-</p>
-</div>
-</footer>
+${siteFooter()}
 </body>
 </html>
 `;
@@ -999,9 +1021,13 @@ export function notFoundPage(site: string): Response {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
 <title>No page for this parcel · FactLot</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+${headLinks()}
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
+${siteHeader()}
 <main id="main">
 <section>
 <div class="wrap">
@@ -1010,6 +1036,7 @@ export function notFoundPage(site: string): Response {
 </div>
 </section>
 </main>
+${siteFooter()}
 </body>
 </html>
 `,

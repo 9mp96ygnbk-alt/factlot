@@ -28,3 +28,10 @@ export function hubExampleLinks(
   counties: unknown[],
   exampleSlugs: string[],
 ): string;
+export function hubReadouts(counties: unknown[]): string;
+export function countyReadouts(c: unknown): string;
+export function texasMap(
+  geo: unknown,
+  counties: unknown[],
+  current?: string,
+): string;

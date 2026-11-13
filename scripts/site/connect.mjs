@@ -69,7 +69,7 @@ function authLines(a) {
 }
 
 function pathHtml(p) {
-  const parts = [`<h3 id="${esc(p.id)}">${esc(p.name)}</h3>`];
+  const parts = [`<h3>${esc(p.name)}</h3>`];
   parts.push(
     `<p>${esc(p.you_get)}${p.url ? ` URL: <code>${esc(p.url)}</code>.` : ""}</p>`,
   );
@@ -85,7 +85,57 @@ function pathHtml(p) {
   parts.push(
     `<p class="small">${esc(p.verification.docs)} ${esc(p.verification.exercised)} <a href="${REPO}/blob/main/${esc(p.guide)}">Detailed guide</a>.</p>`,
   );
-  return parts.join("\n");
+  return `<div class="tabpanel" id="${esc(p.id)}">\n${parts.join("\n")}\n</div>`;
+}
+
+/**
+ * One surface: a box whose paths are tabs. The tabs are radio inputs, so choosing one does not
+ * move the page; with none chosen, the path named in the address (/connect/#claude-code) shows,
+ * else the first. The stylesheet does this with :has(); without it every path shows, stacked.
+ */
+function surfaceHtml(s) {
+  const tabs = s.paths
+    .map(
+      (p) =>
+        `<input type="radio" name="tab-${esc(s.id)}" id="tab-${esc(p.id)}" /><label for="tab-${esc(p.id)}">${esc(p.name)}</label>`,
+    )
+    .join("\n");
+  return `<section class="surface" id="${esc(s.id)}" aria-labelledby="${esc(s.id)}-title">
+<h2 id="${esc(s.id)}-title">${esc(s.name)}</h2>
+<fieldset class="tablist">
+<legend class="visually-hidden">${esc(s.name)}: ways to connect</legend>
+${tabs}
+</fieldset>
+${s.paths.map(pathHtml).join("\n")}
+</section>`;
+}
+
+/**
+ * The drawing beside the page's title: every surface the page lists, each joined to the one
+ * endpoint. Names and the URL come from the same data as the page.
+ */
+export function connectFigure(raw, version) {
+  const d = connectData(raw, version);
+  const n = d.surfaces.length;
+  const row = 30;
+  const h = n * row + 8;
+  const mid = h / 2;
+  const lines = d.surfaces
+    .map((s, i) => {
+      const y = 4 + i * row + row / 2;
+      return `<path class="wire" d="M150 ${y}C196 ${y} 186 ${mid} 232 ${mid}"/><circle class="pin" cx="150" cy="${y}" r="3"/>`;
+    })
+    .join("\n");
+  return `<div class="hub" role="img" aria-label="${esc(d.surfaces.map((s) => s.name).join(", "))}: each connects to ${esc(d.mcp_url)}">
+<ul>
+${d.surfaces.map((s) => `<li>${esc(s.name)}</li>`).join("\n")}
+</ul>
+<svg viewBox="150 0 90 ${h}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+${lines}
+<circle class="node" cx="232" cy="${mid}" r="5"/>
+</svg>
+<p><code>${esc(d.mcp_url)}</code></p>
+</div>`;
 }
 
 /** The body of /connect/. */
@@ -94,12 +144,7 @@ export function connectBody(raw, version) {
   const nav = d.surfaces
     .map((s) => `<li><a href="#${esc(s.id)}">${esc(s.name)}</a></li>`)
     .join("\n");
-  const groups = d.surfaces
-    .map(
-      (s) =>
-        `<h2 id="${esc(s.id)}">${esc(s.name)}</h2>\n${s.paths.map(pathHtml).join("\n")}`,
-    )
-    .join("\n");
+  const groups = d.surfaces.map(surfaceHtml).join("\n");
   return `<p class="lede">
   One hosted server, <code>${esc(d.mcp_url)}</code> (Streamable HTTP, stateless), serves every
   tool to any MCP client. Each section gives the shortest path for one surface. The same
@@ -113,7 +158,7 @@ export function connectBody(raw, version) {
 </ul>
 <p class="small">${esc(d.verification_note)}</p>
 <h2 id="surfaces">Surfaces</h2>
-<ul class="plain">
+<ul class="tiles">
 ${nav}
 </ul>
 ${groups}

@@ -822,8 +822,14 @@ describe("property pages: a permitted-source parcel", () => {
     const res = await get(h, "/property/us-11001/p4");
     assert.equal(res.status, 200);
     const html = await res.text();
+    // The footer's trademark line ("trademarks of their owner") is the site's, not the parcel's.
     assert.ok(
-      !/owner/i.test(html.replace(/opinion|own system|owned/gi, "")),
+      !/owner/i.test(
+        html.replace(
+          /opinion|own system|owned|trademarks of their owner/gi,
+          "",
+        ),
+      ),
       "no owner wording",
     );
     assert.ok(!html.includes("Registered entity"));
@@ -1131,16 +1137,16 @@ describe("property pages: cost and abuse", () => {
     assert.equal(post.headers.get("allow"), "GET, HEAD");
   });
 
-  it("send a strict CSP, and the existing pages' CSP is unchanged", async () => {
+  it("send a strict CSP that allows the site's own fonts, and the account pages take every style from the stylesheet", async () => {
     const res = await get(harness(), P1_PATH);
     assert.equal(
       res.headers.get("content-security-policy"),
-      "default-src 'none'; style-src 'self'; img-src 'self'; script-src 'none'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; script-src 'none'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
     );
     const csp = page("t", "<p>x</p>").headers.get("content-security-policy")!;
     assert.equal(
       csp.replace(/'nonce-[A-Za-z0-9_-]+'/g, "'nonce-N'"),
-      "default-src 'none'; style-src 'self' 'nonce-N'; img-src 'self'; script-src 'nonce-N'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; script-src 'nonce-N'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
     );
   });
 });

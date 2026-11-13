@@ -1,6 +1,9 @@
 # factlot.com
 
-The site is static HTML with no framework, no external scripts or fonts, and no tracking. The
+The site is static HTML with no framework, no external scripts, stylesheets or fonts, and no
+tracking. Its two typefaces are served from the site itself: Instrument Sans and Geist Mono, as
+variable Latin `woff2` files in `site/fonts/`, each under the SIL Open Font License 1.1 with its
+licence text beside it. The
 `<script>` elements are `application/ld+json` blocks (schema.org data), which the browser does not
 execute, and one same-origin file, `/try/try.js`, on the Try a lookup page (`/try/`). That page posts
 to the Worker's own `/v1/registry/search_address` and `/v1/registry/get` routes on the page's origin,
@@ -9,11 +12,19 @@ HEAD whether a parcel has a public page. It needs no CORS and no key, and the fr
 like any other keyless caller. The build fails on any other script.
 
 - `site/` holds the hand-written pages (`index.html`, `privacy.html`, `terms.html`, `404.html`),
-  `styles.css`, icons, `robots.txt`, the IndexNow key file, and `llms.txt` (a copy of the
+  `styles.css`, `fonts/`, icons, `robots.txt`, the IndexNow key file, and `llms.txt` (a copy of the
   repository's `llms.txt`; a test fails if they differ).
+- `scripts/site/shell.mjs` is the header, navigation and footer of every page. The build calls it,
+  and so do the pages the Worker renders (account, onboarding and property pages), so they cannot
+  differ. Those pages load the same `styles.css`; none carries a style of its own.
+- `scripts/site/coverage-maps.mjs` draws the inset maps and `coverage/map-mini.svg` from the same
+  county boundaries as the coverage map.
+- `docs/assets/` holds the sources of `social-preview.png` (1200 by 630) and the README images.
+  The icons are rasterised from `favicon.svg`.
 - `site/_content/` holds the prose for generated pages: `mcp.html`, `try.html`, `texas-protest-deadline.html`,
   and `calculators/` (one fragment per calculator page plus `manifest.json`).
-- `scripts/site/build.mjs` copies `site/` without `_content/` and the `.md` notes, renders
+- `scripts/site/build.mjs` copies `site/` without `_content/` and the `.md` notes (and writes
+  `styles.css` without its comments and indentation, which must come to 60,000 bytes or less), renders
   `/mcp/`, `/calculators/`, the calculator pages and the Texas deadline page, and writes
   `sitemap.xml` with each page's last commit date. Every number on a generated page is computed by
   the built packages and checked against a shared test vector. The build fails on a broken
