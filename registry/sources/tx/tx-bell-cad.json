@@ -1,5 +1,5 @@
 {
-  "description": "Bell County certified appraisal exports (layout 8.0.33; zip/7z/rar).",
+  "description": "Bell County certified appraisal exports: 2026 tab-delimited extract (zip); 2025 and 2024 PACS exports (7z, rar). See docs/registry/sources/tx-bell-cad.md.",
   "collector": {
     "contact": "contact@factlot.com",
     "min_interval": 2.0,
@@ -19,11 +19,11 @@
       ],
       "verified": true,
       "terms_url": "https://bellcad.org/data-portal/",
-      "license": "Public record (Tex. Gov't Code ch. 552); no terms stated on the data page",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license, terms of use or disclaimer stated on the data portal",
       "ai_use": "Not addressed by the publisher",
       "redistribution": "Not addressed by the publisher; public record",
-      "reviewed": "2026-11-07",
-      "notes": "Card step 3: layout xlsx and 2026 certified zip, then the 2025 and 2024 certified archives (7z, rar). robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.1, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+      "reviewed": "2026-11-12",
+      "notes": "Data portal re-read 2026-11-12 by the collector's identified client: no terms, no click-through, no login; site footer is a copyright line only. robots.txt: WordPress default (Disallow /wp-admin/ only), no Content-Signal. The four configured files were checked by HEAD on 2026-11-12 (sizes and Last-Modified unchanged from the 2026-11-08 archive). The district changed systems in 2026: the 8.0.33 layout is labelled 'Files Created Prior to 5/1/2026' and the 2026 certified export is a tab-delimited extract with no published layout (adapter tx_bell). 2025 and 2024 are PACS exports loaded as value history only. Also on the page, not configured: 2025 export as of supplement 60 (.rar), 2024 export as of supplement 52 (.zip), condensed xlsx rolls, preliminary 2027, collections, mortgage export, shapefiles."
     }
   ]
 }

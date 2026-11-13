@@ -1,5 +1,5 @@
 {
-  "description": "Johnson CAD certified data rolls (contents unverified; vendor change in 2026).",
+  "description": "Johnson CAD certified data rolls: 2026 and a 2025 re-export as tab-delimited extracts, 2024 web extract, 2021 to 2023 CSV rolls. See docs/registry/sources/tx-johnson-cad.md.",
   "collector": {
     "contact": "contact@factlot.com",
     "min_interval": 2.0,
@@ -13,16 +13,20 @@
       "allowed_hosts": ["johnsoncad.com"],
       "files": [
         "https://johnsoncad.com/wp-content/uploads/2026/08/BATCH_896.all_.zip",
+        "https://johnsoncad.com/wp-content/uploads/2026/05/JCAD-2025-Certified-Data-2026-04-27.zip",
         "https://johnsoncad.com/wp-content/uploads/2025/08/2025-Certified-Data-Roll.zip",
-        "https://johnsoncad.com/wp-content/uploads/2025/06/2024-Certified-Data-Roll-1.zip"
+        "https://johnsoncad.com/wp-content/uploads/2025/06/2024-Certified-Data-Roll-1.zip",
+        "https://johnsoncad.com/wp-content/uploads/2025/06/2023-Certified-Data-Roll.zip",
+        "https://johnsoncad.com/wp-content/uploads/2026/05/2022-Certified-Data.zip",
+        "https://johnsoncad.com/wp-content/uploads/2026/05/2021-Certified-Data.zip"
       ],
       "verified": true,
       "terms_url": "https://johnsoncad.com/downloads/",
-      "license": "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the roll files",
       "ai_use": "Not addressed by the publisher",
       "redistribution": "Not addressed by the publisher; public record",
-      "reviewed": "2026-11-07",
-      "notes": "Card step 4: 2026 Certified, then 2025, 2024. District states online data during the 2026 system change 'should be considered informational only'. robots.txt: WordPress default. Config added 2026-11-07 by the gathering run (FACTLOT-TX-DATA-GAPS-2026-11-07.md card C.2, owner instruction t470u); uncommitted. File URLs and sizes confirmed by HEAD 200 on 2026-11-07 with the FactLot bot user agent."
+      "reviewed": "2026-11-12",
+      "notes": "Downloads page re-read 2026-11-12 by the collector's identified client: no terms, click-through or login on the roll files; the only conditions are on the GIS shapefile ('Use of this data constitutes acceptance that ... JCAD makes no warranty as to the accuracy or completeness of the data'), which is not configured. robots.txt: WordPress default (Disallow /wp-admin/ only), no Content-Signal. Sizes and Last-Modified of the configured files checked by HEAD on 2026-11-12. The district moved to a new appraisal system in 2026: the 2026 certified roll and the 2025 re-export (posted 2026-05-07) are the tab-delimited extract read by tx_johnson; 2024 is the earlier system's web extract (WEBMAIN.CSV read for values only); 2021 to 2023 are CSV rolls not yet read. Supplemental, preliminary and BPP files on the page are not configured."
     }
   ]
 }
