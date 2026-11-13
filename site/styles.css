@@ -2297,7 +2297,9 @@ h3 > .cite {
 }
 
 .tile-code pre + p {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--code-line);
 }
 
 @media (min-width: 54rem) {
@@ -2342,6 +2344,66 @@ h3 > .cite {
   .layer {
     grid-template-columns: 15rem minmax(0, 1fr);
   }
+}
+
+/* A disclosure: reference text that stays in the page, closed until asked for. */
+.fold {
+  max-width: 46rem;
+  margin: 0 0 1rem;
+  border-top: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.fold + .fold {
+  margin-top: -1rem;
+  border-top: 0;
+}
+
+.fold > summary {
+  padding: 0.75rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fold > summary::marker {
+  color: var(--accent);
+}
+
+.fold > summary:hover {
+  color: var(--accent);
+}
+
+.fold > :not(summary) {
+  margin-top: 0;
+  color: var(--ink-2);
+}
+
+.fold .toollist {
+  border-top: 1px solid var(--line);
+}
+
+.fold .toollist li:last-child {
+  border-bottom: 0;
+}
+
+/* What needs a paid key: one entry a row, with what Free gets under it. */
+.paid-only {
+  max-width: 46rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.paid-only li {
+  margin: 0;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.paid-only .small {
+  color: var(--muted);
 }
 
 .linkrow {
@@ -2499,6 +2561,10 @@ h3 > .cite {
   font-weight: 500;
 }
 
+.plan span.amt {
+  margin-right: 0.1em;
+}
+
 .plan .amt {
   color: var(--ink);
   font-size: 2.5rem;
@@ -2566,15 +2632,11 @@ h3 > .cite {
 
 .fine {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
-  gap: 0 3rem;
-  margin-bottom: 2.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--line-2);
+  grid-template-columns: minmax(0, 1fr);
 }
 
-#pricing .sec-head {
-  align-items: start;
+#pricing .fold:last-of-type {
+  margin-bottom: 2.5rem;
 }
 
 #early-access {

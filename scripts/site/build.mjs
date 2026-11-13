@@ -36,6 +36,7 @@ import {
   connectJson,
 } from "./connect.mjs";
 import {
+  HOME_CONNECT,
   connectTile,
   coveragePreview,
   factCard,
@@ -135,7 +136,22 @@ const codeify = (text) =>
 const proPlan = plansData.paid.find((p) => p.id === "pro");
 const teamPlan = plansData.paid.find((p) => p.id === "team");
 const grouped = (v) => v.toLocaleString("en-US");
+// The paid-only entries as a list: the sentence's own opening, then one item per entry with what
+// Free gets instead. The sentence must be exactly its entries, so the list cannot say otherwise.
+const paidOnlyLead = plansData.paid_only_text.split(": ")[0];
+{
+  const whats = plansData.paid_only.map((f) => f.what);
+  if (
+    plansData.paid_only_text !==
+    `${paidOnlyLead}: ${whats.slice(0, -1).join("; ")}; and ${whats.at(-1)}.`
+  )
+    throw new Error("plans.json: paid_only_text is not its paid_only entries");
+}
 const PLAN_VARS = {
+  PLAN_PAID_ONLY_LEAD: esc(paidOnlyLead),
+  PLAN_PAID_ONLY_LIST: `<ul class="paid-only">
+${plansData.paid_only.map((f) => `<li>${codeify(f.what)}<br /><span class="small">Free: ${codeify(f.free)}</span></li>`).join("\n")}
+</ul>`,
   PLAN_FREE_RPM: grouped(plansData.free.requests_per_minute),
   PLAN_FREE_LOOKUPS_DAY: grouped(plansData.free.registry_lookups_per_day),
   PLAN_FREE_REPORTS: grouped(plansData.free.reports_per_month),
@@ -1401,12 +1417,12 @@ for (const [file, urlPath] of [
       TEXAS_SOFTWARE_SENTENCE: esc(
         texasSoftwareSentence(read("site/_content/texas.html")),
       ),
-      CONNECT_CLAUDE: connectTile(connect, "claude-code"),
-      CONNECT_CHATGPT: connectTile(connect, "chatgpt-app"),
-      CONNECT_GEMINI: connectTile(connect, "gemini-cli"),
-      CONNECT_MICROSOFT: connectTile(connect, "copilot-studio-mcp"),
-      CONNECT_AMAZON: connectTile(connect, "bedrock-agents"),
-      CONNECT_OTHERS: connectTile(connect, "other-clients"),
+      CONNECT_CLAUDE: connectTile(connect, HOME_CONNECT.claude),
+      CONNECT_CHATGPT: connectTile(connect, HOME_CONNECT.chatgpt),
+      CONNECT_GEMINI: connectTile(connect, HOME_CONNECT.gemini),
+      CONNECT_MICROSOFT: connectTile(connect, HOME_CONNECT.microsoft),
+      CONNECT_AMAZON: connectTile(connect, HOME_CONNECT.amazon),
+      CONNECT_OTHERS: connectTile(connect, HOME_CONNECT.others),
     }),
   );
 }

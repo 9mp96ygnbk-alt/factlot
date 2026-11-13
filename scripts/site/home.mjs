@@ -282,18 +282,49 @@ ${INSETS.map((i) => `<div class="insetfig">\n${insetSvg(geo, i, shown, { idPrefi
 </div>`;
 }
 
+/** The connect paths each home page tile shows, by platform, in the order shown. */
+export const HOME_CONNECT = {
+  claude: ["claude-ai", "claude-code", "claude-desktop-extension"],
+  chatgpt: ["chatgpt-app", "chatgpt-gpt-action", "openai-responses"],
+  gemini: ["gemini-cli", "gemini-api"],
+  microsoft: ["copilot-studio-mcp", "copilot-studio-connector"],
+  amazon: ["bedrock-agents", "bedrock-converse"],
+  others: ["other-clients"],
+};
+
 /**
- * One way to connect, for the home page's tiles: the path's name (a link to its place on the
- * connect page) and what to paste, the first command of its snippet or its URL.
- * `data`: connect.json with the version filled in (connectData). `id`: a path id.
+ * What a client is given to connect by one path: its URL, unless the snippet already holds it,
+ * then the snippet (of a shell snippet, the first command; the others are variants of it).
  */
-export function connectTile(data, id) {
-  const p = data.surfaces.flatMap((s) => s.paths).find((x) => x.id === id);
-  if (!p) throw new Error(`home: connect.json has no path ${id}`);
-  const code = p.snippet ? p.snippet.text.split("\n\n")[0] : p.url;
-  if (!code) throw new Error(`home: the path ${id} has nothing to paste`);
-  return `<p class="tile-label"><a href="/connect/#${esc(p.id)}">${esc(p.name)}</a></p>
-<pre><code>${esc(code)}</code></pre>`;
+function pasteOf(p) {
+  const snippet = p.snippet
+    ? p.snippet.format === "shell"
+      ? p.snippet.text.split("\n\n")[0]
+      : p.snippet.text
+    : "";
+  return [p.url && !snippet.includes(p.url) ? p.url : "", snippet].filter(
+    Boolean,
+  );
+}
+
+/**
+ * The ways to connect one platform, for a home page tile: each path's name (a link to its place
+ * on the connect page) and what that client is given, as the connect page has it.
+ * `data`: connect.json with the version filled in (connectData). `ids`: path ids, in order.
+ */
+export function connectTile(data, ids) {
+  const paths = data.surfaces.flatMap((s) => s.paths);
+  return ids
+    .map((id) => {
+      const p = paths.find((x) => x.id === id);
+      if (!p) throw new Error(`home: connect.json has no path ${id}`);
+      const paste = pasteOf(p);
+      if (paste.length === 0)
+        throw new Error(`home: the path ${id} has nothing to paste`);
+      return `<p class="tile-label"><a href="/connect/#${esc(p.id)}">${esc(p.name)}</a></p>
+${paste.map((t) => `<pre><code>${esc(t)}</code></pre>`).join("\n")}`;
+    })
+    .join("\n");
 }
 
 /**

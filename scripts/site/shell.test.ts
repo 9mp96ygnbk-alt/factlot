@@ -24,6 +24,7 @@ import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import { marketBody, marketCard, hostedMarkets } from "./market-pages.mjs";
 import * as shell from "./shell.mjs";
 import {
+  HOME_CONNECT,
   connectTile,
   coveragePreview,
   factCard,
@@ -746,19 +747,115 @@ describe("the built site", () => {
       assert.ok(homeText.includes(sentence));
       assert.ok(words(read("site/_content/texas.html")).includes(sentence));
       assert.ok(!homeSource.includes("Occupations Code"));
-      // The connect tiles: each path's own name and first command, from connect.json.
+      // The connect tiles: each path's own name and what that client is given, from connect.json.
       const connect = connectData(json("site/_data/connect.json"), version);
-      for (const id of [
-        "claude-code",
-        "chatgpt-app",
-        "gemini-cli",
-        "copilot-studio-mcp",
-        "bedrock-agents",
-        "other-clients",
-      ]) {
-        assert.ok(home.includes(connectTile(connect, id)), id);
-        assert.ok(home.includes(`href="/connect/#${id}"`), id);
+      const everyPath = connect.surfaces.flatMap((x) => x.paths);
+      for (const ids of Object.values(HOME_CONNECT)) {
+        const tile = connectTile(connect, ids);
+        assert.ok(home.includes(tile), ids.join());
+        for (const id of ids) {
+          const path = everyPath.find((x) => x.id === id)!;
+          assert.ok(tile.includes(`href="/connect/#${id}"`), id);
+          // Nothing in a tile's code but the path's own URL and snippet text.
+          for (const [, code] of tile
+            .slice(tile.indexOf(`href="/connect/#${id}"`))
+            .split('<p class="tile-label">')[0]!
+            .matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) {
+            const said = words(code!)
+              .replaceAll("&quot;", '"')
+              .replaceAll("&lt;", "<")
+              .replaceAll("&gt;", ">")
+              .replaceAll("&amp;", "&");
+            assert.ok(
+              said === path.url ||
+                (path.snippet?.text ?? "").replace(/\s+/g, " ").includes(said),
+              `${id}: ${said}`,
+            );
+          }
+        }
       }
+      assert.ok(
+        Object.values(HOME_CONNECT).filter(
+          (ids) => connectTile(connect, ids).split("<pre>").length - 1 >= 2,
+        ).length === 6,
+        "every tile shows at least two things to paste",
+      );
+      // What needs a paid key, as a list: the sentence's opening, then its entries, one a row.
+      const paidOnly = json<{
+        paid_only: { what: string; free: string }[];
+        paid_only_text: string;
+      }>("site/_data/plans.json");
+      const lead = paidOnly.paid_only_text.split(": ")[0]!;
+      assert.match(
+        lead,
+        /^\w+ things on the hosted API need a Pro or Team key$/,
+      );
+      const pricingBuilt = readFileSync(`${out}/pricing/index.html`, "utf8");
+      for (const [name, page] of [
+        ["home", home],
+        ["pricing", pricingBuilt],
+      ] as const) {
+        const list = /<ul class="paid-only">[\s\S]*?<\/ul>/.exec(page)![0];
+        const plain = (html: string) =>
+          html
+            .replace(/<br \/>/g, " ")
+            .replace(/<[^>]+>/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+        const items = [...list.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) =>
+          plain(m[1]!),
+        );
+        assert.deepEqual(
+          items,
+          paidOnly.paid_only.map((f) => `${f.what} Free: ${f.free}`),
+          name,
+        );
+        assert.ok(plain(page).includes(lead), `${name}: ${lead}`);
+        assert.ok(!plain(page).includes(paidOnly.paid_only_text), name);
+      }
+      assert.match(
+        home,
+        /<details class="fold">\s*<summary>\w+ things on the hosted API need a Pro or Team key<\/summary>\s*<ul class="paid-only">/,
+      );
+      // The pricing page opens with two plain sentences, then the plan cards.
+      const lede = /<p class="lede">([\s\S]*?)<\/p>\s*([\s\S]{0,40})/.exec(
+        pricingBuilt,
+      )!;
+      assert.equal(
+        words(lede[1]!),
+        "The tools are open source and free to run yourself, with no limits. The hosted endpoint at https://api.factlot.com saves you running it.",
+      );
+      assert.ok(lede[2]!.startsWith('<div class="plans">'));
+      assert.ok(
+        pricingBuilt.indexOf('<ul class="paid-only">') >
+          pricingBuilt.indexOf('id="paid-features"'),
+      );
+      // The home page's reference blocks are in the page, behind disclosures that start closed.
+      assert.doesNotMatch(home, /<details[^>]*\bopen\b/);
+      for (const inside of [
+        "<strong>Discovery</strong>",
+        "<strong>How quotas work.</strong>",
+        "Install v",
+        "lease critical dates",
+        "hosted:withheld",
+        "estoppel",
+      ]) {
+        const at = home.indexOf(inside);
+        assert.ok(at > 0, inside);
+        assert.ok(
+          home.lastIndexOf('<details class="fold">', at) >
+            home.lastIndexOf("</details>", at),
+          `${inside} is not behind a disclosure`,
+        );
+      }
+      // No source line anywhere repeats a parenthesised file name.
+      const twice = /(\(([^()]+)\))\s*\(\2\)/;
+      for (const f of [...generated, `${out}/index.html`])
+        assert.doesNotMatch(
+          words(readFileSync(f, "utf8")),
+          twice,
+          f.slice(out.length),
+        );
       // The social image's declared size is the file's.
       const png = readFileSync(new URL("site/social-preview.png", root));
       assert.ok(

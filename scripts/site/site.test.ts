@@ -183,7 +183,7 @@ describe("pricing page", () => {
     assert.ok(html.includes("Every tax year and every snapshot"));
     assert.ok(html.includes("The current roll year only"));
     assert.ok(html.includes("registry_tx_equity_candidates_batch"));
-    assert.ok(html.includes("{{PLAN_PAID_ONLY}}"));
+    assert.ok(html.includes("{{PLAN_PAID_ONLY_LIST}}"));
     for (const arg of ["as_of", "tax_year", "registry_owned_by"])
       assert.ok(html.includes(`<code>${arg}</code>`), arg);
     assert.ok(html.includes('id="stays-free"'));
@@ -1287,13 +1287,16 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
       [
         "site/index.html",
         [
-          "PLAN_PAID_ONLY",
+          "PLAN_PAID_ONLY_LIST",
           "PLAN_LOOKUP_COUNTED",
           "PLAN_PRO_YEARLY_USD",
           "PLAN_CHECKOUT_PRO_YEARLY",
         ],
       ],
-      ["site/_content/pricing.html", ["PLAN_PAID_ONLY", "PLAN_CHECKOUT_PRO"]],
+      [
+        "site/_content/pricing.html",
+        ["PLAN_PAID_ONLY_LIST", "PLAN_CHECKOUT_PRO"],
+      ],
       ["site/_content/mcp.html", ["PLAN_PAID_ONLY", "PLAN_LOOKUP_COUNTED"]],
       ["site/_content/try.html", ["PLAN_LOOKUP_COUNTED"]],
     ] as const)

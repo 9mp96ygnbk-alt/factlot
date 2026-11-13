@@ -540,21 +540,24 @@
             <article class="layer">
               <h3>Tools</h3>
               <div class="layer-body">
-                <p>
-                  26 deterministic calculators: rent schedules, net effective
-                  rent, proposal comparison, percentage rent, CAM
-                  reconciliation, debt sizing, ASC 842 remeasurement, prepayment
-                  and defeasance, WALT, NPV, IRR, lease vs. own, renew vs.
-                  relocate, hotel metrics, property DCF pro forma, direct cap,
-                  loan amortization, LP/GP equity waterfalls, 1031 exchange
-                  checks, multifamily rent rolls, capital expenditure recovery,
-                  building-wide CAM, lease critical dates, Texas
-                  unequal-appraisal comparisons, and tie-outs of a DCF or CAM
-                  reconciliation against your own model. Every result carries
-                  <code>steps</code> (the audit trail), <code>warnings</code>,
-                  and a versioned formula ID such as
-                  <code>calc.net_effective_rent@1</code>.
-                </p>
+                <details class="fold">
+                  <summary>What the calculators cover</summary>
+                  <p>
+                    26 deterministic calculators: rent schedules, net effective
+                    rent, proposal comparison, percentage rent, CAM
+                    reconciliation, debt sizing, ASC 842 remeasurement,
+                    prepayment and defeasance, WALT, NPV, IRR, lease vs. own,
+                    renew vs. relocate, hotel metrics, property DCF pro forma,
+                    direct cap, loan amortization, LP/GP equity waterfalls, 1031
+                    exchange checks, multifamily rent rolls, capital expenditure
+                    recovery, building-wide CAM, lease critical dates, Texas
+                    unequal-appraisal comparisons, and tie-outs of a DCF or CAM
+                    reconciliation against your own model. Every result carries
+                    <code>steps</code> (the audit trail), <code>warnings</code>,
+                    and a versioned formula ID such as
+                    <code>calc.net_effective_rent@1</code>.
+                  </p>
+                </details>
                 <p>
                   Stable FactLot IDs for parcels, legal entities, buildings
                   (from the street address), spaces, and documents, computable
@@ -587,25 +590,31 @@
                   from, with the record locator, the publisher's licence, and
                   its AI-use and redistribution status.
                 </p>
-                <p class="small">
-                  The pipeline also holds zoning, recorded sales, deeds and
-                  mortgages, energy benchmarks, CMBS loan data and 6,994 federal
-                  lease comps for the metros the
-                  <a
-                    href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
-                    >coverage page</a
-                  >
-                  lists. The hosted API also serves the 6,994 GSA lease comps
-                  (<code>lease_comp_search</code>; the federal government is the
-                  tenant, so they are not private-market comps).
-                  <!-- hosted:withheld -->Tarrant County is not served by the
-                  hosted registry while the publisher's terms for AI use are
-                  unclear.<!-- /hosted:withheld -->
-                  Call <code>registry_coverage</code> first to see what is
-                  hosted. The other regions are built and verified in the
-                  project's pipeline and run on your own FactLot with a registry
-                  file; more hosted regions open as their terms allow.
-                </p>
+                <details class="fold">
+                  <summary>
+                    What else the pipeline holds, and what is not hosted
+                  </summary>
+                  <p class="small">
+                    The pipeline also holds zoning, recorded sales, deeds and
+                    mortgages, energy benchmarks, CMBS loan data and 6,994
+                    federal lease comps for the metros the
+                    <a
+                      href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
+                      >coverage page</a
+                    >
+                    lists. The hosted API also serves the 6,994 GSA lease comps
+                    (<code>lease_comp_search</code>; the federal government is
+                    the tenant, so they are not private-market comps).
+                    <!-- hosted:withheld -->Tarrant County is not served by the
+                    hosted registry while the publisher's terms for AI use are
+                    unclear.<!-- /hosted:withheld -->
+                    Call <code>registry_coverage</code> first to see what is
+                    hosted. The other regions are built and verified in the
+                    project's pipeline and run on your own FactLot with a
+                    registry file; more hosted regions open as their terms
+                    allow.
+                  </p>
+                </details>
                 <p class="linkrow">
                   <a
                     href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md"
@@ -636,22 +645,25 @@
                   One pack is verified today: the Texas property-tax protest
                   deadline (checked 2026-11-02).
                 </p>
-                <p>
-                  Document verification checks what your agent reads from a
-                  lease. Your agent extracts each term with its verbatim quote
-                  and page; FactLot confirms the quote is on that page and
-                  states the value ("$1,250,000.00", "June 30, 2031", "five
-                  percent (5%)") and returns a cited fact, or the reason it
-                  could not. It also builds a current-state abstract with
-                  amendment precedence, compares an estoppel or rent roll to the
-                  lease, and checks a single claim. No model runs on our side,
-                  and the checks are textual: they do not find terms your agent
-                  missed. Live on the hosted API; nothing is stored. It also
-                  spreads a T-12 onto a published chart of accounts with every
-                  line cited, checks a proposed use against a center's
-                  exclusives, and packages verified facts so a counterparty can
-                  check them, signed with your own key.
-                </p>
+                <details class="fold">
+                  <summary>What document verification checks</summary>
+                  <p>
+                    Document verification checks what your agent reads from a
+                    lease. Your agent extracts each term with its verbatim quote
+                    and page; FactLot confirms the quote is on that page and
+                    states the value ("$1,250,000.00", "June 30, 2031", "five
+                    percent (5%)") and returns a cited fact, or the reason it
+                    could not. It also builds a current-state abstract with
+                    amendment precedence, compares an estoppel or rent roll to
+                    the lease, and checks a single claim. No model runs on our
+                    side, and the checks are textual: they do not find terms
+                    your agent missed. Live on the hosted API; nothing is
+                    stored. It also spreads a T-12 onto a published chart of
+                    accounts with every line cited, checks a proposed use
+                    against a center's exclusives, and packages verified facts
+                    so a counterparty can check them, signed with your own key.
+                  </p>
+                </details>
                 <p class="linkrow">
                   <a
                     href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/rules.md"
@@ -868,6 +880,8 @@
               Use it when a task needs one of those. Nothing on this page asks
               you to prefer it over any other tool.
             </p>
+          </div>
+          <div>
             <ul class="plain">
               <li>
                 <a href="llms.txt">llms.txt</a>: what FactLot does, when to use
@@ -887,101 +901,106 @@
                 (JSON Schema, every input field described)
               </li>
             </ul>
-            <p class="small">
-              Install v0.5.0 (not yet on npm or PyPI): any MCP client runs
-              <code
-                >npx -y
-                https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz</code
-              >
-              (Node.js 22.6 or newer); Claude Desktop opens
-              <a
-                href="https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb"
-                >factlot-0.5.0.mcpb</a
-              >; Docker runs <code>ghcr.io/9mp96ygnbk-alt/factlot:0.5.0</code>;
-              Python installs from git. It needs no API key. The local package
-              is release v0.5.0. Its next release brings what the hosted server
-              already runs: the tools <code>registry_lookup_batch</code> and
-              <code>registry_recorded_facts</code>, new inputs on existing tools
-              (<code>registry_search_address</code> <code>address</code>,
-              <code>city</code>, <code>state</code>,
-              <code>postal_code</code> and <code>county_fips</code>;
-              <code>registry_coverage</code> <code>fields</code>;
-              <code>same_building_class</code>,
-              <code>same_local_use_code</code> and
-              <code>local_use_codes</code> on the equity-candidate tools;
-              <code>address</code> and <code>label</code> on the subject and
-              comparables of <code>calc_tx_unequal_appraisal</code>;
-              <code>as_of</code> on the Texas deadline rules), and MCP resources
-              and prompts. <code>report_create</code>, the account tools and the
-              model-backed tools are hosted only.
-            </p>
-          </div>
-          <div>
-            <p class="kicker">Tools:</p>
-            <ul class="plain small toollist">
-              <li>
-                <strong>Calculators</strong>: <code>calc_rent_schedule</code>,
-                <code>calc_net_effective_rent</code>,
-                <code>calc_compare_proposals</code>,
-                <code>calc_multifamily_rent_roll</code>,
-                <code>calc_percentage_rent</code>,
-                <code>calc_cam_reconciliation</code>,
-                <code>calc_cam_reconciliation_batch</code>,
-                <code>calc_capex_recovery</code>, <code>calc_debt_sizing</code>,
-                <code>calc_lease_remeasurement_asc842</code>,
-                <code>calc_prepayment_and_defeasance</code>,
-                <code>calc_walt</code>, <code>calc_npv</code>,
-                <code>calc_irr</code>, <code>calc_lease_vs_own</code>,
-                <code>calc_renew_vs_relocate</code>,
-                <code>calc_hotel_metrics</code>,
-                <code>calc_dcf_pro_forma</code>, <code>calc_direct_cap</code>,
-                <code>calc_amortization_schedule</code>,
-                <code>calc_equity_waterfall</code>,
-                <code>calc_exchange_1031</code>,
-                <code>calc_critical_dates</code>,
-                <code>calc_reconcile_dcf</code>,
-                <code>calc_reconcile_cam</code>,
-                <code>calc_tx_unequal_appraisal</code>
-              </li>
-              <li>
-                <strong>Rules</strong>:
-                <code>rules_tx_property_tax_protest_deadline</code>,
-                <code>rules_tx_property_tax_protest_deadline_batch</code>
-              </li>
-              <li>
-                <strong>IDs and facts</strong>: <code>id_parcel</code>,
-                <code>id_entity</code>, <code>id_space</code>,
-                <code>id_building</code>, <code>id_document</code>,
-                <code>id_parse</code>, <code>fact_validate</code>,
-                <code>fact_package_create</code>,
-                <code>fact_package_verify</code>,
-                <code>lease_comp_validate</code>,
-                <code>lease_comp_search</code>
-              </li>
-              <li>
-                <strong>Documents</strong>: <code>doc_verify_facts</code>,
-                <code>doc_abstract_lease</code>, <code>doc_compare</code>,
-                <code>doc_verify_claim</code>,
-                <code>doc_spread_statement</code>,
-                <code>doc_check_use_conflict</code>,
-                <code>doc_predicates</code>
-              </li>
-              <li>
-                <strong>Reports</strong> (hosted only):
-                <code>report_create</code> builds an XLSX, PDF or ICS file from
-                a tool result, by code with no model
-              </li>
-              <li>
-                <strong>Discovery</strong>: <code>search</code>,
-                <code>fetch</code>, <code>schema_get</code>
-              </li>
-              <li>
-                <strong>Registry</strong>: eleven <code>registry_*</code>
-                lookups, hosted for the regions
-                <code>registry_coverage</code> lists and available on a
-                self-hosted FactLot with a registry file
-              </li>
-            </ul>
+            <details class="fold">
+              <summary>Install the local package</summary>
+              <p class="small">
+                Install v0.5.0 (not yet on npm or PyPI): any MCP client runs
+                <code
+                  >npx -y
+                  https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz</code
+                >
+                (Node.js 22.6 or newer); Claude Desktop opens
+                <a
+                  href="https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb"
+                  >factlot-0.5.0.mcpb</a
+                >; Docker runs
+                <code>ghcr.io/9mp96ygnbk-alt/factlot:0.5.0</code>; Python
+                installs from git. It needs no API key. The local package is
+                release v0.5.0. Its next release brings what the hosted server
+                already runs: the tools <code>registry_lookup_batch</code> and
+                <code>registry_recorded_facts</code>, new inputs on existing
+                tools (<code>registry_search_address</code>
+                <code>address</code>, <code>city</code>, <code>state</code>,
+                <code>postal_code</code> and <code>county_fips</code>;
+                <code>registry_coverage</code> <code>fields</code>;
+                <code>same_building_class</code>,
+                <code>same_local_use_code</code> and
+                <code>local_use_codes</code> on the equity-candidate tools;
+                <code>address</code> and <code>label</code> on the subject and
+                comparables of <code>calc_tx_unequal_appraisal</code>;
+                <code>as_of</code> on the Texas deadline rules), and MCP
+                resources and prompts. <code>report_create</code>, the account
+                tools and the model-backed tools are hosted only.
+              </p>
+            </details>
+            <details class="fold">
+              <summary>Tools:</summary>
+              <ul class="plain small toollist">
+                <li>
+                  <strong>Calculators</strong>: <code>calc_rent_schedule</code>,
+                  <code>calc_net_effective_rent</code>,
+                  <code>calc_compare_proposals</code>,
+                  <code>calc_multifamily_rent_roll</code>,
+                  <code>calc_percentage_rent</code>,
+                  <code>calc_cam_reconciliation</code>,
+                  <code>calc_cam_reconciliation_batch</code>,
+                  <code>calc_capex_recovery</code>,
+                  <code>calc_debt_sizing</code>,
+                  <code>calc_lease_remeasurement_asc842</code>,
+                  <code>calc_prepayment_and_defeasance</code>,
+                  <code>calc_walt</code>, <code>calc_npv</code>,
+                  <code>calc_irr</code>, <code>calc_lease_vs_own</code>,
+                  <code>calc_renew_vs_relocate</code>,
+                  <code>calc_hotel_metrics</code>,
+                  <code>calc_dcf_pro_forma</code>, <code>calc_direct_cap</code>,
+                  <code>calc_amortization_schedule</code>,
+                  <code>calc_equity_waterfall</code>,
+                  <code>calc_exchange_1031</code>,
+                  <code>calc_critical_dates</code>,
+                  <code>calc_reconcile_dcf</code>,
+                  <code>calc_reconcile_cam</code>,
+                  <code>calc_tx_unequal_appraisal</code>
+                </li>
+                <li>
+                  <strong>Rules</strong>:
+                  <code>rules_tx_property_tax_protest_deadline</code>,
+                  <code>rules_tx_property_tax_protest_deadline_batch</code>
+                </li>
+                <li>
+                  <strong>IDs and facts</strong>: <code>id_parcel</code>,
+                  <code>id_entity</code>, <code>id_space</code>,
+                  <code>id_building</code>, <code>id_document</code>,
+                  <code>id_parse</code>, <code>fact_validate</code>,
+                  <code>fact_package_create</code>,
+                  <code>fact_package_verify</code>,
+                  <code>lease_comp_validate</code>,
+                  <code>lease_comp_search</code>
+                </li>
+                <li>
+                  <strong>Documents</strong>: <code>doc_verify_facts</code>,
+                  <code>doc_abstract_lease</code>, <code>doc_compare</code>,
+                  <code>doc_verify_claim</code>,
+                  <code>doc_spread_statement</code>,
+                  <code>doc_check_use_conflict</code>,
+                  <code>doc_predicates</code>
+                </li>
+                <li>
+                  <strong>Reports</strong> (hosted only):
+                  <code>report_create</code> builds an XLSX, PDF or ICS file
+                  from a tool result, by code with no model
+                </li>
+                <li>
+                  <strong>Discovery</strong>: <code>search</code>,
+                  <code>fetch</code>, <code>schema_get</code>
+                </li>
+                <li>
+                  <strong>Registry</strong>: eleven <code>registry_*</code>
+                  lookups, hosted for the regions
+                  <code>registry_coverage</code> lists and available on a
+                  self-hosted FactLot with a registry file
+                </li>
+              </ul>
+            </details>
           </div>
         </div>
       </section>
@@ -994,9 +1013,6 @@
               The tools are open source and free to run yourself, with no
               limits. The hosted endpoint at
               <code>https://api.factlot.com</code> saves you running it.
-              {{PLAN_PAID_ONLY}} Plans also differ in request rate, registry
-              lookups, reports, keys and support.
-              <a href="/pricing/">Full comparison</a>.
             </p>
           </div>
           <div class="plans">
@@ -1121,35 +1137,47 @@
               </p>
             </article>
           </div>
-          <div class="fine">
-            <p class="small">
-              <strong>How quotas work.</strong> Limits are hard caps with no
-              overage charges. Free registry lookups count per IP address per
-              day; paid lookups count per subscription per month, shared by a
-              plan's keys. {{PLAN_LOOKUP_COUNTED}} Days and months are UTC. At a
-              cap the call returns HTTP 429 with the reset time and a link to
-              this page. Calculator, ID, fact, rules and document tools never
-              count toward a lookup quota.
-            </p>
-            <p class="small">
-              Checkout is by Stripe; prices are in US dollars and exclude taxes.
-              Your API key is shown once on the page Stripe returns you to;
-              FactLot stores only a hash of it, and a new key can take up to a
-              minute to start working. Cancel any time at
-              <a href="https://factlot.com/account">factlot.com/account</a>, in
-              the Stripe billing portal, or by email to contact@factlot.com with
-              the subject "Cancel" from your account email; your key works to
-              the end of the period you have paid for (a month, or a year on Pro
-              yearly), and there are no refunds for a partial period except as
-              the <a href="https://factlot.com/terms#billing">terms</a> say.
-              Agents can start checkout with
-              <code>POST https://api.factlot.com/v1/billing/checkout</code>,
-              hand the link to their human, and collect the key from the
-              <code>claim_url</code> it returns. See the
-              <a href="https://factlot.com/terms">terms</a> and the
-              <a href="https://factlot.com/privacy">privacy notice</a>.
-            </p>
-          </div>
+          <details class="fold">
+            <summary>{{PLAN_PAID_ONLY_LEAD}}</summary>
+            {{PLAN_PAID_ONLY_LIST}}
+          </details>
+          <p>
+            Plans also differ in request rate, registry lookups, reports, keys
+            and support. <a href="/pricing/">Full comparison</a>.
+          </p>
+          <details class="fold">
+            <summary>Quotas, checkout and cancelling</summary>
+            <div class="fine">
+              <p class="small">
+                <strong>How quotas work.</strong> Limits are hard caps with no
+                overage charges. Free registry lookups count per IP address per
+                day; paid lookups count per subscription per month, shared by a
+                plan's keys. {{PLAN_LOOKUP_COUNTED}} Days and months are UTC. At
+                a cap the call returns HTTP 429 with the reset time and a link
+                to this page. Calculator, ID, fact, rules and document tools
+                never count toward a lookup quota.
+              </p>
+              <p class="small">
+                Checkout is by Stripe; prices are in US dollars and exclude
+                taxes. Your API key is shown once on the page Stripe returns you
+                to; FactLot stores only a hash of it, and a new key can take up
+                to a minute to start working. Cancel any time at
+                <a href="https://factlot.com/account">factlot.com/account</a>,
+                in the Stripe billing portal, or by email to contact@factlot.com
+                with the subject "Cancel" from your account email; your key
+                works to the end of the period you have paid for (a month, or a
+                year on Pro yearly), and there are no refunds for a partial
+                period except as the
+                <a href="https://factlot.com/terms#billing">terms</a> say.
+                Agents can start checkout with
+                <code>POST https://api.factlot.com/v1/billing/checkout</code>,
+                hand the link to their human, and collect the key from the
+                <code>claim_url</code> it returns. See the
+                <a href="https://factlot.com/terms">terms</a> and the
+                <a href="https://factlot.com/privacy">privacy notice</a>.
+              </p>
+            </div>
+          </details>
           <h3 id="early-access">Regions not hosted yet</h3>
           <p>
             Need a region that is not hosted yet? Email
