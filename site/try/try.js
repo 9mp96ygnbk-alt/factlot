@@ -558,12 +558,15 @@
     return lines.join("\n");
   }
 
-  /** A download link only when it is the report service's own link. */
+  /**
+   * The report service's own link, as a path on this site (factlot.com serves /v1/ too), so the
+   * download stays on this origin; null for anything else.
+   */
   function downloadLink(u) {
-    return typeof u === "string" &&
-      /^https:\/\/[a-z0-9.-]+\/v1\/reports\/d\/[A-Za-z0-9_-]{43}$/.test(u)
-      ? u
-      : null;
+    var m =
+      typeof u === "string" &&
+      /^https:\/\/[a-z0-9.-]+(\/v1\/reports\/d\/[A-Za-z0-9_-]{43})$/.exec(u);
+    return m ? m[1] : null;
   }
 
   function sheetAction(urn, slot) {

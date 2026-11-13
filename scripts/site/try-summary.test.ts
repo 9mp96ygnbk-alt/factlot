@@ -101,10 +101,24 @@ describe("/try/ plain summary", () => {
       summary,
       /post\(REPORTS, \{\s*kind: "property_sheet",\s*format: "pdf",\s*arguments: \{ urn: urn \},\s*\}\)/,
     );
-    assert.match(
-      summary,
-      /\/\^https:\\\/\\\/\[a-z0-9\.-\]\+\\\/v1\\\/reports\\\/d\\\/\[A-Za-z0-9_-\]\{43\}\$\//,
+    // The download link is the report service's own, followed as a path on this site.
+    const re = new RegExp(
+      /function downloadLink\(u\) \{[\s\S]*?\/(\^https:.*\$)\/\.exec/
+        .exec(summary)![1]!
+        .replace(/\\\//g, "/"),
     );
+    const token = "a".repeat(43);
+    assert.equal(
+      re.exec(`https://api.factlot.com/v1/reports/d/${token}`)?.[1],
+      `/v1/reports/d/${token}`,
+    );
+    for (const bad of [
+      `http://api.factlot.com/v1/reports/d/${token}`,
+      `https://evil.example/x/v1/reports/d/${token}`,
+      `https://api.factlot.com/v1/reports/d/${token}?x=1`,
+      "javascript:alert(1)",
+    ])
+      assert.equal(re.exec(bad), null, bad);
   });
 
   it("says what a sheet uses, with the free plan's own numbers", () => {
