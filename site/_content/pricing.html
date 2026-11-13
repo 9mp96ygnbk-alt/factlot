@@ -410,14 +410,15 @@
     registry could not answer.
   </li>
   <li>
-    Answers that find nothing are not counted, and say counted: false, up to 60
-    an hour per IP address without a key, a further 60 an hour shared by the
-    free keys used from that address, 600 an hour on Pro and 3,000 an hour on
-    Team; a free sign-in connection has its own 60 an hour, shared by the
-    connections started from one address. A <code>registry_get</code> or
+    A <code>registry_get</code> or
     <code>registry_tx_equity_candidates</code> NotFound inside loaded coverage
-    is an answer that finds nothing. Past that, until the hour ends (UTC), each
-    one counts as a lookup and carries counted: true with a note saying why.
+    is an answer that finds nothing too. Answers that find nothing are not
+    counted, and say counted: false, up to 60 an hour per IP address without a
+    key, a further 60 an hour shared by the free keys used from that address,
+    600 an hour on Pro and 3,000 an hour on Team; a free sign-in connection has
+    its own 60 an hour, shared by the connections started from one address. Past
+    that, until the hour ends (UTC), each one counts as a lookup and carries
+    counted: true with a note saying why.
   </li>
   <li>
     A registry batch tool needs one lookup per subject or item left in the
