@@ -15,7 +15,8 @@
  * 3. Calls the registry Worker (/health, /run registry_coverage, registry_get,
  *    registry_search_address, /get-many) and the API Worker (/health, /v1/plans, a keyless
  *    registry call, a property page and a key-authenticated batch call through the service
- *    binding, MCP initialize and tools/list, the home page and the stylesheet from assets), and
+ *    binding, MCP initialize and tools/list, the home page and the stylesheet from assets), a
+ *    keyed search that finds nothing (not counted) and one that finds something, and
  *    runs the scheduled handler with the feature variables unset and set.
  *
  * Exits non-zero on the first failed expectation, printing what was asked and what came back.
@@ -174,6 +175,7 @@ async function main(): Promise<void> {
     await registryChecks(harness);
     await apiChecks(harness);
     await internalRequestChecks(harness);
+    await emptyAnswerChecks(harness);
     await scheduledChecks(harness, apiPath);
     await objectStoreChecks(harness, registryPath, registryOut, pack);
     const errors = harness
@@ -584,6 +586,69 @@ async function internalRequestChecks(harness: Harness): Promise<void> {
     free.status === 403 && fb.error === "PlanRequired",
     "registry_lookup_batch without a key answers PlanRequired",
     { status: free.status, body: fb },
+  );
+}
+
+// --- C: registry answers that find nothing are not counted (router.ts, plans.ts) -----------------
+
+async function emptyAnswerChecks(harness: Harness): Promise<void> {
+  const api = harness.getWorker("factlot-api");
+  const key = `fl_live_${randomBytes(32).toString("base64url")}`;
+  const hash = createHash("sha256").update(key).digest("hex");
+  const env = (await api.getEnv()) as {
+    KEYS: { put(k: string, v: string): Promise<void> };
+  };
+  await env.KEYS.put(
+    `key:${hash}`,
+    JSON.stringify({
+      plan: "pro",
+      status: "active",
+      customer: "cus_workerd_empty",
+      subscription: "sub_workerd_empty",
+      stripe_status: "active",
+      created: new Date().toISOString(),
+      checked_at: Date.now(),
+    }),
+  );
+  await env.KEYS.put("sub:sub_workerd_empty", JSON.stringify([hash]));
+  const search = (query: string) =>
+    api.fetch("https://api.factlot.com/v1/registry/search_address", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${key}`,
+        "cf-connecting-ip": "203.0.113.8",
+      },
+      body: JSON.stringify({ query }),
+    } as Parameters<typeof api.fetch>[1]);
+  const left = (r: Response) =>
+    Number(r.headers.get("x-factlot-registry-quota-remaining"));
+  const empty = await search("98765 Nowhere Rd");
+  const eb = (await asJson(empty)) as {
+    results?: unknown[];
+    counted?: unknown;
+  };
+  expect(
+    empty.status === 200 &&
+      Array.isArray(eb.results) &&
+      eb.results.length === 0 &&
+      eb.counted === false &&
+      left(empty) === 5000,
+    "a keyed search that finds nothing: counted: false, quota header unchanged",
+    { status: empty.status, remaining: left(empty), body: eb },
+  );
+  const found = await search("100 Main St");
+  const fb = (await asJson(found)) as {
+    results?: unknown[];
+    counted?: unknown;
+  };
+  expect(
+    found.status === 200 &&
+      (fb.results?.length ?? 0) > 0 &&
+      fb.counted === undefined &&
+      left(found) === 4999,
+    "a keyed search that finds something takes one lookup",
+    { status: found.status, remaining: left(found), body: fb },
   );
 }
 
