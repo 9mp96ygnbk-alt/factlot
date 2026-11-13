@@ -372,10 +372,11 @@ gains ten tools. They are served over MCP and REST, and in both SDKs:
 - `registry_lookup_batch`: up to 50 parcels in one call, each by URN, account number with its
   county, or address, answered by the single tools above (`registry_get`, `registry_resolve_parcel`,
   `registry_search_address`) and returned in input order as a compact cited row (`found`), the
-  single tool's miss with its `coverage` (`not_found`), up to five candidate cards for an address
-  that matched more than one parcel with not exactly one exact match (`ambiguous`), or the item's own
-  error. Exact means the label's street line, normalized as the address index is, is the query's,
-  and the label names the same unit as the query or neither names one.
+  single tool's miss with its `coverage` (`not_found`), up to five candidate cards with a `reason`
+  for an address it cannot pick one parcel for (`ambiguous`), or the item's own error. Exact means
+  the same street address and unit (the street line normalized as the address index is; a bare
+  number after the street on a label counts as its unit) in the place the address names (the
+  label's ZIP code or city); an address naming no city or ZIP code is never picked across counties.
 
 Without a registry, the MCP server does not list them, REST returns 503, and the SDKs return
 `RegistryUnavailable`.

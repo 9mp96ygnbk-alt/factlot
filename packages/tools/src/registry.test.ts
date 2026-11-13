@@ -38,7 +38,8 @@ import {
   hostedWithheldCounties,
   legacyNormalizeAddress,
   legacyNormalizeName,
-  lookupExact,
+  lookupPlaceAgrees,
+  lookupSameStreet,
   normalizeAddress,
   normalizeName,
   runTool,
@@ -1341,10 +1342,21 @@ test("registry_lookup_batch: rows read from registry_get, misses as the single t
     );
     assert.ok(!("error" in r.results[1]!));
     assert.equal((r.results[4]!.error as { error: string }).error, "NotFound");
-    // Two accounts at one address: ambiguous, never an owner in the cards.
+    // Two accounts at one address: ambiguous, and each card is the search's card, owner-free.
     const amb = r.results[2]!;
+    assert.equal(amb.reason, "same_address");
     assert.equal((amb.candidates as unknown[]).length, 2);
-    assert.ok(!JSON.stringify(amb.candidates).includes("owner"));
+    for (const card of amb.candidates as Record<string, unknown>[])
+      assert.deepEqual(Object.keys(card).sort(), [
+        "account",
+        "improvement_area_sf",
+        "label",
+        "land_only",
+        "property_category",
+        "unit",
+        "urn",
+        "use_code",
+      ]);
     assert.deepEqual(r.results[3]!.match, { exact: true, matches: 4 });
     assert.equal(
       (r.results[3]!.parcel as { urn: string }).urn,
@@ -1356,24 +1368,51 @@ test("registry_lookup_batch: rows read from registry_get, misses as the single t
   }
 });
 
-test("registry_lookup_batch: exact means the same street line and the same unit", () => {
-  assert.ok(lookupExact("100 Main St", "100 Main Street, Shoreville MD 21999"));
-  assert.ok(!lookupExact("100 Main St", "100 Main Street, Suite 400"));
-  assert.ok(lookupExact("100 Main St Suite 400", "100 Main Street, Suite 400"));
+test("registry_lookup_batch: exact means the same street address and unit, in the place named", () => {
+  const same = lookupSameStreet;
+  assert.ok(same("100 Main St", "100 Main Street, Shoreville MD 21999"));
+  assert.ok(!same("100 Main St", "100 Main Street, Suite 400"));
+  assert.ok(same("100 Main St Suite 400", "100 Main Street, Suite 400"));
   assert.ok(
-    lookupExact(
+    same(
       "300 Harbor Drive Unit 102",
       "300 Harbor Dr Ste 102, Example City TX 77999-1234",
     ),
   );
+  assert.ok(!same("350 Fifth Ave", "338-350 Fifth Avenue, Example City"));
   assert.ok(
-    !lookupExact("350 Fifth Ave", "338-350 Fifth Avenue, Example City"),
+    same("1200 Main St Houston TX 77002", "1200 Main Street, Houston TX 77002"),
+  );
+  // A unit written as a bare number on a label with no comma.
+  for (const q of [
+    "700 Bayou Dr #1001",
+    "700 Bayou Dr Unit 1001, Example City TX",
+  ])
+    assert.ok(same(q, "700 Bayou Drive 1001 Example City TX 77999"), q);
+  assert.ok(
+    !same("700 Bayou Dr", "700 Bayou Drive 1001 Example City TX 77999"),
   );
   assert.ok(
-    lookupExact(
-      "1200 Main St Houston TX 77002",
-      "1200 Main Street, Houston TX 77002",
+    !same("700 Bayou Dr #1001", "700 Bayou Drive # 102 Example City TX 77999"),
+  );
+  assert.ok(!same("500 Market St", null));
+  // The place: the label's ZIP code or city must be the one named.
+  const place = addressPlaceWith("12 Tower Ct, Shoreville, MD 21999");
+  assert.ok(
+    !lookupPlaceAgrees(
+      place,
+      "fl:parcel:us-24998:20-0003",
+      "12 Tower Court, Bayside MD 21998",
     ),
   );
-  assert.ok(!lookupExact("500 Market St", null));
+  assert.ok(
+    lookupPlaceAgrees(
+      place,
+      "fl:parcel:us-24998:20-0004",
+      "14 Tower Court, Shoreville MD 21999",
+    ),
+  );
+  assert.ok(
+    lookupPlaceAgrees(addressPlaceWith("12 Tower Ct"), "x", "anything"),
+  );
 });

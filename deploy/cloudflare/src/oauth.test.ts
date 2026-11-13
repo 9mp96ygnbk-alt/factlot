@@ -1119,6 +1119,15 @@ describe("free tier through OAuth", () => {
     });
     assert.equal(batch.result.isError, true);
     assert.equal(batch.result.structuredContent.error, "PlanRequired");
+    const lookups = await ask({
+      ...lookup(4),
+      params: {
+        name: "registry_lookup_batch",
+        arguments: { items: [{ urn: "fl:parcel:us-48201:1" }] },
+      },
+    });
+    assert.equal(lookups.result.isError, true);
+    assert.equal(lookups.result.structuredContent.error, "PlanRequired");
   });
 
   it("with gating on, a free connection gets the newest recorded sale only, with counts", async () => {

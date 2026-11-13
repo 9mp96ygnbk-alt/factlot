@@ -19,9 +19,14 @@ import { FactLotIdError, parse } from "@factlot/id";
 
 import type { ToolError, ToolOutcome } from "./catalog.ts";
 import {
+  addressPlaceRank,
+  addressPlaceWith,
   addressQueryWithPlace,
   addressUnit,
   normalizeAddress,
+  stateCode,
+  stateFipsOf,
+  type AddressPlace,
 } from "./registry.ts";
 
 /** Most items in one registry_lookup_batch call (the same cap as registry_tx_equity_candidates_batch). */
@@ -77,7 +82,7 @@ function inputError(issues: { path: string; message: string }[]): ToolError {
   };
 }
 
-/** The registry service could not answer: the whole batch fails, as the single tools do. */
+/** The registry could not answer an item's call (RegistryUnavailable): that item is an error. */
 export function lookupUnavailable(outcome: ToolOutcome): boolean {
   return !outcome.ok && outcome.error.error === "RegistryUnavailable";
 }
@@ -94,23 +99,116 @@ function finite(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-/** The street line of an address (before the first comma), normalized as the address index keys it. */
-function streetLine(address: string): string {
-  return normalizeAddress(address.split(",")[0] ?? "");
+/** The words of an address's street line (before the first comma), normalized as the address index keys it. */
+function streetWords(address: string): string[] {
+  return normalizeAddress(address.split(",")[0] ?? "")
+    .split(" ")
+    .filter((w) => w !== "");
+}
+
+/** A unit written as a bare number after the street ("700 BAYOU DRIVE 1001 ..."). */
+const BARE_UNIT = /^[0-9][0-9A-Z-]*$/;
+
+/**
+ * Words after the street on a line with no comma that are only its place: city words, a state, and
+ * optionally a ZIP code ("EXAMPLE CITY TX 77999", "77999 1234" being ZIP+4 split by normalizing).
+ */
+function placeTail(words: string[]): boolean {
+  const w = [...words];
+  if (
+    w.length >= 2 &&
+    /^[0-9]{4}$/.test(w[w.length - 1]!) &&
+    /^[0-9]{5}$/.test(w[w.length - 2]!)
+  )
+    w.pop();
+  if (w.length && /^[0-9]{5}$/.test(w[w.length - 1]!)) w.pop();
+  const st = w.pop();
+  if (st === undefined || st.length !== 2 || stateCode(st) !== st) return false;
+  return w.every((x) => /^[A-Z]+$/.test(x));
 }
 
 /**
- * Whether a search result has the item's address exactly: its label's street line normalized
- * (`normalizeAddress`: "Street" = "St", a unit dropped) is the query's, and its label names the
- * same unit as the query (or neither names one). The query is read as the search reads it
- * (`addressQueryWithPlace`: a city and state after the street with no comma are the place).
+ * Whether two addresses name the same street address and unit: one street line's normalized words
+ * (`normalizeAddress`: "Street" = "St", a unit designator and its value dropped) begin the other's,
+ * and what the longer one has after them, on a line with no comma, is only a bare unit number and
+ * its place ("700 Bayou Drive 1001 Example City TX 77999"); then both name the same unit
+ * (`addressUnit`, or the bare number), or neither names one. The query is read as the search reads
+ * it (`addressQueryWithPlace`).
  */
-export function lookupExact(query: string, label: unknown): boolean {
+export function lookupSameStreet(query: string, label: unknown): boolean {
   if (typeof label !== "string") return false;
-  return (
-    streetLine(addressQueryWithPlace(query)) === streetLine(label) &&
-    addressUnit(query) === addressUnit(label)
-  );
+  const q = addressQueryWithPlace(query);
+  const sides = [
+    { text: q, words: streetWords(q), unit: addressUnit(query) },
+    { text: label, words: streetWords(label), unit: addressUnit(label) },
+  ];
+  const [a, b] = sides;
+  if (!a!.words.length || !b!.words.length) return false;
+  const [short, long] =
+    a!.words.length <= b!.words.length ? [a!, b!] : [b!, a!];
+  if (!short.words.every((w, i) => long.words[i] === w)) return false;
+  let rest = long.words.slice(short.words.length);
+  if (rest.length) {
+    if (long.text.includes(",")) return false;
+    if (long.unit === null && BARE_UNIT.test(rest[0]!)) {
+      long.unit = rest[0]!;
+      rest = rest.slice(1);
+    }
+    if (rest.length && !placeTail(rest)) return false;
+  }
+  return a!.unit === b!.unit;
+}
+
+/**
+ * Whether a search result is in the place an address item names: always, when the item names no
+ * city and no ZIP code (in its text or its city and postal_code fields); else when the result's
+ * label has that ZIP code or is in that city (`addressPlaceRank` 0 or 1, as the search ranks it).
+ */
+export function lookupPlaceAgrees(
+  place: AddressPlace,
+  urn: unknown,
+  label: unknown,
+): boolean {
+  if (place.city === null && place.zip === null) return true;
+  const rank = addressPlaceRank(place, String(urn), label);
+  return rank === 0 || rank === 1;
+}
+
+/** The place an address item names, read as the search reads it. */
+export function lookupPlace(item: LookupItem): AddressPlace {
+  const where: Record<string, string> = {};
+  for (const k of ["state", "city", "postal_code", "county_fips"])
+    if (typeof item[k] === "string") where[k] = item[k] as string;
+  return addressPlaceWith(addressQueryWithPlace(String(item.address)), where);
+}
+
+/** A result's county (5-digit FIPS from its URN), or the URN itself. */
+function countyOf(urn: unknown): string {
+  const m = /^fl:[a-z]+:us-([0-9]{5})/.exec(String(urn));
+  return m ? m[1]! : String(urn);
+}
+
+/**
+ * The state (2-digit FIPS) an item names, for usage by region when no parcel was found: from its
+ * URN, its state_fips or 5-digit county_fips, or an address's place; else null.
+ */
+export function lookupItemStateFips(item: LookupItem): string | null {
+  if (typeof item.urn === "string") {
+    const m = /^fl:[a-z]+:us-([0-9]{2})/.exec(item.urn);
+    return m ? m[1]! : null;
+  }
+  if (typeof item.state_fips === "string" && /^[0-9]{2}$/.test(item.state_fips))
+    return item.state_fips;
+  if (
+    typeof item.county_fips === "string" &&
+    /^[0-9]{5}$/.test(item.county_fips)
+  )
+    return item.county_fips.slice(0, 2);
+  if (typeof item.address === "string") {
+    const st = lookupPlace(item).state;
+    return st === null ? null : stateFipsOf(st);
+  }
+  return null;
 }
 
 interface Fact {
@@ -218,22 +316,40 @@ export function lookupRow(record: Json): Json {
   };
 }
 
+/** What every entry of an item starts with: its index, its ref when sent, and how it names its parcel. */
+export function lookupHead(item: LookupItem, index: number): Json {
+  const head: Json = { index };
+  if (item.ref !== undefined) head.ref = item.ref;
+  const modes = (Object.keys(MODES) as Mode[]).filter(
+    (k) => item[k] !== undefined,
+  );
+  if (modes.length === 1) head.by = BY[modes[0]!];
+  return head;
+}
+
 /**
  * One item of the batch: yields its single-tool calls, receives each outcome, and returns the
- * item's entry. The caller stops at an outcome `lookupUnavailable` matches (the whole batch
- * fails). Entry fields: index (in the input), ref (when sent), by (urn, account or address),
- * status, and per status: found → parcel (and for an address, match); not_found → message and
- * coverage, as the single call gave them; ambiguous → matches, candidates and message; error →
- * error. An entry whose single call answered with an error carries that error (`error`): an
- * input error (status error) or registry_get's NotFound for a URN not in the registry (status
- * not_found).
+ * item's entry (the drivers handle an outcome `lookupUnavailable` matches). Entry fields: index (in
+ * the input), ref (when sent), by (urn, account or address), status, and per status: found →
+ * parcel (and for an address, match); not_found → message and coverage, as the single call gave
+ * them; ambiguous (an address) → reason, matches, candidates and message; error → error.
+ * A not_found entry whose last call answered NotFound (registry_get on a URN not in the registry)
+ * also carries that error: its coverage is the parcel miss registry_resolve_parcel gives for the
+ * same county, and it is counted the same way.
+ *
+ * An address is `found` when exactly one search result is exact (same street address and unit,
+ * `lookupSameStreet`, in the place the item names, `lookupPlaceAgrees`), or when the search
+ * returned one parcel that is in that place; never across counties when the item names no city or
+ * ZIP code. Otherwise it is `ambiguous`, with reason several_places (results in more than one
+ * county, no city or ZIP code named), same_address (several exact: separate accounts at one
+ * address), place_differs (the one parcel found is not shown in the place named) or
+ * no_exact_match.
  */
 export function* lookupItem(
   item: LookupItem,
   index: number,
 ): Generator<LookupCall, Json, ToolOutcome> {
-  const head: Json = { index };
-  if (item.ref !== undefined) head.ref = item.ref;
+  const head = lookupHead(item, index);
   const given = (k: string) => item[k] !== undefined;
   const modes = (Object.keys(MODES) as Mode[]).filter(given);
   if (modes.length !== 1)
@@ -243,7 +359,6 @@ export function* lookupItem(
       error: inputError([{ path: "", message: LOOKUP_WHICH_PARCEL }]),
     };
   const mode = modes[0]!;
-  head.by = BY[mode];
   const allowed = new Set<string>([mode, ...MODES[mode]]);
   const stray = [...ITEM_FIELDS].filter((k) => given(k) && !allowed.has(k));
   if (stray.length)
@@ -338,22 +453,47 @@ export function* lookupItem(
     const results = (Array.isArray(r.results) ? r.results : []) as Json[];
     if (results.length === 0) return miss(r.coverage);
     const query = String(item.address);
-    const exact = results.filter((x) => lookupExact(query, x.label));
-    if (results.length > 1 && exact.length !== 1) {
-      const rest = results.filter((x) => !exact.includes(x));
-      const more =
-        results.length >= LOOKUP_BATCH_SEARCH_LIMIT ? " or more" : "";
-      return {
-        ...head,
-        status: "ambiguous",
-        matches: results.length,
-        candidates: [...exact, ...rest].slice(0, LOOKUP_BATCH_CANDIDATES),
-        message:
-          exact.length > 1
-            ? `${exact.length} parcels have this address exactly (separate accounts at one address); send the urn, or the apn with its county, of the one you mean`
-            : `${results.length}${more} parcels match this address and none has it exactly; send the urn, or the apn with its county, of the one you mean, or a fuller address`,
-      };
-    }
+    const place = lookupPlace(item);
+    const named = place.city !== null || place.zip !== null;
+    const agrees = (x: Json) => lookupPlaceAgrees(place, x.urn, x.label);
+    const exact = results.filter(
+      (x) => lookupSameStreet(query, x.label) && agrees(x),
+    );
+    const more = results.length >= LOOKUP_BATCH_SEARCH_LIMIT ? " or more" : "";
+    const counties = new Set(results.map((x) => countyOf(x.urn))).size;
+    const ambiguous = (reason: string, message: string): Json => ({
+      ...head,
+      status: "ambiguous",
+      reason,
+      matches: results.length,
+      candidates: [
+        ...exact,
+        ...results.filter((x) => !exact.includes(x)),
+      ].slice(0, LOOKUP_BATCH_CANDIDATES),
+      message,
+    });
+    const which =
+      "send the urn, or the apn with its county, of the one you mean";
+    if (!named && counties > 1)
+      return ambiguous(
+        "several_places",
+        `${results.length}${more} parcels in ${counties} counties match this address, which names no city or ZIP code; add the city, ZIP code, state or county_fips, or ${which}`,
+      );
+    if (exact.length > 1)
+      return ambiguous(
+        "same_address",
+        `${exact.length} parcels have this address exactly (separate accounts at one address); ${which}`,
+      );
+    if (exact.length === 0 && results.length === 1 && !agrees(results[0]!))
+      return ambiguous(
+        "place_differs",
+        `the only parcel found at this street address is not shown in the place the address names (its label does not have that city or ZIP code); check the address, or ${which} if it is this parcel`,
+      );
+    if (exact.length === 0 && results.length > 1)
+      return ambiguous(
+        "no_exact_match",
+        `${results.length}${more} parcels match this address and none has it exactly; ${which}, or a fuller address`,
+      );
     const chosen = exact[0] ?? results[0]!;
     urn = String(chosen.urn);
     match = { exact: exact.length === 1, matches: results.length };
@@ -392,76 +532,138 @@ export function lookupBatchAnswer(entries: Json[]): Json {
   };
 }
 
+/** Items whose registry calls fail before the rest of a batch is no longer sent. */
+export const LOOKUP_UNAVAILABLE_ITEMS_MAX = 5;
+
+/** The message a call that threw (no answer from the registry service) leaves on its item. */
+export const LOOKUP_NO_ANSWER =
+  "the registry service did not answer; retry in a moment";
+
+/** An item the registry could not answer: an error of its own, not counted. */
+function unavailableEntry(
+  item: LookupItem,
+  index: number,
+  message: string,
+): Json {
+  return {
+    ...lookupHead(item, index),
+    status: "error",
+    error: { error: "RegistryUnavailable", message, issues: [] },
+  };
+}
+
+function notAttempted(item: LookupItem, index: number): Json {
+  return unavailableEntry(
+    item,
+    index,
+    `not attempted: ${LOOKUP_UNAVAILABLE_ITEMS_MAX} items of this batch could not be answered by the registry, so the rest were not sent and nothing was counted for them; send them again`,
+  );
+}
+
 /**
- * The batch over a synchronous single-tool runner (the SDK's runTool). Returns the first
- * RegistryUnavailable outcome instead of an answer when one item's call gets it.
+ * The batch over a synchronous single-tool runner (the SDK's runTool). An item whose call gets
+ * RegistryUnavailable is an error of its own; after LOOKUP_UNAVAILABLE_ITEMS_MAX such items the
+ * rest are not attempted. When no call of any item was answered and one was unavailable, the whole
+ * call fails with the first such outcome, as the single tools do (a registry not loaded).
  */
 export function lookupBatchSync(
   items: LookupItem[],
   run: (tool: string, input: Json) => ToolOutcome,
 ): ToolOutcome {
   const entries: Json[] = [];
+  let failures = 0;
+  let answered = false;
+  let first: ToolOutcome | undefined;
   for (const [k, item] of items.entries()) {
+    if (failures >= LOOKUP_UNAVAILABLE_ITEMS_MAX) {
+      entries.push(notAttempted(item, k));
+      continue;
+    }
     const steps = lookupItem(item, k);
     let step = steps.next(undefined as unknown as ToolOutcome);
+    let entry: Json | undefined;
     while (!step.done) {
       const outcome = run(step.value.tool, step.value.input);
-      if (lookupUnavailable(outcome)) return outcome;
+      if (lookupUnavailable(outcome)) {
+        failures++;
+        first ??= outcome;
+        entry = unavailableEntry(
+          item,
+          k,
+          (outcome as { error: ToolError }).error.message,
+        );
+        break;
+      }
+      answered = true;
       step = steps.next(outcome);
     }
-    entries.push(step.value);
+    entries.push(entry ?? (step.value as Json));
   }
+  if (first && !answered) return first;
   return { ok: true, result: lookupBatchAnswer(entries) };
 }
 
 /**
  * The batch over an asynchronous single-tool runner (the hosted registry service), at most
- * `concurrency` items in flight. As in the synchronous batch, an item whose call gets
- * RegistryUnavailable (or whose call throws) fails the whole batch: no further items are
- * started, and the first such item in input order decides the outcome (a throw is rethrown).
+ * `concurrency` items in flight. An item whose call gets RegistryUnavailable, or whose call throws
+ * (no answer from the service), is an error of its own; once LOOKUP_UNAVAILABLE_ITEMS_MAX items have
+ * failed so, no further item is started and those left are not attempted. When no call of any item
+ * was answered, the whole call fails: with the first failed item's outcome in input order, or its
+ * throw rethrown.
  */
 export async function lookupBatchAsync(
   items: LookupItem[],
   run: (tool: string, input: Json) => Promise<ToolOutcome>,
   concurrency: number,
 ): Promise<ToolOutcome> {
-  type Settled =
-    { entry: Json } | { outcome: ToolOutcome } | { thrown: unknown };
-  const settled: (Settled | undefined)[] = new Array(items.length);
+  type Failure = { outcome: ToolOutcome } | { thrown: unknown };
+  const entries: (Json | undefined)[] = new Array(items.length);
+  const failed: (Failure | undefined)[] = new Array(items.length);
   let next = 0;
-  let failed = false;
+  let failures = 0;
+  let answered = false;
   const lane = async () => {
-    while (!failed && next < items.length) {
+    while (failures < LOOKUP_UNAVAILABLE_ITEMS_MAX && next < items.length) {
       const k = next++;
-      const steps = lookupItem(items[k]!, k);
+      const item = items[k]!;
+      const steps = lookupItem(item, k);
       let step = steps.next(undefined as unknown as ToolOutcome);
       try {
         while (!step.done) {
           const outcome = await run(step.value.tool, step.value.input);
           if (lookupUnavailable(outcome)) {
-            settled[k] = { outcome };
-            failed = true;
+            failures++;
+            failed[k] = { outcome };
+            entries[k] = unavailableEntry(
+              item,
+              k,
+              (outcome as { error: ToolError }).error.message,
+            );
             break;
           }
+          answered = true;
           step = steps.next(outcome);
         }
-        if (step.done) settled[k] = { entry: step.value };
+        if (step.done) entries[k] = step.value;
       } catch (thrown) {
-        settled[k] = { thrown };
-        failed = true;
+        failures++;
+        failed[k] = { thrown };
+        entries[k] = unavailableEntry(item, k, LOOKUP_NO_ANSWER);
       }
     }
   };
   await Promise.all(
     Array.from({ length: Math.min(concurrency, items.length) }, lane),
   );
-  const first = settled.find((s) => s !== undefined && !("entry" in s));
-  if (first) {
+  const first = failed.find((f) => f !== undefined);
+  if (first && !answered) {
     if ("thrown" in first) throw first.thrown;
-    return (first as { outcome: ToolOutcome }).outcome;
+    return first.outcome;
   }
   return {
     ok: true,
-    result: lookupBatchAnswer(settled.map((s) => (s as { entry: Json }).entry)),
+    result: lookupBatchAnswer(
+      items.map((item, k) => entries[k] ?? notAttempted(item, k)),
+    ),
   };
 }

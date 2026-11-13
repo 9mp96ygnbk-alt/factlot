@@ -2573,6 +2573,13 @@ export interface RegistryCoverage {
   };
 }
 
+/** A state's 2-digit FIPS code from its two-letter code ("TX" → "48"), or null. */
+export function stateFipsOf(postal: string): string | null {
+  for (const [f, p] of Object.entries(STATE_BY_FIPS))
+    if (p === postal) return f;
+  return null;
+}
+
 function statePostal(stateFips: string): string | null {
   return STATE_BY_FIPS[stateFips] ?? null;
 }

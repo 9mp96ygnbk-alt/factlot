@@ -22,7 +22,9 @@
 import {
   LOOKUP_BATCH_MAX_ITEMS,
   TX_EQUITY_BATCH_MAX_SUBJECTS,
+  lookupItemStateFips,
   tools,
+  type LookupItem,
 } from "@factlot/tools";
 
 import {
@@ -147,6 +149,7 @@ import {
 } from "./gating.ts";
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  MAX_REGISTRY_CALLS_PER_MCP_REQUEST,
   ANONYMOUS_REQUESTS_PER_MINUTE,
   PLANS,
   isPlanId,
@@ -610,23 +613,41 @@ export function lookupItemAnswer(entry: unknown): unknown {
 
 /**
  * The charged part of a registry_lookup_batch answer, entry by entry in input order (an entry
- * per item): an entry whose single call answered an error (`error`: an input error, or
- * registry_get's NotFound) is free, as that call is; any other entry costs what isChargedAnswer
- * gives its single call (lookupItemAnswer). Each is counted with the parcel's URN when one was
- * found, else the item as sent.
+ * per item, never more than the items reserved): an entry with status error (an input error, or
+ * an item the registry could not answer) is free; a not_found entry costs what isChargedAnswer
+ * gives its miss and coverage, whether the miss came as a result (registry_resolve_parcel,
+ * registry_search_address) or as registry_get's NotFound kept in `error` (a URN not in the
+ * registry: charged inside loaded coverage, free outside it, as an account miss is); a found or
+ * ambiguous entry costs one (lookupItemAnswer). Each is counted with the parcel's URN when one
+ * was found, else with the state the item names, for usage by region.
  */
+/** Whether one registry_lookup_batch entry is charged (lookupCharges). */
+export function lookupEntryCharged(entry: unknown): boolean {
+  if (typeof entry !== "object" || entry === null) return false;
+  if (
+    "error" in entry &&
+    (entry as { status?: unknown }).status !== "not_found"
+  )
+    return false;
+  return isChargedAnswer(lookupItemAnswer(entry));
+}
+
+type Charge = { tool: string; args: unknown };
+
 function lookupCharges(
   tool: string,
   items: unknown[],
   answer: unknown,
-): { tool: string; args: unknown }[] {
+): Charge[] {
   const results = (answer as { results?: unknown } | null)?.results;
   if (!Array.isArray(results)) return [];
-  return results.slice(0, items.length).flatMap((r, k) => {
-    if (typeof r !== "object" || r === null || "error" in r) return [];
-    if (!isChargedAnswer(lookupItemAnswer(r))) return [];
+  return results.slice(0, items.length).flatMap((r, k): Charge[] => {
+    if (typeof r !== "object" || r === null) return [];
+    if (!lookupEntryCharged(r)) return [];
     const urn = (r as { parcel?: { urn?: unknown } }).parcel?.urn;
-    return [{ tool, args: typeof urn === "string" ? { urn } : items[k] }];
+    if (typeof urn === "string") return [{ tool, args: { urn } }];
+    const state = lookupItemStateFips((items[k] ?? {}) as LookupItem);
+    return [{ tool, args: state === null ? {} : { state_fips: state } }];
   });
 }
 
@@ -665,6 +686,70 @@ function batchCharges(
             : subject,
       };
     });
+}
+
+/**
+ * The registry service calls a call may make (an estimate, for the per-request ceiling): two per
+ * registry_lookup_batch item (the identifying call and registry_get), one per Texas batch subject,
+ * one for any other registry call; a batch whose list is invalid makes none and counts one.
+ */
+function serviceCalls(item: unknown): number {
+  const params = (item as { params?: { name?: unknown; arguments?: unknown } })
+    .params;
+  const tool = String(params?.name);
+  const list = batchSubjects(tool, params?.arguments);
+  if (!list) return 1;
+  return tool === "registry_lookup_batch" ? 2 * list.length : list.length;
+}
+
+/**
+ * The batch registry calls of an MCP request that would take its estimated registry service calls
+ * past MAX_REGISTRY_CALLS_PER_MCP_REQUEST, in order: each is refused whole (unmetered, nothing
+ * reserved); the calls before it, and smaller ones after it that still fit, run. `skip`: calls
+ * already refused for another reason, which make no service call.
+ */
+function fanoutRefusals(
+  items: unknown[],
+  skip: (m: unknown) => boolean,
+): Set<unknown> {
+  const refused = new Set<unknown>();
+  let used = 0;
+  for (const m of items) {
+    if (!isMeteredCall(m) || skip(m)) continue;
+    const n = serviceCalls(m);
+    const tool = String(
+      (m as unknown as { params: { name: string } }).params.name,
+    );
+    if (
+      BATCH_REGISTRY_TOOLS.has(tool) &&
+      used + n > MAX_REGISTRY_CALLS_PER_MCP_REQUEST
+    ) {
+      refused.add(m);
+      continue;
+    }
+    used += n;
+  }
+  return refused;
+}
+
+/** The JSON-RPC answer to a batch call refused by the per-request ceiling (a tool error, nothing counted). */
+function fanoutRefusalAnswer(m: AccountCall): unknown {
+  const body = {
+    error: "RequestTooLarge",
+    code: "RequestTooLarge",
+    message: `This ${m.params.name} call was not run and nothing was counted: one MCP request may make at most ${MAX_REGISTRY_CALLS_PER_MCP_REQUEST} registry service calls (a registry_lookup_batch item counts 2, a registry_tx_equity_candidates_batch subject 1, any other registry call 1), and with the calls before it in this request this one would pass that.`,
+    next: "send this batch call in a request of its own, or split it",
+    limit: MAX_REGISTRY_CALLS_PER_MCP_REQUEST,
+  };
+  return {
+    jsonrpc: "2.0",
+    id: m.id,
+    result: {
+      content: [{ type: "text", text: JSON.stringify(body, null, 2) }],
+      structuredContent: body,
+      isError: true,
+    },
+  };
 }
 
 function quotaHeaders(q: QuotaState): Record<string, string> {
@@ -1363,6 +1448,8 @@ async function route(
     ) &&
     REGISTRY_NAMES.has(String((m as { params: { name: string } }).params.name));
   let refuseRestBatch: ReturnType<typeof planRequired> | undefined;
+  let overCap: ReadonlySet<unknown> = new Set();
+  const isOverCap = (m: unknown): m is AccountCall => overCap.has(m);
   if (path === "/mcp" && request.method === "POST") {
     // A paid caller may send a PDF to doc_extract_lease; that call is answered here, and what
     // goes on to the inner handler must still fit its 1 MB.
@@ -1401,11 +1488,15 @@ async function route(
         message:
           "invalid request: every request in a batch needs its own id (two or more share one)",
       });
-    registryRequest = items.some((m) => callsRegistry(m) && !refusedBatch(m));
+    // Batch calls past the request's ceiling on registry service calls: refused here, unmetered.
+    overCap = fanoutRefusals(items, refusedBatch);
+    registryRequest = items.some(
+      (m) => callsRegistry(m) && !refusedBatch(m) && !overCap.has(m),
+    );
     wanted = items
       .filter(
         (m): m is { id: string | number } =>
-          isMeteredCall(m) && !refusedBatch(m),
+          isMeteredCall(m) && !refusedBatch(m) && !overCap.has(m),
       )
       .reduce((n, m) => n + callReserves(m), 0);
     // Hosted tools answered here: account tools (with a key), the model-backed tools (any
@@ -1415,6 +1506,7 @@ async function route(
       (paid && isAccountCall(m)) ||
       isModelCall(m) ||
       refusedBatch(m) ||
+      isOverCap(m) ||
       isWatchCall(env, m);
     if (mcpBody !== undefined) {
       accountCalls = items.filter(hosted);
@@ -1860,27 +1952,29 @@ async function route(
           accountCalls.map((m) =>
             refusedBatch(m)
               ? refusedBatchAnswer(m, noteRefusal)
-              : isWatchCall(env, m)
-                ? answerWatchCall(
-                    env,
-                    watchCaller(paid),
-                    kind,
-                    m,
-                    { now },
-                    readsRegistry(m) &&
-                      ++watchReads > MAX_WATCH_READ_CALLS_PER_REQUEST,
-                  )
-                : isModelCall(m)
-                  ? answerModelCall(
+              : isOverCap(m)
+                ? fanoutRefusalAnswer(m)
+                : isWatchCall(env, m)
+                  ? answerWatchCall(
                       env,
-                      modelCaller,
+                      watchCaller(paid),
+                      kind,
                       m,
-                      opts.model,
-                      ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                      { now },
+                      readsRegistry(m) &&
+                        ++watchReads > MAX_WATCH_READ_CALLS_PER_REQUEST,
                     )
-                  : metered(
-                      answerAccountCall(env, paid!.hash, paid!.record, m),
-                    ),
+                  : isModelCall(m)
+                    ? answerModelCall(
+                        env,
+                        modelCaller,
+                        m,
+                        opts.model,
+                        ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                      )
+                    : metered(
+                        answerAccountCall(env, paid!.hash, paid!.record, m),
+                      ),
           ),
         )),
         ...(await Promise.all(

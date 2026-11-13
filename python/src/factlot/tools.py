@@ -829,14 +829,78 @@ def _is_error(outcome: Any) -> bool:
     return isinstance(outcome, dict) and isinstance(outcome.get("error"), str) and "issues" in outcome
 
 
-def lookup_exact(query: str, label: Any) -> bool:
-    """Whether a search result has the item's address exactly (``lookupExact`` in TS)."""
-    from .registry.normalize import address_query_with_place, address_unit, normalize_address
+_BARE_UNIT = re.compile(r"[0-9][0-9A-Z-]*")
+
+
+def _street_words(address: str) -> list[str]:
+    from .registry.normalize import normalize_address
+
+    return [w for w in normalize_address(address.split(",")[0]).split(" ") if w]
+
+
+def _place_tail(words: list[str]) -> bool:
+    """Words after the street on a line with no comma that are only its place (``placeTail`` in TS)."""
+    from .registry.normalize import state_code
+
+    w = list(words)
+    if len(w) >= 2 and re.fullmatch(r"[0-9]{4}", w[-1]) and re.fullmatch(r"[0-9]{5}", w[-2]):
+        w.pop()
+    if w and re.fullmatch(r"[0-9]{5}", w[-1]):
+        w.pop()
+    if not w:
+        return False
+    st = w.pop()
+    if len(st) != 2 or state_code(st) != st:
+        return False
+    return all(re.fullmatch(r"[A-Z]+", x) for x in w)
+
+
+def lookup_same_street(query: str, label: Any) -> bool:
+    """Whether two addresses name the same street address and unit (``lookupSameStreet`` in TS)."""
+    from .registry.normalize import address_query_with_place, address_unit
 
     if not isinstance(label, str):
         return False
-    line = lambda a: normalize_address(a.split(",")[0])  # noqa: E731
-    return line(address_query_with_place(query)) == line(label) and address_unit(query) == address_unit(label)
+    q = address_query_with_place(query)
+    a = {"text": q, "words": _street_words(q), "unit": address_unit(query)}
+    b = {"text": label, "words": _street_words(label), "unit": address_unit(label)}
+    if not a["words"] or not b["words"]:
+        return False
+    short, long = (a, b) if len(a["words"]) <= len(b["words"]) else (b, a)
+    if long["words"][:len(short["words"])] != short["words"]:
+        return False
+    rest = long["words"][len(short["words"]):]
+    if rest:
+        if "," in long["text"]:
+            return False
+        if long["unit"] is None and _BARE_UNIT.fullmatch(rest[0]):
+            long["unit"] = rest[0]
+            rest = rest[1:]
+        if rest and not _place_tail(rest):
+            return False
+    return a["unit"] == b["unit"]
+
+
+def lookup_place(item: dict[str, Any]) -> dict[str, Any]:
+    """The place an address item names, read as the search reads it (``lookupPlace`` in TS)."""
+    from .registry.normalize import address_place_with, address_query_with_place
+
+    where = {k: item[k] for k in ("state", "city", "postal_code", "county_fips") if isinstance(item.get(k), str)}
+    return address_place_with(address_query_with_place(str(item["address"])), where)
+
+
+def lookup_place_agrees(place: dict[str, Any], urn: Any, label: Any) -> bool:
+    """Whether a search result is in the place an address item names (``lookupPlaceAgrees`` in TS)."""
+    from .registry.normalize import address_place_rank
+
+    if place["city"] is None and place["zip"] is None:
+        return True
+    return address_place_rank(place, str(urn), label) in (0, 1)
+
+
+def _county_of(urn: Any) -> str:
+    m = re.match(r"fl:[a-z]+:us-([0-9]{5})", str(urn))
+    return m.group(1) if m else str(urn)
 
 
 def _lookup_text(v: Any) -> str | None:
@@ -920,29 +984,50 @@ def lookup_row(record: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+LOOKUP_UNAVAILABLE_ITEMS_MAX = 5
+LOOKUP_NO_ANSWER = "the registry service did not answer; retry in a moment"
+
+
 class _LookupUnavailable(Exception):
     def __init__(self, outcome: dict[str, Any]) -> None:
         super().__init__(outcome["message"])
         self.outcome = outcome
 
 
+_lookup_answered: list[bool] = [False]
+
+
 def _lookup_call(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     out = run_tool(tool, args)
     if _is_error(out) and out["error"] == "RegistryUnavailable":
         raise _LookupUnavailable(out)
+    _lookup_answered[0] = True
     return out
 
 
-def _lookup_item(item: dict[str, Any], index: int) -> dict[str, Any]:
-    """One item of registry_lookup_batch (``lookupItem`` in TS)."""
+def _lookup_head(item: dict[str, Any], index: int) -> dict[str, Any]:
+    """Index, ref when sent, and how the item names its parcel (``lookupHead`` in TS)."""
     head: dict[str, Any] = {"index": index}
     if "ref" in item:
         head["ref"] = item["ref"]
     modes = [m for m in _LOOKUP_MODES if m in item]
+    if len(modes) == 1:
+        head["by"] = _LOOKUP_BY[modes[0]]
+    return head
+
+
+def _unavailable_entry(item: dict[str, Any], index: int, message: str) -> dict[str, Any]:
+    return {**_lookup_head(item, index), "status": "error",
+            "error": {"error": "RegistryUnavailable", "message": message, "issues": []}}
+
+
+def _lookup_item(item: dict[str, Any], index: int) -> dict[str, Any]:
+    """One item of registry_lookup_batch (``lookupItem`` in TS)."""
+    head = _lookup_head(item, index)
+    modes = [m for m in _LOOKUP_MODES if m in item]
     if len(modes) != 1:
         return {**head, "status": "error", "error": _lookup_input_error([{"path": "", "message": LOOKUP_WHICH_PARCEL}])}
     mode = modes[0]
-    head["by"] = _LOOKUP_BY[mode]
     allowed = {mode, *_LOOKUP_MODES[mode]}
     stray = [k for k in _LOOKUP_FIELDS if k in item and k not in allowed]
     if stray:
@@ -999,17 +1084,37 @@ def _lookup_item(item: dict[str, Any], index: int) -> dict[str, Any]:
         if not results:
             return miss(out.get("coverage"))
         query = item["address"]
-        exact = [r for r in results if lookup_exact(query, r.get("label"))]
-        if len(results) > 1 and len(exact) != 1:
+        place = lookup_place(item)
+        named = place["city"] is not None or place["zip"] is not None
+
+        def agrees(r: dict[str, Any]) -> bool:
+            return lookup_place_agrees(place, r.get("urn"), r.get("label"))
+
+        exact = [r for r in results if lookup_same_street(query, r.get("label")) and agrees(r)]
+        more = " or more" if len(results) >= LOOKUP_BATCH_SEARCH_LIMIT else ""
+        counties = len({_county_of(r.get("urn")) for r in results})
+        which = "send the urn, or the apn with its county, of the one you mean"
+
+        def ambiguous(reason: str, message: str) -> dict[str, Any]:
             rest = [r for r in results if not any(r is e for e in exact)]
-            more = " or more" if len(results) >= LOOKUP_BATCH_SEARCH_LIMIT else ""
-            message = (
-                f"{len(exact)} parcels have this address exactly (separate accounts at one address); send the urn, "
-                "or the apn with its county, of the one you mean" if len(exact) > 1 else
-                f"{len(results)}{more} parcels match this address and none has it exactly; send the urn, or the apn "
-                "with its county, of the one you mean, or a fuller address")
-            return {**head, "status": "ambiguous", "matches": len(results),
+            return {**head, "status": "ambiguous", "reason": reason, "matches": len(results),
                     "candidates": (exact + rest)[:LOOKUP_BATCH_CANDIDATES], "message": message}
+
+        if not named and counties > 1:
+            return ambiguous("several_places", (
+                f"{len(results)}{more} parcels in {counties} counties match this address, which names no city or ZIP "
+                f"code; add the city, ZIP code, state or county_fips, or {which}"))
+        if len(exact) > 1:
+            return ambiguous("same_address", (
+                f"{len(exact)} parcels have this address exactly (separate accounts at one address); {which}"))
+        if not exact and len(results) == 1 and not agrees(results[0]):
+            return ambiguous("place_differs", (
+                "the only parcel found at this street address is not shown in the place the address names (its "
+                f"label does not have that city or ZIP code); check the address, or {which} if it is this parcel"))
+        if not exact and len(results) > 1:
+            return ambiguous("no_exact_match", (
+                f"{len(results)}{more} parcels match this address and none has it exactly; {which}, or a fuller "
+                "address"))
         chosen = exact[0] if exact else results[0]
         urn = str(chosen["urn"])
         match = {"exact": len(exact) == 1, "matches": len(results)}
@@ -1029,11 +1134,25 @@ def _lookup_batch(args: dict[str, Any]) -> dict[str, Any]:
     invalid = input_schema_issues(_input_schemas()["registry_lookup_batch"], args)[:20]
     if invalid:
         raise _MultiInputError(invalid)
-    try:
-        entries = [_lookup_item(item, k) for k, item in enumerate(args["items"])]
-    except _LookupUnavailable as e:
-        # No registry is no answer for any item: the whole call fails, as the single tools do.
-        raise _RegistryUnavailable(e.outcome["message"]) from None
+    entries: list[dict[str, Any]] = []
+    failures = 0
+    first: dict[str, Any] | None = None
+    _lookup_answered[0] = False
+    for k, item in enumerate(args["items"]):
+        if failures >= LOOKUP_UNAVAILABLE_ITEMS_MAX:
+            entries.append(_unavailable_entry(item, k, (
+                f"not attempted: {LOOKUP_UNAVAILABLE_ITEMS_MAX} items of this batch could not be answered by the "
+                "registry, so the rest were not sent and nothing was counted for them; send them again")))
+            continue
+        try:
+            entries.append(_lookup_item(item, k))
+        except _LookupUnavailable as e:
+            failures += 1
+            first = first or e.outcome
+            entries.append(_unavailable_entry(item, k, e.outcome["message"]))
+    if first is not None and not _lookup_answered[0]:
+        # No item's call was answered (no registry loaded): the whole call fails, as the single tools do.
+        raise _RegistryUnavailable(first["message"])
     count = lambda s: sum(1 for e in entries if e["status"] == s)  # noqa: E731
     return {
         "results": entries,

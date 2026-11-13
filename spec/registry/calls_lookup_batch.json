@@ -161,6 +161,58 @@
   {
     "tool": "registry_lookup_batch",
     "arguments": {
+      "items": [
+        {
+          "ref": "place-differs-zip",
+          "address": "12 Tower Ct, Shoreville, MD 21999"
+        },
+        {
+          "ref": "no-place-two-counties",
+          "address": "100 Main St"
+        },
+        {
+          "ref": "place-differs-city",
+          "address": "100 Main St, Houston, TX"
+        },
+        {
+          "ref": "bare-unit-hash",
+          "address": "700 Bayou Dr #1001"
+        },
+        {
+          "ref": "bare-unit-word",
+          "address": "700 Bayou Dr Unit 1001, Example City TX"
+        },
+        {
+          "ref": "no-unit",
+          "address": "700 Bayou Dr"
+        },
+        {
+          "ref": "other-unit",
+          "address": "300 Harbor Dr Ste 9, Example City, TX"
+        },
+        {
+          "ref": "zip-field",
+          "address": "12 Tower Ct",
+          "state": "MD",
+          "postal_code": "21998"
+        },
+        {
+          "ref": "city-field",
+          "address": "12 Tower Ct",
+          "state": "MD",
+          "city": "Shoreville"
+        },
+        {
+          "ref": "county-field",
+          "address": "100 Main St",
+          "county_fips": "48999"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
       "items": []
     }
   },

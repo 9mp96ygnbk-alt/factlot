@@ -3,7 +3,7 @@
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
 tools from one catalog: twenty-six calculators, the Texas protest-deadline rule and its batch form,
 FactLot IDs, fact validation, document tools and lease comps (46 tools). The MCP servers (local and `/mcp`) always add
-`search`/`fetch`/`schema_get`. The nine `registry_*` tools are listed (in MCP `tools/list`,
+`search`/`fetch`/`schema_get`. The ten `registry_*` tools are listed (in MCP `tools/list`,
 `GET /v1/tools`, and both OpenAPI documents) only when a registry is available: a registry database
 configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
 routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the

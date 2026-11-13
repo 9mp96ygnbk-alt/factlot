@@ -26,6 +26,13 @@ export interface Plan {
 export const ANONYMOUS_REQUESTS_PER_MINUTE = 60;
 /** Registry lookups per UTC day for one client address (IPv6: per /64) without a key. */
 export const ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY = 25;
+/**
+ * Most registry service calls one MCP request may make, estimated before it runs: a
+ * registry_lookup_batch item counts 2, a registry_tx_equity_candidates_batch subject 1, any other
+ * registry call 1. A batch call that would pass it is refused whole, unmetered (one JSON-RPC request
+ * may hold 20 calls, so 20 lookup batches of 50 would otherwise make 2,000).
+ */
+export const MAX_REGISTRY_CALLS_PER_MCP_REQUEST = 500;
 /** Registry lookups per UTC day that all the free keys used from one address share (4x the free day). */
 export const FREE_KEY_ADDRESS_LOOKUPS_PER_DAY =
   4 * ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY;
@@ -94,7 +101,7 @@ export const QUOTA_RULES = {
   counted:
     "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
   batch:
-    "A registry batch tool needs one lookup per subject or item left in the allowance to run (a batch larger than what remains is refused whole). registry_tx_equity_candidates_batch counts one lookup per answered subject, and subjects with an error are given back. registry_lookup_batch counts each item as the single call that identifies its parcel would count (registry_get, registry_resolve_parcel or registry_search_address): an item with an error, a URN not in the registry and a miss outside loaded coverage are given back.",
+    "A registry batch tool needs one lookup per subject or item left in the allowance to run (a batch larger than what remains is refused whole). registry_tx_equity_candidates_batch counts one lookup per answered subject, and subjects with an error are given back. registry_lookup_batch counts each item as the single call that identifies its parcel would count (registry_resolve_parcel for an account or a URN, registry_search_address for an address): a miss inside loaded coverage counts, a URN not in the registry included; an item with an error and a miss outside loaded coverage are given back. One MCP request may make at most 500 registry service calls (a registry_lookup_batch item counts 2, a registry_tx_equity_candidates_batch subject 1); a batch call past that is refused whole and counts nothing.",
   free: `Without a key, ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.`,
   paid: "With a key, lookups count per subscription per calendar month (UTC), shared by all of its keys; requests a minute count per key.",
   at_cap:

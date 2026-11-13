@@ -45,9 +45,14 @@ export {
   LOOKUP_BATCH_MAX_ITEMS,
   LOOKUP_BATCH_NOTICE,
   LOOKUP_BATCH_SEARCH_LIMIT,
+  LOOKUP_NO_ANSWER,
+  LOOKUP_UNAVAILABLE_ITEMS_MAX,
   LOOKUP_WHICH_PARCEL,
   lookupBatchAsync,
-  lookupExact,
+  lookupItemStateFips,
+  lookupPlace,
+  lookupPlaceAgrees,
   lookupRow,
+  lookupSameStreet,
 } from "./lookup_batch.ts";
 export type { LookupCall, LookupItem } from "./lookup_batch.ts";

@@ -172,8 +172,8 @@
   </li>
   <li>
     <strong>Batch lookup for many parcels at once.</strong>
-    <code>registry_lookup_batch</code> takes up to 50 parcels in any loaded
-    state in one call, each by URN, account number or address, and returns a
+    <code>registry_lookup_batch</code> takes up to 50 parcels in the hosted
+    regions in one call, each by URN, account number or address, and returns a
     cited row per parcel: account, category, use code, area, year built,
     current-year value and owner of record.
     <code>registry_tx_equity_candidates_batch</code> takes up to 50 Texas
@@ -293,11 +293,15 @@
     <code>registry_tx_equity_candidates_batch</code> counts one lookup per
     answered subject, and subjects with an error are given back.
     <code>registry_lookup_batch</code> counts each item as the single call that
-    identifies its parcel would count (<code>registry_get</code>,
-    <code>registry_resolve_parcel</code> or
-    <code>registry_search_address</code>): an item with an error, a URN not in
-    the registry and a miss outside loaded coverage are given back. Both are
-    part of Pro and Team.
+    identifies its parcel would count (<code>registry_resolve_parcel</code> for
+    an account or a URN, <code>registry_search_address</code> for an address): a
+    miss inside loaded coverage counts, a URN not in the registry included; an
+    item with an error and a miss outside loaded coverage are given back. One
+    MCP request may make at most 500 registry service calls (a
+    <code>registry_lookup_batch</code> item counts 2, a
+    <code>registry_tx_equity_candidates_batch</code> subject 1); a batch call
+    past that is refused whole and counts nothing. Both are part of Pro and
+    Team.
   </li>
   <li>
     Without a key, 25 lookups a day per IP address (stored only as a hash; IPv6

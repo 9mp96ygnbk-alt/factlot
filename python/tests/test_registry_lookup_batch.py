@@ -4,7 +4,6 @@ Every record here is SYNTHETIC: invented accounts, values and names. The TypeScr
 (spec/registry/calls_lookup_batch.json, packages/tools/src/registry.test.ts).
 """
 
-import json
 import subprocess
 import sys
 import tempfile
@@ -12,13 +11,13 @@ import unittest
 from pathlib import Path
 
 import factlot
-from factlot.tools import LOOKUP_BATCH_NOTICE, configure_registry, lookup_exact
+import factlot.tools as tools_module
+from factlot.tools import LOOKUP_BATCH_NOTICE, configure_registry, lookup_same_street
 
 SPEC = Path(__file__).resolve().parents[2] / "spec" / "registry"
 TOOL = "registry_lookup_batch"
 # A parcel whose roll owner is a natural person (not stored) and one whose owner is withheld under §25.025.
 PERSON_PARCEL, WITHHELD_PARCEL = "fl:parcel:us-48997:1000014", "fl:parcel:us-48997:1000015"
-NOT_STORED = {"Jane Q Example", "12 Quiet Lane", "CONFIDENTIAL"}
 
 
 class LookupBatch(unittest.TestCase):
@@ -55,21 +54,54 @@ class LookupBatch(unittest.TestCase):
                                                               "apn": "501-01-001"})
         self.assertEqual(out["results"][3]["coverage"], resolve["coverage"])
 
-    def test_owners_not_stored_stay_out(self):
+    def test_owner_is_what_registry_get_gives(self):
+        # The registry keeps no owner for these two (a person; an owner withheld): the row says none.
         out = factlot.run_tool(TOOL, {"items": [{"urn": PERSON_PARCEL}, {"urn": WITHHELD_PARCEL}]})
-        text = json.dumps(out)
-        for s in NOT_STORED:
-            self.assertNotIn(s, text)
-        for e in out["results"]:
+        for e, urn in zip(out["results"], (PERSON_PARCEL, WITHHELD_PARCEL)):
             self.assertEqual(e["status"], "found")
             self.assertIsNone(e["parcel"]["owner_of_record"])
+            record = factlot.run_tool("registry_get", {"urn": urn})
+            self.assertFalse(any(f["predicate"] == "ownership.owner_of_record" for f in record["facts"]))
+
+    def test_place_and_unit(self):
+        out = factlot.run_tool(TOOL, {"items": [
+            {"address": "12 Tower Ct, Shoreville, MD 21999"},
+            {"address": "100 Main St"},
+            {"address": "100 Main St, Houston, TX"},
+            {"address": "700 Bayou Dr #1001"},
+        ]})
+        self.assertEqual([(e["status"], e.get("reason")) for e in out["results"]],
+                         [("ambiguous", "place_differs"), ("ambiguous", "several_places"),
+                          ("ambiguous", "place_differs"), ("found", None)])
+        self.assertEqual(out["results"][3]["parcel"]["urn"], "fl:parcel:us-48999:0008-000-1001")
+
+    def test_unavailable_item_is_its_own_error(self):
+        real = tools_module.run_tool
+        down = "fl:parcel:us-48997:1000002"
+
+        def fake(name, args):
+            if name == "registry_get" and (args or {}).get("urn") == down:
+                return {"error": "RegistryUnavailable", "message": "cannot answer", "issues": []}
+            return real(name, args)
+
+        tools_module.run_tool = fake
+        try:
+            items = [{"urn": "fl:parcel:us-48997:1000001"}, {"urn": down}]
+            out = real(TOOL, {"items": items})
+        finally:
+            tools_module.run_tool = real
+        self.assertEqual([e["status"] for e in out["results"]], ["found", "error"])
+        self.assertEqual(out["results"][1]["error"]["error"], "RegistryUnavailable")
 
     def test_exact(self):
-        self.assertTrue(lookup_exact("100 Main St", "100 Main Street, Shoreville MD 21999"))
-        self.assertFalse(lookup_exact("100 Main St", "100 Main Street, Suite 400"))
-        self.assertTrue(lookup_exact("300 Harbor Drive Unit 102", "300 Harbor Dr Ste 102, Example City TX 77999-1234"))
-        self.assertTrue(lookup_exact("1200 Main St Houston TX 77002", "1200 Main Street, Houston TX 77002"))
-        self.assertFalse(lookup_exact("500 Market St", None))
+        same = lookup_same_street
+        self.assertTrue(same("100 Main St", "100 Main Street, Shoreville MD 21999"))
+        self.assertFalse(same("100 Main St", "100 Main Street, Suite 400"))
+        self.assertTrue(same("300 Harbor Drive Unit 102", "300 Harbor Dr Ste 102, Example City TX 77999-1234"))
+        self.assertTrue(same("1200 Main St Houston TX 77002", "1200 Main Street, Houston TX 77002"))
+        self.assertTrue(same("700 Bayou Dr Unit 1001, Example City TX", "700 Bayou Drive 1001 Example City TX 77999"))
+        self.assertFalse(same("700 Bayou Dr", "700 Bayou Drive 1001 Example City TX 77999"))
+        self.assertFalse(same("500 Market St", None))
 
     def test_no_registry_fails_the_whole_call(self):
         configure_registry(None)

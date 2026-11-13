@@ -104,10 +104,17 @@ own `ref`. Each item is answered by the single tools (`registry_get`, `registry_
 tool's miss says. Each entry of `results`, in input order, has a `status`: `found` with a compact
 `parcel` row (account, property category, use code, improvement area, year built, the current roll
 year's value with its citation, the owner of record as `registry_get` gives it, citations, sources
-and their rights), `not_found` with the miss's `coverage`, `ambiguous` (an address that matched more
-than one parcel, not exactly one of them with the address as written) with up to five candidate
-cards, or `error` with that item's own error. On the hosted API it is part of Pro and Team, and each
-item counts as its single call would on its own.
+and their rights), `not_found` with the miss's `coverage`, `ambiguous` (an address only) with a
+`reason` and up to five candidate cards, or `error` with that item's own error. An address is
+`found` only when exactly one result has the same street address and unit in the place the address
+names (its city or ZIP code), or the search found one parcel in that place; a parcel is never picked
+across counties for an address that names no city or ZIP code (`several_places`), and a lone parcel
+outside the place named is `place_differs`. A wrong combination of fields, or an item the registry
+could not answer, is that item's error; an item whose fields fail the input schema (a wrong type, an
+unknown field) fails the whole call with `InputError`, uncharged. On the hosted API it is part of Pro
+and Team, and each item counts as its single call would on its own: a miss inside loaded coverage
+counts (a URN not in the registry as an account miss would), a miss outside it and an error do not.
+One MCP request may make at most 500 registry service calls (an item counts 2).
 
 ## MCP resources and prompts
 
