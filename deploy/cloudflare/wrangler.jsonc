@@ -25,7 +25,8 @@
 // keep working. Publish the privacy notice and terms that describe it before setting it.
 // WATCH_LISTS_ENABLED (a variable, "true": watch lists are on; see README.md). Unset here, so the
 // watch_* tools are unlisted, /v1/watch/* answers 404 and no check runs. Turning it on needs no
-// new binding (storage is the LIMITER class and KV). Alert emails also need a cron trigger (the
+// new binding (storage is the LIMITER class and KV); deploy the registry Worker first (its
+// /get-many route lets one call read 50 subjects). Alert emails also need a cron trigger (the
 // commented "triggers" below), the EMAIL binding and RECOVERY_SIGNING_SECRET; optionally set
 // OPERATOR_POSTAL_ADDRESS (a variable) for the alert emails' foot.
 //

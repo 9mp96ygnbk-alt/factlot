@@ -79,36 +79,54 @@ are not listed, `/v1/watch/*` and the alert stop links answer 404, the account p
 watch section, and the scheduled handler returns at once.
 
 When on, a Pro or Team subscription keeps named lists of parcel, entity and building URNs
-(`WATCH_LIMITS` in `src/plans.ts`: 200 subjects and 20 lists on Pro, 5,000 and 100 on Team).
+(`WATCH_LIMITS` in `src/plans.ts`: 200 subjects and 20 lists on Pro, 5,000 and 100 on Team; after
+a downgrade only the oldest subjects up to the limit are compared, and `watch_list` says how many
+are not).
 Tools, on MCP and as `POST /v1/watch/<name>`: `watch_add`, `watch_remove`, `watch_list`,
 `watch_changes`, `watch_alerts`. Any other caller gets `PlanRequired`, unmetered. `watch_add`
 reads each new subject once (one registry lookup each; a subject already watched in another list,
-an invalid URN and a miss are not counted); nothing else counts.
+an invalid URN and a miss are not counted, and the same new URN added to two lists at once is
+counted once); nothing else counts.
 
 Storage: the `LIMITER` Durable Object class (SQLite), objects `watch:sub:<subscription>` and
-`watch:index` (`src/watch-store.ts`); KV `watchstop:<alert id>` maps a stop link to its
-subscription. No new binding or migration. Each subject keeps a fingerprint (`src/watch-print.ts`):
-the newest roll year's values, the owner-of-record values and owning entity URNs, one hash per
-recorded document with its date and amount, the entity status, and one hash per other predicate.
+`watch:index` (`src/watch-store.ts`); KV `watchstop:<alert id>` and `watchconfirm:<pending id>`
+map stop and confirmation links to their subscription. No new binding or migration. Each subject keeps a fingerprint (`src/watch-print.ts`):
+the newest roll year's values, the owner-of-record values and owning entity URNs, one keyed hash
+(HMAC) per recorded document with its date and amount, the entity status, and one hash per other predicate.
 Changes are kept 400 days, at most 10,000 per subscription.
 
 The check (`src/watch-check.ts`) runs from the Worker's `scheduled` handler when a cron trigger is
 configured (the example in `wrangler.jsonc` is commented out). Each run reads the registry's
-`/health`; when the pack's `built_at` is newer than the last completed check it compares each
-watched URN once (one registry request per URN, shared by subscriptions watching the same URN),
-within 400 subrequests per invocation, and resumes on the next run where it stopped. It is
-idempotent per `built_at`. Without a cron trigger, `watch_changes` compares up to 25 of the
-caller's own subjects inline when the pack is newer, so results are never older than the pack;
-alert emails need the cron trigger.
+`/health`; when the pack's `built_at` differs from the last one checked it gets a new check number
+from the index (so a rolled-back pack deployed again is compared again) and compares each watched
+URN once. Cloudflare allows 32 Worker invocations per request and counts every service-binding
+call, so a run makes at most 30 calls to the registry and to Durable Objects together and reads up
+to 50 subjects per registry call (`POST /get-many` of the registry Worker; against an older
+registry Worker it falls back to one `/run` call per subject within the same budget). A run that
+runs out stops cleanly and the next resumes. A subject the registry cannot read keeps its
+fingerprint and is read again, alone, in the next run; after 3 failures in a row it is left out of
+that check (`watch_changes` lists it under `check.not_compared`). When the registry does not answer
+at all the run stops without counting anything against a subject, and an error in one
+subscription never stops the others. Without a cron trigger, `watch_changes` compares up to 25 of
+the caller's own subjects inline when the pack is newer; alert emails need the cron trigger.
 
-Alerts: with `watch_alerts` on, one email per registry update that changed something watched, to
-the address the customer set, with a one-click stop link (`List-Unsubscribe` and
-`List-Unsubscribe-Post` headers; the link is signed with `RECOVERY_SIGNING_SECRET`). Needs the
-`EMAIL` binding and that secret; `OPERATOR_POSTAL_ADDRESS` (a variable) is printed at the foot.
+Alerts: `watch_alerts` with an address sends that address one confirmation email (a signed link
+that works once and expires after 24 hours; at most one every 10 minutes and 5 a day per
+subscription; one pending address at a time). Nothing else is sent to an address until it is
+confirmed. Once confirmed: one email per check that changed something watched, with a one-click
+stop link (`List-Unsubscribe` and `List-Unsubscribe-Post` headers). A digest is claimed before it
+is sent, so it goes at most once. Links are signed with `RECOVERY_SIGNING_SECRET`; rotating it
+invalidates every confirmation and stop link already sent (alerts can still be stopped on the
+account page), and recorded-document hashes, keyed from the same secret, are re-baselined at the
+next comparison. Needs the `EMAIL` binding and that secret; `OPERATOR_POSTAL_ADDRESS` (a variable)
+is printed at the foot of the digests.
 
 Deletion: removing a subject from its last list deletes its fingerprint and changes; stopping
-alerts deletes the address; a cancelled subscription (Stripe webhook, or found by the check)
-loses its whole watch object and stop-link record.
+alerts deletes both addresses; changes older than 400 days are pruned on every read and check,
+paid or not. A cancelled subscription loses its whole watch object and link records on the Stripe
+webhook (a storage failure answers 503 so Stripe retries). The check deletes only when a key record
+shows a terminal Stripe status and none is active; an empty or unreadable key list is skipped.
+With the variable off the webhook makes no watch call.
 
 ## Tokens in URL paths (what a request log can leak)
 
