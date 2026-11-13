@@ -4,12 +4,13 @@
  * Arithmetic only: no recommendation, no opinion of value.
  */
 import type { TxUnequalAppraisalInput } from "@factlot/calc";
+import { round } from "@factlot/calc";
 import { TX_EQUITY_RULE } from "@factlot/tools";
 
 import type { Block, Provenance, ReportDoc } from "../doc.ts";
 import { appendBlocks, putLines } from "../doc.ts";
 import { pct, roundInText, usd } from "../format.ts";
-import type { TxResult } from "../validate.ts";
+import { ReportInputError, type TxResult } from "../validate.ts";
 import { Workbook, addr, fx, range, type Sheet } from "../xlsx.ts";
 import {
   closingBlocks,
@@ -233,38 +234,115 @@ export function sourcesBlocks(k: KindInput, r: TxResult): Block[] {
   return out;
 }
 
-/** Printed above the roll fields: what they are and that FactLot did not recompute them. */
-export const ROLL_FIELDS_NOTE =
-  "The roll's own figures for the subject and each comparable, as registry_tx_equity_candidates returned them and the caller sent them in context.candidates: account number, codes, areas, year built and roll value. Roll value per SF is that value divided by the improvement area, to the cent: the roll's figures and one division, not an adjustment and not an opinion of value. Land and improvement values are not in the registry and are not shown.";
+/** The heading of the table of fields from context.candidates. */
+export const SENT_FIELDS_HEADING =
+  "Fields of the subject and comparables as returned by registry_tx_equity_candidates and sent with this request";
+/** Printed above that table: what it is, what was checked, and what FactLot computed. */
+export const SENT_FIELDS_NOTE =
+  "Account number, codes, land area and year built are as registry_tx_equity_candidates returned them and the caller sent them in context.candidates; FactLot did not look them up again. Each row's value and improvement area were checked against the value and improvement area of the same subject or comparable in this calculation, and value per SF is that value divided by that area, to the cent: one division, not an adjustment and not an opinion of value. Land and improvement values are not in the registry and are not shown.";
 /** Printed above the rule: whose rule it is. */
 export const RULE_NOTE =
   "The candidate list came from FactLot's default rule, a design choice and not a legal standard, with the parameters below as the caller sent them in context.selection_rule. The comparables in the grid are the ones the caller sent to the calculation; the rule's counts are for the whole candidate list, not only for those.";
+/** RULE_NOTE when the selection rule sent lists a narrowing that was applied. */
+export const RULE_NOTE_NARROWED =
+  "The candidate list came from FactLot's default rule with the narrowing listed below, a design choice and not a legal standard, with the parameters below as the caller sent them in context.selection_rule. The comparables in the grid are the ones the caller sent to the calculation; the rule's counts are for the whole candidate list, not only for those.";
 
 const or = (x: unknown, none: string): string =>
   x === null || x === undefined || x === "" ? none : String(x);
+const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null);
 
 /**
- * The roll fields of the subject and comparables (context.candidates) and the candidate rule as applied
- * (context.selection_rule), when the caller sent them; nothing otherwise.
+ * The rows of context.candidates matched to this calculation's subject and comparables by id. Refuses
+ * (InputError) a row whose id is neither, an id sent twice, and a row whose value or improvement area differs
+ * from the calculation's for that id.
+ */
+function sentRows(
+  k: KindInput,
+  r: TxResult,
+): Map<string, NonNullable<KindInput["ctx"]["candidates"]>[number]> {
+  const v = r.value;
+  const args = k.checked.args as Args | undefined;
+  const parties = new Map<string, { value: number; area: unknown }>();
+  if (v.subject_id)
+    parties.set(v.subject_id, {
+      value: v.subject_value,
+      area: args?.subject.improvement_area_sf,
+    });
+  for (const c of v.comparables)
+    if (c.id && !parties.has(c.id))
+      parties.set(c.id, {
+        value: c.value,
+        area: args?.comparables[c.index]?.improvement_area_sf,
+      });
+  const out = new Map<
+    string,
+    NonNullable<KindInput["ctx"]["candidates"]>[number]
+  >();
+  const issues: { path: string; message: string }[] = [];
+  (k.ctx.candidates ?? []).forEach((c, i) => {
+    const at = `context.candidates.${i}`;
+    const party = parties.get(c.id);
+    if (!party)
+      issues.push({
+        path: `${at}.id`,
+        message: `${c.id} is not the subject or a comparable of this calculation`,
+      });
+    else if (out.has(c.id))
+      issues.push({ path: `${at}.id`, message: `${c.id} is sent twice` });
+    else {
+      if (!same(c.value, party.value))
+        issues.push({
+          path: `${at}.value`,
+          message: `${c.id}: value ${String(c.value ?? null)} differs from the calculation's ${party.value}`,
+        });
+      if (!same(c.improvement_area_sf, party.area))
+        issues.push({
+          path: `${at}.improvement_area_sf`,
+          message: `${c.id}: improvement_area_sf ${String(c.improvement_area_sf ?? null)} differs from the calculation's ${String(party.area ?? null)}`,
+        });
+      out.set(c.id, c);
+    }
+  });
+  if (issues.length)
+    throw new ReportInputError(
+      "InputError",
+      `context.candidates does not match the calculation: ${issues[0]!.message}`,
+      issues.slice(0, 20),
+    );
+  return out;
+}
+
+/**
+ * The fields of the subject and comparables from context.candidates (checked against the calculation) and the
+ * candidate rule as applied (context.selection_rule), when the caller sent them; nothing otherwise.
  */
 export function candidateBlocks(k: KindInput, r: TxResult): Block[] {
   const v = r.value;
+  const args = k.checked.args as Args | undefined;
   const out: Block[] = [];
-  const sent = k.ctx.candidates ?? [];
-  if (sent.length) {
-    const byId = new Map(sent.map((c) => [c.id, c]));
-    const ids: [string, string | null | undefined][] = [
-      [v.subject_id ? `${v.subject_id} (subject)` : "Subject", v.subject_id],
-      ...v.comparables.map((c): [string, string | null | undefined] => [
-        nameOf(c),
-        c.id,
-      ]),
-    ];
-    out.push({
-      t: "heading",
-      text: "Roll fields of the subject and comparables",
-    });
-    out.push({ t: "para", grey: true, text: ROLL_FIELDS_NOTE });
+  const byId = sentRows(k, r);
+  if (byId.size) {
+    const rows: [string, string | null | undefined, number, unknown, string][] =
+      [
+        [
+          v.subject_id ? `${v.subject_id} (subject)` : "Subject",
+          v.subject_id,
+          v.subject_value,
+          args?.subject.improvement_area_sf,
+          v.subject_value_basis,
+        ],
+        ...v.comparables.map(
+          (c): [string, string | null | undefined, number, unknown, string] => [
+            nameOf(c),
+            c.id,
+            c.value,
+            args?.comparables[c.index]?.improvement_area_sf,
+            c.value_basis,
+          ],
+        ),
+      ];
+    out.push({ t: "heading", text: SENT_FIELDS_HEADING });
+    out.push({ t: "para", grey: true, text: SENT_FIELDS_NOTE });
     out.push({
       t: "table",
       size: 6.5,
@@ -277,42 +355,53 @@ export function candidateBlocks(k: KindInput, r: TxResult): Block[] {
         { header: "Impr. area (SF)", fmt: "int", width: 0.8 },
         { header: "Land area (SF)", fmt: "int", width: 0.8 },
         { header: "Year built", fmt: "text", width: 0.55 },
-        { header: "Roll value", fmt: "usd", width: 1.1 },
+        { header: "Value", fmt: "usd", width: 1.1 },
         { header: "Basis", fmt: "text", width: 0.7 },
-        { header: "Roll value $/SF", fmt: "usd", width: 0.8 },
+        { header: "Value per SF", fmt: "usd", width: 0.8 },
       ],
-      rows: ids.map(([name, id]) => {
+      rows: rows.map(([name, id, value, area, basis]) => {
         const c = id ? byId.get(id) : undefined;
+        const a = typeof area === "number" && area > 0 ? area : null;
         if (!c)
-          return [name, "not sent", "", "", "", null, null, "", null, "", null];
+          return [
+            name,
+            "not sent",
+            "",
+            "",
+            "",
+            a,
+            null,
+            "",
+            value,
+            basis,
+            null,
+          ];
         return [
           name,
           or(c.apn, "not on the roll"),
           or(c.state_property_category, ""),
           or(c.building_class, ""),
           or(c.local_use_code, ""),
-          c.improvement_area_sf ?? null,
+          a,
           c.land_area_sf ?? null,
           or(c.year_built, ""),
-          c.value ?? null,
-          or(c.value_basis, ""),
-          c.value_per_sf ?? null,
+          value,
+          basis,
+          a === null ? null : round(value / a, 2),
         ];
       }),
     });
-    const used = new Set(ids.map(([, id]) => id));
-    const unused = sent.filter((c) => !used.has(c.id)).map((c) => c.id);
-    if (unused.length)
-      out.push({
-        t: "para",
-        grey: true,
-        text: `Sent in context.candidates but not in this calculation: ${unused.length} (${names(unused)}).`,
-      });
   }
   const rule = k.ctx.selection_rule;
   if (rule) {
     out.push({ t: "heading", text: "Candidate rule as applied" });
-    out.push({ t: "para", grey: true, text: RULE_NOTE });
+    out.push({
+      t: "para",
+      grey: true,
+      text: (rule.narrowing ?? []).some((n) => n.applied)
+        ? RULE_NOTE_NARROWED
+        : RULE_NOTE,
+    });
     out.push({ t: "para", text: TX_EQUITY_RULE });
     const band = rule.area_band;
     const years = rule.year_band;
@@ -1183,9 +1272,10 @@ function userReadme(
       "call calc_tx_unequal_appraisal again to refresh it.",
     ...(k.ctx.candidates?.length || k.ctx.selection_rule
       ? [
-          "Roll_fields: the roll's own figures for the subject and each comparable (account number, codes, areas, " +
-            "year built, roll value and roll value per SF), and FactLot's default candidate rule with the parameters " +
-            "applied, as registry_tx_equity_candidates returned them and the caller sent them.",
+          "Sent_candidate_fields: the subject's and each comparable's fields as registry_tx_equity_candidates " +
+            "returned them and the caller sent them (account number, codes, land area, year built), with value and " +
+            "improvement area checked against this calculation and value per SF computed from them, then FactLot's " +
+            "default candidate rule with the parameters applied, as sent.",
         ]
       : []),
     "Steps: the tool's audit trail. Law: the statutes the tool cites. Provenance: each cited source with its " +
@@ -1229,9 +1319,14 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
   // The roll fields and the candidate rule, when the caller sent registry_tx_equity_candidates' answer.
   const cand = candidateBlocks(k, r);
   if (cand.length) {
-    const roll = wb.sheet("Roll_fields");
+    const roll = wb.sheet("Sent_candidate_fields");
     roll.width(1, 46);
-    roll.put(1, 1, "Roll fields and the candidate rule", "title");
+    roll.put(
+      1,
+      1,
+      "Candidate fields sent with this request, and the candidate rule",
+      "title",
+    );
     appendBlocks(
       wb,
       roll,

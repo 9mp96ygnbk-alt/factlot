@@ -96,7 +96,7 @@ export const ReportContext = z.strictObject({
     .max(201)
     .optional()
     .describe(
-      "tx_unequal_appraisal: the `subject` and `candidates` of registry_tx_equity_candidates as returned, matched to the calculation's subject and comparables by id. The packet and workbook print each one's account number (apn), state property category, building class, local use code, improvement and land area, year built, roll value and value_per_sf as the tool returned them.",
+      "tx_unequal_appraisal: the rows of registry_tx_equity_candidates' `subject` and `candidates` for this calculation's subject and comparables only, as returned, matched by id. Each row's value and improvement_area_sf must equal that subject's or comparable's in the calculation, and every id must be one of them (InputError otherwise). The packet and workbook print the account number (apn), state property category, building class, local use code, land area and year built as sent, and value per SF computed from the calculation's value and area.",
     ),
   selection_rule: ContextSelectionRule.optional().describe(
     "tx_unequal_appraisal: the `selection_rule` of registry_tx_equity_candidates as returned. The packet and workbook print FactLot's default candidate rule with the parameters, narrowing, step counts and tier counts applied.",

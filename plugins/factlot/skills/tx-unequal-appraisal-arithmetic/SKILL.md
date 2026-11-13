@@ -157,8 +157,8 @@ Offer these artifacts:
   live Excel formulas), and the `calc_tx_unequal_appraisal` arguments as `arguments`. FactLot runs
   the tool itself and prints only its figures, with no model. Pass only a neutral `title` and
   `prepared_for` in `context`; text that reads as advice or a valuation is refused. To print each
-  property's roll fields and the candidate rule as applied, add the candidates answer's `sources`,
-  its `subject` and `candidates` (together, as `candidates`) and its `selection_rule` to `context`,
+  property's candidate fields and the candidate rule as applied, add the candidates answer's `sources`,
+  the rows of its `subject` and of the candidates kept as comparables (together, as `candidates`, unchanged) and its `selection_rule` to `context`,
   as returned. It returns a
   download link that works 24 hours, then the file is deleted; reports are 3 a month free per IP
   address, 50 on Pro and 1,000 on Team, and never count as registry lookups. Hand the user the link
