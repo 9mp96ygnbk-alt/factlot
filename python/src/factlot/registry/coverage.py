@@ -262,6 +262,7 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
                    f"of a word alone matches nothing. Loaded: {_counties_summary(cov)}")
     elif county is not None and not any(c["state_fips"] + c["county_fips"] == county for c in cov["counties"]):
         reason = "county_not_loaded"
+        out["county_loaded"] = False
         message = f"no parcel matched{at}: {county_label(county[:2], county[2:])} is not loaded in this registry. {holds}"
     elif unheld:
         reason = "county_not_loaded"
@@ -278,19 +279,22 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
             reason = "street_not_found"
             out["street"] = hint["street"]
             parts.append(f"no address on {hint['street']}{at} is in this registry")
-        elif (hint and hint["held"] and hint["rank"] == 2 and place is not None
-              and (place["zip"] is not None or place["city"] is not None)):
-            reason = "street_not_in_place"
+        elif hint and hint["held"] and hint["number_held"]:
+            reason = "other_words"
             out["street"] = hint["street"]
-            where_ = f"ZIP code {place['zip']}" if place["zip"] is not None else place["city"]
-            parts.append(f"no address on {hint['street']} in {where_} is in this registry ({hint['street']} is, "
-                         f"elsewhere{at})")
+            parts.append(f"{hint['number']} {hint['street']}{at} is in this registry, but not with every other word of "
+                         "the query; search the house number and street alone")
         elif hint and hint["held"] and hint["nearest"]:
             reason = "house_number_not_found"
             out["street"] = hint["street"]
             out["nearest_house_numbers"] = hint["nearest"]
+            # The nearest numbers come from the whole state when no label on the street names the ZIP code or city.
+            away = ""
+            if hint["rank"] == 2 and place is not None and (place["zip"] is not None or place["city"] is not None):
+                away = ", and none of its labels names " + (f"ZIP code {place['zip']}" if place["zip"] is not None
+                                                             else place["city"])
             parts.append(f"{hint['street']}{at} is in this registry, but not number {hint['number']}; the nearest "
-                         f"numbers on it are {' and '.join(str(n) for n in hint['nearest'])}")
+                         f"numbers on it are {' and '.join(str(n) for n in hint['nearest'])}{away}")
         else:
             reason = "no_match"
         if not one_word:

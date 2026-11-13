@@ -802,6 +802,32 @@
     }
   },
   {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St Rear, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "150 Main St, Shore Ville, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "700 Bayou Drive # 102 Example City TX 77999",
+      "limit": 1
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "700 Bayou Drive 1102 Example City TX 77999",
+      "limit": 1
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"

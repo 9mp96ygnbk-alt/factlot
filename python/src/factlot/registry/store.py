@@ -1558,6 +1558,8 @@ class Registry:
                             hint: bool = True) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
         """``search_address``, and when nothing matched what the search found on the query's street
         (``address_street_hint_from``) for the miss."""
+        # The unit as asked: rebuilding a query without a comma leaves the unit out of its street line.
+        unit = address_unit(address)
         address = address_query_with_place(address)
         mode = address_query(address)["mode"]
         if mode is None:
@@ -1568,7 +1570,7 @@ class Registry:
             rows = self._search_address_runs(mode, runs, limit, place)
             return [{**r, **self._address_card(r["urn"], r["label"])} for r in rows], None
         forms = address_forms(runs)
-        ordered = self._address_matches(mode, forms, place, address_unit(address))
+        ordered = self._address_matches(mode, forms, place, unit)
         end = address_window_end(ordered, limit)
         results = address_result_rows([(m, self._address_card(m["urn"], m["label"])) for m in ordered[:end]], limit)
         if results or not hint:

@@ -78,6 +78,15 @@ reg.ingest_parcels([
                  land_area_sf=20000, market_value=300000, tax_year=2026),
     ParcelRecord("999", "0007-000-0002", "F1", account="A61", situs_address="500 Market Street, Example City TX 77999",
                  improvement_area_sf=45000, year_built=2004, market_value=7000000, tax_year=2026),
+    # Condominium units whose situs addresses have no comma, one with a "#" unit and one with a bare unit number.
+    ParcelRecord("999", "0008-000-0101", "F1", account="A70", situs_address="700 Bayou Drive # 101 Example City TX 77999",
+                 improvement_area_sf=900, market_value=200000, tax_year=2026),
+    ParcelRecord("999", "0008-000-0102", "F1", account="A71", situs_address="700 Bayou Drive # 102 Example City TX 77999",
+                 improvement_area_sf=950, market_value=210000, tax_year=2026),
+    ParcelRecord("999", "0008-000-1001", "F1", account="A72", situs_address="700 Bayou Drive 1001 Example City TX 77999",
+                 improvement_area_sf=1200, market_value=250000, tax_year=2026),
+    ParcelRecord("999", "0008-000-1102", "F1", account="A73", situs_address="700 Bayou Drive 1102 Example City TX 77999",
+                 improvement_area_sf=1100, market_value=240000, tax_year=2026),
 ], s26, state_fips="48", account_system="test-account", full_roll=True)
 # A second state (Maryland, an invented county 998) whose street lines repeat the Texas ones, for the place an
 # address search names after its street line: state, city and ZIP code.

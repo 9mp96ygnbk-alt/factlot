@@ -995,7 +995,15 @@ export function addressSearchForms(words: string[]): string[][] {
   if (padded.some((w, i) => w !== n[i])) add(padded);
   // Without a house number, the first word may be the street number itself ("42ND ST").
   add(ordinalsDropped(n, /^[0-9]/.test(words[0] ?? "") ? 1 : 0));
-  add(addressWordsWithOrdinals(n));
+  const ord = addressWordsWithOrdinals(n);
+  add(ord);
+  // A bare street number ("3 ST") is also searched as San Francisco writes it ("03RD ST").
+  if (ord)
+    add(
+      ord.map((w, i) =>
+        i > 0 && /^[1-9](?:ST|ND|RD|TH)$/.test(w) && w !== n[i] ? `0${w}` : w,
+      ),
+    );
   return forms;
 }
 
@@ -1044,11 +1052,18 @@ export const HYPHENATED_HOUSE_NUMBER_COUNTIES: ReadonlySet<string> = new Set([
 const LABEL_RANGE = /^\s*([0-9]+)-([0-9]+)\s/;
 
 /**
+ * A label range spanning this many house numbers or more is not read as a range: in the registry's rolls these are
+ * typing slips ("749-7570 GRANT AV") or a whole street's worth of numbers (11 lots), while the widest ranges below it
+ * are whole-block lots (at most 452 numbers).
+ */
+export const ADDRESS_RANGE_MAX_SPAN = 500;
+
+/**
  * The house-number range of a parcel (`address_range` in Python): [low, high, one side] when its label starts
  * with "low-high " (low below high) and its key with those two numbers, outside the counties whose hyphenated
  * numbers are one number; else null. "One side": both ends are odd or both even, so the lot holds the numbers of
  * that parity only (one side of the street: about 99% of the ranges in the registry's rolls); ends of differing
- * parity hold every number between them.
+ * parity hold every number between them. A range spanning ADDRESS_RANGE_MAX_SPAN numbers or more is none.
  */
 export function addressRange(
   urn: string,
@@ -1065,7 +1080,9 @@ export function addressRange(
   if (k[0] !== m[1] || k[1] !== m[2]) return null;
   const lo = Number(m[1]);
   const hi = Number(m[2]);
-  return lo < hi ? [lo, hi, lo % 2 === hi % 2] : null;
+  return lo < hi && hi - lo < ADDRESS_RANGE_MAX_SPAN
+    ? [lo, hi, lo % 2 === hi % 2]
+    : null;
 }
 
 /**
@@ -1178,7 +1195,8 @@ export function addressStreetWords(words: string[]): string[] | null {
 /**
  * A query with a house number and no comma whose street line goes on after its street type with a place that ends in
  * a state or a ZIP code ("6700 Bissonnet St Houston TX 77074"), with a comma put before the place, so the place is
- * read as one (`address_query_with_place` in Python); any other query unchanged.
+ * read as one (`address_query_with_place` in Python); any other query unchanged. The street line is rebuilt from its
+ * address words, which leave out a unit designator and its value: the search reads the unit from the query as asked.
  */
 export function addressQueryWithPlace(query: string): string {
   if (query.includes(",")) return query;
@@ -1188,10 +1206,20 @@ export function addressQueryWithPlace(query: string): string {
   if (!street) return query;
   const end = 1 + street.length;
   const rest = q.tokens.slice(end);
-  if (!rest.length) return query;
-  const place = addressPlace(`x, ${rest.join(" ")}`);
-  if (place.state === null && place.zip === null) return query;
-  return `${q.tokens.slice(0, end).join(" ")}, ${rest.join(" ")}`;
+  // The place starts at the first word from which a city with a state or ZIP code is read; words before it (a bare
+  // unit number, "633 E FERNHURST DR 1102 KATY TX 77450") stay in the street line. Without a city, the place is the
+  // shortest tail read as a state or ZIP code.
+  let at = -1;
+  for (let i = 0; i < rest.length && at < 0; i++) {
+    const p = addressPlace(`x, ${rest.slice(i).join(" ")}`);
+    if ((p.state !== null || p.zip !== null) && p.city !== null) at = i;
+  }
+  for (let i = rest.length - 1; i >= 0 && at < 0; i--) {
+    const p = addressPlace(`x, ${rest.slice(i).join(" ")}`);
+    if (p.state !== null || p.zip !== null) at = i;
+  }
+  if (at < 0) return query;
+  return `${q.tokens.slice(0, end + at).join(" ")}, ${rest.slice(at).join(" ")}`;
 }
 
 // --- what tells parcels at one address apart ------------------------------------------------------
@@ -1211,14 +1239,19 @@ export interface AddressCard {
   property_category: string | null;
   use_code: string | null;
   improvement_area_sf: number | null;
-  /** True when the roll records no improvement for the parcel: no improvement area and no year built. */
-  land_only: boolean;
+  /**
+   * False when the roll records an improvement for the parcel (an improvement area above 0, or a year built); true
+   * when it records an improvement area of 0 and no year built; null when it records neither, so the record cannot
+   * tell (some rolls carry no improvement area or year built at all).
+   */
+  land_only: boolean | null;
   /** The unit, suite or apartment its label names after a designator ("Unit 101"), or null. */
   unit: string | null;
 }
 
+// A designator, an optional "NO" or "NUMBER", and the value, with a lone letter after it ("UNIT 1 A").
 const LABEL_UNIT =
-  /(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*#?\s*([A-Z0-9][A-Z0-9-]*)/;
+  /(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*(?:(?:NO|NUMBER)\.?\s+)?#?\s*([A-Z0-9][A-Z0-9-]*(?: [A-Z](?=\s|$))?)/;
 
 function cardText(v: unknown): string | null {
   return typeof v === "string" && v !== ""
@@ -1257,20 +1290,28 @@ export function addressCard(
     property_category: cardText(first.get("parcel.state_property_category")),
     use_code: cardText(first.get("parcel.local_use_code")),
     improvement_area_sf: improvement,
-    land_only: !(improvement !== null && improvement > 0) && built == null,
+    land_only:
+      (improvement !== null && improvement > 0) || built != null
+        ? false
+        : improvement === 0
+          ? true
+          : null,
     unit: addressUnit(label),
   };
 }
 
 /**
- * The order of parcels sharing one label (`address_card_compare` in Python): those the roll records an improvement
- * for first, the largest improvement area first (none last), then by URN.
+ * The order of parcels sharing one label (`address_card_compare` in Python): the largest improvement area first (none
+ * after), those the roll records as land only (land_only true) last, then by URN; a parcel whose record cannot tell
+ * (land_only null) is not put last.
  */
 export function addressCardCompare(
   a: { urn: string; card: AddressCard },
   b: { urn: string; card: AddressCard },
 ): number {
-  if (a.card.land_only !== b.card.land_only) return a.card.land_only ? 1 : -1;
+  const la = a.card.land_only === true;
+  const lb = b.card.land_only === true;
+  if (la !== lb) return la ? 1 : -1;
   const x = a.card.improvement_area_sf;
   const y = b.card.improvement_area_sf;
   if (x !== y) {
@@ -1523,8 +1564,9 @@ export function addressPlaceWith(
  * conservatively from the end of the part after the first comma:
  * - a trailing country ("USA", "U.S.A.", "US", "United States") is dropped, and "D.C." is DC;
  * - a ZIP code is a 5-digit number (or ZIP+4) that ends the query and does not follow a unit, suite, box, room,
- *   building or number word ("Suite 12345" makes the part no place); it only orders the matches; a number of 4 or 6
- *   to 9 digits there (or "6103.0") is a ZIP code written wrongly, as some rolls do, and is passed over;
+ *   building or number word ("Suite 12345" makes the part no place); it only orders the matches; 9 digits are ZIP+4
+ *   without its dash; a number of 4 or 6 to 8 digits there (or "6103.0") is a ZIP code written wrongly, as some rolls
+ *   do, and is passed over;
  * - a state (two letters, or the full name) counts only when it follows a city, in its comma part or the one
  *   before, and never after a unit word or floor ordinal ("12th Fl", "Unit CO"); it is the only part that filters;
  * - the city is the comma part left at the end: one to five words of letters, none a unit word ("Washington" in
@@ -1569,7 +1611,7 @@ export function addressPlace(query: string): AddressPlace {
     const k =
       n >= 2 && /^[0-9]{5}$/.test(w[n - 2]!) && /^[0-9]{4}$/.test(w[n - 1]!)
         ? 2
-        : /^[0-9]{5}$/.test(w[n - 1]!)
+        : /^[0-9]{5}(?:[0-9]{4})?$/.test(w[n - 1]!)
           ? 1
           : 0;
     // A ZIP code written wrongly ("6103.0", "60701822", "7700"): not a ZIP code, and not read as anything else.
@@ -1577,7 +1619,7 @@ export function addressPlace(query: string): AddressPlace {
       ? 0
       : n >= 2 && /^[0-9]{4}$/.test(w[n - 2]!) && w[n - 1] === "0"
         ? 2
-        : /^(?:[0-9]{4}|[0-9]{6,9})$/.test(w[n - 1]!)
+        : /^(?:[0-9]{4}|[0-9]{6,8})$/.test(w[n - 1]!)
           ? 1
           : 0;
     if (k || bad) {
@@ -1585,7 +1627,7 @@ export function addressPlace(query: string): AddressPlace {
       // "Suite 12345", "PO Box 12345": a unit's number, and the part is no place.
       if (before !== undefined && before !== "FL" && isUnitWord(before))
         return none;
-      if (k) zip = w[n - k]!;
+      if (k) zip = w[n - k]!.slice(0, 5);
       drop(k || bad);
     }
   }
@@ -1742,7 +1784,8 @@ function sameLabelRun(a: AddressMatch, b: AddressMatch): boolean {
 
 /**
  * How many of the sorted matches to take cards for (`address_window_end` in Python): the first `limit`, and the
- * rest of the last one's label (parcels sharing it are ordered by card before the limit applies).
+ * rest of the last one's label up to twice `limit` in all (parcels sharing it are ordered by card before the limit
+ * applies; of a label shared by more, those first by URN), so a search reads at most twice `limit` records.
  */
 export function addressWindowEnd(
   sorted: AddressMatch[],
@@ -1751,6 +1794,7 @@ export function addressWindowEnd(
   let end = Math.min(limit, sorted.length);
   while (
     end > 0 &&
+    end < 2 * limit &&
     end < sorted.length &&
     sameLabelRun(sorted[end - 1]!, sorted[end]!)
   )
@@ -1819,6 +1863,8 @@ export interface AddressStreetHint {
   nearest: number[];
   /** The place group the nearest numbers come from (addressPlaceRank: 0 ZIP code, 1 city, 2 the rest), or null. */
   rank: number | null;
+  /** The query's house number is on the street in the place (as a key's first word or inside a range). */
+  number_held: boolean;
 }
 
 /**
@@ -1839,10 +1885,12 @@ export function addressStreetHintFrom(
   const n = Number(number);
   const byRank: number[][] = [[], [], []];
   let held: boolean | null = false;
+  let unread = false;
+  let numberHeld = false;
   let street: string | null = null;
   for (const l of lists) {
     if (l.rows === null) {
-      if (held === false) held = null;
+      unread = true;
       continue;
     }
     for (const [urn, label, key] of l.rows) {
@@ -1858,6 +1906,11 @@ export function addressStreetHintFrom(
         : /^[0-9]+$/.test(k[0] ?? "")
           ? [Number(k[0])]
           : [];
+      if (
+        nums.includes(n) ||
+        (r !== null && n > r[0] && n < r[1] && (!r[2] || n % 2 === r[0] % 2))
+      )
+        numberHeld = true;
       for (const x of nums) if (x > 0 && x !== n) byRank[rank]!.push(x);
     }
   }
@@ -1869,12 +1922,15 @@ export function addressStreetHintFrom(
     ...(below.length ? [Math.max(...below)] : []),
     ...(above.length ? [Math.min(...above)] : []),
   ];
+  // A street list too long to read leaves both the street and the number unknown.
+  if (unread) held = null;
   return {
     street: street ?? lists[0]!.street.join(" "),
     number,
     held,
     nearest: held ? nearest : [],
     rank: best < 0 ? null : best,
+    number_held: held === true && numberHeld,
   };
 }
 
@@ -1954,7 +2010,8 @@ function searchAddress(
     };
   }
   const forms = addressForms(runs);
-  const sorted = addressMatches(d, mode, forms, place, addressUnit(address));
+  // The unit as asked: rebuilding a query without a comma leaves the unit out of its street line.
+  const sorted = addressMatches(d, mode, forms, place, addressUnit(query));
   const end = addressWindowEnd(sorted, limit);
   const results = addressResultRows(
     sorted.slice(0, end).map((m) => ({
@@ -2661,11 +2718,13 @@ function unheldPlace(
  * read by `addressPlace` (the state it names after a city) with the call's place parameters; one without, by those
  * and `queryState`. `hint` is what the search found on the query's street (`AddressStreetHint`). The message says
  * which miss it is, when the query lets it tell (`reason`): the state is not loaded ("state_not_loaded"); the
- * county named, or every county known to hold the named city's or ZIP code's parcels, is not ("county_not_loaded");
- * the query names no house number or street type ("no_street"); a street type alone was searched
- * ("street_type_alone"); nothing is on the street ("street_not_found"), or nothing in the named city or ZIP code
- * ("street_not_in_place"); the street is held but not that number, with the nearest numbers held
- * ("house_number_not_found"); otherwise "no_match". Every miss but the first two kinds also says the registry's scope.
+ * county named, or every county known to hold the named city's or ZIP code's parcels, is not ("county_not_loaded";
+ * a named county_fips also gives `county_loaded: false`); the query names no house number or street type
+ * ("no_street"); a street type alone was searched ("street_type_alone"); no address on the street is in the index
+ * ("street_not_found"); the house number is on the street but not with every other word of the query
+ * ("other_words"); the street is held and the index shows no such number on it, with the nearest numbers held
+ * ("house_number_not_found"); otherwise "no_match". Each claim is read from the index, never from a label's city
+ * text. The street, house-number and no-match kinds also say the registry's scope.
  */
 export function addressMiss(
   cov: RegistryCoverage,
@@ -2706,6 +2765,7 @@ export function addressMiss(
     !cov.counties.some((c) => `${c.state_fips}${c.county_fips}` === county)
   ) {
     reason = "county_not_loaded";
+    out.county_loaded = false;
     message = `no parcel matched${at}: ${countyLabel(county.slice(0, 2), county.slice(2))} is not loaded in this registry. ${holds}`;
   } else if (unheld) {
     reason = "county_not_loaded";
@@ -2722,24 +2782,25 @@ export function addressMiss(
       reason = "street_not_found";
       out.street = hint.street;
       parts.push(`no address on ${hint.street}${at} is in this registry`);
-    } else if (
-      hint &&
-      hint.held &&
-      hint.rank === 2 &&
-      place !== null &&
-      (place.zip !== null || place.city !== null)
-    ) {
-      reason = "street_not_in_place";
+    } else if (hint && hint.held && hint.number_held) {
+      reason = "other_words";
       out.street = hint.street;
       parts.push(
-        `no address on ${hint.street} in ${place.zip !== null ? `ZIP code ${place.zip}` : place.city} is in this registry (${hint.street} is, elsewhere${at})`,
+        `${hint.number} ${hint.street}${at} is in this registry, but not with every other word of the query; search the house number and street alone`,
       );
     } else if (hint && hint.held && hint.nearest.length) {
       reason = "house_number_not_found";
       out.street = hint.street;
       out.nearest_house_numbers = hint.nearest;
+      // The nearest numbers come from the whole state when no label on the street names the query's ZIP code or city.
+      const away =
+        hint.rank === 2 &&
+        place !== null &&
+        (place.zip !== null || place.city !== null)
+          ? `, and none of its labels names ${place.zip !== null ? `ZIP code ${place.zip}` : place.city}`
+          : "";
       parts.push(
-        `${hint.street}${at} is in this registry, but not number ${hint.number}; the nearest numbers on it are ${hint.nearest.join(" and ")}`,
+        `${hint.street}${at} is in this registry, but not number ${hint.number}; the nearest numbers on it are ${hint.nearest.join(" and ")}${away}`,
       );
     } else reason = "no_match";
     if (!oneWord) parts.push(ADDRESS_SCOPE_NOTE);

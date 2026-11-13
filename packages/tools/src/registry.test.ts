@@ -919,20 +919,23 @@ test("address search: every parcel label of the fixture, used as the query, find
   assert.ok(rows.length > 30);
   configureRegistry(db.path);
   try {
-    const lost = rows.filter((r) => {
-      const out = runTool("registry_search_address", {
-        query: String(r.label),
-        limit: 100,
+    assert.ok(rows.some((r) => String(r.label).includes("# 101 Example City")));
+    for (const limit of [5, 20, 100]) {
+      const lost = rows.filter((r) => {
+        const out = runTool("registry_search_address", {
+          query: String(r.label),
+          limit,
+        });
+        return (
+          out.ok &&
+          addressQuery(String(r.label)).mode !== null &&
+          !(out.result as { results: { urn: string }[] }).results.some(
+            (x) => x.urn === r.urn,
+          )
+        );
       });
-      return (
-        out.ok &&
-        addressQuery(String(r.label)).mode !== null &&
-        !(out.result as { results: { urn: string }[] }).results.some(
-          (x) => x.urn === r.urn,
-        )
-      );
-    });
-    assert.deepEqual(lost, []);
+      assert.deepEqual(lost, [], `limit ${limit}`);
+    }
   } finally {
     configureRegistry(undefined);
   }
@@ -1056,4 +1059,56 @@ test("the city and ZIP code county table matches its TSV", () => {
   for (const [st, place, counties] of rows)
     assert.deepEqual(placeCounties(st!, place!), counties!.split(" "), place);
   assert.equal(placeCounties("TX", "NO SUCH CITY"), null);
+});
+
+test("address search: a query without a comma keeps its unit, and a miss claims only what the index shows", () => {
+  const db = fixtureDb("units.db");
+  configureRegistry(db.path);
+  try {
+    const first = (args: Record<string, unknown>) => {
+      const r = runTool("registry_search_address", { limit: 1, ...args });
+      assert.ok(r.ok);
+      return (r.result as { results: { urn: string }[] }).results[0]?.urn;
+    };
+    // A "#" unit (dropped from the street line, read from the query as asked) and a bare unit number (kept in it).
+    assert.equal(
+      first({ query: "700 Bayou Drive # 102 Example City TX 77999" }),
+      "fl:parcel:us-48999:0008-000-0102",
+    );
+    assert.equal(
+      first({ query: "700 Bayou Drive 1102 Example City TX 77999" }),
+      "fl:parcel:us-48999:0008-000-1102",
+    );
+    const miss = (query: string) => {
+      const r = runTool("registry_search_address", { query });
+      assert.ok(r.ok);
+      return (r.result as { coverage: Record<string, unknown> }).coverage;
+    };
+    // The number is on the street: the miss never says it is not.
+    const rear = miss("500 Market St Rear, Example City, TX");
+    assert.equal(rear.reason, "other_words");
+    assert.match(
+      String(rear.message),
+      /^no parcel matched in TX: 500 MARKET ST in TX is in this registry, but not with every other word/,
+    );
+    // A city the labels write another way: the miss names the labels, it does not say the street is absent there.
+    const shore = miss("150 Main St, Shore Ville, MD");
+    assert.equal(shore.reason, "house_number_not_found");
+    assert.match(
+      String(shore.message),
+      /the nearest numbers on it are 100, and none of its labels names SHORE VILLE/,
+    );
+    // An explicit county the file does not hold: county_loaded false, so the hosted API does not charge it.
+    const r = runTool("registry_search_address", {
+      query: "500 Market St",
+      state: "TX",
+      county_fips: "001",
+    });
+    assert.ok(r.ok);
+    const c = (r.result as { coverage: Record<string, unknown> }).coverage;
+    assert.equal(c.reason, "county_not_loaded");
+    assert.equal(c.county_loaded, false);
+  } finally {
+    configureRegistry(undefined);
+  }
 });

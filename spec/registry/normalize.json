@@ -660,7 +660,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null
+        "zip": "78701"
       }
     ],
     [
@@ -1190,6 +1190,14 @@
         "state": null,
         "zip": null
       }
+    ],
+    [
+      "1 Main St, Dallas TX 752043414",
+      {
+        "city": "DALLAS",
+        "state": "TX",
+        "zip": "75204"
+      }
     ]
   ],
   "address_place_ranks": [
@@ -1327,7 +1335,8 @@
       "350 5 Avenue",
       [
         ["350", "5", "AVE"],
-        ["350", "5TH", "AVE"]
+        ["350", "5TH", "AVE"],
+        ["350", "05TH", "AVE"]
       ]
     ],
     [
@@ -1400,7 +1409,8 @@
       "9 5 St NW",
       [
         ["9", "5", "ST", "NW"],
-        ["9", "5TH", "ST", "NW"]
+        ["9", "5TH", "ST", "NW"],
+        ["9", "05TH", "ST", "NW"]
       ]
     ],
     ["5 Ave", [["5", "AVE"]]],
@@ -1450,7 +1460,8 @@
         ["1", "6", "AVE"],
         ["1", "AVE", "OF", "THE", "AMER"],
         ["1", "AVE", "OF", "THE", "AMERICAS"],
-        ["1", "6TH", "AVE"]
+        ["1", "6TH", "AVE"],
+        ["1", "06TH", "AVE"]
       ]
     ],
     [
@@ -1467,6 +1478,14 @@
         ["301", "5TH", "ST"],
         ["301", "05TH", "ST"],
         ["301", "5", "ST"]
+      ]
+    ],
+    [
+      "5000 3 St",
+      [
+        ["5000", "3", "ST"],
+        ["5000", "3RD", "ST"],
+        ["5000", "03RD", "ST"]
       ]
     ]
   ],
@@ -1524,6 +1543,18 @@
       "1707-13 MONTGOMERY AVENUE, BRONX NY 10453",
       "1707 13 MONTGOMERY AVE BRONX NY 10453",
       null
+    ],
+    [
+      "fl:parcel:us-06075:1",
+      "749-7570 GRANT AV, SAN FRANCISCO, CA",
+      "749 7570 GRANT AVE SAN FRANCISCO CA",
+      null
+    ],
+    [
+      "fl:parcel:us-36061:4",
+      "80-532 CLARKSON STREET, NEW YORK NY 10014",
+      "80 532 CLARKSON ST NEW YORK NY 10014",
+      [80, 532, true]
     ]
   ],
   "address_range_matches": [
@@ -1689,7 +1720,7 @@
         "property_category": null,
         "use_code": null,
         "improvement_area_sf": null,
-        "land_only": true,
+        "land_only": null,
         "unit": "101"
       }
     ],
@@ -1756,6 +1787,44 @@
         "property_category": null,
         "use_code": null,
         "improvement_area_sf": 120.5,
+        "land_only": false,
+        "unit": null
+      }
+    ],
+    [
+      "100 MAIN ST, PARK CITY UT 84060",
+      [
+        {
+          "predicate": "parcel.apn",
+          "value": "SS-1"
+        }
+      ],
+      {
+        "account": "SS-1",
+        "property_category": null,
+        "use_code": null,
+        "improvement_area_sf": null,
+        "land_only": null,
+        "unit": null
+      }
+    ],
+    [
+      "101 MAIN ST, PARK CITY UT 84060",
+      [
+        {
+          "predicate": "parcel.apn",
+          "value": "SS-2"
+        },
+        {
+          "predicate": "parcel.year_built",
+          "value": 1999
+        }
+      ],
+      {
+        "account": "SS-2",
+        "property_category": null,
+        "use_code": null,
+        "improvement_area_sf": null,
         "land_only": false,
         "unit": null
       }
@@ -1937,7 +2006,16 @@
     ["1801 California Denver CO 80202", "1801 California Denver CO 80202"],
     ["100 Park Ave S New York NY 10003", "100 PARK AVE S, NEW YORK NY 10003"],
     ["12 St Johns Pl Brooklyn NY 11201", "12 St Johns Pl Brooklyn NY 11201"],
-    ["233 S Wacker Dr Chicago IL", "233 S WACKER DR, CHICAGO IL"]
+    ["233 S Wacker Dr Chicago IL", "233 S WACKER DR, CHICAGO IL"],
+    [
+      "2112 F ST NW # 802-B WASHINGTON DC 20037-2715",
+      "2112 F ST NW, WASHINGTON DC 20037 2715"
+    ],
+    [
+      "633 E FERNHURST DR 1102  KATY TX 77450",
+      "633 E FERNHURST DR 1102, KATY TX 77450"
+    ],
+    ["100 Main St 5 TX 77002", "100 MAIN ST 5, TX 77002"]
   ],
   "address_units": [
     ["300 Harbor Dr Unit 101, Example City TX 77999", "101"],
@@ -1946,6 +2024,10 @@
     ["1700 SMITH ST 259, HOUSTON TX 77002", null],
     ["100 Main St Ste. 4B", "4B"],
     ["5 Space Park Dr", null],
-    [null, null]
+    [null, null],
+    ["880 N ALAMEDA ST UNIT NO 223, LOS ANGELES CA 90012", "223"],
+    ["100 MAIN ST UNIT 1 A, BALTIMORE MD 21230", "1 A"],
+    ["2112 F ST NW # 802-B WASHINGTON DC 20037-2715", "802-B"],
+    ["100 MAIN ST UNIT NO, X", "NO"]
   ]
 }

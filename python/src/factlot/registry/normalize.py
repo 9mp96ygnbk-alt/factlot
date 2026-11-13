@@ -1131,7 +1131,7 @@ def address_place(query: str) -> dict[str, Any]:
         n = len(w)
         if n >= 2 and re.fullmatch(r"[0-9]{5}", w[-2]) and re.fullmatch(r"[0-9]{4}", w[-1]):
             k = 2
-        elif re.fullmatch(r"[0-9]{5}", w[-1]):
+        elif re.fullmatch(r"[0-9]{5}(?:[0-9]{4})?", w[-1]):
             k = 1
         else:
             k = 0
@@ -1140,7 +1140,7 @@ def address_place(query: str) -> dict[str, Any]:
             bad = 0
         elif n >= 2 and re.fullmatch(r"[0-9]{4}", w[-2]) and w[-1] == "0":
             bad = 2
-        elif re.fullmatch(r"[0-9]{4}|[0-9]{6,9}", w[-1]):
+        elif re.fullmatch(r"[0-9]{4}|[0-9]{6,8}", w[-1]):
             bad = 1
         else:
             bad = 0
@@ -1151,7 +1151,7 @@ def address_place(query: str) -> dict[str, Any]:
             if before is not None and before != "FL" and _is_unit_word(before):
                 return none
             if k:
-                zip5 = w[n - k]
+                zip5 = w[n - k][:5]
             drop(m)
     state = None
     if parts:
@@ -1341,7 +1341,12 @@ def address_search_forms(words: list[str]) -> list[list[str]]:
         add(padded)
     # Without a house number, the first word may be the street number itself ("42ND ST").
     add(_ordinals_dropped(n, 1 if words and words[0][:1].isdigit() else 0))
-    add(address_words_with_ordinals(n))
+    ordn = address_words_with_ordinals(n)
+    add(ordn)
+    # A bare street number ("3 ST") is also searched as San Francisco writes it ("03RD ST").
+    if ordn is not None:
+        add(["0" + w if i > 0 and re.fullmatch(r"[1-9](?:ST|ND|RD|TH)", w) and w != n[i] else w
+             for i, w in enumerate(ordn)])
     return forms
 
 
@@ -1365,6 +1370,8 @@ _DIRECTIONAL_WORDS = frozenset("N S E W NE NW SE SW".split())
 # Counties whose hyphenated house numbers are one number, never a range (Queens, NY: "37-20 80 Street").
 HYPHENATED_HOUSE_NUMBER_COUNTIES = frozenset({"36081"})
 _LABEL_RANGE = re.compile(r"^\s*([0-9]+)-([0-9]+)\s")
+# A label range spanning this many house numbers or more is not a range (ADDRESS_RANGE_MAX_SPAN in TS).
+ADDRESS_RANGE_MAX_SPAN = 500
 
 
 def address_range(urn: str, label: Any, key: str) -> tuple[int, int, bool] | None:
@@ -1381,7 +1388,7 @@ def address_range(urn: str, label: Any, key: str) -> tuple[int, int, bool] | Non
     if len(k) < 2 or k[0] != m.group(1) or k[1] != m.group(2):
         return None
     lo, hi = int(m.group(1)), int(m.group(2))
-    return (lo, hi, lo % 2 == hi % 2) if lo < hi else None
+    return (lo, hi, lo % 2 == hi % 2) if lo < hi and hi - lo < ADDRESS_RANGE_MAX_SPAN else None
 
 
 def address_range_matches(words: list[str], urn: str, label: Any, key: str) -> bool:
@@ -1495,11 +1502,12 @@ def address_street_hint_from(number: str, place: dict[str, Any],
     n = int(number)
     by_rank: list[list[int]] = [[], [], []]
     held: bool | None = False
+    unread = False
+    number_held = False
     street = None
     for words, _count, rows in lists:
         if rows is None:
-            if held is False:
-                held = None
+            unread = True
             continue
         for urn, label, key in rows:
             if not address_key_matches("street", words, key):
@@ -1513,21 +1521,28 @@ def address_street_hint_from(number: str, place: dict[str, Any],
             k = _upper_ascii(key).split(" ")
             r = address_range(urn, label, key)
             nums = [r[0], r[1]] if r else [int(k[0])] if re.fullmatch(r"[0-9]+", k[0]) else []
+            if n in nums or (r is not None and r[0] < n < r[1] and (not r[2] or n % 2 == r[0] % 2)):
+                number_held = True
             by_rank[rank].extend(x for x in nums if x > 0 and x != n)
     best = next((i for i, g in enumerate(by_rank) if g), None)
     nums = by_rank[best] if best is not None else []
     below = [x for x in nums if x < n]
     above = [x for x in nums if x > n]
     nearest = ([max(below)] if below else []) + ([min(above)] if above else [])
+    # A street list too long to read leaves both the street and the number unknown.
+    if unread:
+        held = None
     return {"street": street if street is not None else " ".join(lists[0][0]), "number": number, "held": held,
-            "nearest": nearest if held else [], "rank": best}
+            "nearest": nearest if held else [], "rank": best, "number_held": held is True and number_held}
 
 
 # --- what tells parcels at one address apart (``addressCard`` in TS) ------------------------------------------------
 
 ADDRESS_CARD_PREDICATES = ("parcel.apn", "parcel.state_property_category", "parcel.local_use_code",
                            "parcel.improvement_area_sf", "parcel.year_built")
-_LABEL_UNIT = re.compile(r"(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*#?\s*([A-Z0-9][A-Z0-9-]*)")
+# A designator, an optional "NO" or "NUMBER", and the value, with a lone letter after it ("UNIT 1 A").
+_LABEL_UNIT = re.compile(r"(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*(?:(?:NO|NUMBER)\.?\s+)?#?\s*"
+                         r"([A-Z0-9][A-Z0-9-]*(?: [A-Z](?=\s|$))?)")
 
 
 def _card_text(v: Any) -> str | None:
@@ -1569,7 +1584,8 @@ def address_card(label: Any, facts: list[dict[str, Any]]) -> dict[str, Any]:
         "property_category": _card_text(first.get("parcel.state_property_category")),
         "use_code": _card_text(first.get("parcel.local_use_code")),
         "improvement_area_sf": improvement,
-        "land_only": not (improvement is not None and improvement > 0) and built is None,
+        "land_only": (False if (improvement is not None and improvement > 0) or built is not None
+                      else True if improvement == 0 else None),
         "unit": address_unit(label),
     }
 
@@ -1578,7 +1594,7 @@ def address_card_key(urn: str, card: dict[str, Any]) -> tuple:
     """The order of parcels sharing one label (``addressCardCompare`` in TS): improved first, the largest improvement
     area first (none last), then URN."""
     area = card["improvement_area_sf"]
-    return (card["land_only"], area is None, -(area or 0), _code_points(urn))
+    return (card["land_only"] is True, area is None, -(area or 0), _code_points(urn))
 
 
 def _code_points(s: str) -> tuple:
@@ -1599,9 +1615,10 @@ def _same_label_run(a: dict[str, Any], b: dict[str, Any]) -> bool:
 
 
 def address_window_end(ordered: list[dict[str, Any]], limit: int) -> int:
-    """How many sorted matches to take cards for: the first ``limit`` and the rest of the last one's label."""
+    """How many sorted matches to take cards for (``addressWindowEnd`` in TS): the first ``limit`` and the rest of the
+    last one's label, up to twice ``limit`` in all."""
     end = min(limit, len(ordered))
-    while 0 < end < len(ordered) and _same_label_run(ordered[end - 1], ordered[end]):
+    while 0 < end < 2 * limit and end < len(ordered) and _same_label_run(ordered[end - 1], ordered[end]):
         end += 1
     return end
 
@@ -1694,9 +1711,13 @@ def address_query_with_place(query: str) -> str:
         return query
     end = 1 + len(street)
     rest = q["tokens"][end:]
-    if not rest:
+    # The place starts at the first word from which a city with a state or ZIP code is read; words before it (a bare
+    # unit number) stay in the street line. Without a city, the place is the shortest tail read as a state or ZIP code.
+    at = next((i for i in range(len(rest)) if (p := address_place("x, " + " ".join(rest[i:])))["city"] is not None
+               and (p["state"] is not None or p["zip"] is not None)), None)
+    if at is None:
+        at = next((i for i in range(len(rest) - 1, -1, -1) if (p := address_place("x, " + " ".join(rest[i:])))["state"]
+                   is not None or p["zip"] is not None), None)
+    if at is None:
         return query
-    place = address_place("x, " + " ".join(rest))
-    if place["state"] is None and place["zip"] is None:
-        return query
-    return " ".join(q["tokens"][:end]) + ", " + " ".join(rest)
+    return " ".join(q["tokens"][:end + at]) + ", " + " ".join(rest[at:])

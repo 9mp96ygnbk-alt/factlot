@@ -169,7 +169,8 @@ export async function searchAddress(
     forms,
     limit,
     place,
-    addressUnit(query),
+    // The unit as asked: rebuilding a query without a comma leaves the unit out of its street line.
+    addressUnit(asked),
   );
   const end = addressWindowEnd(sorted, limit);
   const items: { match: AddressMatch; card: AddressCard }[] = [];

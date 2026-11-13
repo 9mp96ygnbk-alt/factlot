@@ -1,5 +1,5 @@
 # Counties holding the parcels of each city and ZIP code that registry parcel labels name (scripts/gen-address-places.py): state, city or ZIP code, 5-digit county FIPS codes.
-# Built from 13 registry files; a county is kept with at least 3 of the place's parcels and 5% of them.
+# Built from 13 registry files (work/tx.db, national/ny.db, national/ca.db, national/ma.db, national/co.db, national/ct.db, registry-data/md.db, registry-data/dc.db, registry-data/ut.db, tx-wave/tx-bell.db, tx-wave/tx-johnson.db, wave2/ca.db, wave2/ut.db); a county is kept with at least 3 of the place's parcels and 5% of them.
 CA	90001	06037
 CA	90002	06037
 CA	90003	06037

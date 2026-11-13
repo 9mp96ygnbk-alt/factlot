@@ -85,10 +85,11 @@ def write_tsv(dbs: list[str]) -> None:
         kept = sorted(f for f, n in c.items() if n >= MIN_PARCELS and n / total >= MIN_SHARE)
         if kept:
             rows.append(f"{st}\t{key}\t{' '.join(kept)}")
+    names = ", ".join("/".join(Path(d).parts[-2:]) for d in dbs)
     head = ("# Counties holding the parcels of each city and ZIP code that registry parcel labels name "
             "(scripts/gen-address-places.py): state, city or ZIP code, 5-digit county FIPS codes.\n"
-            f"# Built from {len(dbs)} registry files; a county is kept with at least {MIN_PARCELS} of the place's "
-            f"parcels and {MIN_SHARE:.0%} of them.\n")
+            f"# Built from {len(dbs)} registry files ({names}); a county is kept with at least {MIN_PARCELS} of the "
+            f"place's parcels and {MIN_SHARE:.0%} of them.\n")
     TSV.write_text(head + "\n".join(rows) + "\n", "utf-8")
 
 
