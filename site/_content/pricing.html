@@ -1,20 +1,19 @@
 <p class="lede">
   The tools are open source and free to run yourself, with no limits. The hosted
   endpoint at <code>https://api.factlot.com</code> saves you running it. Free,
-  with no key, has every calculator, ID, fact, rules and document tool. Five
-  things are for Pro and Team only: the full multi-year value history from
-  <code>registry_get</code>, a parcel's full list of recorded sales, deeds,
-  mortgages and satisfactions from <code>registry_get</code> (Free shows the
-  newest sale or deed and counts the rest), an owner's full portfolio from
-  <code>registry_owned_by</code> (Free shows the first three parcels), the batch
-  lookup for working many parcels at once, and the two model-backed tools. Plans
-  also differ in request rate, registry lookups, reports, keys and support.
+  with no key, has every calculator, ID, fact, rules and document tool.
+  {{PLAN_PAID_ONLY}} Plans also differ in request rate, registry lookups,
+  reports, keys and support.
 </p>
 <p>
   <strong>Changed 11 November 2026.</strong> On the hosted Free plan, registry
   value history now shows the current roll year only, and the registry batch
   lookup needs Pro or Team. Pro can now be paid yearly. Running the tools
-  yourself is unchanged.
+  yourself is unchanged. <strong>Changed 12 November 2026.</strong> On the
+  hosted Free plan, an owner's portfolio shows its first three parcels, and
+  <code>registry_get</code> with <code>as_of</code> and
+  <code>registry_tx_equity_candidates</code> with <code>tax_year</code> need Pro
+  or Team.
 </p>
 
 <table>
@@ -42,7 +41,8 @@
         none<span data-free-key hidden
           >; or an optional
           <a href="https://factlot.com/account#free-key">free key by email</a>
-          that gives these limits on its own meter and is not a paid key</span
+          that counts requests and lookups on its own meter (reports still per
+          IP address too) and is not a paid key</span
         >
       </td>
       <td>1</td>
@@ -72,15 +72,39 @@
     <tr>
       <th scope="row">
         Recorded sales, deeds, mortgages and satisfactions of a parcel
-        (<code>registry_get</code>)
+        (<code>registry_get</code>, and <code>registry_recorded_facts</code>)
       </th>
-      <td>The newest sale or deed, and the number and years of the rest</td>
+      <td>
+        The newest sale or deed, and the number and years of the rest;
+        <code>registry_recorded_facts</code> not included
+      </td>
       <td>Every recorded sale and document, each cited</td>
       <td>Every recorded sale and document, each cited</td>
     </tr>
     <tr>
       <th scope="row">
-        Parcels of an owner's portfolio (<code>registry_owned_by</code>)
+        A record on an earlier date (<code>registry_get</code> with
+        <code>as_of</code>)
+      </th>
+      <td>Not included; the current record</td>
+      <td>Included</td>
+      <td>Included</td>
+    </tr>
+    <tr>
+      <th scope="row">
+        Equity candidates from a roll year you name (<code
+          >registry_tx_equity_candidates</code
+        >
+        with <code>tax_year</code>)
+      </th>
+      <td>Not included; the newest roll year with values</td>
+      <td>Included</td>
+      <td>Included</td>
+    </tr>
+    <tr>
+      <th scope="row">
+        Parcels of an owner's portfolio (<code>registry_owned_by</code>, and
+        <code>registry_get</code> on an entity)
       </th>
       <td>The first three, and the number left out</td>
       <td>Every parcel</td>
@@ -119,24 +143,18 @@
         <a href="{{REPO}}/blob/main/docs/getting-started.md">Get started</a>
       </td>
       <td>
-        <a
-          class="button primary"
-          rel="nofollow"
-          href="https://api.factlot.com/billing/checkout?plan=pro"
+        <a class="button primary" rel="nofollow" href="{{PLAN_CHECKOUT_PRO}}"
           >Start Pro monthly, $49</a
         >
         <a
           class="button primary"
           rel="nofollow"
-          href="https://api.factlot.com/billing/checkout?plan=pro&amp;interval=year"
+          href="{{PLAN_CHECKOUT_PRO_YEARLY}}"
           >Start Pro yearly, $490</a
         >
       </td>
       <td>
-        <a
-          class="button"
-          rel="nofollow"
-          href="https://api.factlot.com/billing/checkout?plan=team"
+        <a class="button" rel="nofollow" href="{{PLAN_CHECKOUT_TEAM}}"
           >Start Team</a
         >
       </td>
@@ -155,8 +173,10 @@
   registry lookup quota. Team also gets a vote on which regions open next. For a
   private deployment, invoicing, a signed data-processing agreement or SSO,
   email <a href="mailto:contact@factlot.com">contact@factlot.com</a>. A registry
-  download licence is $2,400 a year per state file, refreshed weekly, for
-  internal use (not redistribution), available on request.
+  download licence is $2,400 a year per state file, for internal use (not
+  redistribution), available on request. The file is refreshed when the hosted
+  regions are; no refresh interval is promised (see
+  <a href="/sla/">service levels</a>).
 </p>
 
 <h2 id="paid-features">What Pro and Team add</h2>
@@ -169,6 +189,20 @@
     <code>registry_tx_equity_candidates</code> answer is cut the same way. The
     answer says what was left out and links here. With a Pro or Team key they
     return every tax year and every snapshot.
+  </li>
+  <li>
+    <strong>Earlier dates and named roll years.</strong>
+    <code>registry_get</code> with <code>as_of</code> returns a record as it
+    stood on an earlier date, and
+    <code>registry_tx_equity_candidates</code> with <code>tax_year</code> lists
+    candidates from the roll year you name. Without a Pro or Team key both
+    answer PlanRequired and count nothing; the same calls without those
+    arguments stay within the free daily lookups.
+  </li>
+  <li>
+    <strong>An owner's whole portfolio.</strong> On the free tier
+    <code>registry_owned_by</code> returns an owner's first three parcels and
+    says how many were left out; with a Pro or Team key it returns every parcel.
   </li>
   <li>
     <strong>Batch lookup for many parcels at once.</strong>
@@ -198,9 +232,10 @@
   </li>
   <li>
     <code>registry_tx_equity_candidates</code>, one parcel per call, within the
-    same free lookups. The candidates and their calculator input are the same on
-    every plan; the subject's value history is the current roll year on the free
-    tier.
+    same free lookups, from the newest roll year with values. Without
+    <code>tax_year</code> the candidates and their calculator input are the same
+    on every plan; the subject's value history is the current roll year on the
+    free tier.
   </li>
   <li>
     3 reports a month per IP address, including the Texas evidence packet and
@@ -282,10 +317,10 @@
 <ul>
   <li>
     A lookup is one answered call to a <code>registry_*</code> tool: a record, a
-    resolved ID, owners, or a search that ran inside loaded coverage (even with
-    no results). Free: <code>registry_coverage</code>, input errors, misses
-    outside loaded coverage (county, state, entity registry or ID system not
-    loaded) and calls the registry could not answer.
+    resolved ID, owners or search results, and a call inside loaded coverage
+    that finds nothing still counts. Free: <code>registry_coverage</code>, input
+    errors, misses outside loaded coverage (county, state, entity registry or ID
+    system not loaded) and calls the registry could not answer.
   </li>
   <li>
     A registry batch tool needs one lookup per subject or item left in the

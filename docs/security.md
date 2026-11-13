@@ -3,7 +3,7 @@
 How FactLot's hosted service is run, what it keeps and does not keep, how keys and secrets are
 handled, and what is not in place yet. Everything here can be checked in this repository or on the
 live service; where a claim rests on a GitHub setting or on a live response instead, the text says
-so. Written 7 November 2026. The same text is on [factlot.com/security](https://factlot.com/security/).
+so. Written 7 November 2026; the free key and the daily usage totals added 13 November 2026. The same text is on [factlot.com/security](https://factlot.com/security/).
 
 Related: [service status](https://factlot.com/status/), [service levels](sla.md),
 [how the numbers are proven](https://factlot.com/assurance/), the vulnerability policy in
@@ -33,12 +33,16 @@ Related: [service status](https://factlot.com/status/), [service levels](sla.md)
   no workers.dev address and no preview address: only the API Worker can call it, through a service
   binding. Source: [`deploy/registry`](../deploy/registry).
 - **Cloudflare KV.** Key records for paid plans: a SHA-256 hash of each key, plan, status, Stripe
-  customer and subscription IDs, and dates. Never a key. Also the report files built with
-  `report_create`, for 24 hours.
+  customer and subscription IDs, and dates. Never a key. Free key records: a SHA-256 hash of the
+  key, a hash of the email address made with a secret only FactLot holds (never the address), and
+  dates; and short-lived records of the emailed links, held under a hash of each link's random ID.
+  Daily usage totals: counts by route group, tool, state and kind of caller, with
+  distinct-caller estimates built from values that are already hashes; no IP address, address
+  searched, parcel, key or email. Also the report files built with `report_create`, for 24 hours.
 - **Cloudflare Durable Objects.** Per-minute rate limits, registry lookup quotas and monthly report
-  counters: counters for the current window only, keyed by key ID or by a hash of the IP address.
-- **Cloudflare Analytics Engine.** Usage records for capacity planning: time, key ID, plan, path,
-  method and status. No IP address. Kept 90 days.
+  counters, including a free key's own counters: counters for the current window only, keyed by key ID, by a hash of the IP address, or (a free key's report counter) by part of the email-address hash.
+- **Cloudflare Analytics Engine.** Usage records for capacity planning: time, key ID ("free-key" for
+  a free key), plan, path, method and status, and event totals. No IP address. Kept 90 days.
 
 Cloudflare is a United States company and serves requests from its global network. FactLot sets no
 data-location restriction on any of these stores. The [privacy notice](https://factlot.com/privacy)
@@ -60,6 +64,14 @@ Not stored or logged:
 Stored:
 
 - Usage metadata: time, key ID, plan, path, method, status (90 days)
+- Daily usage totals, with no IP address, address searched, parcel, key or email: 40 days (90 days
+  for event totals). Distinct visitors and callers are estimated from a hash of the IP address that
+  changes every day, a connection's ID or a key ID, folded into a sketch that cannot be turned back
+  into a list.
+- For an optional free key: the key's hash, a secret-keyed hash of the email address (never the
+  address itself) and dates, until you delete the key (a replaced key's record for 12 months); the
+  emailed link's record for 30 minutes, and a marker that a link was used, not linked to the
+  address, for 13 months
 - Key hashes and subscription records for paid plans, until the subscription ends and then for up to
   12 months
 - Rate-limit, lookup and report counters, deleted when their window ends (the free report counter is
@@ -100,6 +112,9 @@ names the provider and says how long it may keep what it receives. Lease extract
 - A paid key is `fl_live_` followed by 32 random bytes (256 bits). It is shown once, when it is
   created. Only its SHA-256 hash is stored, so FactLot cannot show a key again; a lost key is
   replaced, not recovered.
+- A free key is `fl_free_` followed by 32 random bytes, shown once and stored only as its SHA-256
+  hash, the same way. It is a free caller and opens nothing a paid key does: its requests and registry lookups count on its own meter, with all the free keys used from one IP address together held to one shared minute limit and daily lookup cap, and its reports count per email address and per IP address. You can delete it yourself; the
+  [privacy notice](https://factlot.com/privacy) says what is deleted with it.
 - The "key ID" in usage records and responses is the first 16 characters of that hash. It identifies a
   key without revealing it.
 - You can replace a key at any time (`POST /v1/billing/rotate`); the old key stops working at once.
@@ -175,7 +190,9 @@ repository's Security tab ("Report a vulnerability").
   your network, self-host: the same tools run on your machine and make no network calls. Please do not
   email confidential documents to us.
 - The API does not send a `Strict-Transport-Security` header, and the static site sends no
-  `Content-Security-Policy` header (its only script is the same-origin file behind the /try/ page, which writes API answers as text, never as HTML). The plain-HTTP redirect above is what
+  `Content-Security-Policy` header (its only scripts are two same-origin files under /try/: the one
+  behind the Try a lookup page, which writes API answers as text, never as HTML, and the one that
+  shows the free key link when the API offers it). The plain-HTTP redirect above is what
   protects first visits.
 - Enterprise customers can ask about a signed data-processing agreement and private deployment
   (contact@factlot.com); neither is published terms today.

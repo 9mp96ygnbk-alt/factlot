@@ -24,7 +24,7 @@ export const WHATS_NEW: { text: string; changelog: string }[] = [
     changelog: "reports are open",
   },
   {
-    text: "Only answered registry lookups count: coverage checks, misses and input errors are free.",
+    text: "Only answered registry lookups count, and a call inside loaded coverage that finds nothing still counts: coverage checks, misses outside loaded coverage and input errors are free.",
     changelog: "charged only when answered",
   },
   {

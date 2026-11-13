@@ -3,21 +3,21 @@
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
 tools from one catalog: twenty-six calculators, the Texas protest-deadline rule and its batch form,
 FactLot IDs, fact validation, document tools and lease comps (46 tools). The MCP servers (local and `/mcp`) always add
-`search`/`fetch`/`schema_get`. The ten `registry_*` tools are listed (in MCP `tools/list`,
+`search`/`fetch`/`schema_get`. The eleven `registry_*` tools are listed (in MCP `tools/list`,
 `GET /v1/tools`, and both OpenAPI documents) only when a registry is available: a registry database
 configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
 routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the
 regions `registry_coverage` lists (<!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)<!-- /hosted:places -->; <!-- hosted:withheld -->Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.<!-- /hosted:withheld -->), so it lists
-56 tools over REST (`GET /v1/tools`) and 60 over MCP: those, `search`/`fetch`/`schema_get`, and the
+57 tools over REST (`GET /v1/tools`) and 61 over MCP: those, `search`/`fetch`/`schema_get`, and the
 hosted `report_create` (also `POST /v1/reports`; see [reports](reports.md)). A key adds
-`account_status` and `account_usage` over MCP, and on Pro and Team `doc_extract_lease` and
-`report_narrative` once the model-backed tools are on. The TypeScript and Python tool exports always
+`account_status` and `account_usage` over MCP, and on Pro and Team the model-backed tools
+`doc_extract_lease` and `report_narrative`. The TypeScript and Python tool exports always
 include the registry tools. For which tool to call when, see [agents.md](agents.md).
 
 ## 0. The hosted API (nothing to install)
 
 `https://api.factlot.com` serves the same tools, free with no key at 60 requests a minute and 25
-registry lookups a day per IP address ([Pro and Team keys](https://factlot.com/pricing/) raise both). When the hosted API offers it, an optional free key by email (`POST /v1/keys/free` or factlot.com/account) counts the same free limits per key instead of per IP address; it is a free caller, so it gets the same free rules and no paid features. `DELETE /v1/keys/free` with the key deletes it, or `POST /v1/keys/free/delete` emails a deletion link. Two registry features are for Pro and Team: the full multi-year `value_history` of `registry_get` (without a key it returns the current roll year only, and the answer says so) and the registry batch tools `registry_lookup_batch` and `registry_tx_equity_candidates_batch` (without a key they answer `PlanRequired`). A lookup is one answered call to a `registry_` tool. `registry_coverage`, coverage misses (a county or system that is not loaded) and input errors are not counted. Remote MCP is `https://api.factlot.com/mcp`; REST is
+registry lookups a day per IP address ([Pro and Team keys](https://factlot.com/pricing/) raise both). When the hosted API offers it, an optional free key by email (`POST /v1/keys/free` or factlot.com/account) counts requests and registry lookups per key instead of per IP address (all the free keys used from one IP address together share 60 requests a minute and 100 lookups a day), while its reports count per email address and per IP address; it is a free caller, so it gets the same free rules and no paid features. `DELETE /v1/keys/free` with the key deletes it, or `POST /v1/keys/free/delete` emails a deletion link. <!-- plans:paid-only -->Eight things on the hosted API need a Pro or Team key: value history before the current roll year and superseded facts (`registry_get`, and the subject of `registry_tx_equity_candidates`); `registry_get` with `as_of` (a record on an earlier date); `registry_tx_equity_candidates` with `tax_year` (a roll year you name); a parcel's recorded sales, deeds and mortgages beyond the newest sale or deed (`registry_get`), and `registry_recorded_facts`; an owner's parcels beyond the first three (`registry_owned_by`, and `registry_get` on an entity); the registry batch tools `registry_lookup_batch` and `registry_tx_equity_candidates_batch`; the model-backed tools `doc_extract_lease` and `report_narrative`; and the account tools `account_status` and `account_usage`.<!-- /plans:paid-only --> A refused call answers `PlanRequired` and counts nothing; a shortened answer says what was left out. <!-- plans:counted -->A lookup is one answered call to a `registry_*` tool: a record, a resolved ID, owners or search results, and a call inside loaded coverage that finds nothing still counts. Free: `registry_coverage`, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.<!-- /plans:counted --> Remote MCP is `https://api.factlot.com/mcp`; REST is
 `POST https://api.factlot.com/v1/<group>/<name>` (paths in `GET /v1/tools`); OpenAPI is
 `/openapi.json` (3.1, every tool) and `/openapi-3.0.json` (the Custom GPT subset of 30 operations).
 
@@ -34,9 +34,11 @@ including Python's `urllib`, are accepted.
 > below lists the commands that work now first: from a clone, from git, or from the files
 > attached to each [GitHub release](https://github.com/9mp96ygnbk-alt/factlot/releases). The
 > `npx -y @factlot/mcp` and `pip install factlot` forms are marked **after first publish**.
-> Release files and `git+https` installs need the repository to be public and, for release
-> files, a release such as `v0.1.0` to exist. Every path here was run end to end; see
-> [install-verification.md](install-verification.md).
+> The latest release is `v0.5.0`. The next release brings what the hosted server already runs: the tools `registry_lookup_batch` and `registry_recorded_facts`, new inputs on existing tools (`registry_search_address` `address`, `city`, `state`, `postal_code` and `county_fips`; `registry_coverage` `fields`; `same_building_class`, `same_local_use_code` and `local_use_codes` on the equity-candidate tools; `address` and `label` on the subject and comparables of `calc_tx_unequal_appraisal`; `as_of` on the Texas deadline rules), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only.
+> On every release tag the release
+> workflows install each release file the way a user would and test it; the last hand-run pass
+> over every install path was made on version 0.1.0 (see
+> [install-verification.md](install-verification.md)).
 
 ### After you buy
 
@@ -55,7 +57,7 @@ can take up to a minute to work everywhere.
   connection gets your plan's limits and is tied to your subscription, not to the key: replacing the
   key keeps it connected, cancelling the subscription ends it, and factlot.com/account lists
   connected apps with a **Disconnect** button.
-  - Claude Desktop, claude.ai, Claude mobile: **Settings → Connectors → Add custom connector** →
+  - Claude Desktop, claude.ai, Claude mobile: **Customize → Connectors → + Add → Add custom connector** →
     URL `https://api.factlot.com/mcp/signin` (leave the OAuth client ID and secret empty) →
     **Add** → **Connect** → sign in with your FactLot key, or continue free.
   - ChatGPT developer mode: **Settings → Apps → Advanced settings → Developer mode**, then create an

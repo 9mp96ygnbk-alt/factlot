@@ -43,7 +43,7 @@ export { escapeHtml };
 
 /** The one-line counting rule on the onboarding and account pages. */
 export const LOOKUP_RULE =
-  "A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free.";
+  "A lookup is one answered call to a registry tool, and a call inside loaded coverage that finds nothing still counts; coverage checks, misses outside loaded coverage and input errors are free.";
 
 export const REPORT_RULE =
   "A report is one document report_create builds and stores; input errors are free, and reports never count as lookups.";
@@ -359,7 +359,7 @@ export const FREE_KEY_SENT =
 function freeKeySection(state: RecoveryState, lifecycle = false): string {
   const form =
     state === "on"
-      ? `<p>No plan needed. A free key gives you the free limits (${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day, ${REPORTS_PER_MONTH.anonymous} reports a month, ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute) on your own meter instead of one shared with everyone on your network.</p>
+      ? `<p>No plan needed. A free key counts your requests (${ANONYMOUS_REQUESTS_PER_MINUTE} a minute) and registry lookups (${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} a day) on your own meter instead of one shared with everyone on your network; all the free keys used from one network together share ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. Reports (${REPORTS_PER_MONTH.anonymous} a month) count per email address and per network as well.</p>
 <form method="post" action="/account/free-key"><label for="free-email">Email</label><input id="free-email" name="email" type="email" autocomplete="email" required maxlength="254">
 <p><label><input type="checkbox" name="accept_terms" value="1" required> I accept the <a href="https://factlot.com/terms">terms</a> and <a href="https://factlot.com/privacy">privacy policy</a>.</label></p>
 ${lifecycle ? `<p><label><input type="checkbox" name="lifecycle_emails" value="1"> ${escapeHtml(freeConsentText())}</label></p>\n<p class="small">${escapeHtml(CONSENT_FOOTNOTE)}</p>` : ""}

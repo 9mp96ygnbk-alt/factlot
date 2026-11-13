@@ -232,7 +232,7 @@ export function marketBody(m, d, hosted, template, fieldsText) {
     .join(", ");
   const tools = `<ul>
 <li><code>registry_search_address</code>: <code>${esc(s.query)}</code> finds ${s.matches === 1 ? "one parcel" : "parcels"}, the first being <code>${esc(s.urn)}</code> (${esc(s.label)}).</li>
-<li><code>registry_get</code> on it: ${value}${year}; facts <span class="try-wrap">${facts}</span>, each citing the file it came from.</li>
+<li><code>registry_get</code> on it: ${value}${year}; facts <span class="try-wrap">${facts}</span>, each citing the file it came from${s.predicates.some((x) => x.startsWith("ownership.")) ? " (the owner facts are kept for organisation owners only)" : ""}.</li>
 <li><code>registry_resolve_parcel</code> and <code>registry_resolve_external</code>: the URN from the county's own number (<code>${esc(s.external_id)}</code> in system <code>${esc(d.id_system)}</code>).</li>
 ${d.holds.owner_of_record ? "<li><code>registry_search_entities</code> and <code>registry_owned_by</code>: organisation owners and the parcels linked to them.</li>" : ""}
 </ul>

@@ -14,7 +14,7 @@ model. How a model behaves with FactLot's tools is a separate question (see
 
 Tested on **2026-11-06** with Python 3.13.15 and Node 26.8.1. "Local" is a build of this repository
 (`node packages/server/dist/bin.js`, open mode and keyed mode); "hosted" is `api.factlot.com`
-(free tier, no key, 42 tools). The tool counts below are the counts measured on that date; the hosted API now lists 56 tools over REST (the catalog tools, registry tools included) and 60 over MCP (those plus `search`, `fetch`, `schema_get` and `report_create`).
+(free tier, no key, 42 tools). The tool counts below are the counts measured on that date; the hosted API now lists 57 tools over REST (the catalog tools, registry tools included) and 61 over MCP (those plus `search`, `fetch`, `schema_get` and `report_create`).
 
 | Framework                                      | Package and tested version                                                                                       | Local      | Hosted                                    |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------- |

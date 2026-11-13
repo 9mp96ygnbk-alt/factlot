@@ -472,3 +472,12 @@ ${counties
   .join("\n")}
 </ul>`;
 }
+
+/**
+ * The roll-year sentence the documents that cannot be built state (README.md and docs/agents.md between
+ * <!-- texas:rolls --> markers, llms.txt as its line that starts "Texas roll years"); site.test.ts fails
+ * when one differs from texas-counties.json.
+ */
+export function texasRollsText(counties) {
+  return `Texas roll years on the hosted API: ${hubRollSentence(counties)}`;
+}

@@ -22,8 +22,8 @@
     <tr>
       <th scope="row">Authentication</th>
       <td>
-        None on the free tier (60 requests a minute per IP address). Paid plans
-        send <code>Authorization: Bearer &lt;key&gt;</code>.
+        None on the free tier (60 requests a minute per IP address). A Pro, Team
+        or free key is sent as <code>Authorization: Bearer &lt;key&gt;</code>.
       </td>
     </tr>
     <tr>
@@ -74,8 +74,8 @@
     <tr>
       <th scope="row">Claude (web, Desktop, mobile)</th>
       <td>
-        Customize, Connectors, Add custom connector, then enter
-        <code>https://api.factlot.com/mcp</code>.
+        Customize, then Connectors, then + Add, then Add custom connector, and
+        enter <code>https://api.factlot.com/mcp</code>.
       </td>
     </tr>
     <tr>
@@ -134,8 +134,20 @@
           >npx -y
           https://github.com/9mp96ygnbk-alt/factlot/releases/download/v{{VERSION}}/factlot-mcp-standalone-{{VERSION}}.tgz</code
         >
-        (Node.js 22.6 or newer; the local server makes no network calls). More
-        options:
+        (Node.js 22.6 or newer; the local server makes no network calls). This
+        is release v{{VERSION}}. Its next release brings what the hosted server
+        already runs: the tools <code>registry_lookup_batch</code> and
+        <code>registry_recorded_facts</code>, new inputs on existing tools
+        (<code>registry_search_address</code> <code>address</code>,
+        <code>city</code>, <code>state</code>, <code>postal_code</code> and
+        <code>county_fips</code>; <code>registry_coverage</code>
+        <code>fields</code>; <code>same_building_class</code>,
+        <code>same_local_use_code</code> and <code>local_use_codes</code> on the
+        equity-candidate tools; <code>address</code> and <code>label</code> on
+        the subject and comparables of <code>calc_tx_unequal_appraisal</code>;
+        <code>as_of</code> on the Texas deadline rules), and MCP resources and
+        prompts. <code>report_create</code>, the account tools and the
+        model-backed tools are hosted only. More options:
         <a
           href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
           >getting started</a
@@ -234,17 +246,23 @@
     <code>schema_get</code> help an agent find the right tool.
   </li>
   <li>
-    <strong>Resources</strong> (read-only, no key, no registry lookup):
+    <strong>Resources</strong> (hosted server; the local server gains them in
+    its next release; read-only, no key, no registry lookup):
     <code>factlot://coverage</code> (what the hosted registry serves, by place),
     <code>factlot://sources</code> (every reviewed source with its licence, AI
     use, redistribution and attribution), <code>factlot://markets</code> (a
     worked example per hosted market), <code>factlot://schemas/tools</code>,
     <code>factlot://schemas/fact</code>, <code>factlot://spec/id</code> and
-    <code>factlot://plans</code>.
+    <code>factlot://plans</code>, plus one
+    <code>factlot://coverage/{place}</code> per hosted place and one
+    <code>factlot://markets/{slug}</code> per hosted market in the resource
+    list, and <code>factlot://sources/{source_id}</code> and
+    <code>factlot://schemas/tools/{tool}</code> by name.
   </li>
   <li>
-    <strong>Prompts</strong>: <code>property_owner</code>,
-    <code>owner_portfolio</code>, <code>parcel_value_history</code>,
+    <strong>Prompts</strong> (hosted server; the local server gains them in its
+    next release): <code>property_owner</code>, <code>owner_portfolio</code>,
+    <code>parcel_value_history</code>,
     <code>tx_unequal_appraisal_candidates</code>,
     <code>lease_abstract_check</code> and <code>deal_math</code>, each giving
     the tools to call in order and asking for every fact to be cited.
@@ -284,25 +302,19 @@
     An optional
     <a href="https://factlot.com/account#free-key">free key by email</a> is sent
     as <code>Authorization: Bearer &lt;key&gt;</code> like a paid key, but it is
-    a free caller: the same limits and the same Free plan rules, counted per key
-    instead of per IP address, and no paid tools.
+    a free caller: the Free plan rules and no paid tools. Its requests and
+    registry lookups count per key, with all the free keys used from one IP
+    address sharing one minute limit and daily cap; its reports still count per
+    IP address too.
   </li>
   <li>
     Registry lookups are on every plan, metered by plan: 25 a day per IP address
-    on the free tier, 5,000 a month on Pro and 100,000 a month on Team. A lookup
-    is one answered call to a <code>registry_</code> tool. Three registry
-    features are for Pro and Team: the full multi-year value history from
-    <code>registry_get</code> (the free tier gets the current roll year, and the
-    answer says what was left out), every parcel of an owner's portfolio from
-    <code>registry_owned_by</code> (the free tier gets the first three, and the
-    answer says how many were left out) and the batch tools
-    <code>registry_lookup_batch</code> and
-    <code>registry_tx_equity_candidates_batch</code> (without a key they answer
-    PlanRequired, and the answer links the
-    <a href="/pricing/">pricing page</a>). <code>registry_coverage</code>,
-    coverage misses (a county or system that is not loaded) and input errors are
-    not counted. Call <code>registry_coverage</code> first: it lists what is
-    hosted. The
+    on the free tier, 5,000 a month on Pro and 100,000 a month on Team.
+    {{PLAN_LOOKUP_COUNTED}} {{PLAN_PAID_ONLY}} Without such a key, a refused
+    registry call answers PlanRequired and counts nothing, and a shortened
+    answer says what was left out; both link the
+    <a href="/pricing/">pricing page</a>. Call <code>registry_coverage</code>
+    first: it lists what is hosted. The
     <a
       href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md"
       >coverage page</a

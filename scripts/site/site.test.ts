@@ -3,17 +3,23 @@
 // cannot leave the site saying something untrue.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { describe, it } from "node:test";
 
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  ANONYMOUS_REQUESTS_PER_MINUTE,
+  FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
+  MODEL_TOOLS,
+  PAID_ONLY,
   PLANS,
   PRO_YEARLY,
   QUOTA_RULES,
   REPORTS_PER_MONTH,
+  paidOnlyText,
 } from "../../deploy/cloudflare/src/plans.ts";
+import { PLAN_FILES, plansData, renderPlans } from "./gen-plans.ts";
 import {
   countyBody,
   exampleBody,
@@ -23,6 +29,7 @@ import {
   tryTexasLinks,
   hubRollSentence,
   hubCountyLinks,
+  texasRollsText,
 } from "./texas-pages.mjs";
 
 const root = new URL("../../", import.meta.url);
@@ -152,18 +159,22 @@ describe("pricing page", () => {
     assert.ok(
       html.includes("renews monthly until cancelled. Cancel any time."),
     );
-    assert.ok(html.includes("api.factlot.com/billing/checkout?plan=pro"));
-    assert.ok(html.includes("api.factlot.com/billing/checkout?plan=team"));
   });
   it("has both Pro checkout links and states the two gated things and what stays free", () => {
     const hrefs = [
       ...html.matchAll(/href="([^"]*billing\/checkout[^"]*)"/g),
     ].map((m) => m[1]);
-    assert.deepEqual(hrefs, [
-      "https://api.factlot.com/billing/checkout?plan=pro",
-      "https://api.factlot.com/billing/checkout?plan=pro&amp;interval=year",
-      "https://api.factlot.com/billing/checkout?plan=team",
-    ]);
+    assert.deepEqual(hrefs, []);
+    assert.deepEqual(
+      [...html.matchAll(/href="(\{\{PLAN_CHECKOUT_[A-Z_]+\}\})"/g)].map(
+        (m) => m[1],
+      ),
+      [
+        "{{PLAN_CHECKOUT_PRO}}",
+        "{{PLAN_CHECKOUT_PRO_YEARLY}}",
+        "{{PLAN_CHECKOUT_TEAM}}",
+      ],
+    );
     const pro = read("deploy/cloudflare/src/plans.ts");
     assert.match(pro, /cents: 49000/);
     assert.match(pro, /monthlyCents: 4900/);
@@ -172,6 +183,9 @@ describe("pricing page", () => {
     assert.ok(html.includes("Every tax year and every snapshot"));
     assert.ok(html.includes("The current roll year only"));
     assert.ok(html.includes("registry_tx_equity_candidates_batch"));
+    assert.ok(html.includes("{{PLAN_PAID_ONLY}}"));
+    for (const arg of ["as_of", "tax_year", "registry_owned_by"])
+      assert.ok(html.includes(`<code>${arg}</code>`), arg);
     assert.ok(html.includes('id="stays-free"'));
     assert.ok(html.includes("What you would otherwise use"));
     assert.ok(
@@ -199,7 +213,7 @@ describe("home page", () => {
       assert.ok(top.includes(`href="${href}"`), href);
     assert.ok(/unequal-appraisal\s+arithmetic/.test(top));
     assert.ok(/Free, no key/.test(top));
-    assert.ok(/Every answer\s+cites the public record/.test(top));
+    assert.ok(/Every answer\s+cites\s+the\s+public\s+record/.test(top));
     assert.equal(html.split("<h1").length - 1, 1);
     // The developer material stays.
     for (const id of ["layers", "how", "connect", "agents", "pricing"])
@@ -1167,4 +1181,336 @@ describe("connect page and connect.json", async () => {
       );
     },
   );
+});
+
+describe("plan facts (site/_data/plans.json and the documents that state them)", () => {
+  const catalogTools = (
+    JSON.parse(read("spec/schemas/tools.json")) as {
+      tools: { name: string; input_schema?: { properties?: object } }[];
+    }
+  ).tools;
+  it("plans.json is what plans.ts says (run scripts/site/gen-plans.ts)", () => {
+    assert.deepEqual(JSON.parse(read("site/_data/plans.json")), plansData());
+  });
+  it("checkout links are the ones /v1/plans gives, on factlot.com", () => {
+    const { checkout } = plansData();
+    assert.deepEqual(checkout, {
+      pro: "https://factlot.com/billing/checkout?plan=pro",
+      pro_yearly: "https://factlot.com/billing/checkout?plan=pro&interval=year",
+      team: "https://factlot.com/billing/checkout?plan=team",
+    });
+    for (const f of [
+      "site/index.html",
+      "site/_content/pricing.html",
+      "README.md",
+      "llms.txt",
+      "docs/getting-started.md",
+    ])
+      assert.ok(
+        !read(f).includes("api.factlot.com/billing/checkout"),
+        `${f} names another checkout host`,
+      );
+  });
+  it("PAID_ONLY names every registry batch tool, real tools and real arguments", () => {
+    const batch = catalogTools
+      .map((t) => t.name)
+      .filter((n) => n.startsWith("registry_") && n.endsWith("_batch"));
+    assert.deepEqual(
+      [...PAID_ONLY.find((f) => f.id === "batch")!.tools].sort(),
+      [...batch].sort(),
+    );
+    assert.deepEqual(
+      PAID_ONLY.find((f) => f.id === "model_tools")!.tools,
+      MODEL_TOOLS,
+    );
+    assert.deepEqual(
+      PAID_ONLY.find((f) => f.id === "account_tools")!.tools,
+      [
+        ...read("deploy/cloudflare/src/account-tools.ts").matchAll(
+          /name: "(account_[a-z_]+)"/g,
+        ),
+      ].map((m) => m[1]),
+    );
+    // Hosted-only tools are not in the catalog; every other entry names catalog tools.
+    for (const f of PAID_ONLY) {
+      if (f.id === "model_tools" || f.id === "account_tools") continue;
+      for (const name of f.tools) {
+        const t = catalogTools.find((x) => x.name === name);
+        assert.ok(t, `${name} is in the catalog`);
+        if (f.arg)
+          assert.ok(
+            f.arg in ((t.input_schema?.properties ?? {}) as object),
+            `${name} takes ${f.arg}`,
+          );
+      }
+    }
+    const gating = read("deploy/cloudflare/src/gating.ts");
+    assert.match(gating, /endsWith\("_batch"\)/);
+    assert.match(gating, /\.as_of != null/);
+    assert.match(gating, /\.tax_year != null/);
+    assert.match(gating, /FREE_PORTFOLIO_PARCELS = 3/);
+    assert.match(gating, /RECORDED_TOOL = "registry_recorded_facts"/);
+    assert.match(gating, /export function limitSales/);
+    assert.match(gating, /export function limitEntityPortfolio/);
+  });
+  it("the free-key figures the documents type match plans.ts", () => {
+    for (const f of ["README.md", "docs/getting-started.md"]) {
+      const t = flat(f);
+      assert.ok(
+        t.includes(
+          `share ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day`,
+        ),
+        f,
+      );
+    }
+    assert.ok(
+      read("llms.txt").includes(
+        `share ${ANONYMOUS_REQUESTS_PER_MINUTE}/min and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups/day`,
+      ),
+    );
+  });
+  it("README, the docs and llms.txt state the same two sentences (run scripts/site/gen-plans.ts)", () => {
+    for (const f of PLAN_FILES) {
+      const text = read(f);
+      const r = renderPlans(text);
+      assert.ok(r.found >= 2, `${f}: plan sentences not marked`);
+      assert.equal(r.text, text, `${f} is out of date`);
+    }
+    const llms = read("llms.txt");
+    assert.ok(llms.includes(paidOnlyText().slice(0, 20)));
+    for (const f of PAID_ONLY)
+      for (const name of [...f.tools, ...(f.arg ? [f.arg] : [])])
+        assert.ok(llms.includes(`\`${name}\``), `llms.txt names ${name}`);
+  });
+  it("the built pages take the plan facts from plans.json", () => {
+    for (const [f, keys] of [
+      [
+        "site/index.html",
+        [
+          "PLAN_PAID_ONLY",
+          "PLAN_LOOKUP_COUNTED",
+          "PLAN_PRO_YEARLY_USD",
+          "PLAN_CHECKOUT_PRO_YEARLY",
+        ],
+      ],
+      ["site/_content/pricing.html", ["PLAN_PAID_ONLY", "PLAN_CHECKOUT_PRO"]],
+      ["site/_content/mcp.html", ["PLAN_PAID_ONLY", "PLAN_LOOKUP_COUNTED"]],
+      ["site/_content/try.html", ["PLAN_LOOKUP_COUNTED"]],
+    ] as const)
+      for (const k of keys)
+        assert.ok(read(f).includes(`{{${k}}}`), `${f} uses ${k}`);
+    // The home page states the free key and paid gating as on, without asking the API.
+    const wrangler = read("deploy/cloudflare/wrangler.jsonc");
+    assert.match(wrangler, /"FREE_KEY_ENABLED": "true"/);
+    assert.match(wrangler, /"GATING_ENABLED": "true"/);
+    assert.ok(!/refreshed weekly/i.test(read("site/index.html")));
+    assert.ok(!/refreshed weekly/i.test(read("site/_content/pricing.html")));
+    assert.ok(!/refreshed weekly/i.test(read("README.md")));
+  });
+});
+
+describe("hand-typed counts", () => {
+  const catalogNames = tools.map((t) => t.name);
+  const registry = catalogNames.filter((n) => n.startsWith("registry_")).length;
+  const WORDS = [
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+  ];
+  it("README states the calculator and workbook counts", () => {
+    const readme = flat("README.md");
+    assert.ok(readme.includes(`${calculators} deterministic CRE calculators`));
+    const workbooks = readdirSync(
+      new URL("examples/reconciliation/", root),
+    ).filter((f) => f.endsWith(".xlsx")).length;
+    assert.ok(
+      readme.includes(`[${WORDS[workbooks]} Excel workbooks]`),
+      `README says ${WORDS[workbooks]} workbooks`,
+    );
+    const debt = (
+      JSON.parse(read("spec/schemas/tools.json")) as {
+        tools: { name: string; formula?: { id: string; version: number } }[];
+      }
+    ).tools.find((t) => t.name === "calc_debt_sizing")!.formula!;
+    assert.ok(
+      readme.includes(`{ id: "${debt.id}", version: ${debt.version} }`),
+      "README library example states the debt sizing formula version",
+    );
+  });
+  it("the docs state the catalog's tool counts", () => {
+    const rest = catalogNames.length;
+    // The MCP server adds three discovery tools to the catalog, and the hosted one report_create;
+    // none of the four is in tools.json, so the count is built here and the four are checked.
+    const mcpSrc = read("packages/mcp/src/index.ts");
+    for (const t of ["search", "fetch", "schema_get"])
+      assert.ok(mcpSrc.includes(`handlers.set("${t}"`), t);
+    assert.match(
+      read("deploy/cloudflare/src/reports.ts"),
+      /REPORT_TOOL_NAME = "report_create"/,
+    );
+    const mcp = rest + 4;
+    const core = rest - registry;
+    const gs = flat("docs/getting-started.md");
+    assert.ok(gs.includes(`(${core} tools)`), "getting-started core count");
+    assert.ok(gs.includes(`The ${WORDS[registry]} \`registry_*\` tools`));
+    assert.ok(
+      gs.includes(`${rest} tools over REST`) && gs.includes(`${mcp} over MCP`),
+    );
+    const conn = flat("connectors/README.md");
+    assert.ok(
+      conn.includes(`Serves ${core} tools plus ${registry} registry tools`),
+    );
+    assert.ok(conn.includes(`(${mcp} in all)`));
+    assert.ok(
+      flat("docs/registry/README.md").includes(
+        `the catalog gains ${WORDS[registry]} tools`,
+      ),
+    );
+    for (const n of catalogNames.filter((x) => x.startsWith("registry_")))
+      assert.ok(read("docs/registry/README.md").includes(`\`${n}\``), n);
+    const fw = flat("connectors/frameworks/README.md");
+    assert.ok(
+      fw.includes(`lists ${rest} tools over REST`) &&
+        fw.includes(`and ${mcp} over MCP`),
+    );
+    assert.ok(
+      flat("site/index.html").includes(
+        `${WORDS[registry]} <code>registry_*</code> lookups`,
+      ),
+    );
+  });
+  it("README lists every catalog tool", () => {
+    const readme = read("README.md");
+    for (const n of catalogNames)
+      assert.ok(readme.includes(`\`${n}\``), `README lists ${n}`);
+  });
+  it(
+    "the install pages name every tool the next local release adds",
+    {
+      skip: (() => {
+        try {
+          execFileSync(
+            "git",
+            ["rev-parse", "--verify", "-q", `v${version}^{commit}`],
+            {
+              cwd: root,
+              stdio: "pipe",
+            },
+          );
+          return false;
+        } catch {
+          return `tag v${version} not fetched`;
+        }
+      })(),
+    },
+    () => {
+      const old = JSON.parse(
+        execFileSync("git", ["show", `v${version}:spec/schemas/tools.json`], {
+          cwd: root,
+          encoding: "utf8",
+        }),
+      ) as { tools: { name: string; input_schema?: unknown }[] };
+      const before = new Set(old.tools.map((t) => t.name));
+      const added = catalogNames.filter((n) => !before.has(n));
+      // Every input added to a tool v${version} already had, by its own name (nested ones too).
+      type S = { properties?: Record<string, S>; items?: S };
+      const leaves = (x: S | undefined, at = ""): string[] =>
+        Object.entries(x?.properties ?? {}).flatMap(([k, v]) => [
+          `${at}${k}`,
+          ...leaves(v, `${at}${k}.`),
+          ...leaves(v.items, `${at}${k}[].`),
+        ]);
+      const now = tools as unknown as { name: string; input_schema?: S }[];
+      const inputs = new Set<string>();
+      for (const t of old.tools) {
+        const was = new Set(leaves(t.input_schema as S));
+        const is = now.find((x) => x.name === t.name);
+        for (const l of leaves(is?.input_schema))
+          if (!was.has(l))
+            inputs.add(
+              l
+                .split(/[.[\]]+/)
+                .filter(Boolean)
+                .at(-1)!,
+            );
+      }
+      assert.ok(inputs.size > 0);
+      for (const f of [
+        "README.md",
+        "docs/getting-started.md",
+        "llms-install.md",
+        "site/index.html",
+        "site/_content/mcp.html",
+        "scripts/site/connect.mjs",
+      ])
+        for (const n of added)
+          assert.ok(
+            read(f).includes(n),
+            `${f} names ${n}, new since v${version}`,
+          );
+      for (const f of [
+        "README.md",
+        "docs/getting-started.md",
+        "llms-install.md",
+        "site/index.html",
+        "site/_content/mcp.html",
+        "scripts/site/connect.mjs",
+      ]) {
+        const text = read(f);
+        for (const i of inputs)
+          assert.ok(
+            text.includes(`\`${i}\``) || text.includes(`<code>${i}</code>`),
+            `${f} names the input ${i}, new since v${version}`,
+          );
+      }
+    },
+  );
+  it("the MCP page, README, llms.txt and the agent guide list every fixed resource", () => {
+    const src = read("packages/mcp/src/resources.ts");
+    const fixed = [
+      ...src.matchAll(/\(\s*"[a-z-]+",\s*"(factlot:\/\/[a-z/]+)"/g),
+    ].map((m) => m[1]!);
+    assert.ok(fixed.length >= 7, `found ${fixed.length} resources`);
+    for (const f of [
+      "site/_content/mcp.html",
+      "README.md",
+      "llms.txt",
+      "docs/agents.md",
+    ])
+      for (const uri of fixed)
+        assert.ok(read(f).includes(uri), `${f} lists ${uri}`);
+  });
+  it("README, llms.txt and the agent guide state the Texas roll years from texas-counties.json", () => {
+    const expected = texasRollsText(counties);
+    assert.ok(
+      expected.startsWith(
+        "Texas roll years on the hosted API: Nine of the sixteen",
+      ),
+    );
+    for (const f of ["README.md", "docs/agents.md"]) {
+      const m = /<!-- texas:rolls -->([\s\S]*?)<!-- \/texas:rolls -->/.exec(
+        read(f),
+      );
+      assert.ok(m, `${f}: no texas:rolls span`);
+      assert.equal(
+        m[1]!.replace(/\s+/g, " "),
+        expected,
+        `${f}: paste texasRollsText()`,
+      );
+    }
+    assert.ok(
+      read("llms.txt").split("\n").includes(expected),
+      "llms.txt: paste texasRollsText()",
+    );
+  });
 });

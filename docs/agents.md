@@ -118,9 +118,9 @@ One MCP request may make at most 500 registry service calls (an item counts 2).
 
 ## MCP resources and prompts
 
-Both MCP servers (the hosted one at `https://api.factlot.com/mcp` and the local stdio server) offer
-read-only resources and prompts besides the tools. Reading them needs no key and uses no registry
-lookup.
+The hosted MCP server at `https://api.factlot.com/mcp` offers read-only resources and prompts
+besides the tools; the local stdio server gains them in its next release (release v0.5.0 has
+neither). Reading them needs no key and uses no registry lookup.
 
 | Resource                                                    | What it holds                                                                                                                                                                    |
 | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -140,6 +140,13 @@ Prompts (`prompts/get`) give the tool order for common jobs and ask for every fa
 `property_owner`, `owner_portfolio`, `parcel_value_history`, `tx_unequal_appraisal_candidates`
 (candidates under FactLot's default rule for a person to review, never a selection of comparables),
 `lease_abstract_check` and `deal_math`.
+
+## Hosted plans
+
+<!-- plans:paid-only -->Eight things on the hosted API need a Pro or Team key: value history before the current roll year and superseded facts (`registry_get`, and the subject of `registry_tx_equity_candidates`); `registry_get` with `as_of` (a record on an earlier date); `registry_tx_equity_candidates` with `tax_year` (a roll year you name); a parcel's recorded sales, deeds and mortgages beyond the newest sale or deed (`registry_get`), and `registry_recorded_facts`; an owner's parcels beyond the first three (`registry_owned_by`, and `registry_get` on an entity); the registry batch tools `registry_lookup_batch` and `registry_tx_equity_candidates_batch`; the model-backed tools `doc_extract_lease` and `report_narrative`; and the account tools `account_status` and `account_usage`.<!-- /plans:paid-only --> A refused call answers `PlanRequired` and counts
+
+nothing; a shortened answer says what was left out. <!-- plans:counted -->A lookup is one answered call to a `registry_*` tool: a record, a resolved ID, owners or search results, and a call inside loaded coverage that finds nothing still counts. Free: `registry_coverage`, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.<!-- /plans:counted -->
+`GET https://api.factlot.com/v1/plans` serves the same rules as JSON.
 
 ## Mapping lease language to inputs
 
@@ -258,7 +265,7 @@ carries this in `disclaimer` (it is not repeated in `warnings`); pass it on.
 | Fact package              | `fact_package_create`                                                                                      |
 | Hearing evidence dates    | draft rule `tx_protest_evidence_dates` (SDKs only, not a tool; [docs](rules/tx-protest-evidence-dates.md)) |
 
-**Coverage.** The hosted API serves Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman counties (Denton and Williamson from 2027 preliminary rolls; Midland has no values because its publisher's file has none); `registry_coverage` lists exactly what is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. A self-hosted FactLot with a Texas registry file
+**Coverage.** The hosted API serves Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman counties (Denton and Williamson from 2027 preliminary rolls; Midland has no values because its publisher's file has none); `registry_coverage` lists exactly what is hosted. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. <!-- texas:rolls -->Texas roll years on the hosted API: Nine of the sixteen counties hold more than one roll year (Harris 2022 to 2026, Dallas 2022 to 2026, Travis 2022 to 2026, Nueces 2021 to 2026, Galveston 2023 to 2026, Jefferson 2025 to 2026, Brazos 2016 to 2026, Guadalupe 2025 to 2026, Kaufman 2024 to 2026), six hold one, and Midland has no values because the publisher's file has none.<!-- /texas:rolls --> A self-hosted FactLot with a Texas registry file
 (`FACTLOT_REGISTRY_DB`) answers the same tools for the districts it holds. For a county that is not
 covered, the user reads values from the appraisal district's own property search and passes them
 to the calculator directly.

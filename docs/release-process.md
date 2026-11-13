@@ -186,8 +186,11 @@ servers. It lists the packages that exist without npm or PyPI accounts:
   with its `fileSha256`. The URL must be a GitHub or GitLab release and contain "mcp" (the
   `.mcpb` extension does). The registry does not check the hash, but clients do before installing.
 
-The committed file holds the version of the latest release (updated when a release is prepared, so
-it reads correctly) and a placeholder SHA-256 of zeros. `mcp-registry.yml` rewrites the version,
+The committed file holds the version of the latest release and the SHA-256 of that release's
+`.mcpb`. No script or workflow writes either back to the repository: after `release-assets.yml` has
+attached the `.mcpb` to a new release, copy its line from that release's `SHA256SUMS` into
+`fileSha256` and set `version` by hand, in a commit right after the release is published, so
+the file reads correctly. `mcp-registry.yml` rewrites the version,
 both identifiers, and `fileSha256` (from the downloaded release asset, cross-checked against
 `SHA256SUMS`) before it validates and publishes, so a stale version in the file does no harm.
 

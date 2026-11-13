@@ -108,6 +108,28 @@ function lastmod(files) {
   return d || TODAY;
 }
 
+// Plan facts from site/_data/plans.json (scripts/site/gen-plans.ts writes it from deploy/cloudflare/src/plans.ts):
+// what needs a Pro or Team key, how a lookup is counted, prices and the checkout links /v1/plans gives. The
+// pricing, home, MCP and Try pages state them through these {{PLAN_*}} placeholders, so none of them can drift.
+const plansData = readJson("site/_data/plans.json");
+/** Escaped text with each snake_case identifier (registry_get, as_of, registry_*) as code. */
+const codeify = (text) =>
+  esc(text).replace(
+    /\bregistry_\*|\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g,
+    (m) => `<code>${m}</code>`,
+  );
+const proPlan = plansData.paid.find((p) => p.id === "pro");
+const PLAN_VARS = {
+  PLAN_PAID_ONLY: codeify(plansData.paid_only_text),
+  PLAN_LOOKUP_COUNTED: codeify(plansData.lookup_counted),
+  PLAN_FREE_KEY_NOTE: esc(plansData.free.free_key_note),
+  PLAN_PRO_MONTHLY_USD: String(proPlan.usd_per_month),
+  PLAN_PRO_YEARLY_USD: String(proPlan.usd_per_year),
+  PLAN_CHECKOUT_PRO: esc(plansData.checkout.pro),
+  PLAN_CHECKOUT_PRO_YEARLY: esc(plansData.checkout.pro_yearly),
+  PLAN_CHECKOUT_TEAM: esc(plansData.checkout.team),
+};
+
 function fill(template, vars) {
   return template.replace(/\{\{([A-Z_]+)\}\}/g, (m, k) => {
     if (!(k in vars)) throw new Error(`no value for ${m}`);
@@ -402,10 +424,10 @@ addPage(
 <ul class="families" aria-label="Tool families">
 ${["calc_*", "doc_*", "id_*", "fact_*", "rules_*", "registry_*", "report_create", "search", "fetch", "schema_get"].map((f) => `<li><code>${f}</code></li>`).join("\n")}
 </ul>`,
-    body: fill(read("site/_content/mcp.html"), { VERSION }),
+    body: fill(read("site/_content/mcp.html"), { VERSION, ...PLAN_VARS }),
     scripts: ["/try/freekey.js"],
   },
-  ["site/_content/mcp.html", "site/try/freekey.js"],
+  ["site/_content/mcp.html", "site/try/freekey.js", "site/_data/plans.json"],
 );
 
 // --- /connect/ and /connect.json ---------------------------------------------------------------
@@ -445,6 +467,7 @@ addPage(
     h1: "Try a lookup",
     crumbs: [["/try/", "Try a lookup"]],
     body: fill(read("site/_content/try.html"), {
+      ...PLAN_VARS,
       TEXAS_LINKS: tryTexasLinks(
         readJson("site/_data/texas-counties.json").counties,
         readJson("site/_data/texas-examples.json").examples.map(
@@ -460,6 +483,7 @@ addPage(
     "scripts/site/texas-pages.mjs",
     "site/try/try.js",
     "site/try/freekey.js",
+    "site/_data/plans.json",
   ],
 );
 
@@ -475,12 +499,13 @@ addPage(
       "FactLot's hosted API: Free, Pro ($49 a month or $490 a year) and Team ($599 a month). What each plan includes, request rates, registry lookups, reports, what counts as a lookup, and how to cancel.",
     h1: "Pricing",
     crumbs: [["/pricing/", "Pricing"]],
-    body: fill(read("site/_content/pricing.html"), { REPO }),
+    body: fill(read("site/_content/pricing.html"), { REPO, ...PLAN_VARS }),
     scripts: ["/try/freekey.js"],
   },
   [
     "site/_content/pricing.html",
     "deploy/cloudflare/src/plans.ts",
+    "site/_data/plans.json",
     "site/try/freekey.js",
   ],
 );
@@ -1298,6 +1323,11 @@ for (const [file, urlPath] of [
     );
   fs.writeFileSync(file, `${css}\n`);
 }
+// The home page states plan facts through the same placeholders as the generated pages.
+fs.writeFileSync(
+  path.join(out, "index.html"),
+  fill(read("site/index.html"), PLAN_VARS),
+);
 for (const p of pages) {
   const file = path.join(out, p.urlPath, "index.html");
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -1337,7 +1367,7 @@ fs.writeFileSync(
 );
 
 const staticPages = [
-  ["/", ["site/index.html"]],
+  ["/", ["site/index.html", "site/_data/plans.json"]],
   ["/privacy", ["site/privacy.html"]],
   ["/terms", ["site/terms.html"]],
   ["/llms.txt", ["site/llms.txt"]],
