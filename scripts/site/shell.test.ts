@@ -465,7 +465,18 @@ describe("the brand images", () => {
         !/<script|<text|<image|https?:\/\/(?!www\.w3\.org)/.test(svg),
         f,
       );
+      // The README shows it, described by the image's own title and description.
+      const said = [
+        />([^<]+)<\/title>/.exec(svg)![1],
+        />([^<]+)<\/desc>/.exec(svg)![1],
+      ].join(". ");
+      assert.ok(read("README.md").includes(`docs/assets/${f}"`), f);
+      assert.ok(read("README.md").includes(`alt="${said}"`), f);
     }
+    assert.match(
+      read("README.md"),
+      /<source media="\(prefers-color-scheme: dark\)" srcset="docs\/assets\/readme-hero-dark\.svg">\s*<img src="docs\/assets\/readme-hero-light\.svg"/,
+    );
   });
 });
 
@@ -687,6 +698,57 @@ describe("the built site", () => {
             `<meta property="og:image:height" content="${png.readUInt32BE(20)}" />`,
           ),
       );
+      // The pricing page: the plan cards above the comparison, their numbers from plans.json, and
+      // a comparison whose every cell carries its plan's name for the phone layout.
+      const pricingSource = read("site/_content/pricing.html");
+      const pricing = readFileSync(`${out}/pricing/index.html`, "utf8");
+      const cardsAt = pricing.indexOf('<div class="plans">');
+      const tableAt = pricing.indexOf(
+        '<div class="tablewrap stacks"><table class="stack">',
+      );
+      assert.ok(cardsAt > 0 && tableAt > cardsAt);
+      assert.doesNotMatch(
+        words(
+          pricingSource.slice(
+            pricingSource.indexOf('<div class="plans">'),
+            pricingSource.indexOf('<table class="stack">'),
+          ),
+        ).replace("$0", ""),
+        /\d/,
+        "a plan card states a number by hand",
+      );
+      const pricingText = words(pricing.slice(cardsAt, tableAt));
+      for (const t of [
+        `Requests a minute ${n(plans.free.requests_per_minute)} per IP address Registry lookups ${n(plans.free.registry_lookups_per_day)} a day per IP address Reports ${n(plans.free.reports_per_month)} a month per IP address`,
+        `$${pro.usd_per_month} a month, or $${pro.usd_per_year} a year API keys ${pro.keys} Requests a minute ${n(pro.requests_per_minute)} per key Registry lookups ${n(pro.registry_lookups_per_month)} a month Reports ${n(pro.reports_per_month)} a month`,
+        `$${team.usd_per_month} a month API keys ${team.keys} Requests a minute ${n(team.requests_per_minute)} per key Registry lookups ${n(team.registry_lookups_per_month)} a month Reports ${n(team.reports_per_month)} a month`,
+      ])
+        assert.ok(pricingText.includes(t), t);
+      const comparison = /<table class="stack">[\s\S]*?<\/table>/.exec(
+        pricing,
+      )![0];
+      const rows = comparison
+        .split("<tbody>")[1]!
+        .match(/<tr>[\s\S]*?<\/tr>/g)!;
+      assert.equal(rows.length, 13);
+      for (const row of rows)
+        assert.deepEqual(
+          [...row.matchAll(/<td data-label="([^"]*)"/g)].map((m) => m[1]),
+          ["Free", "Pro", "Team"],
+          words(row),
+        );
+      for (const label of [
+        "Value history by tax year",
+        "Recorded sales, deeds, mortgages and satisfactions of a parcel",
+        "A record on an earlier date",
+        "Equity candidates from a roll year you name",
+        "Parcels of an owner's portfolio",
+        "Batch lookup of many parcels",
+      ])
+        assert.ok(
+          rows.some((r) => words(r).startsWith(label)),
+          `the comparison has no row: ${label}`,
+        );
       const coverage = readFileSync(`${out}/coverage/index.html`, "utf8");
       assert.equal(coverage.split('class="covsvg inset"').length - 1, 3);
       const texasHub = readFileSync(`${out}/texas/index.html`, "utf8");

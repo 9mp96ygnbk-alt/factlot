@@ -16,7 +16,107 @@
   or Team.
 </p>
 
-<table>
+<div class="plans">
+  <article class="plan">
+    <h2>Free</h2>
+    <p class="price"><span class="amt">$0</span>, no key</p>
+    <dl>
+      <div>
+        <dt>Requests a minute</dt>
+        <dd>{{PLAN_FREE_RPM}} per IP address</dd>
+      </div>
+      <div>
+        <dt>Registry lookups</dt>
+        <dd>{{PLAN_FREE_LOOKUPS_DAY}} a day per IP address</dd>
+      </div>
+      <div>
+        <dt>Reports</dt>
+        <dd>{{PLAN_FREE_REPORTS}} a month per IP address</dd>
+      </div>
+      <div>
+        <dt>Support</dt>
+        <dd>GitHub Discussions</dd>
+      </div>
+    </dl>
+    <p>
+      <a class="button" href="{{REPO}}/blob/main/docs/getting-started.md"
+        >Get started</a
+      >
+    </p>
+  </article>
+  <article class="plan featured">
+    <h2>Pro</h2>
+    <p class="price">
+      <span class="amt">${{PLAN_PRO_MONTHLY_USD}}</span> a month, or
+      ${{PLAN_PRO_YEARLY_USD}} a year
+    </p>
+    <dl>
+      <div>
+        <dt>API keys</dt>
+        <dd>{{PLAN_PRO_KEYS}}</dd>
+      </div>
+      <div>
+        <dt>Requests a minute</dt>
+        <dd>{{PLAN_PRO_RPM}} per key</dd>
+      </div>
+      <div>
+        <dt>Registry lookups</dt>
+        <dd>{{PLAN_PRO_LOOKUPS}} a month</dd>
+      </div>
+      <div>
+        <dt>Reports</dt>
+        <dd>{{PLAN_PRO_REPORTS}} a month</dd>
+      </div>
+      <div>
+        <dt>Support</dt>
+        <dd>Email</dd>
+      </div>
+    </dl>
+    <p>
+      <a class="button primary" rel="nofollow" href="{{PLAN_CHECKOUT_PRO}}"
+        >Start Pro monthly, ${{PLAN_PRO_MONTHLY_USD}}</a
+      >
+      <a class="button" rel="nofollow" href="{{PLAN_CHECKOUT_PRO_YEARLY}}"
+        >Start Pro yearly, ${{PLAN_PRO_YEARLY_USD}}</a
+      >
+    </p>
+  </article>
+  <article class="plan">
+    <h2>Team</h2>
+    <p class="price">
+      <span class="amt">${{PLAN_TEAM_MONTHLY_USD}}</span> a month
+    </p>
+    <dl>
+      <div>
+        <dt>API keys</dt>
+        <dd>{{PLAN_TEAM_KEYS}}</dd>
+      </div>
+      <div>
+        <dt>Requests a minute</dt>
+        <dd>{{PLAN_TEAM_RPM}} per key</dd>
+      </div>
+      <div>
+        <dt>Registry lookups</dt>
+        <dd>{{PLAN_TEAM_LOOKUPS}} a month</dd>
+      </div>
+      <div>
+        <dt>Reports</dt>
+        <dd>{{PLAN_TEAM_REPORTS}} a month</dd>
+      </div>
+      <div>
+        <dt>Support</dt>
+        <dd>Priority</dd>
+      </div>
+    </dl>
+    <p>
+      <a class="button" rel="nofollow" href="{{PLAN_CHECKOUT_TEAM}}"
+        >Start Team</a
+      >
+    </p>
+  </article>
+</div>
+
+<table class="stack">
   <caption class="visually-hidden">
     Hosted plans
   </caption>
@@ -136,28 +236,6 @@
       <td>GitHub Discussions</td>
       <td>Email</td>
       <td>Priority</td>
-    </tr>
-    <tr>
-      <th scope="row"></th>
-      <td>
-        <a href="{{REPO}}/blob/main/docs/getting-started.md">Get started</a>
-      </td>
-      <td>
-        <a class="button primary" rel="nofollow" href="{{PLAN_CHECKOUT_PRO}}"
-          >Start Pro monthly, $49</a
-        >
-        <a
-          class="button primary"
-          rel="nofollow"
-          href="{{PLAN_CHECKOUT_PRO_YEARLY}}"
-          >Start Pro yearly, $490</a
-        >
-      </td>
-      <td>
-        <a class="button" rel="nofollow" href="{{PLAN_CHECKOUT_TEAM}}"
-          >Start Team</a
-        >
-      </td>
     </tr>
   </tbody>
 </table>

@@ -4,6 +4,11 @@
 audit trail, canonical property IDs, and public-record facts that cite the document they came
 from. Free to use hosted, free to run yourself, open source.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
+  <img src="docs/assets/readme-hero-light.svg" width="100%" alt="FactLot: every number has a source. An open fact layer for commercial real estate AI agents. A parcel record from the Harris County worked example, each value with the file and record it was read from.">
+</picture>
+
 [![CI](https://github.com/9mp96ygnbk-alt/factlot/actions/workflows/ci.yml/badge.svg)](https://github.com/9mp96ygnbk-alt/factlot/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/9mp96ygnbk-alt/factlot?sort=semver)](https://github.com/9mp96ygnbk-alt/factlot/releases/latest)
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.9mp96ygnbk--alt%2Ffactlot-blue)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)

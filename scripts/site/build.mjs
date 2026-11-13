@@ -133,7 +133,21 @@ const codeify = (text) =>
     (m) => `<code>${m}</code>`,
   );
 const proPlan = plansData.paid.find((p) => p.id === "pro");
+const teamPlan = plansData.paid.find((p) => p.id === "team");
+const grouped = (v) => v.toLocaleString("en-US");
 const PLAN_VARS = {
+  PLAN_FREE_RPM: grouped(plansData.free.requests_per_minute),
+  PLAN_FREE_LOOKUPS_DAY: grouped(plansData.free.registry_lookups_per_day),
+  PLAN_FREE_REPORTS: grouped(plansData.free.reports_per_month),
+  PLAN_PRO_KEYS: grouped(proPlan.keys),
+  PLAN_PRO_RPM: grouped(proPlan.requests_per_minute),
+  PLAN_PRO_LOOKUPS: grouped(proPlan.registry_lookups_per_month),
+  PLAN_PRO_REPORTS: grouped(proPlan.reports_per_month),
+  PLAN_TEAM_MONTHLY_USD: String(teamPlan.usd_per_month),
+  PLAN_TEAM_KEYS: grouped(teamPlan.keys),
+  PLAN_TEAM_RPM: grouped(teamPlan.requests_per_minute),
+  PLAN_TEAM_LOOKUPS: grouped(teamPlan.registry_lookups_per_month),
+  PLAN_TEAM_REPORTS: grouped(teamPlan.reports_per_month),
   PLAN_PAID_ONLY: codeify(plansData.paid_only_text),
   PLAN_LOOKUP_COUNTED: codeify(plansData.lookup_counted),
   PLAN_FREE_KEY_NOTE: esc(plansData.free.free_key_note),
@@ -195,14 +209,35 @@ function sections(body) {
   return { body: out, list };
 }
 
-/** Every table in a box it can scroll in, so a wide table never widens the page. */
+/**
+ * A table marked `stack` becomes one box per row on a phone, so each cell takes its column's
+ * heading as `data-label` (the row's own heading is the first column).
+ */
+function labelCells(table) {
+  const heads = [
+    ...(/<thead>[\s\S]*?<\/thead>/.exec(table)?.[0] ?? "").matchAll(
+      /<th\b[^>]*>([\s\S]*?)<\/th>/g,
+    ),
+  ].map((m) => text(m[1]));
+  return table.replace(/<tr>([\s\S]*?)<\/tr>/g, (row, cells) => {
+    let i = /<th\b/.test(cells) ? 1 : 0;
+    return `<tr>${cells.replace(/<td\b/g, () => `<td data-label="${esc(heads[i++] ?? "")}"`)}</tr>`;
+  });
+}
+
+/**
+ * Every table in a box: one it can scroll in, so a wide table never widens the page, or, for a
+ * table marked `stack`, one that lets its rows stand as boxes on a phone.
+ */
 const boxTables = (body) =>
   body.replace(/<table\b[\s\S]*?<\/table>/g, (table, offset) =>
     /<div class="(?:covscroll|tablewrap)[^"]*">$/.test(
       body.slice(0, offset).trimEnd(),
     )
       ? table
-      : `<div class="tablewrap">${table}</div>`,
+      : /^<table class="stack"/.test(table)
+        ? `<div class="tablewrap stacks">${labelCells(table)}</div>`
+        : `<div class="tablewrap">${table}</div>`,
   );
 
 /**
@@ -1351,8 +1386,6 @@ for (const [file, urlPath] of [
   );
   if (!harris) throw new Error("home: no Harris County worked example");
   const connect = connectData(connectRaw, VERSION);
-  const n = (v) => v.toLocaleString("en-US");
-  const team = plansData.paid.find((p) => p.id === "team");
   fs.writeFileSync(
     path.join(out, "index.html"),
     fill(read("site/index.html"), {
@@ -1374,18 +1407,6 @@ for (const [file, urlPath] of [
       CONNECT_MICROSOFT: connectTile(connect, "copilot-studio-mcp"),
       CONNECT_AMAZON: connectTile(connect, "bedrock-agents"),
       CONNECT_OTHERS: connectTile(connect, "other-clients"),
-      PLAN_FREE_RPM: n(plansData.free.requests_per_minute),
-      PLAN_FREE_LOOKUPS_DAY: n(plansData.free.registry_lookups_per_day),
-      PLAN_FREE_REPORTS: n(plansData.free.reports_per_month),
-      PLAN_PRO_KEYS: n(proPlan.keys),
-      PLAN_PRO_RPM: n(proPlan.requests_per_minute),
-      PLAN_PRO_LOOKUPS: n(proPlan.registry_lookups_per_month),
-      PLAN_PRO_REPORTS: n(proPlan.reports_per_month),
-      PLAN_TEAM_MONTHLY_USD: String(team.usd_per_month),
-      PLAN_TEAM_KEYS: n(team.keys),
-      PLAN_TEAM_RPM: n(team.requests_per_minute),
-      PLAN_TEAM_LOOKUPS: n(team.registry_lookups_per_month),
-      PLAN_TEAM_REPORTS: n(team.reports_per_month),
     }),
   );
 }
