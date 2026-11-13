@@ -495,6 +495,44 @@ test("HTTP: /run, /health and nothing else", async () => {
   );
 });
 
+test("HTTP: /get-many answers registry_get for each URN in order, with built_at", async () => {
+  const env = { ASSETS: fileAssets(join(dir, "pack")) };
+  const req = (path: string, init?: RequestInit) =>
+    handle(new Request(`https://registry.internal${path}`, init), env);
+  const urns = [
+    "fl:parcel:us-48999:0001-000-0001",
+    "fl:parcel:us-48999:9999-999-9999",
+    "not a urn",
+  ];
+  const res = await req("/get-many", {
+    method: "POST",
+    body: JSON.stringify({ urns }),
+  });
+  assert.equal(res.status, 200);
+  const b = (await res.json()) as { built_at: unknown; outcomes: unknown[] };
+  assert.equal(typeof b.built_at, "string");
+  assert.equal(b.outcomes.length, 3);
+  for (const [k, urn] of urns.entries()) {
+    const one = await req("/run", {
+      method: "POST",
+      body: JSON.stringify({ tool: "registry_get", input: { urn } }),
+    });
+    assert.deepEqual(b.outcomes[k], await one.json(), urn);
+  }
+  assert.equal((await req("/get-many")).status, 405);
+  for (const body of [
+    "{",
+    "{}",
+    '{"urns":[]}',
+    JSON.stringify({ urns: Array(51).fill(urns[0]) }),
+  ])
+    assert.equal(
+      (await req("/get-many", { method: "POST", body })).status,
+      400,
+      body.slice(0, 20),
+    );
+});
+
 function allFiles(root: string): string[] {
   return readdirSync(root, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? allFiles(join(root, e.name)) : [join(root, e.name)],

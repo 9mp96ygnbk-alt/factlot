@@ -261,3 +261,47 @@ export function reportLimits() {
     counted: `One report is one document built and stored (report_create or POST /v1/reports). Without a key, per IP address (stored only as a hash) per calendar month (UTC); with a key, per subscription per calendar month (UTC). Input errors are free. Download links work for ${REPORT_DOWNLOAD_HOURS} hours.`,
   };
 }
+
+// --- Watch lists --------------------------------------------------------------------------------
+
+/** Watch lists (Worker variable WATCH_LISTS_ENABLED = "true"; off when unset). */
+export function watchEnabled(env: { WATCH_LISTS_ENABLED?: string }): boolean {
+  return env.WATCH_LISTS_ENABLED === "true";
+}
+
+/**
+ * Watched subjects (list memberships) and named lists per subscription. The free tier has none:
+ * watch tools answer PlanRequired, unmetered.
+ */
+export const WATCH_LIMITS: Record<PlanId, { subjects: number; lists: number }> =
+  {
+    pro: { subjects: 200, lists: 20 },
+    team: { subjects: 5_000, lists: 100 },
+  };
+
+/** Subjects one watch_add call may name. */
+export const WATCH_ADD_MAX = 50;
+
+/** How watch lists are counted, one sentence each (in /v1/plans while they are on). */
+export const WATCH_RULES = {
+  tools:
+    "watch_add, watch_remove, watch_list, watch_changes and watch_alerts are hosted only, for Pro and Team keys.",
+  counted:
+    "watch_add reads each new subject once and counts one registry lookup per subject added; a subject already watched in another list of the subscription, an invalid URN and a subject the registry does not hold are not counted.",
+  free: "Listing, removing, reading changes, alerts and the checks after each registry update are not counted.",
+  checks:
+    "After each registry update every watched subject is compared with the new data once; changes stay readable with watch_changes for 400 days (at most 10,000 per subscription).",
+  alerts:
+    "watch_alerts sends a new address one confirmation email; once confirmed, one email per registry update that changed something the subscription watches, each with a one-click stop link.",
+};
+
+/** The watch-lists block of /v1/plans. */
+export function watchPlansInfo() {
+  return {
+    available: true,
+    free: { subjects: 0, lists: 0 },
+    pro: WATCH_LIMITS.pro,
+    team: WATCH_LIMITS.team,
+    rules: WATCH_RULES,
+  };
+}

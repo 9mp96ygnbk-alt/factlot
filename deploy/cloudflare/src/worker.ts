@@ -15,8 +15,11 @@ import {
 import { CLAIM_POLL_MS } from "./claim.ts";
 import { ANONYMOUS_REQUESTS_PER_MINUTE } from "./plans.ts";
 import { registryRunner } from "./registry.ts";
+import { lifecycleSweep } from "./lifecycle.ts";
 import { handle } from "./router.ts";
+import { scheduledJobs } from "./scheduled.ts";
 import type { Env, Fetcher } from "./types.ts";
+import { objectWatch, runWatchCheck } from "./watch-check.ts";
 
 export { RateLimiterObject } from "./limiter.ts";
 
@@ -33,24 +36,41 @@ const node = httpServerHandler({ port: PORT }) as {
 
 let boundRegistry: Fetcher | undefined;
 
+type RawEnv = Omit<Env, "RL_ANON" | "RL_CLAIM" | "METER" | "WATCH"> & {
+  LIMITER: DurableObjectNamespaceLike;
+};
+
+function workerEnv(raw: RawEnv): Env {
+  return {
+    ...raw,
+    RL_ANON: objectLimiter(raw.LIMITER, "anon", ANONYMOUS_REQUESTS_PER_MINUTE),
+    RL_CLAIM: objectLimiter(raw.LIMITER, "claim", 1, CLAIM_POLL_MS),
+    METER: objectMeter(raw.LIMITER),
+    WATCH: objectWatch(raw.LIMITER),
+  };
+}
+
 export default {
-  async fetch(
-    request: Request,
-    raw: Omit<Env, "RL_ANON" | "RL_CLAIM" | "METER"> & {
-      LIMITER: DurableObjectNamespaceLike;
-    },
-    ctx: unknown,
-  ): Promise<Response> {
-    const env: Env = {
-      ...raw,
-      RL_ANON: objectLimiter(
-        raw.LIMITER,
-        "anon",
-        ANONYMOUS_REQUESTS_PER_MINUTE,
-      ),
-      RL_CLAIM: objectLimiter(raw.LIMITER, "claim", 1, CLAIM_POLL_MS),
-      METER: objectMeter(raw.LIMITER),
-    };
+  /** Cron triggers (none is configured): scheduled.ts dispatches on the cron string. */
+  async scheduled(
+    controller: { cron?: string } | undefined,
+    raw: RawEnv,
+    ctx: { waitUntil(p: Promise<unknown>): void },
+  ): Promise<void> {
+    const env = workerEnv(raw);
+    for (const job of scheduledJobs(controller?.cron, {
+      watch: () =>
+        runWatchCheck(env).then((r) => {
+          if (r.state === "run")
+            console.log(JSON.stringify({ msg: "watch check", ...r }));
+        }),
+      lifecycle: () => lifecycleSweep(env),
+    }))
+      ctx.waitUntil(job);
+  },
+
+  async fetch(request: Request, raw: RawEnv, ctx: unknown): Promise<Response> {
+    const env = workerEnv(raw);
     // The binding is the same object on every request; the runner closes over it.
     if (raw.REGISTRY && raw.REGISTRY !== boundRegistry) {
       boundRegistry = raw.REGISTRY;

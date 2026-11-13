@@ -88,9 +88,21 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
+import {
+  lifecycleEnabled,
+  lifecycleRoute,
+  onFreeKeyAnswer,
+  onFreeKeyLimit,
+} from "./lifecycle.ts";
 import { propertyPagesRoute } from "./property-pages.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
-import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
+import {
+  accountFormPage,
+  accountPage,
+  escapeHtml,
+  messagePage,
+  page,
+} from "./pages.ts";
 import {
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
   freeKeyEnabled,
@@ -141,6 +153,7 @@ import {
   gatingEnabled,
   GATING_INFO,
   reportLimits,
+  watchPlansInfo,
   type Tier,
 } from "./plans.ts";
 import {
@@ -162,6 +175,24 @@ import type {
   QuotaSpec,
   QuotaState,
 } from "./types.ts";
+import {
+  CONFIRM_PATH,
+  STOP_PATH,
+  WATCH_PATHS,
+  WATCH_TOOL_NAMES,
+  answerWatchCall,
+  isWatchCall,
+  watchAccountAction,
+  watchAccountSection,
+  watchCaller,
+  readsRegistry,
+  MAX_WATCH_READ_CALLS_PER_REQUEST,
+  watchConfirmRoute,
+  watchEnabled,
+  watchRestRoute,
+  watchStopRoute,
+  watchToolsFor,
+} from "./watch.ts";
 
 const API_EXACT = new Set([
   "/mcp",
@@ -190,6 +221,11 @@ const USAGE_TOOL_NAMES: ReadonlySet<string> = new Set([
   REPORT_TOOL.name,
   "doc_extract_lease",
   "report_narrative",
+]);
+/** The same, with the watch-list tools (only while WATCH_LISTS_ENABLED is on). */
+const USAGE_TOOL_NAMES_WATCH: ReadonlySet<string> = new Set([
+  ...USAGE_TOOL_NAMES,
+  ...WATCH_TOOL_NAMES,
 ]);
 
 /** The inner handler's limit on messages in one MCP batch (createHandler's maxMcpBatch). */
@@ -850,9 +886,62 @@ async function route(
       path.startsWith("/account/free-key-delete/"))
   )
     return freeKeyRoute(request, env, url, path, opts, await addressKey());
+  // Dark unless LIFECYCLE_EMAILS_ENABLED is exactly "true": the paths then fall through to 404.
+  if (
+    lifecycleEnabled(env) &&
+    (path === "/account/stop" ||
+      path.startsWith("/account/stop/") ||
+      path === "/account/lifecycle")
+  ) {
+    // The two form posts are limited per address and their bodies capped, like the recovery form.
+    let body: string | undefined;
+    if (
+      request.method === "POST" &&
+      (path === "/account/stop" || path === "/account/lifecycle")
+    ) {
+      const address = await addressSubject(
+        clientAddress(request),
+        now(),
+        env.IP_HASH_SALT,
+      );
+      if (
+        !(await metered(env.RL_ANON.limit({ key: `lifecycle:${address}` })))
+          .success
+      )
+        return messagePage(
+          429,
+          "Optional emails",
+          "Too many tries from this address. Wait a minute.",
+        );
+      body = await readBody(request, 4 * 1024);
+      if (body === undefined)
+        return messagePage(413, "Optional emails", "The form is too large.");
+    }
+    const res = await lifecycleRoute(request, env, url, path, {
+      now,
+      body,
+      fetchImpl: opts.fetchImpl,
+      defer: deferWith(opts),
+    });
+    if (res) return res;
+  }
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
     return recoverRoute(request, env, url, path, opts);
   if (path === "/account") return accountRoute(request, env, url, api, opts);
+  // Watch-list alert stop and confirmation links (watch.ts); dark unless WATCH_LISTS_ENABLED is "true".
+  if (
+    watchEnabled(env) &&
+    (path.startsWith(STOP_PATH) || path.startsWith(CONFIRM_PATH))
+  ) {
+    const ok = await metered(
+      env.RL_ANON.limit({ key: `watchstop:${await addressKey()}` }),
+    );
+    if (!ok.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    return path.startsWith(STOP_PATH)
+      ? watchStopRoute(request, env, path)
+      : watchConfirmRoute(request, env, path, { now });
+  }
   if (path === "/v1/billing/webhook") {
     if (request.method !== "POST")
       return apiError(
@@ -910,6 +999,7 @@ async function route(
           ...(gating ? { gating: GATING_INFO } : {}),
           model_tools: modelPlansInfo(modelEnabled(env)),
           reports: { available: reportsEnabled(env), ...reportLimits() },
+          ...(watchEnabled(env) ? { watch_lists: watchPlansInfo() } : {}),
           checkout_open,
           checkout,
         }),
@@ -1243,7 +1333,12 @@ async function route(
       });
     mcpBatch = Array.isArray(mcpBody);
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
-    countToolCalls(env, items, kind, USAGE_TOOL_NAMES);
+    countToolCalls(
+      env,
+      items,
+      kind,
+      watchEnabled(env) ? USAGE_TOOL_NAMES_WATCH : USAGE_TOOL_NAMES,
+    );
     // Answers are matched to calls by id when lookups are charged, so two requests with one id
     // would let an error answer stand for a real one. JSON-RPC ids must be unique in a batch.
     if (mcpBatch && hasDuplicateIds(items))
@@ -1263,7 +1358,10 @@ async function route(
     // caller: without a key they answer PlanRequired, without the model ModelUnavailable) and
     // report_create (any caller).
     const hosted = (m: unknown) =>
-      (paid && isAccountCall(m)) || isModelCall(m) || refusedBatch(m);
+      (paid && isAccountCall(m)) ||
+      isModelCall(m) ||
+      refusedBatch(m) ||
+      isWatchCall(env, m);
     if (mcpBody !== undefined) {
       accountCalls = items.filter(hosted);
       reportCalls = reportsEnabled(env) ? items.filter(isReportCall) : [];
@@ -1485,6 +1583,8 @@ async function route(
           : undefined,
       });
       countEvent(env, "quota_exhausted", [kind, paid ? "month" : "day"]);
+      if (freeKey && !addressCapped)
+        onFreeKeyLimit(env, freeKey, hit.quota, deferWith(opts), now());
       headers["retry-after"] = String(deniedError.retry_after_seconds);
     }
   }
@@ -1560,6 +1660,20 @@ async function route(
       doubles: [status, 1],
     });
 
+  // Watch lists (watch.ts): answered here; dark unless WATCH_LISTS_ENABLED is "true".
+  if (watchEnabled(env) && WATCH_PATHS.has(path)) {
+    const res = await watchRestRoute(
+      request,
+      env,
+      path,
+      watchCaller(paid),
+      kind,
+      { now },
+    );
+    meterUsage(res.status);
+    return withHeaders(res, { ...corsHeaders(), ...headers });
+  }
+
   // REST routes of the model-backed tools, answered here (never by the inner handler).
   if (MODEL_PATHS.has(path)) {
     const res = await modelRestRoute(
@@ -1628,6 +1742,18 @@ async function route(
           })),
         ),
       );
+    // With lifecycle emails on, a free key's lookups are tallied like a plan's (by tool and
+    // region, no address or parcel) so the optional summary notes can state them.
+    if (freeKey && lifecycleEnabled(env) && counted.charged.length > 0)
+      deferWith(opts)(
+        env.METER.record(
+          freeKey.subject,
+          counted.charged.map((c) => ({
+            tool: c.tool,
+            region: regionOf(c.tool, c.args),
+          })),
+        ),
+      );
     if (unanswered > 0 && (await giveBack(unanswered, hit.quota.resets_at)))
       headers["x-factlot-registry-quota-remaining"] = String(
         Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
@@ -1649,9 +1775,20 @@ async function route(
       path === "/mcp" ? "mcp" : "rest",
       kind,
     );
+    if (freeKey)
+      await onFreeKeyAnswer(
+        env,
+        freeKey,
+        res,
+        path === "/mcp" ? "mcp" : "rest",
+        path === "/mcp" ? mcpBody : restText,
+        deferWith(opts),
+        now(),
+      );
   }
   if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;
+    let watchReads = 0;
     res = await withAccountTools(
       res,
       [
@@ -1659,15 +1796,27 @@ async function route(
           accountCalls.map((m) =>
             refusedBatch(m)
               ? refusedBatchAnswer(m, noteRefusal)
-              : isModelCall(m)
-                ? answerModelCall(
+              : isWatchCall(env, m)
+                ? answerWatchCall(
                     env,
-                    modelCaller,
+                    watchCaller(paid),
+                    kind,
                     m,
-                    opts.model,
-                    ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                    { now },
+                    readsRegistry(m) &&
+                      ++watchReads > MAX_WATCH_READ_CALLS_PER_REQUEST,
                   )
-                : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
+                : isModelCall(m)
+                  ? answerModelCall(
+                      env,
+                      modelCaller,
+                      m,
+                      opts.model,
+                      ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                    )
+                  : metered(
+                      answerAccountCall(env, paid!.hash, paid!.record, m),
+                    ),
           ),
         )),
         ...(await Promise.all(
@@ -1682,6 +1831,7 @@ async function route(
         ...(paid ? ACCOUNT_TOOLS : []),
         ...(reportsEnabled(env) ? [REPORT_TOOL] : []),
         ...modelToolsFor(env, modelCaller),
+        ...watchToolsFor(env, watchCaller(paid)),
       ],
     );
   }
@@ -2181,7 +2331,9 @@ async function accountRoute(
 ): Promise<Response> {
   const now = opts.now ?? Date.now;
   const formPage = (status?: number, notice?: string) =>
-    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env));
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env), {
+      lifecycle: lifecycleEnabled(env),
+    });
   if (request.method === "GET" || request.method === "HEAD") return formPage();
   if (request.method !== "POST")
     return apiError(
@@ -2245,6 +2397,14 @@ async function accountRoute(
       regions,
       connections,
       api: apiBase,
+      lifecycle: lifecycleEnabled(env),
+      watch: await watchAccountSection(
+        env,
+        k,
+        deriveStatus(r) === "active"
+          ? watchCaller({ hash: h, record: r })
+          : undefined,
+      ),
       ...o,
     });
   };
@@ -2270,6 +2430,19 @@ async function accountRoute(
       });
     }
   }
+  if (watchEnabled(env) && action.startsWith("watch_"))
+    return show(key, hash, record, {
+      notice: paid.active
+        ? await watchAccountAction(
+            env,
+            watchCaller(paid),
+            paid.record.plan,
+            action,
+            form,
+            { now },
+          )
+        : "Watch lists can be changed only while the subscription is active.",
+    });
   if (action === "disconnect") {
     const id = form.get("id") ?? "";
     const ok = await disconnect(env, record.subscription, id);
@@ -2358,6 +2531,7 @@ async function recoverRoute(
         "This form only works on its own page.",
         recoveryState(env),
         freeKeyEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
     const address = await addressSubject(
       clientAddress(request),
@@ -2372,6 +2546,7 @@ async function recoverRoute(
         "Too many tries from this address. Wait a minute.",
         recoveryState(env),
         freeKeyEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
     body = await readBody(request, 4 * 1024);
     if (body === undefined)
@@ -2380,6 +2555,7 @@ async function recoverRoute(
         "The form is too large.",
         recoveryState(env),
         freeKeyEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
   }
   if (token === undefined)
@@ -2435,7 +2611,9 @@ async function freeKeyRoute(
     );
   }
   const formPage = (status: number, notice: string) =>
-    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env));
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env), {
+      lifecycle: lifecycleEnabled(env),
+    });
   if (request.method === "POST" || request.method === "DELETE") {
     const origin = request.headers.get("origin");
     const jsonBody = (request.headers.get("content-type") ?? "").includes(

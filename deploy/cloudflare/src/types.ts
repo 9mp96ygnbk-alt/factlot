@@ -10,6 +10,16 @@ export interface KV {
     options?: { expirationTtl?: number },
   ): Promise<void>;
   delete(key: string): Promise<void>;
+  /** Optional: list keys by prefix (the Workers KV binding has it; the lifecycle sweep uses it). */
+  list?(options: {
+    prefix?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<{
+    keys: { name: string }[];
+    list_complete: boolean;
+    cursor?: string;
+  }>;
 }
 
 export interface RateLimit {
@@ -134,6 +144,19 @@ export interface SendEmail {
   send(message: EmailMessageBuilder): Promise<{ messageId: string }>;
 }
 
+/**
+ * Watch-list storage (watch-store.ts): operations on one subscription's object or on the index,
+ * inside the LIMITER Durable Object class.
+ */
+export interface WatchService {
+  sub<T>(
+    subscription: string,
+    op: string,
+    args?: Record<string, unknown>,
+  ): Promise<T>;
+  index<T>(op: string, args?: Record<string, unknown>): Promise<T>;
+}
+
 export interface Env {
   /** API-key records, Stripe checkout sessions already redeemed, cached price IDs. */
   KEYS: KV;
@@ -186,4 +209,19 @@ export interface Env {
   USAGE_COUNTERS_ENABLED?: string;
   /** "true" opens the free API key by email (POST /v1/keys/free, /account/free-key). Anything else, or unset: off, the routes answer 404 and the form is not shown. */
   FREE_KEY_ENABLED?: string;
+  /**
+   * "true" turns the lifecycle emails on (lifecycle.ts): the optional-email consent boxes, the
+   * stop link, the optional notes and the checkout return link. Anything else, or unset: off, no
+   * lifecycle message is sent, the boxes are not shown and the stop route answers 404.
+   */
+  LIFECYCLE_EMAILS_ENABLED?: string;
+  /**
+   * The operator's postal address as one line, printed in the footer of every optional note.
+   * Without it no optional note is sent.
+   */
+  POSTAL_ADDRESS?: string;
+  /** "true" turns watch lists on (watch.ts). Unset or anything else: off, tools unlisted, routes 404, no checks. */
+  WATCH_LISTS_ENABLED?: string;
+  /** Watch-list storage (set by worker.ts over the LIMITER namespace). */
+  WATCH?: WatchService;
 }

@@ -109,9 +109,11 @@
               replaces the earlier one, which stops working. At most 3 free keys
               are made a day from one IP address, and the free keys used from
               one IP address share 100 registry lookups a day. We send no
-              marketing email. You can delete a free key and the records kept
-              for it at factlot.com/account (we email a link to the address) or
-              with <code>DELETE /v1/keys/free</code> and the key; if you cannot,
+              marketing email unless you tick the separate box for optional
+              emails, which you can stop at any time (see the privacy notice).
+              You can delete a free key and the records kept for it at
+              factlot.com/account (we email a link to the address) or with
+              <code>DELETE /v1/keys/free</code> and the key; if you cannot,
               email contact@factlot.com from the address it was issued to. We
               may stop issuing free keys at any time.
             </li>
@@ -179,6 +181,13 @@
               commitment, and SSO.
             </li>
           </ul>
+          <p>
+            <strong>Watch lists.</strong> Where offered, Pro and Team include
+            watch lists: up to 200 watched records on Pro and 5,000 on Team,
+            compared after each registry update, with optional alert emails.
+            Adding a record counts one registry lookup; checks, reading changes
+            and alert emails do not.
+          </p>
           <p>
             <strong>Limits are hard caps.</strong> We never charge for overage.
             When you reach a limit, the call returns HTTP 429 with the time the
@@ -576,6 +585,12 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              12 November 2026 (second update): stated that free key holders and
+              buyers can ask for optional emails with a separate box, and that
+              Pro and Team include watch lists where offered (their limits, and
+              that adding a record counts one registry lookup).
+            </li>
             <li>
               12 November 2026: added the optional free API key by email (a free
               key has the Free plan's limits and rules, and its limits and

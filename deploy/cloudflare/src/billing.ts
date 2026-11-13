@@ -48,6 +48,7 @@ import {
   isPlanId,
   planForLookupKey,
   priceText,
+  watchEnabled,
   type PlanId,
 } from "./plans.ts";
 import { StripeError, stripeClient, verifyStripeSignature } from "./stripe.ts";
@@ -55,9 +56,20 @@ import type { StripeClient } from "./stripe.ts";
 import type { Env, KV } from "./types.ts";
 import { CHANGELOG_URL, CONTACT, DISCUSSIONS, SUPPORT_URL } from "./contact.ts";
 import { sendWelcomeEmail } from "./email.ts";
+import {
+  backLink,
+  backParams,
+  consentProof,
+  lifecycleEnabled,
+  readBack,
+  type Back,
+} from "./lifecycle-copy.ts";
 import { messagePage, onboardingPage } from "./pages.ts";
+import { propertyPath } from "../../registry/src/page-rules.ts";
 import { claimUrl, newClaim, storeClaim } from "./claim.ts";
 import { countEvent } from "./usage.ts";
+import { forgetPaidConsent } from "./lifecycle.ts";
+import { forgetWatch } from "./watch-forget.ts";
 
 /** How long a key's subscription status is trusted before it is re-checked with Stripe. */
 export const RECHECK_MS = 6 * 60 * 60 * 1000;
@@ -192,6 +204,11 @@ export interface CheckoutExtras {
   expiresAt?: number;
   /** Billing interval; "year" is Pro only and needs paid gating on (checked by the route). */
   interval?: BillingInterval;
+  /**
+   * What the buyer was looking at (a parcel's address search or its URN, sanitised, never an
+   * email address or key): carried in the success URL so the page after payment can link back.
+   */
+  back?: Back;
 }
 
 export async function startCheckout(
@@ -206,7 +223,7 @@ export async function startCheckout(
     mode: "subscription",
     "line_items[0][price]": price,
     "line_items[0][quantity]": 1,
-    success_url: `${site}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${site}/billing/success?session_id={CHECKOUT_SESSION_ID}${backParams(extras.back)}`,
     cancel_url: `${site}/pricing/`,
     allow_promotion_codes: true,
     billing_address_collection: "auto",
@@ -228,8 +245,9 @@ export async function createCheckout(
   d: BillingDeps,
   plan: PlanId,
   interval: BillingInterval = "month",
+  back?: Back,
 ): Promise<string> {
-  return (await startCheckout(d, plan, { interval })).url;
+  return (await startCheckout(d, plan, { interval, back })).url;
 }
 
 /** What a Stripe subscription object says about access. */
@@ -348,6 +366,7 @@ export async function redeemSession(
   d: BillingDeps,
   sessionId: string,
   by: RedeemedBy = "page",
+  back?: Back,
 ): Promise<Redeemed> {
   const kv = d.env.KEYS;
   if (!SESSION_RE.test(sessionId))
@@ -484,9 +503,23 @@ export async function redeemSession(
     { expirationTtl: INACTIVE_RETENTION_SECONDS },
   );
   const email = buyerEmail(session);
-  if (email) d.defer(sendWelcomeEmail(d.env, email, PLANS[plan]));
+  if (email)
+    d.defer(
+      sendWelcomeEmail(d.env, email, PLANS[plan], returnLink(d.env, back)),
+    );
   countEvent(d.env, "checkout_complete", [plan, by]);
   return { ok: true, key, plan };
+}
+
+/** The link back to what the buyer was viewing before checkout (lifecycle emails, when on). */
+function returnLink(env: Env, back?: Back) {
+  return backLink(
+    siteUrl(env),
+    back,
+    propertyPath,
+    (env as { PROPERTY_PAGES_ENABLED?: string }).PROPERTY_PAGES_ENABLED ===
+      "true",
+  );
 }
 
 /** The address the buyer gave Stripe Checkout. */
@@ -766,6 +799,14 @@ export async function handleWebhook(
           revoked++;
         }
       }
+      // Watch lists of a cancelled subscription are deleted (watch-forget.ts). A failure
+      // answers 503, so Stripe sends the event again. Nothing is called while watch lists are off.
+      if (watchEnabled(env) && stripeStatusIsTerminal(state.stripe_status))
+        await forgetWatch(env, sub);
+      // A cancelled plan's optional-email consent record goes too (lifecycle.ts), whether or not
+      // lifecycle emails are on: one KV read when there is none.
+      if (stripeStatusIsTerminal(state.stripe_status))
+        await forgetPaidConsent(env, sub);
       if (created)
         await kv.put(`subevt:${sub}`, String(created), {
           expirationTtl: INACTIVE_RETENTION_SECONDS,
@@ -1093,14 +1134,23 @@ export async function checkoutRoute(
   const isGet = request.method === "GET";
   let plan: unknown = url.searchParams.get("plan");
   let interval: unknown = url.searchParams.get("interval") ?? undefined;
+  // With lifecycle emails on, a checkout may carry what the buyer was looking at (q: an address
+  // search, urn: a parcel), sanitised, so the page after payment links back to it.
+  let back = lifecycleEnabled(env) ? readBack(url.searchParams) : undefined;
   if (!isGet) {
     try {
       const body = (await request.json()) as {
         plan?: unknown;
         interval?: unknown;
+        q?: unknown;
+        urn?: unknown;
       };
       plan = body.plan;
       interval = body.interval;
+      if (lifecycleEnabled(env))
+        back = readBack({
+          get: (name) => (name === "q" ? body.q : body.urn),
+        });
     } catch {
       plan = undefined;
     }
@@ -1151,7 +1201,7 @@ export async function checkoutRoute(
       return new Response(null, {
         status: 303,
         headers: {
-          location: await createCheckout(d, plan, billing),
+          location: await createCheckout(d, plan, billing, back),
           "cache-control": "no-store",
         },
       });
@@ -1161,6 +1211,7 @@ export async function checkoutRoute(
       claimId: claim.id,
       expiresAt: claim.expiresAt,
       interval: billing,
+      back,
     });
     await storeClaim(env, claim, checkout.id);
     return json(200, {
@@ -1197,9 +1248,16 @@ export async function successRoute(
   const d = billingDeps(env, fetchImpl, Date.now, defer);
   if (!d)
     return messagePage(503, "Paid plans open shortly", CHECKOUT_CLOSED_MESSAGE);
+  const lifecycle = lifecycleEnabled(env);
+  const back = lifecycle ? readBack(url.searchParams) : undefined;
   let result: Redeemed;
   try {
-    result = await redeemSession(d, url.searchParams.get("session_id") ?? "");
+    result = await redeemSession(
+      d,
+      url.searchParams.get("session_id") ?? "",
+      "page",
+      back,
+    );
   } catch (err) {
     if (!(err instanceof StripeError)) logStripeError("key issue", err);
     return messagePage(
@@ -1210,6 +1268,9 @@ export async function successRoute(
   }
   const site = siteUrl(env);
   const api = env.API_URL ?? "https://api.factlot.com";
+  const link = returnLink(env, back);
+  const issuedAt = Date.now();
+  const sessionId = url.searchParams.get("session_id") ?? "";
   if (result.ok)
     return onboardingPage({
       key: result.key,
@@ -1217,6 +1278,20 @@ export async function successRoute(
       api,
       site,
       model: modelEnabled(env),
+      back: link,
+      // The optional-email box, only where such notes can be sent.
+      consent:
+        lifecycle && env.EMAIL && env.RECOVERY_SIGNING_SECRET
+          ? {
+              sessionId,
+              issuedAt,
+              proof: await consentProof(
+                env.RECOVERY_SIGNING_SECRET,
+                sessionId,
+                issuedAt,
+              ),
+            }
+          : undefined,
     });
   // A revisit after the key was shown (here or to the buyer's agent): the guide, without the key.
   if (result.status === 409)
@@ -1225,6 +1300,7 @@ export async function successRoute(
       api,
       site,
       model: modelEnabled(env),
+      back: link,
       notice:
         result.by === "agent"
           ? {

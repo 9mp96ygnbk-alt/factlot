@@ -6,6 +6,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 import { createHandler } from "@factlot/server";
@@ -61,7 +62,34 @@ import { CLAIM_POLL_MS } from "./claim.ts";
 import { HOSTING_NOTE, WHATS_NEW } from "./news.ts";
 import { EXTRACT_LEASE_STEP, REPORTS_STEP } from "./onboarding.ts";
 import { REPORT_RULE, escapeHtml, onboardingPage } from "./pages.ts";
-import { PLANS, REPORTS_PER_MONTH, planForLookupKey } from "./plans.ts";
+import {
+  MESSAGES,
+  PROMO_DAILY_CAP,
+  freeConsentText,
+  optionalMessages,
+  encodeQuery,
+  freeWeekMessage,
+  paidConsentText,
+  paidWeekMessage,
+  unusedPaidMessage,
+  withheldMessage,
+} from "./lifecycle-copy.ts";
+import {
+  MARK_TTL_DAYS,
+  MAX_DUE_RETRIES,
+  SWEEP_BATCH,
+  addressHash,
+  deliverPromo,
+  lifecycleSweep,
+  recordConsent,
+} from "./lifecycle.ts";
+import { body } from "./email.ts";
+import {
+  PLANS,
+  REPORTS_PER_MONTH,
+  planForLookupKey,
+  priceText,
+} from "./plans.ts";
 import { createRecoveryToken } from "./recovery.ts";
 import {
   BATCH_CONCURRENCY,
@@ -94,12 +122,18 @@ class MemoryKV implements KV {
   async delete(k: string) {
     this.data.delete(k);
   }
-  async list(o: { prefix?: string } = {}) {
-    const keys = [...this.data.keys()]
+  async list(o: { prefix?: string; cursor?: string; limit?: number } = {}) {
+    const all = [...this.data.keys()]
       .filter((k) => k.startsWith(o.prefix ?? ""))
       .sort()
-      .map((name) => ({ name }));
-    return { keys, list_complete: true };
+      .filter((k) => o.cursor === undefined || k > o.cursor);
+    const page = o.limit === undefined ? all : all.slice(0, o.limit);
+    const complete = page.length === all.length;
+    return {
+      keys: page.map((name) => ({ name })),
+      list_complete: complete,
+      ...(complete ? {} : { cursor: page[page.length - 1] }),
+    };
   }
 }
 
@@ -8096,6 +8130,1849 @@ describe("MCP resources and prompts on the hosted /mcp", () => {
         index.tools.find((t) => t.name === "report_create")?.hosted_extra,
         true,
       );
+    });
+  });
+});
+
+describe("lifecycle emails", () => {
+  const SECRET = "test-recovery-secret";
+  const ADDRESS = "1 Test Way, Austin, TX 78701";
+  const PARCEL = "fl:parcel:us-48201:0001";
+  const j = (b: unknown) =>
+    new Response(JSON.stringify(b), {
+      headers: { "content-type": "application/json" },
+    });
+  /** A registry whose get answer has three roll years, so a free key's answer is cut. */
+  const gatedApi = {
+    fetch: async (r: Request) => {
+      await r.text();
+      return j({
+        urn: PARCEL,
+        value_history: [
+          { tax_year: 2025, market_value: 3 },
+          { tax_year: 2024, market_value: 2 },
+          { tax_year: 2023, market_value: 1 },
+        ],
+      });
+    },
+  };
+  function setup(over: Partial<Env> = {}) {
+    const mail = fakeEmail();
+    const e = env({
+      EMAIL: mail.binding,
+      RECOVERY_SIGNING_SECRET: SECRET,
+      FREE_KEY_ENABLED: "true",
+      LIFECYCLE_EMAILS_ENABLED: "true",
+      GATING_ENABLED: "true",
+      POSTAL_ADDRESS: ADDRESS,
+      ...over,
+    });
+    e.RL_ANON = new CountingLimit(100000);
+    return { mail, e };
+  }
+  type E = ReturnType<typeof env>;
+  const ask = (e: E, email: string, optional: boolean, ip = IP) =>
+    run(
+      e,
+      new Request("https://api.factlot.com/v1/keys/free", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          accept_terms: true,
+          ...(optional ? { lifecycle_emails: true } : {}),
+        }),
+        headers: { "content-type": "application/json", "cf-connecting-ip": ip },
+      }),
+    );
+  const linkOf = (text: string) =>
+    text.match(
+      /https:\/\/factlot\.com\/account\/free-key\/[A-Za-z0-9_.-]+/,
+    )?.[0];
+  const open = (e: E, url: string, method = "GET", body = "", ip = IP) =>
+    run(
+      e,
+      new Request(url, {
+        method,
+        body: method === "POST" ? body : undefined,
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "https://factlot.com",
+          "cf-connecting-ip": ip,
+        },
+      }),
+    );
+  const waitPassed = (e: E) => {
+    e.clock.t += 6 * 60_000;
+    for (const k of [...e.KEYS.data.keys()])
+      if (k.startsWith("freewait:")) e.KEYS.data.delete(k);
+  };
+  async function mint(
+    e: E,
+    mail: ReturnType<typeof fakeEmail>,
+    email: string,
+    optional: boolean,
+  ): Promise<string> {
+    const before = mail.sent.length;
+    assert.equal((await ask(e, email, optional)).status, 202);
+    assert.equal(mail.sent.length, before + 1, "one link email");
+    const res = await open(e, linkOf(mail.sent[before]!.text)!, "POST");
+    const key = (await res.text()).match(/fl_free_[A-Za-z0-9_-]{43}/)?.[0];
+    assert.ok(key, "key shown");
+    return key;
+  }
+  const flush = () => new Promise((r) => setImmediate(r));
+  /** A lookup, with the deferred work (the router defers emails) awaited. */
+  async function lookup(e: E, key: string, api = gatedApi, ip = IP) {
+    const deferred: Promise<unknown>[] = [];
+    const res = await handle(
+      new Request("https://api.factlot.com/v1/registry/get", {
+        method: "POST",
+        body: JSON.stringify({ urn: PARCEL }),
+        headers: {
+          "content-type": "application/json",
+          "cf-connecting-ip": ip,
+          authorization: `Bearer ${key}`,
+        },
+      }),
+      e,
+      api,
+      { now: () => e.clock.t, waitUntil: (p) => deferred.push(p) },
+    );
+    await Promise.all(deferred);
+    await flush();
+    return res;
+  }
+  const optionalMails = (mail: ReturnType<typeof fakeEmail>) =>
+    mail.sent.filter((m) =>
+      m.text.includes("Stop these emails with one click"),
+    );
+  const lcKeys = (e: E, prefix = "lc") =>
+    [...e.KEYS.data.keys()].filter((k) => k.startsWith(`${prefix}:`));
+  const DAY = 86_400_000;
+
+  it("sorts every message into one of two classes, and optional ones are the promotional ones", () => {
+    assert.equal(MESSAGES.A0.class, "transactional");
+    assert.equal(MESSAGES.B0.class, "transactional");
+    for (const id of ["A1", "A2", "A3", "A4", "B1", "B2"] as const)
+      assert.equal(MESSAGES[id].class, "promotional", id);
+    assert.deepEqual(optionalMessages("free"), ["A1", "A2", "A3", "A4"]);
+    assert.deepEqual(optionalMessages("paid"), ["B1", "B2"]);
+    assert.equal(PROMO_DAILY_CAP, 1);
+  });
+
+  it("is dark unless the variable is exactly true: no boxes, no stop route, no connect line, nothing sent", async () => {
+    for (const v of [undefined, "TRUE", "1", "yes", ""]) {
+      const { e, mail } = setup({ LIFECYCLE_EMAILS_ENABLED: v });
+      const page = await (
+        await run(e, new Request("https://factlot.com/account"))
+      ).text();
+      assert.match(page, /accept_terms/);
+      assert.doesNotMatch(page, /lifecycle_emails|account\/stop/);
+      const unknown = await run(
+        e,
+        new Request("https://factlot.com/account/nothing-here"),
+      );
+      for (const path of [
+        "/account/stop",
+        "/account/stop/x",
+        "/account/lifecycle",
+      ]) {
+        const r = await run(e, new Request(`https://factlot.com${path}`));
+        assert.equal(r.status, unknown.status, path);
+        assert.doesNotMatch(
+          await r.text(),
+          /Stop optional emails|Optional emails/,
+        );
+      }
+      const key = await mint(e, mail, "dark@example.com", true);
+      assert.doesNotMatch(mail.sent[0]!.text, /connect it to your assistant/);
+      assert.equal(lcKeys(e).length, 0, "no consent record");
+      await lookup(e, key);
+      assert.equal(optionalMails(mail).length, 0);
+      e.clock.t += 8 * DAY;
+      assert.deepEqual(await lifecycleSweep(e, e.clock.t), {
+        checked: 0,
+        sent: {},
+        removed: 0,
+        errors: 0,
+        complete: true,
+      });
+      // Strict equivalence: no free-key tally, no address in the link record, no lifecycle writes.
+      assert.equal(
+        (await e.METER.usage(`freekey:${keyId(await hashKey(key))}`, 7)).total,
+        0,
+        "no tally",
+      );
+      for (const [k, v] of e.KEYS.data)
+        if (k.startsWith("freelink:")) assert.doesNotMatch(v, /lc_to|dark@/);
+      assert.deepEqual(
+        [...e.KEYS.data.keys()].filter((k) => /^lc/.test(k)),
+        [],
+        "no lifecycle keys",
+      );
+      assert.equal(mail.sent.length, 1, "only the link email");
+    }
+  });
+
+  it("is not in the shipped wrangler config", () => {
+    const text = readFileSync(
+      new URL("../wrangler.jsonc", import.meta.url),
+      "utf8",
+    );
+    assert.doesNotMatch(text, /^\s*"LIFECYCLE_EMAILS_ENABLED"/m);
+    assert.doesNotMatch(text, /^\s*"POSTAL_ADDRESS"/m);
+  });
+
+  it("shows an unticked consent box on the free key form and a stop form on /account when on", async () => {
+    const { e } = setup();
+    const page = await (
+      await run(e, new Request("https://factlot.com/account"))
+    ).text();
+    const box = page.match(
+      /<input type="checkbox" name="lifecycle_emails"[^>]*>/,
+    )?.[0];
+    assert.ok(box, "box present");
+    assert.doesNotMatch(box, /checked|required/);
+    assert.ok(page.includes(escapeHtml(freeConsentText())));
+    assert.match(page, /action="\/account\/stop"/);
+    assert.match(
+      page,
+      /We email one link, once, unless you tick the box above/,
+    );
+  });
+
+  it("A0 (key link email) is transactional: it carries the connect line with or without the box, and needs no consent", async () => {
+    for (const optional of [false, true]) {
+      const { e, mail } = setup();
+      await ask(e, `a0-${optional}@example.com`, optional);
+      const text = mail.sent[0]!.text;
+      assert.match(text, /connect it to your assistant/);
+      assert.match(text, /https:\/\/factlot\.com\/mcp-server\//);
+      assert.doesNotMatch(text, /Stop these emails/);
+      assert.match(text, /transactional/);
+      assert.equal(
+        lcKeys(e).length,
+        0,
+        "nothing recorded before the link is opened",
+      );
+    }
+  });
+
+  it("records consent only when the link is opened, only if the box was ticked, and no extra personal data", async () => {
+    const { e, mail } = setup();
+    await ask(e, "yes@example.com", true);
+    assert.equal(lcKeys(e).length, 0, "not at request");
+    const link = linkOf(mail.sent[0]!.text)!;
+    const key = (await (await open(e, link, "POST")).text()).match(
+      /fl_free_[A-Za-z0-9_-]{43}/,
+    )?.[0];
+    assert.ok(key);
+    const [name] = lcKeys(e);
+    assert.match(name!, /^lc:free:[0-9a-f]{64}$/);
+    const rec = JSON.parse(e.KEYS.data.get(name!)!) as Record<string, unknown>;
+    assert.equal(rec.to, "yes@example.com");
+    assert.equal(typeof rec.consent_at, "string");
+    assert.deepEqual(Object.keys(rec).sort(), [
+      "consent_at",
+      "key_hash",
+      "kind",
+      "since",
+      "subject",
+      "to",
+      "v",
+    ]);
+    await mint(e, mail, "no@example.com", false);
+    assert.equal(lcKeys(e).length, 1, "an unticked box records nothing");
+  });
+
+  it("A1: the first gated answer to a consenting free key sends one note with the facts of the answer, once", async () => {
+    const { e, mail } = setup();
+    const key = await mint(e, mail, "a1@example.com", true);
+    assert.equal((await lookup(e, key)).status, 200);
+    const sent = optionalMails(mail);
+    assert.equal(sent.length, 1);
+    const m = sent[0]!;
+    assert.equal(m.to, "a1@example.com");
+    assert.match(
+      m.text,
+      /2 earlier roll years for that record \(2023 to 2024\)/,
+    );
+    assert.match(
+      m.text,
+      new RegExp(
+        `https://factlot\\.com/billing/checkout\\?plan=pro&urn=${encodeQuery(PARCEL).replaceAll(".", "\\.")}`,
+      ),
+    );
+    assert.ok(
+      m.text.includes(`${priceText(PLANS.pro)}`),
+      "price from plans.ts",
+    );
+    assert.ok(m.text.includes(ADDRESS), "postal address");
+    assert.match(
+      m.text,
+      /https:\/\/factlot\.com\/account\/stop\/[0-9a-f]{64}\.[0-9a-f]{64}/,
+    );
+    assert.doesNotMatch(m.text, /fl_free_/);
+    // Once per person per message, even on the next day.
+    e.clock.t += DAY;
+    await lookup(e, key);
+    assert.equal(optionalMails(mail).length, 1);
+    // A free key whose owner did not tick the box gets nothing.
+    const other = await mint(e, mail, "a1-no@example.com", false);
+    await lookup(e, other, gatedApi, "198.51.100.4");
+    assert.equal(optionalMails(mail).length, 1);
+  });
+
+  it("A3: running out of the day's lookups sends one note with the limit; the daily cap holds one note a day", async () => {
+    const { e, mail } = setup();
+    const plain = innerApi().api;
+    const key = await mint(e, mail, "a3@example.com", true);
+    const ip = "198.51.100.7";
+    for (let i = 0; i < 25; i++)
+      assert.equal(
+        (await lookup(e, key, plain as typeof gatedApi, ip)).status,
+        200,
+        `${i}`,
+      );
+    assert.equal(optionalMails(mail).length, 0);
+    assert.equal(
+      (await lookup(e, key, plain as typeof gatedApi, ip)).status,
+      429,
+    );
+    const sent = optionalMails(mail);
+    assert.equal(sent.length, 1);
+    assert.match(sent[0]!.text, /used its 25 registry lookups for today/);
+    assert.match(sent[0]!.text, /5,000 registry lookups a month/);
+    // Again the same day: once only.
+    await lookup(e, key, plain as typeof gatedApi, ip);
+    assert.equal(optionalMails(mail).length, 1);
+    // The cap: another person gets A1 and then, the same day, A3 is held back.
+    const { e: e2, mail: mail2 } = setup();
+    const k2 = await mint(e2, mail2, "cap@example.com", true);
+    await lookup(e2, k2); // A1
+    assert.equal(optionalMails(mail2).length, 1);
+    for (let i = 0; i < 24; i++) await lookup(e2, k2, plain as typeof gatedApi);
+    assert.equal((await lookup(e2, k2, plain as typeof gatedApi)).status, 429);
+    assert.equal(
+      optionalMails(mail2).length,
+      1,
+      "A3 waits: one optional note a day",
+    );
+  });
+
+  it("the daily cap is per person per UTC day: the held note goes out the next day it is triggered", async () => {
+    const { e, mail } = setup();
+    const k = await mint(e, mail, "cap2@example.com", true);
+    const h = lcKeys(e)[0]!.split(":")[2]!;
+    const now = e.clock.t;
+    const build = (_r: unknown, ctx: { stopUrl: string }) => ({
+      subject: "x",
+      text: ctx.stopUrl,
+      html: "x",
+    });
+    assert.equal(await deliverPromo(e, "free", h, "A1", now, build), "sent");
+    assert.equal(
+      await deliverPromo(e, "free", h, "A3", now + 1000, build),
+      "cap",
+    );
+    assert.equal(
+      await deliverPromo(e, "free", h, "A3", now + DAY, build),
+      "sent",
+    );
+    assert.equal(
+      await deliverPromo(e, "free", h, "A3", now + 2 * DAY, build),
+      "already",
+    );
+    assert.equal(k.startsWith("fl_free_"), true);
+  });
+
+  it("A2 and A4: the daily sweep sends the unused-key note after 2 days and the recap after 7, with the key's own numbers", async () => {
+    const { e, mail } = setup();
+    const idle = await mint(e, mail, "idle@example.com", true);
+    const busy = await mint(e, mail, "busy@example.com", true);
+    for (let i = 0; i < 3; i++)
+      await lookup(e, busy, innerApi().api as typeof gatedApi, "198.51.100.9");
+    assert.ok(idle);
+    assert.deepEqual(
+      (await lifecycleSweep(e, e.clock.t)).sent,
+      {},
+      "too early",
+    );
+    e.clock.t += 3 * DAY;
+    const r2 = await lifecycleSweep(e, e.clock.t);
+    assert.deepEqual(r2.sent, { A2: 1 });
+    const a2 = optionalMails(mail).find((m) => m.to === "idle@example.com")!;
+    assert.match(a2.text, /has not made a lookup yet/);
+    // Once only, and the active key never gets A2.
+    assert.deepEqual((await lifecycleSweep(e, e.clock.t)).sent, {});
+    e.clock.t += 5 * DAY;
+    const r4 = await lifecycleSweep(e, e.clock.t);
+    assert.deepEqual(r4.sent, { A4: 1 });
+    const a4 = optionalMails(mail).find((m) => m.to === "busy@example.com")!;
+    assert.match(a4.text, /has made 3 registry lookups/);
+    assert.match(a4.text, /registry_get/);
+    assert.match(a4.subject, /3 lookups/);
+    assert.deepEqual((await lifecycleSweep(e, e.clock.t)).sent, {});
+  });
+
+  it("B1 and B2: a consenting paid plan gets the day-1 and day-7 notes; consent is recorded from the page after checkout", async () => {
+    const paid = {
+      status: "complete",
+      payment_status: "paid",
+      mode: "subscription",
+      subscription: "sub_9",
+      customer: "cus_9",
+      customer_details: { email: "buyer@example.com" },
+      metadata: { factlot_plan: "pro" },
+    };
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [200, paid],
+    });
+    const { e, mail } = setup({ STRIPE_SECRET_KEY: "sk_test_x" });
+    const page = await (
+      await run(
+        e,
+        new Request(
+          `https://factlot.com/billing/success?session_id=${SESSION}`,
+        ),
+        s.fetchImpl,
+      )
+    ).text();
+    assert.ok(page.includes(escapeHtml(paidConsentText())));
+    assert.match(page, /name="lifecycle_emails"/);
+    assert.doesNotMatch(
+      page.match(/<input type="checkbox" name="lifecycle_emails"[^>]*>/)![0],
+      /checked/,
+    );
+    assert.equal(
+      mail.sent.length,
+      1,
+      "the welcome email, sent without consent",
+    );
+    // Unticked: nothing recorded.
+    // The success page stamps its proof with the real clock; bring the test clock to it.
+    e.clock.t = Date.now();
+    const proof = {
+      t: page.match(/name="t" value="(\d+)"/)![1]!,
+      p: page.match(/name="proof" value="([0-9a-f]+)"/)![1]!,
+    };
+    const form = (extra: string) =>
+      run(
+        e,
+        new Request("https://factlot.com/account/lifecycle", {
+          method: "POST",
+          body: `session_id=${SESSION}&t=${proof.t}&proof=${proof.p}${extra}`,
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            origin: "https://factlot.com",
+            "cf-connecting-ip": IP,
+          },
+        }),
+        s.fetchImpl,
+      );
+    assert.equal((await form("")).status, 200);
+    assert.equal(lcKeys(e).length, 0);
+    assert.equal((await form("&lifecycle_emails=1")).status, 200);
+    const [name] = lcKeys(e);
+    assert.match(name!, /^lc:paid:/);
+    // The plan's key (written by the redemption) is active; B1 after a day with no lookups.
+    e.clock.t += 2 * DAY;
+    // Refresh the key record's check time so no Stripe re-check is needed.
+    const sub = JSON.parse(e.KEYS.data.get("sub:sub_9")!) as string[];
+    const kr = JSON.parse(e.KEYS.data.get(`key:${sub[0]}`)!) as KeyRecord;
+    await writeKey(
+      e.KEYS,
+      sub[0]!,
+      { ...kr, checked_at: e.clock.t },
+      e.clock.t,
+    );
+    const r1 = await lifecycleSweep(e, e.clock.t);
+    assert.deepEqual(r1.sent, { B1: 1 });
+    const b1 = optionalMails(mail)[0]!;
+    assert.equal(b1.to, "buyer@example.com");
+    assert.match(b1.text, /\/v1\/onboarding\?plan=pro/);
+    assert.match(b1.text, /Stop these emails/);
+    // Usage in the plan's meter, then day 7: B2 with the plan's own numbers.
+    await e.METER.record("sub:sub_9", [
+      { tool: "registry_get", region: "us-48" },
+      { tool: "registry_get", region: "us-48" },
+    ]);
+    e.clock.t += 6 * DAY;
+    await writeKey(
+      e.KEYS,
+      sub[0]!,
+      { ...kr, checked_at: e.clock.t },
+      e.clock.t,
+    );
+    assert.deepEqual((await lifecycleSweep(e, e.clock.t)).sent, { B2: 1 });
+    const b2 = optionalMails(mail)[1]!;
+    assert.match(b2.text, /has made 2 registry lookups/);
+    assert.ok(
+      b2.text.includes(
+        PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US"),
+      ),
+    );
+  });
+
+  it("promotional notes need consent; with no record the sweep and the triggers send nothing; welcome (B0) needs none", async () => {
+    const { e, mail } = setup();
+    const key = await mint(e, mail, "plain@example.com", false);
+    await lookup(e, key);
+    e.clock.t += 9 * DAY;
+    assert.deepEqual((await lifecycleSweep(e, e.clock.t)).sent, {});
+    assert.equal(optionalMails(mail).length, 0);
+    assert.equal(mail.sent.length, 1);
+    // B0: the welcome email is sent on checkout with the box never shown or ticked.
+    const s = fakeStripe({
+      [`GET /checkout/sessions/${SESSION}`]: () => [
+        200,
+        {
+          status: "complete",
+          payment_status: "paid",
+          mode: "subscription",
+          subscription: "sub_1",
+          customer: "cus_1",
+          customer_details: { email: "buyer@example.com" },
+          metadata: { factlot_plan: "pro" },
+        },
+      ],
+    });
+    const e2 = env({
+      STRIPE_SECRET_KEY: "sk_test_x",
+      EMAIL: mail.binding,
+      LIFECYCLE_EMAILS_ENABLED: "true",
+    });
+    await run(
+      e2,
+      new Request(`https://factlot.com/billing/success?session_id=${SESSION}`),
+      s.fetchImpl,
+    );
+    assert.equal(mail.sent.at(-1)!.subject, "Welcome to FactLot Pro");
+    assert.doesNotMatch(mail.sent.at(-1)!.text, /Stop these emails/);
+  });
+
+  it("optional notes are not sent without a postal address, a sender or the signing secret", async () => {
+    for (const over of [
+      { POSTAL_ADDRESS: undefined },
+      { POSTAL_ADDRESS: "   " },
+    ]) {
+      const { e, mail } = setup(over);
+      const key = await mint(e, mail, "noaddr@example.com", true);
+      await lookup(e, key);
+      assert.equal(optionalMails(mail).length, 0);
+      assert.equal(mail.sent.length, 1);
+    }
+  });
+
+  it("the stop link works without signing in, is single-purpose, and is idempotent", async () => {
+    const { e, mail } = setup();
+    const key = await mint(e, mail, "stop@example.com", true);
+    await lookup(e, key);
+    const m = optionalMails(mail)[0]!;
+    const stop = m.text.match(
+      /https:\/\/factlot\.com\/account\/stop\/[0-9a-f.]+/,
+    )![0];
+    assert.match(m.html ?? "", /account\/stop\//);
+    // A HEAD (mail scanner) changes nothing, and neither does a GET: it shows a button.
+    assert.equal((await open(e, stop, "HEAD")).status, 200);
+    const shown = await open(e, stop);
+    assert.equal(shown.status, 200);
+    assert.match(await shown.text(), /<button[^>]*>Stop optional emails/);
+    assert.equal(lcKeys(e).length, 1, "a GET stops nothing");
+    const first = await open(e, stop, "POST", "List-Unsubscribe=One-Click");
+    assert.equal(first.status, 200);
+    assert.match(await first.text(), /Optional emails stopped/);
+    assert.equal(lcKeys(e).length, 0, "consent record and address deleted");
+    assert.equal(lcKeys(e, "lcstop").length, 1);
+    const marker = [...e.KEYS.data.entries()].find(([k]) =>
+      k.startsWith("lcstop:"),
+    )!;
+    assert.match(marker[1], /^2026-/, "only a time");
+    // Again, by POST (one-click): the same.
+    assert.equal(
+      (await open(e, stop, "POST", "List-Unsubscribe=One-Click")).status,
+      200,
+    );
+    assert.equal(lcKeys(e, "lcstop").length, 1);
+    // Single purpose: a forged or cut token does nothing; the stop token is not a key link.
+    const forged = `${stop.slice(0, -1)}${stop.endsWith("a") ? "b" : "a"}`;
+    assert.equal((await open(e, forged)).status, 404);
+    assert.equal(
+      (await open(e, "https://factlot.com/account/stop/nonsense")).status,
+      404,
+    );
+    const token = stop.split("/").pop()!;
+    assert.equal(
+      (await open(e, `https://factlot.com/account/free-key/${token}`, "POST"))
+        .status,
+      404,
+      "a stop token cannot mint a key",
+    );
+    assert.equal(
+      (
+        await open(
+          e,
+          `https://factlot.com/account/free-key-delete/${token}`,
+          "POST",
+        )
+      ).status,
+      404,
+      "a stop token cannot delete a key",
+    );
+    assert.equal(
+      (await open(e, `https://factlot.com/account/recover/${token}`, "POST"))
+        .status,
+      404,
+    );
+    // And a key-link token cannot stop.
+    await ask(e, "someone@example.com", false);
+    const link = linkOf(mail.sent.at(-1)!.text)!;
+    assert.equal(
+      (
+        await open(
+          e,
+          `https://factlot.com/account/stop/${link.split("/").pop()}`,
+        )
+      ).status,
+      404,
+    );
+  });
+
+  it("the account page stops optional emails by address, with the same answer for every address", async () => {
+    const { e, mail } = setup();
+    await mint(e, mail, "form@example.com", true);
+    assert.equal(lcKeys(e).length, 1);
+    const stop = (email: string) =>
+      open(
+        e,
+        "https://factlot.com/account/stop",
+        "POST",
+        `email=${encodeURIComponent(email)}`,
+      );
+    const a = await stop("form@example.com");
+    const b = await stop("never-signed-up@example.com");
+    assert.equal(a.status, 200);
+    const bare = (r: string) => r.replace(/nonce="[^"]*"/g, "");
+    assert.equal(bare(await a.text()), bare(await b.text()));
+    assert.equal(lcKeys(e).length, 0);
+    assert.equal((await stop("not an email")).status, 400);
+  });
+
+  it("a stopped address never gets an optional note again: not after a new key, not after deleting the key, not after ticking again", async () => {
+    const { e, mail } = setup();
+    const k1 = await mint(e, mail, "gone@example.com", true);
+    await open(
+      e,
+      "https://factlot.com/account/stop",
+      "POST",
+      "email=gone%40example.com",
+    );
+    assert.equal(lcKeys(e).length, 0);
+    // A new key with the box ticked: the key and the link email are fine, no consent is recorded.
+    waitPassed(e);
+    const k2 = await mint(e, mail, "gone@example.com", true);
+    assert.notEqual(k1, k2);
+    assert.equal(lcKeys(e).length, 0);
+    await lookup(e, k2);
+    assert.equal(optionalMails(mail).length, 0);
+    e.clock.t += 9 * DAY;
+    assert.deepEqual((await lifecycleSweep(e, e.clock.t)).sent, {});
+    // Deleting the key does not delete the stop marker.
+    const del = await handle(
+      new Request("https://api.factlot.com/v1/keys/free", {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${k2}`, "cf-connecting-ip": IP },
+      }),
+      e,
+      innerApi().api,
+      { now: () => e.clock.t },
+    );
+    assert.equal(del.status, 200);
+    assert.equal(lcKeys(e, "lcstop").length, 1);
+    waitPassed(e);
+    const k3 = await mint(e, mail, "gone@example.com", true);
+    assert.equal(lcKeys(e).length, 0);
+    await lookup(e, k3);
+    assert.equal(optionalMails(mail).length, 0);
+  });
+
+  it("re-issuing a key keeps the consent and the sent history; deleting the key deletes the consent record and its address", async () => {
+    const { e, mail } = setup();
+    const k1 = await mint(e, mail, "reissue@example.com", true);
+    await lookup(e, k1); // A1
+    assert.equal(optionalMails(mail).length, 1);
+    waitPassed(e);
+    e.clock.t += DAY;
+    const k2 = await mint(e, mail, "reissue@example.com", false);
+    const [name] = lcKeys(e);
+    const rec = JSON.parse(e.KEYS.data.get(name!)!) as { key_hash: string };
+    const marks = JSON.parse(
+      e.KEYS.data.get(name!.replace("lc:", "lcmark:"))!,
+    ) as Record<string, string>;
+    assert.ok(marks.A1, "history kept");
+    assert.equal(rec.key_hash, await hashKey(k2), "points at the new key");
+    await lookup(e, k2);
+    assert.equal(
+      optionalMails(mail).length,
+      1,
+      "A1 is not sent again for the new key",
+    );
+    const del = await handle(
+      new Request("https://api.factlot.com/v1/keys/free", {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${k2}`, "cf-connecting-ip": IP },
+      }),
+      e,
+      innerApi().api,
+      { now: () => e.clock.t },
+    );
+    assert.equal(del.status, 200);
+    assert.equal(lcKeys(e).length, 0);
+    assert.ok(
+      ![...e.KEYS.data.values()].some((v) => v.includes("reissue@example.com")),
+    );
+  });
+
+  it("turning the variable off stops everything already recorded", async () => {
+    const { e, mail } = setup();
+    const key = await mint(e, mail, "off@example.com", true);
+    e.LIFECYCLE_EMAILS_ENABLED = undefined;
+    await lookup(e, key);
+    e.clock.t += 9 * DAY;
+    assert.deepEqual((await lifecycleSweep(e, e.clock.t)).sent, {});
+    assert.equal(optionalMails(mail).length, 0);
+  });
+
+  it("the sweep removes records whose key is gone", async () => {
+    const { e, mail } = setup();
+    await mint(e, mail, "swept@example.com", true);
+    for (const k of [...e.KEYS.data.keys()])
+      if (k.startsWith("freekey:")) e.KEYS.data.delete(k);
+    e.clock.t += 3 * DAY;
+    const r = await lifecycleSweep(e, e.clock.t);
+    assert.equal(r.removed, 1);
+    assert.equal(lcKeys(e).length, 0);
+  });
+
+  it("each optional message carries the postal address, a stop link and the one-click headers", async () => {
+    const seen: Record<string, string>[] = [];
+    const { e, mail } = setup();
+    const send = e.EMAIL!.send.bind(e.EMAIL);
+    e.EMAIL = {
+      send: async (m) => {
+        seen.push((m as { headers?: Record<string, string> }).headers ?? {});
+        return send(m);
+      },
+    };
+    const key = await mint(e, mail, "hdr@example.com", true);
+    await lookup(e, key);
+    const m = optionalMails(mail)[0]!;
+    assert.ok(m.text.includes(ADDRESS));
+    const h = seen.at(-1)!;
+    assert.match(
+      h["List-Unsubscribe"]!,
+      /^<https:\/\/factlot\.com\/account\/stop\//,
+    );
+    assert.equal(h["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
+  });
+
+  it("no email address or key appears in any URL in any message, or in any log line", async () => {
+    const { e, mail } = setup();
+    let key = "";
+    const logs = await captureLogs(async () => {
+      key = await mint(e, mail, "private.person@example.com", true);
+      await lookup(e, key);
+      await open(
+        e,
+        "https://factlot.com/account/stop",
+        "POST",
+        "email=private.person%40example.com",
+      );
+      e.clock.t += 9 * DAY;
+      await lifecycleSweep(e, e.clock.t);
+    });
+    for (const m of mail.sent) {
+      for (const url of m.text.match(/https?:\/\/\S+/g) ?? []) {
+        assert.doesNotMatch(
+          url,
+          /@|private|example\.com|fl_free_|fl_live_/i,
+          url,
+        );
+      }
+    }
+    assert.doesNotMatch(
+      logs,
+      /private\.person|example\.com|fl_free_|fl_live_|account\/stop\/[0-9a-f]/,
+    );
+    assert.ok(key);
+  });
+
+  describe("the checkout return link", () => {
+    const paid = {
+      status: "complete",
+      payment_status: "paid",
+      mode: "subscription",
+      subscription: "sub_1",
+      customer: "cus_1",
+      customer_details: { email: "buyer@example.com" },
+      metadata: { factlot_plan: "pro" },
+    };
+    function stripe() {
+      const created: URLSearchParams[] = [];
+      return {
+        created,
+        ...fakeStripe({
+          "GET /prices": () => [200, { data: [{ id: "price_1" }] }],
+          "POST /checkout/sessions": (b) => {
+            created.push(b);
+            return [
+              200,
+              { id: "cs_live_x1", url: "https://checkout.stripe.com/c/x" },
+            ];
+          },
+          [`GET /checkout/sessions/${SESSION}`]: () => [200, paid],
+        }),
+      };
+    }
+    const start = (e: E, qs: string, s: ReturnType<typeof stripe>) =>
+      run(
+        e,
+        new Request(`https://factlot.com/billing/checkout?plan=pro${qs}`, {
+          headers: { "cf-connecting-ip": IP },
+        }),
+        s.fetchImpl,
+      );
+
+    it("carries a sanitised address or parcel through Stripe's success URL, and the success page and welcome email link back", async () => {
+      const s = stripe();
+      const { e, mail } = setup({
+        STRIPE_SECRET_KEY: "sk_live_x",
+        PROPERTY_PAGES_ENABLED: "true",
+      } as Partial<Env>);
+      const res = await start(e, "&q=1000+Louisiana+St", s);
+      assert.equal(res.status, 303);
+      const success = s.created[0]!.get("success_url")!;
+      assert.equal(
+        success,
+        "https://factlot.com/billing/success?session_id={CHECKOUT_SESSION_ID}&q=1000%20Louisiana%20St",
+      );
+      const page = await (
+        await run(
+          e,
+          new Request(
+            `https://factlot.com/billing/success?session_id=${SESSION}&q=1000+Louisiana+St`,
+          ),
+          s.fetchImpl,
+        )
+      ).text();
+      assert.match(
+        page,
+        /href="https:\/\/factlot\.com\/try\/\?q=1000%20Louisiana%20St"/,
+      );
+      assert.match(page, /Back to your lookup/);
+      assert.match(
+        mail.sent[0]!.text,
+        /Back to your lookup: https:\/\/factlot\.com\/try\/\?q=1000%20Louisiana%20St/,
+      );
+      // A parcel: the property page when those are on.
+      const s2 = stripe();
+      await start(e, `&urn=${encodeURIComponent(PARCEL)}`, s2);
+      assert.match(
+        s2.created[0]!.get("success_url")!,
+        /&urn=fl%3Aparcel%3Aus%2D48201%3A0001$/,
+      );
+      e.KEYS.data.delete(`session:${SESSION}`);
+      for (const k of [...e.KEYS.data.keys()])
+        if (k.startsWith("key:") || k.startsWith("sub:")) e.KEYS.data.delete(k);
+      const page2 = await (
+        await run(
+          e,
+          new Request(
+            `https://factlot.com/billing/success?session_id=${SESSION}&urn=${encodeURIComponent(PARCEL)}`,
+          ),
+          s.fetchImpl,
+        )
+      ).text();
+      assert.match(
+        page2,
+        /href="https:\/\/factlot\.com\/property\/us-48201\/0001"/,
+      );
+    });
+
+    it("sanitises and length-limits what it carries; an email address or key cannot ride along", async () => {
+      const s = stripe();
+      const { e } = setup({ STRIPE_SECRET_KEY: "sk_live_x" });
+      await start(
+        e,
+        `&q=${encodeURIComponent("<script>alert(1)</script> bob@example.com fl_live_abc " + "x".repeat(500))}`,
+        s,
+      );
+      const success = s.created[0]!.get("success_url")!;
+      const q = decodeURIComponent(success.split("&q=")[1]!);
+      assert.ok(q.length <= 120, `${q.length}`);
+      assert.doesNotMatch(q, /[<>@_]/);
+      assert.doesNotMatch(success, /@|%40|fl_live|fl_free/);
+      // A parcel id that is not one is dropped; nothing left means no extra parameter.
+      const s2 = stripe();
+      await start(
+        e,
+        `&urn=${encodeURIComponent("javascript:alert(1)")}&q=%00%01`,
+        s2,
+      );
+      assert.equal(
+        s2.created[0]!.get("success_url"),
+        "https://factlot.com/billing/success?session_id={CHECKOUT_SESSION_ID}",
+      );
+    });
+
+    it("does nothing with the variable off", async () => {
+      const s = stripe();
+      const { e, mail } = setup({
+        STRIPE_SECRET_KEY: "sk_live_x",
+        LIFECYCLE_EMAILS_ENABLED: undefined,
+      });
+      await start(e, "&q=1000+Louisiana+St", s);
+      assert.equal(
+        s.created[0]!.get("success_url"),
+        "https://factlot.com/billing/success?session_id={CHECKOUT_SESSION_ID}",
+      );
+      const page = await (
+        await run(
+          e,
+          new Request(
+            `https://factlot.com/billing/success?session_id=${SESSION}&q=1000+Louisiana+St`,
+          ),
+          s.fetchImpl,
+        )
+      ).text();
+      assert.doesNotMatch(
+        page,
+        /Back to your lookup|try\/\?q=|lifecycle_emails/,
+      );
+      assert.doesNotMatch(mail.sent[0]!.text, /Back to your lookup/);
+    });
+  });
+
+  describe("/try/?q=", () => {
+    const src = readFileSync(
+      fileURLToPath(new URL("../../../site/try/try.js", import.meta.url)),
+      "utf8",
+    );
+    const heads: unknown[] = [];
+    /** Run try.js in a stub page; the bodies of the fetches it makes. */
+    function runTry(search: string): string[] {
+      const bodies: string[] = [];
+      heads.length = 0;
+      const node = () => {
+        const n: Record<string, unknown> = {
+          children: [],
+          value: "",
+          textContent: "",
+          disabled: false,
+          firstChild: null,
+          addEventListener() {},
+          appendChild() {},
+          setAttribute(k: string, v: string) {
+            ((n.attrs ??= {}) as Record<string, string>)[k] = v;
+          },
+        };
+        return n;
+      };
+      const ids: Record<string, ReturnType<typeof node>> = {};
+      const sandbox = {
+        document: {
+          location: { search },
+          head: { appendChild: (n: unknown) => heads.push(n) },
+          getElementById: (id: string) => (ids[id] ??= node()),
+          createElement: () => node(),
+          createTextNode: () => node(),
+          querySelectorAll: () => [],
+        },
+        fetch: (_u: string, init: { body: string }) => {
+          bodies.push(init.body);
+          return new Promise(() => {});
+        },
+        Array,
+        JSON,
+        String,
+        Object,
+        Promise,
+        decodeURIComponent,
+        setTimeout,
+        clearTimeout,
+      };
+      vm.runInNewContext(src, sandbox);
+      return bodies;
+    }
+    it("runs no lookup without the parameter, or with nothing left of it", () => {
+      for (const s of [
+        "",
+        "?",
+        "?x=1",
+        "?q=",
+        "?q=%3C%3E%40%40",
+        "?Q=1000+Main",
+        "?q=%E0%A4%A",
+      ])
+        assert.deepEqual(runTry(s), [], s);
+    });
+    it("runs the lookup on load with the cleaned text", () => {
+      const bodies = runTry("?q=1000+Louisiana+St");
+      assert.deepEqual(
+        bodies.map((b) => JSON.parse(b)),
+        [{ query: "1000 Louisiana St", limit: 5 }],
+      );
+    });
+    it("sanitises: markup, an email address and a key lose their characters; length is limited", () => {
+      const [a] = runTry(
+        `?q=${encodeURIComponent("<img src=x onerror=1> a@b.com fl_free_" + "y".repeat(300))}`,
+      );
+      const q = (JSON.parse(a!) as { query: string }).query;
+      assert.ok(q.length <= 120, `${q.length}`);
+      assert.doesNotMatch(q, /[<>@_=]/);
+    });
+  });
+
+  it("the legal text says what is sent, what is stored, how to stop, and keeps the no-marketing sentence conditional", () => {
+    const read = (p: string) =>
+      readFileSync(
+        fileURLToPath(new URL(`../../../site/${p}`, import.meta.url)),
+        "utf8",
+      ).replace(/\s+/g, " ");
+    const privacy = read("privacy.html");
+    const terms = read("terms.html");
+    assert.match(
+      privacy,
+      /We send no marketing email unless you tick the separate box for optional emails/,
+    );
+    assert.match(
+      terms,
+      /We send no marketing email unless you tick the separate box for optional emails/,
+    );
+    assert.ok(
+      privacy.includes(
+        `up to ${optionalMessages("free").length} optional notes about a free key`,
+      ),
+    );
+    assert.ok(
+      privacy.includes(`up to ${optionalMessages("paid").length} about a plan`),
+    );
+    assert.ok(privacy.includes("never more than one a day"));
+    assert.ok(privacy.includes("factlot.com/account/stop"));
+    assert.match(privacy, /we keep one marker: the hash of your address/);
+    assert.match(
+      privacy,
+      /even if you later ask for a new key or tick the box again/,
+    );
+    assert.match(privacy, /Their legal basis is your consent/);
+    assert.match(privacy, /Checkout return link/);
+  });
+
+  describe("review fixes", () => {
+    const stopOf = (text: string) =>
+      text.match(/https:\/\/factlot\.com\/account\/stop\/[0-9a-f.]+/)![0];
+    const flaky = (
+      e: E,
+      rule: (m: { text: string; headers?: object }) => unknown,
+    ) => {
+      const send = e.EMAIL!.send.bind(e.EMAIL);
+      const calls: { text: string; headers?: object }[] = [];
+      e.EMAIL = {
+        send: async (m) => {
+          const c = m as unknown as { text: string; headers?: object };
+          calls.push(c);
+          const err = rule(c);
+          if (err) throw err;
+          return send(m);
+        },
+      };
+      return calls;
+    };
+    const build = (_r: unknown, ctx: { stopUrl: string }) => ({
+      subject: "x",
+      text: `Stop these emails with one click ${ctx.stopUrl}`,
+      html: "x",
+    });
+    const hashOf = (e: E) => lcKeys(e)[0]!.split(":")[2]!;
+
+    it("S1: the legal text is true with the variable off and lists the new records", () => {
+      const read = (p: string) =>
+        readFileSync(
+          fileURLToPath(new URL(`../../../site/${p}`, import.meta.url)),
+          "utf8",
+        ).replace(/\s+/g, " ");
+      const privacy = read("privacy.html");
+      assert.match(
+        privacy,
+        /When FactLot offers optional emails, the free key form/,
+      );
+      assert.match(privacy, /if you see no such box, they are not on offer/);
+      assert.match(
+        privacy,
+        /factlot\.com\/account\/stop \(that page exists only then;/,
+      );
+      assert.match(privacy, /press the button on the page that the link/);
+      for (const row of [
+        "Optional-email consent records",
+        "Optional-email stop markers",
+        "Kept until you ask us to remove them",
+        "Optional-email once-only and daily markers",
+        "395 days; not deleted by a stop or a key deletion",
+        "Free key lookup tally",
+        "Up to 90 days",
+        "Watch-list stop-link records",
+        "at most 32 days after it falls due",
+        "and at most 395 days",
+      ])
+        assert.ok(privacy.includes(row), row);
+      assert.doesNotMatch(
+        privacy,
+        /\beach have a separate box, unticked, that says what is sent:/,
+      );
+    });
+
+    it("S2: a send in flight during a stop does not put the record (and the address) back", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "race@example.com", true);
+      const h = hashOf(e);
+      flaky(e, (m) => {
+        // The person presses stop while the send is under way (synchronously enough for KV).
+        const stop = stopOf(m.text);
+        void stop;
+        e.KEYS.data.delete(`lc:free:${h}`);
+        e.KEYS.data.set(`lcstop:${h}`, "2026-11-07T00:00:00.000Z");
+        return undefined;
+      });
+      const r = await deliverPromo(e, "free", h, "A1", e.clock.t, build);
+      assert.equal(r, "sent");
+      assert.equal(lcKeys(e).length, 0, "record not restored");
+      assert.ok(
+        ![...e.KEYS.data.values()].some((v) => v.includes("race@example.com")),
+      );
+      // And in recordConsent: a stop that lands between the check and the write wins.
+      const { e: e2, mail: mail2 } = setup();
+      const put = e2.KEYS.put.bind(e2.KEYS);
+      e2.KEYS.put = async (k, v, o) => {
+        await put(k, v, o);
+        if (k.startsWith("lc:free:"))
+          e2.KEYS.data.set(`lcstop:${k.split(":")[2]}`, "t");
+      };
+      await mint(e2, mail2, "race2@example.com", true);
+      assert.equal(lcKeys(e2).length, 0);
+    });
+
+    it("S3: a failed send is marked, never retried, and does not hold the day's slot or block other notes", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "fail@example.com", true);
+      const h = hashOf(e);
+      const calls = flaky(e, () =>
+        Object.assign(new Error("x"), { code: "E_DELIVERY" }),
+      );
+      const t = e.clock.t;
+      assert.equal(await deliverPromo(e, "free", h, "A1", t, build), "failed");
+      assert.equal(
+        calls.length,
+        1,
+        "no header-less retry for a non-header error",
+      );
+      const marks = JSON.parse(e.KEYS.data.get(`lcmark:free:${h}`)!) as Record<
+        string,
+        string
+      >;
+      assert.match(marks.A1!, /^failed:/);
+      // Next day: A1 is no longer due and does not take the slot; A2 goes out.
+      calls.length = 0;
+      e.EMAIL = setup().e.EMAIL;
+      const mail2 = fakeEmail();
+      e.EMAIL = mail2.binding;
+      assert.equal(
+        await deliverPromo(e, "free", h, "A1", t + DAY, build),
+        "already",
+      );
+      assert.equal(
+        await deliverPromo(e, "free", h, "A2", t + DAY, build),
+        "sent",
+      );
+      assert.equal(mail2.sent.length, 1);
+      // A KV write that throws after the send is survived too.
+      const put = e.KEYS.put.bind(e.KEYS);
+      e.KEYS.put = async (k, v, o) => {
+        if (k.startsWith("lcmark:")) throw new Error("kv down");
+        return put(k, v, o);
+      };
+      assert.equal(
+        await deliverPromo(e, "free", h, "A3", t + 2 * DAY, build),
+        "sent",
+      );
+    });
+
+    it("S4: the sweep reads only due items, in date order and in batches, survives a bad one and leaves nothing behind", async () => {
+      const { e, mail } = setup();
+      const emails = ["a", "b", "c", "d", "e"].map((x) => `${x}@example.com`);
+      for (const [i, em] of emails.entries()) {
+        const ip = `198.51.100.${i + 10}`;
+        await ask(e, em, true, ip);
+        const link = linkOf(mail.sent.at(-1)!.text)!;
+        assert.equal((await open(e, link, "POST", "", ip)).status, 200);
+      }
+      const names = lcKeys(e);
+      assert.equal(names.length, 5);
+      // Two due items per record (A2 and A4), keyed by their due hour.
+      const due = () => lcKeys(e, "lcdue");
+      assert.equal(due().length, 10);
+      for (const d of due())
+        assert.match(d, /^lcdue:\d{10}:free:[0-9a-f]{64}:(A2|A4)$/);
+      // One record whose meter read throws.
+      const bad = JSON.parse(e.KEYS.data.get(names[1]!)!) as Record<
+        string,
+        unknown
+      >;
+      bad.subject = "boom";
+      e.KEYS.data.set(names[1]!, JSON.stringify(bad));
+      const usage = e.METER.usage.bind(e.METER);
+      let usageCalls = 0;
+      e.METER.usage = async (subject, days) => {
+        usageCalls++;
+        if (subject === "boom") throw new Error("do down");
+        return usage(subject, days);
+      };
+      // Nothing is due yet: the run stops at the first item, reading nothing else.
+      const early = await lifecycleSweep(e, e.clock.t, 10);
+      assert.equal(early.checked, 0);
+      assert.equal(early.complete, true);
+      e.clock.t += 3 * DAY;
+      const seen: number[] = [];
+      let complete = false;
+      let errors = 0;
+      for (let run = 0; run < 10 && !complete; run++) {
+        const r = await lifecycleSweep(e, e.clock.t, 2);
+        seen.push(r.checked);
+        errors += r.errors;
+        complete = r.complete;
+      }
+      // Only the five A2 items were due; the A4 ones wait.
+      assert.deepEqual(seen, [2, 2, 1]);
+      assert.equal(errors, 1, "the bad record was counted, not fatal");
+      const to = new Set(optionalMails(mail).map((m) => m.to));
+      assert.equal(to.size, 4, "every other record was reached across runs");
+      // Handled items are deleted; the bad one is put back for the next hour.
+      assert.equal(due().length, 6);
+      assert.equal(due().filter((d) => d.endsWith(":r1")).length, 1);
+      // A record whose address was stopped is deleted when its item comes up.
+      e.KEYS.data.set(`lcstop:${names[0]!.split(":")[2]}`, "t");
+      // Past the time-based window: the remaining items go unsent, with no meter read.
+      usageCalls = 0;
+      e.clock.t += 40 * DAY;
+      const old = await lifecycleSweep(e, e.clock.t, 10);
+      assert.equal(old.checked, 6);
+      assert.equal(old.removed, 1);
+      assert.equal(usageCalls, 0);
+      assert.ok(!e.KEYS.data.has(names[0]!));
+      assert.equal(due().length, 0, "nothing left in the index");
+      assert.ok(
+        ![...e.KEYS.data.keys()].some((k) => k.startsWith("lcsweep:")),
+        "no cursor",
+      );
+    });
+
+    it("S5: the consent form of the page after checkout needs its proof: genuine, for that session, within the hour, from its own origin", async () => {
+      const paid = {
+        status: "complete",
+        payment_status: "paid",
+        mode: "subscription",
+        subscription: "sub_5",
+        customer: "cus_5",
+        customer_details: { email: "p5@example.com" },
+        metadata: { factlot_plan: "pro" },
+      };
+      const s = fakeStripe({
+        [`GET /checkout/sessions/${SESSION}`]: () => [200, paid],
+      });
+      const { e } = setup({ STRIPE_SECRET_KEY: "sk_test_x" });
+      const page = await (
+        await run(
+          e,
+          new Request(
+            `https://factlot.com/billing/success?session_id=${SESSION}`,
+          ),
+          s.fetchImpl,
+        )
+      ).text();
+      const t = page.match(/name="t" value="(\d+)"/)![1]!;
+      const proof = page.match(/name="proof" value="([0-9a-f]+)"/)![1]!;
+      e.clock.t = Number(t) + 1000;
+      const post = (body: string, origin = "https://factlot.com") =>
+        run(
+          e,
+          new Request("https://factlot.com/account/lifecycle", {
+            method: "POST",
+            body,
+            headers: {
+              "content-type": "application/x-www-form-urlencoded",
+              origin,
+              "cf-connecting-ip": IP,
+            },
+          }),
+          s.fetchImpl,
+        );
+      const ok = `session_id=${SESSION}&lifecycle_emails=1`;
+      assert.equal((await post(ok)).status, 400, "no proof");
+      assert.equal(
+        (await post(`${ok}&t=${t}&proof=${"0".repeat(64)}`)).status,
+        400,
+        "wrong proof",
+      );
+      assert.equal(
+        (
+          await post(
+            `session_id=cs_live_otherSession1234&lifecycle_emails=1&t=${t}&proof=${proof}`,
+          )
+        ).status,
+        400,
+        "another session",
+      );
+      assert.equal(
+        (await post(`${ok}&t=${Number(t) + 5000}&proof=${proof}`)).status,
+        400,
+        "changed time",
+      );
+      assert.equal(
+        (await post(`${ok}&t=${t}&proof=${proof}`, "null")).status,
+        403,
+        "Origin null",
+      );
+      assert.equal(
+        (await post(`${ok}&t=${t}&proof=${proof}`, "https://evil.example"))
+          .status,
+        403,
+      );
+      assert.equal(lcKeys(e).length, 0);
+      e.clock.t = Number(t) + 61 * 60_000;
+      assert.equal(
+        (await post(`${ok}&t=${t}&proof=${proof}`)).status,
+        400,
+        "after the hour",
+      );
+      e.clock.t = Number(t) + 1000;
+      assert.equal((await post(`${ok}&t=${t}&proof=${proof}`)).status, 200);
+      assert.equal(lcKeys(e).length, 1);
+    });
+
+    it("S6: the stop and consent posts are rate limited per address and body capped, so a loop cannot write unbounded stop markers", async () => {
+      const { e } = setup();
+      e.RL_ANON = new CountingLimit(2);
+      const stop = (email: string, ip = IP) =>
+        run(
+          e,
+          new Request("https://factlot.com/account/stop", {
+            method: "POST",
+            body: `email=${encodeURIComponent(email)}`,
+            headers: {
+              "content-type": "application/x-www-form-urlencoded",
+              origin: "https://factlot.com",
+              "cf-connecting-ip": ip,
+            },
+          }),
+        );
+      const codes: number[] = [];
+      for (let i = 0; i < 6; i++)
+        codes.push((await stop(`loop${i}@example.com`)).status);
+      assert.deepEqual(codes, [200, 200, 429, 429, 429, 429]);
+      // Addresses FactLot holds nothing for get no marker at all through the form.
+      assert.equal(
+        lcKeys(e, "lcstop").length,
+        0,
+        "no marker for an address with no consent, key or plan",
+      );
+      e.RL_ANON = new CountingLimit(100);
+      assert.equal(
+        (await stop("x".repeat(5000) + "@example.com", "198.51.100.77")).status,
+        413,
+      );
+      const life = await run(
+        e,
+        new Request("https://factlot.com/account/lifecycle", {
+          method: "POST",
+          body: "a=".padEnd(6000, "b"),
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            origin: "https://factlot.com",
+            "cf-connecting-ip": IP,
+          },
+        }),
+      );
+      assert.equal(life.status, 413);
+    });
+
+    it("S8: a header Email Sending rejects does not lose the note: it is sent once more without custom headers", async () => {
+      const { e, mail } = setup();
+      const calls = flaky(e, (m) =>
+        m.headers
+          ? Object.assign(new Error("no"), { code: "E_HEADER_NOT_ALLOWED" })
+          : undefined,
+      );
+      const key = await mint(e, mail, "hdr2@example.com", true);
+      calls.length = 0;
+      const logs = await captureLogs(async () => {
+        await lookup(e, key);
+      });
+      assert.equal(optionalMails(mail).length, 1);
+      assert.equal(calls.length, 2);
+      assert.ok(calls[0]!.headers);
+      assert.equal(calls[1]!.headers, undefined);
+      assert.match(logs, /email headers rejected/);
+      assert.doesNotMatch(logs, /hdr2@/);
+    });
+
+    it("F1: A1 says only what was cut, B1 claims nothing about the key, A4 and B2 are titled by what they are", () => {
+      const ctx = {
+        site: "https://factlot.com",
+        api: "https://api.factlot.com",
+        stopUrl: "https://factlot.com/account/stop/x",
+        address: ADDRESS,
+        audience: "free" as const,
+      };
+      const owner = withheldMessage(ctx, {
+        portfolio: { count: 7, total: 10 },
+      });
+      assert.doesNotMatch(owner.text, /current roll year|earlier roll/);
+      assert.match(
+        owner.text,
+        /3 of that owner's 10 parcels; 7 more were not shown/,
+      );
+      const years = withheldMessage(ctx, { years: [2024, 2023] });
+      assert.match(years.text, /returned the current roll year/);
+      assert.doesNotMatch(years.text, /owner's/);
+      const both = withheldMessage(ctx, {
+        years: [2024],
+        portfolio: { count: 1, total: 4 },
+      });
+      assert.match(
+        both.text,
+        /current roll year[\s\S]*Another answer showed 3 of that owner's 4 parcels/,
+      );
+      const b1 = unusedPaidMessage({ ...ctx, audience: "paid" }, PLANS.pro);
+      assert.doesNotMatch(b1.text, /reached your assistant|usually means/);
+      assert.match(b1.text, /has not recorded a registry lookup from it yet/);
+      const a4 = freeWeekMessage(ctx, { lookups: 3, tools: ["registry_get"] });
+      const b2 = paidWeekMessage({ ...ctx, audience: "paid" }, PLANS.pro, {
+        lookups: 3,
+        tools: [],
+      });
+      for (const m of [a4, b2]) assert.doesNotMatch(m.subject, /first week/i);
+      assert.match(a4.subject, /so far/);
+      assert.match(b2.subject, /so far/);
+      assert.doesNotMatch(a4.text, /Since you created/);
+      assert.match(
+        a4.text,
+        /Your current free key has made 3 registry lookups/,
+      );
+    });
+
+    it("F3: a free key without consent reaching its limit costs one consent read and nothing else", async () => {
+      const { e, mail } = setup();
+      const key = await mint(e, mail, "nocons@example.com", false);
+      const plain = innerApi().api as typeof gatedApi;
+      const ip = "198.51.100.31";
+      for (let i = 0; i < 25; i++) await lookup(e, key, plain, ip);
+      const gets: string[] = [];
+      const get = e.KEYS.get.bind(e.KEYS);
+      e.KEYS.get = async (k: string) => {
+        gets.push(k);
+        return get(k);
+      };
+      let claims = 0;
+      const claim = e.METER.claim.bind(e.METER);
+      e.METER.claim = async (n: string, v: string) => {
+        claims++;
+        return claim(n, v);
+      };
+      assert.equal((await lookup(e, key, plain, ip)).status, 429);
+      assert.deepEqual(
+        gets.filter((k) => k.startsWith("lc")).map((k) => k.slice(0, 8)),
+        ["lc:free:"],
+      );
+      assert.equal(claims, 0);
+    });
+
+    it("F4: links in mail keep their trailing punctuation out of the anchor, and /try/ queries are kept out of search indexes", () => {
+      const { html } = body([
+        "See https://factlot.com/try/?q=O%27Brien'. Then (https://factlot.com/x).",
+      ]);
+      assert.match(
+        html,
+        /<a href="https:\/\/factlot\.com\/try\/\?q=O%27Brien">https:\/\/factlot\.com\/try\/\?q=O%27Brien<\/a>&#39;\./,
+      );
+      assert.match(
+        html,
+        /<a href="https:\/\/factlot\.com\/x">https:\/\/factlot\.com\/x<\/a>\)\./,
+      );
+      assert.equal(encodeQuery("1200 Main St."), "1200%20Main%20St%2E");
+      assert.equal(encodeQuery("O'Brien-Way"), "O%27Brien%2DWay");
+      const robots = readFileSync(
+        fileURLToPath(new URL("../../../site/robots.txt", import.meta.url)),
+        "utf8",
+      );
+      assert.match(robots, /^Disallow: \/try\/\?q=$/m);
+    });
+
+    it("F4: try.js adds a noindex robots tag only when it runs a lookup from a link", () => {
+      const src = readFileSync(
+        fileURLToPath(new URL("../../../site/try/try.js", import.meta.url)),
+        "utf8",
+      );
+      assert.match(src, /setAttribute\("content", "noindex"\)/);
+    });
+
+    it("F2: the key email does not promise notes to an address that has stopped", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "stopped@example.com", true);
+      await open(
+        e,
+        "https://factlot.com/account/stop",
+        "POST",
+        "email=stopped%40example.com",
+      );
+      waitPassed(e);
+      const before = mail.sent.length;
+      await ask(e, "stopped@example.com", true);
+      const text = mail.sent[before]!.text;
+      assert.doesNotMatch(text, /optional notes|start only once/);
+      assert.match(text, /We will not add you to any mailing list/);
+      for (const [k, v] of e.KEYS.data)
+        if (k.startsWith("freelink:")) assert.doesNotMatch(v, /stopped@/);
+    });
+  });
+
+  describe("second review", () => {
+    const deleteFree = (e: E, key: string) =>
+      handle(
+        new Request("https://api.factlot.com/v1/keys/free", {
+          method: "DELETE",
+          headers: { authorization: `Bearer ${key}`, "cf-connecting-ip": IP },
+        }),
+        e,
+        innerApi().api,
+        { now: () => e.clock.t },
+      );
+
+    it("L1: consent writes its due items with an expiry; a plan's cancellation deletes its record, even with the variable off", async () => {
+      const { e } = setup();
+      const h = await addressHash(e, "buyer@example.com");
+      assert.equal(
+        await recordConsent(e, {
+          kind: "paid",
+          h,
+          to: "buyer@example.com",
+          subject: "sub:sub_9",
+          subscription: "sub_9",
+          plan: "pro",
+          now: e.clock.t,
+        }),
+        "recorded",
+      );
+      const due = lcKeys(e, "lcdue");
+      assert.equal(due.length, 2);
+      for (const d of due) assert.ok((e.KEYS.ttl.get(d) ?? 0) > 30 * 86_400);
+      assert.equal(e.KEYS.data.get("lcsub:sub_9"), h);
+      e.LIFECYCLE_EMAILS_ENABLED = undefined;
+      e.STRIPE_WEBHOOK_SECRET = "whsec_x";
+      const res = await handleWebhook(
+        e,
+        await signed(
+          {
+            id: "evt_9",
+            type: "customer.subscription.deleted",
+            created: Math.floor(e.clock.t / 1000),
+            data: { object: { id: "sub_9", status: "canceled" } },
+          },
+          "whsec_x",
+          Math.floor(e.clock.t / 1000),
+        ),
+        () => e.clock.t,
+      );
+      assert.equal(res.status, 200);
+      assert.deepEqual(
+        [...e.KEYS.data.keys()].filter((k) => /^lc(:|due:|sub:|mark:)/.test(k)),
+        [],
+      );
+      assert.ok(SWEEP_BATCH <= 40);
+    });
+
+    it("L1: a run touches only what is due, at most SWEEP_BATCH items", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "one@example.com", true);
+      e.clock.t += 3 * DAY;
+      const list = e.KEYS.list.bind(e.KEYS);
+      let limit = 0;
+      e.KEYS.list = async (o: { prefix?: string; limit?: number }) => {
+        limit = o.limit ?? 0;
+        assert.equal(o.prefix, "lcdue:");
+        return list(o);
+      };
+      const r = await lifecycleSweep(e, e.clock.t, 500);
+      assert.equal(limit, SWEEP_BATCH);
+      assert.equal(r.checked, 1, "the A4 item is not due yet");
+    });
+
+    it("L2: deleting a free key removes its consent record with the variable off, in exactly two KV deletes", async () => {
+      const { e, mail } = setup();
+      const key = await mint(e, mail, "dark2@example.com", true);
+      assert.equal(lcKeys(e).length, 1);
+      e.LIFECYCLE_EMAILS_ENABLED = undefined;
+      const del = e.KEYS.delete.bind(e.KEYS);
+      const deleted: string[] = [];
+      e.KEYS.delete = async (k: string) => {
+        deleted.push(k);
+        return del(k);
+      };
+      assert.equal((await deleteFree(e, key)).status, 200);
+      assert.equal(lcKeys(e).length, 0);
+      assert.equal(deleted.filter((k) => k.startsWith("lc")).length, 2);
+    });
+
+    it("L3: the consent text names both things a free answer can leave out", () => {
+      assert.match(
+        freeConsentText(),
+        /earlier roll years or some of an owner's parcels/,
+      );
+    });
+
+    it("L4: sent marks expire with the once-only claims", async () => {
+      const { e, mail } = setup();
+      const key = await mint(e, mail, "marks@example.com", true);
+      await lookup(e, key);
+      const [mark] = lcKeys(e, "lcmark");
+      assert.ok(mark);
+      assert.equal(e.KEYS.ttl.get(mark), MARK_TTL_DAYS * 86_400);
+    });
+
+    it("L5: a stop marker seen when consenting or sending deletes the consent record", async () => {
+      const { e, mail } = setup();
+      const key = await mint(e, mail, "race@example.com", true);
+      const [name] = lcKeys(e);
+      const h = name!.split(":")[2]!;
+      e.KEYS.data.set(`lcstop:${h}`, "t");
+      assert.equal(
+        await deliverPromo(e, "free", h, "A1", e.clock.t, () => undefined),
+        "suppressed",
+      );
+      assert.equal(lcKeys(e).length, 0);
+      // A record written elsewhere a moment later is taken out by the next consent attempt.
+      e.KEYS.data.set(
+        name!,
+        JSON.stringify({
+          v: 1,
+          kind: "free",
+          to: "race@example.com",
+          consent_at: "x",
+          subject: "s",
+          since: new Date(e.clock.t).toISOString(),
+        }),
+      );
+      assert.equal(
+        await recordConsent(e, {
+          kind: "free",
+          h,
+          subject: "s",
+          now: e.clock.t,
+        }),
+        "suppressed",
+      );
+      assert.equal(lcKeys(e).length, 0);
+      assert.ok(key);
+    });
+
+    it("L7: the address form refuses a foreign origin, marks only addresses FactLot knows, within an hourly ceiling", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "known@example.com", false);
+      const post = (email: string, origin = "https://factlot.com") =>
+        run(
+          e,
+          new Request("https://factlot.com/account/stop", {
+            method: "POST",
+            body: `email=${encodeURIComponent(email)}`,
+            headers: {
+              "content-type": "application/x-www-form-urlencoded",
+              origin,
+              "cf-connecting-ip": IP,
+            },
+          }),
+        );
+      assert.equal(
+        (await post("known@example.com", "https://evil.example")).status,
+        403,
+      );
+      assert.equal(lcKeys(e, "lcstop").length, 0);
+      const a = await post("stranger@example.com");
+      const b = await post("known@example.com");
+      assert.equal(a.status, 200);
+      assert.equal(
+        await a.text().then((t) => t.replace(/nonce-[^']+|nonce="[^"]+"/g, "")),
+        await b.text().then((t) => t.replace(/nonce-[^']+|nonce="[^"]+"/g, "")),
+      );
+      assert.equal(lcKeys(e, "lcstop").length, 1, "only the known address");
+      // The hour's ceiling used up: a known address with no consent gets no new marker.
+      await mint(e, mail, "known2@example.com", false);
+      const hour = new Date(e.clock.t).toISOString().slice(0, 13);
+      await e.METER.consume(`lcstopform:${hour}`, {
+        kind: "day",
+        limit: 100,
+        n: 100,
+      });
+      await post("known2@example.com");
+      assert.equal(lcKeys(e, "lcstop").length, 1);
+    });
+  });
+
+  describe("third review", () => {
+    const stopPost = (e: E, email: string, origin = "https://factlot.com") =>
+      new Request("https://factlot.com/account/stop", {
+        method: "POST",
+        body: `email=${encodeURIComponent(email)}`,
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin,
+          "cf-connecting-ip": IP,
+        },
+      });
+
+    it("1: the stop form answers before any lookup of the address, and the stop still happens", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "timed@example.com", true);
+      const get = e.KEYS.get.bind(e.KEYS);
+      let open = () => {};
+      const gate = new Promise<void>((r) => (open = r));
+      let looked = false;
+      e.KEYS.get = async (k: string) => {
+        if (/^(lc:|lcstop:|freeemail:)/.test(k)) {
+          looked = true;
+          await gate;
+        }
+        return get(k);
+      };
+      const deferred: Promise<unknown>[] = [];
+      const res = await handle(
+        stopPost(e, "timed@example.com"),
+        e,
+        innerApi().api,
+        {
+          now: () => e.clock.t,
+          waitUntil: (p) => deferred.push(p),
+        },
+      );
+      assert.equal(res.status, 200);
+      assert.equal(
+        lcKeys(e, "lcstop").length,
+        0,
+        "nothing done before the answer",
+      );
+      assert.equal(deferred.length > 0, true);
+      open();
+      await Promise.all(deferred);
+      assert.ok(looked);
+      assert.equal(lcKeys(e, "lcstop").length, 1);
+      assert.equal(lcKeys(e).length, 0);
+    });
+
+    it("5: the stop form refuses Origin null", async () => {
+      const { e } = setup();
+      assert.equal(
+        (await run(e, stopPost(e, "x@example.com", "null"))).status,
+        403,
+      );
+    });
+
+    const consented = async (email: string) => {
+      const { e, mail } = setup();
+      await mint(e, mail, email, true);
+      const [name] = lcKeys(e);
+      return { e, mail, h: name!.split(":")[2]! };
+    };
+    const a2Sent = (mail: ReturnType<typeof fakeEmail>) =>
+      optionalMails(mail).filter((m) =>
+        /has not made a lookup yet/.test(m.text),
+      ).length;
+
+    it("2: when the day's slot is taken, A2 goes out the next UTC day", async () => {
+      const { e, mail, h } = await consented("cap@example.com");
+      e.clock.t += 2 * DAY + 2 * 3_600_000;
+      // Another optional note takes today's slot first.
+      assert.equal(
+        await deliverPromo(e, "free", h, "A1", e.clock.t, (_r, ctx) => ({
+          subject: "x",
+          text: `x ${ctx.stopUrl}`,
+          html: "x",
+        })),
+        "sent",
+      );
+      const r = await lifecycleSweep(e, e.clock.t);
+      assert.equal(r.retried, 1);
+      assert.equal(a2Sent(mail), 0);
+      e.clock.t = (Math.floor(e.clock.t / DAY) + 1) * DAY + 3_600_000;
+      await lifecycleSweep(e, e.clock.t);
+      assert.equal(a2Sent(mail), 1);
+    });
+
+    it("2: a missing postal address or a thrown call does not lose the item", async () => {
+      const { e, mail } = await consented("later@example.com");
+      e.clock.t += 2 * DAY + 2 * 3_600_000;
+      e.POSTAL_ADDRESS = undefined;
+      await lifecycleSweep(e, e.clock.t);
+      assert.equal(a2Sent(mail), 0);
+      e.POSTAL_ADDRESS = ADDRESS;
+      const usage = e.METER.usage.bind(e.METER);
+      let fail = true;
+      e.METER.usage = async (subject, days) => {
+        if (fail) {
+          fail = false;
+          throw new Error("do down");
+        }
+        return usage(subject, days);
+      };
+      e.clock.t += 2 * 3_600_000;
+      const thrown = await lifecycleSweep(e, e.clock.t);
+      assert.equal(thrown.errors, 1);
+      assert.equal(a2Sent(mail), 0);
+      e.clock.t += 2 * 3_600_000;
+      await lifecycleSweep(e, e.clock.t);
+      assert.equal(a2Sent(mail), 1);
+    });
+
+    it("2: an item that keeps failing is put back a bounded number of times", async () => {
+      const { e } = await consented("never@example.com");
+      e.POSTAL_ADDRESS = undefined;
+      e.clock.t += 2 * DAY + 2 * 3_600_000;
+      let retried = 0;
+      for (let i = 0; i < MAX_DUE_RETRIES + 5; i++) {
+        retried += (await lifecycleSweep(e, e.clock.t)).retried ?? 0;
+        e.clock.t += 2 * 3_600_000;
+      }
+      assert.equal(retried, MAX_DUE_RETRIES);
+      assert.ok(
+        !lcKeys(e, "lcdue").some(
+          (d) => d.endsWith(":A2") || /:A2:r\d+$/.test(d),
+        ),
+      );
+    });
+
+    it("3: a paid record moved to another subscription drops the old pointer", async () => {
+      const { e } = setup();
+      const h = await addressHash(e, "mover@example.com");
+      const consent = (subscription: string) =>
+        recordConsent(e, {
+          kind: "paid",
+          h,
+          to: "mover@example.com",
+          subject: `sub:${subscription}`,
+          subscription,
+          plan: "pro",
+          now: e.clock.t,
+        });
+      await consent("sub_a");
+      assert.equal(await consent("sub_b"), "refreshed");
+      assert.equal(e.KEYS.data.get("lcsub:sub_b"), h);
+      assert.equal(e.KEYS.data.has("lcsub:sub_a"), false);
     });
   });
 });
