@@ -17,12 +17,12 @@ import io
 import json
 import zipfile
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from ..normalize import is_commercial
-from ..store import IngestStats, ParcelRecord, Registry, Source
+from ..store import IngestStats, ParcelRecord, ParcelValues, Registry, Source, roll_source
 from .tx_travis import (
     IMP_DET_FIELDS,
     LAND_DET_FIELDS,
@@ -889,11 +889,51 @@ SHACKELFORD = CountyExport(
 )
 
 
+# Archives the standard library cannot open. Some districts post earlier rolls as 7-Zip or RAR (Bell 2025 and
+# 2024); libarchive's bsdtar, present on macOS and most Linux systems, lists and streams their members, so the
+# archived file stays the citation and nothing is unpacked to disk.
+_BSDTAR_SUFFIXES = frozenset({".7z", ".rar"})
+
+
+def _bsdtar() -> str:
+    import shutil
+
+    exe = shutil.which("bsdtar")
+    if exe is None:
+        raise NotImplementedError("reading a .7z or .rar roll needs bsdtar (libarchive), which is not installed")
+    return exe
+
+
+def _bsdtar_names(path: Path) -> list[str]:
+    import subprocess
+
+    out = subprocess.run([_bsdtar(), "-tf", str(path)], check=True, capture_output=True)
+    return [n for n in out.stdout.decode("utf-8", "replace").splitlines() if n and not n.endswith("/")]
+
+
+def _lines_via_bsdtar(path: Path, name: str) -> Iterator[str]:
+    """Stream one member of a 7-Zip or RAR archive through ``bsdtar -xOf``."""
+    import subprocess
+
+    proc = subprocess.Popen([_bsdtar(), "-xOf", str(path), name], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        assert proc.stdout is not None
+        for rec in _crlf_records(proc.stdout):
+            yield rec.decode("latin-1")
+    finally:
+        proc.stdout.close()
+        rc = proc.wait()
+        if rc != 0:
+            raise RuntimeError(f"bsdtar exited {rc} reading {name} from {path}")
+
+
 def _member(path: str | Path, suffix: str) -> str | None:
     """The one archive member whose name ends with ``suffix``. Entity files are never selected."""
     p = Path(path)
     if p.is_dir():
         names = [str(f.relative_to(p)) for f in p.rglob("*") if f.is_file()]
+    elif p.suffix.lower() in _BSDTAR_SUFFIXES:
+        names = _bsdtar_names(p)
     else:
         with zipfile.ZipFile(p) as zf:
             names = zf.namelist()
@@ -927,6 +967,9 @@ def _lines(path: str | Path, suffix: str) -> Iterator[str]:
         with open(p / name, "rb") as raw:
             for rec in _crlf_records(raw):
                 yield rec.decode("latin-1")
+        return
+    if p.suffix.lower() in _BSDTAR_SUFFIXES:
+        yield from _lines_via_bsdtar(p, name)
         return
     with zipfile.ZipFile(p) as zf:
         info = zf.getinfo(name)
@@ -1071,6 +1114,84 @@ def read_roll(path: str | Path, county_fips: str, tally: ExportTally | None = No
             locator=f"APPRAISAL_INFO prop_id {pid}",
             local_use_code=r["_code"] or None,
         )
+
+
+def read_value_history(path: str | Path, accounts: Iterable[str], county_fips: str,
+                       tally: ExportTally | None = None) -> Iterator[ParcelValues]:
+    """Yield each listed account's tax year, market and appraised value from ``APPRAISAL_INFO.TXT``, and nothing else.
+
+    For a prior-year roll (``Registry.ingest_value_history``): the owner, address and detail columns are never read,
+    and the state-code, land and improvement files are not opened. Only real property that is not marked deleted
+    counts; the first row of an account wins, as in ``read_roll``. The columns read (``prop_id``, ``prop_type_cd``,
+    ``prop_val_yr``, ``sup_action``, ``appraised_val``, ``market_value``) sit at the same positions in the 8.0.30,
+    8.0.33 and 8.0.34 property records.
+    """
+    tally = tally if tally is not None else ExportTally()
+    wanted = frozenset(accounts)
+    seen: set[str] = set()
+    for line in _lines(path, _INFO):
+        tally.info_rows += 1
+        if len(line) < _MIN_RECORD:
+            tally.short_rows += 1
+            continue
+        if _field(line, PROP_FIELDS["prop_type_cd"]).upper() != "R":
+            tally.not_real += 1
+            continue
+        if _field(line, PROP_FIELDS["sup_action"]).upper() == "D":
+            tally.deleted += 1
+            continue
+        pid = _field(line, PROP_FIELDS["prop_id"]).lstrip("0")
+        if pid not in wanted:
+            tally.out_of_scope += 1
+            continue
+        if pid in seen:
+            tally.duplicate_ids += 1
+            continue
+        seen.add(pid)
+        tally.kept += 1
+        yield ParcelValues(
+            county_fips=county_fips, apn=pid,
+            tax_year=int(y) if (y := _num(_field(line, PROP_FIELDS["prop_val_yr"]))) else None,
+            market_value=_num(_field(line, PROP_FIELDS["market_value"])),
+            appraised_value=_num(_field(line, PROP_FIELDS["appraised_val"])),
+            locator=f"APPRAISAL_INFO prop_id {pid}",
+        )
+
+
+def build_history(snapshot_path: str | Path, db_path: str | Path, source: Source, *, county_fips: str,
+                  account_system: str, as_of: str, tax_year: int,
+                  retrieved_at: str | None = None) -> tuple[IngestStats, ExportTally]:
+    """Add one prior year's values from an archived PACS export to the county's parcels already loaded.
+
+    History only (``Registry.ingest_value_history``): the current record, owners and addresses are not touched. The
+    year is loaded under ``roll_source(source, tax_year)``. A row whose ``prop_val_yr`` is not ``tax_year`` is not
+    loaded and is named in ``stats.errors``.
+    """
+    tally = ExportTally()
+    reg = Registry(db_path)
+    try:
+        src = roll_source(source, tax_year)
+        reg.add_source(src)
+        snap = reg.add_snapshot(src.source_id, snapshot_path, as_of, retrieved_at)
+        accounts = [row[0] for row in reg.db.execute("SELECT external_id FROM crosswalk WHERE system = ?", (account_system,))]
+        wrong: list[str] = []
+
+        def in_year(rows: Iterable[ParcelValues]) -> Iterator[ParcelValues]:
+            for r in rows:
+                if r.tax_year == tax_year:
+                    yield r
+                else:
+                    wrong.append(f"{r.locator}: tax year {r.tax_year}, expected {tax_year}")
+
+        stats = reg.ingest_value_history(in_year(read_value_history(snapshot_path, accounts, county_fips, tally)), snap,
+                                         state_fips="48")
+        stats.seen += len(wrong)
+        stats.skipped_invalid += len(wrong)
+        stats.errors.extend(wrong[:20])
+        stats.source_id, stats.tax_year = src.source_id, tax_year
+        return stats, tally
+    finally:
+        reg.close()
 
 
 def build(snapshot_path: str | Path, db_path: str | Path, county: CountyExport, *, as_of: str,
