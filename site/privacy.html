@@ -247,23 +247,26 @@
               and only if you ticked the box for them.
             </li>
             <li>
-              <strong>Optional emails (only if you tick the box).</strong> The
-              free key form and the page you see after checkout each have a
-              separate box, unticked, that says what is sent: up to 4 optional
-              notes about a free key (one when a lookup leaves earlier roll
-              years out, one if the key has not been used after 2 days, one when
-              the daily limit is reached, and a summary after 7 days), or up to
-              2 about a plan (one if the key has not been used 1 day after you
-              buy, and one after 7 days). Each note is sent at most once, never
-              more than one a day, and carries our postal address and a link
-              that stops all of them with one click, without signing in. You can
-              also stop them by entering your address at
-              factlot.com/account/stop, or by emailing contact@factlot.com. If
-              you tick the box we record it only when you open the link in the
-              free key email (so nobody can sign up another person's address),
-              or, for a plan, when you save your choice on the page after
-              checkout, using the address you gave Stripe. We then store, with
-              your key or subscription, your email address (we cannot send
+              <strong>Optional emails (only if you tick the box).</strong> When
+              FactLot offers optional emails, the free key form and the page you
+              see after checkout each have a separate box, unticked, that says
+              what is sent (if you see no such box, they are not on offer and
+              none are sent): up to 4 optional notes about a free key (one when
+              a lookup leaves earlier roll years out, one if the key has not
+              been used after 2 days, one when the daily limit is reached, and a
+              summary after 7 days), or up to 2 about a plan (one if the key has
+              not been used 1 day after you buy, and one after 7 days). Each
+              note is sent at most once, never more than one a day, and carries
+              our postal address and a link that stops all of them with one
+              click, without signing in. While they are on offer you can also
+              stop them by entering your address at factlot.com/account/stop
+              (that page exists only then), and you can always stop them by
+              emailing contact@factlot.com. If you tick the box we record it
+              only when you press the button on the page that the link in the
+              free key email opens (so nobody can sign up another person's
+              address), or, for a plan, when you save your choice on the page
+              after checkout, using the address you gave Stripe. We then store,
+              with your key or subscription, your email address (we cannot send
               without it), the time you ticked the box, a reference to your
               key's usage tally or your subscription, and the time each note was
               sent. That record, and the address in it, is deleted when you stop
@@ -278,11 +281,16 @@
               on, a free key's registry lookups are also tallied by day, by tool
               and by state prefix under the key's ID, never the parcel or
               address searched, so that the summary can state them; the tally is
-              deleted with the key. Between ticking the box on the free key form
-              and opening the link, your address is held in the 30-minute link
-              record. Optional notes go through Cloudflare Email Sending. Their
-              legal basis is your consent, which you can withdraw at any time as
-              described; withdrawing does not affect notes already sent.
+              deleted with the key and otherwise after 90 days. Between ticking
+              the box on the free key form and pressing that button, your
+              address is held in the 30-minute link record. To enforce "at most
+              once" and "at most one a day" we keep two markers in a Durable
+              Object, each named by a one-way hash of your address hash with the
+              message or the day; they hold nothing else, are kept for 395 days,
+              and are not deleted when you stop or delete your key. Optional
+              notes go through Cloudflare Email Sending. Their legal basis is
+              your consent, which you can withdraw at any time as described;
+              withdrawing does not affect notes already sent.
             </li>
             <li>
               <strong>Checkout return link.</strong> When you start checkout
@@ -446,6 +454,38 @@
                 <td>
                   Until the minute, day or month they count (UTC) ends, or until
                   the free key is deleted
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Optional-email consent records</th>
+                <td>
+                  Until you stop the emails or delete your free key, or after
+                  the key or plan has ended (removed by a daily sweep)
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Which optional emails were sent</th>
+                <td>
+                  As long as the consent record, plus a failed-send marker
+                  without your address until the same events
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Optional-email stop markers</th>
+                <td>
+                  Kept until you ask us to remove them, so that you are not
+                  mailed again; they hold the address hash and the time
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Optional-email once-only and daily markers</th>
+                <td>395 days; not deleted by a stop or a key deletion</td>
+              </tr>
+              <tr>
+                <th scope="row">Free key lookup tally (optional emails on)</th>
+                <td>
+                  Up to 90 days, or until the free key is deleted, whichever is
+                  first
                 </td>
               </tr>
               <tr>

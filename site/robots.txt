@@ -3,5 +3,6 @@ Content-Signal: search=yes, ai-input=yes, ai-train=yes
 User-agent: *
 Allow: /
 Disallow: /billing/
+Disallow: /try/?q=
 
 Sitemap: https://factlot.com/sitemap.xml

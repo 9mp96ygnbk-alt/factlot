@@ -552,6 +552,13 @@
     },
   );
   if (fromLink) {
+    // A URL with a query is a lookup, not a page to index (robots.txt says so too).
+    if (document.head) {
+      var meta = document.createElement("meta");
+      meta.setAttribute("name", "robots");
+      meta.setAttribute("content", "noindex");
+      document.head.appendChild(meta);
+    }
     input.value = fromLink;
     lookup(fromLink);
   }
