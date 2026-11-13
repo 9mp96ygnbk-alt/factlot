@@ -1225,6 +1225,31 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
     }
     assert.match(QUOTA_RULES.counted, /up to an hourly limit/);
   });
+  it("the terms name every PAID_ONLY limit in the Free plan's paragraph", () => {
+    const free = flat("site/terms.html")
+      .replace(/<[^>]+>/g, "")
+      .match(/Free, no key:(.*?)A free key \(section 3\)/)![1]!;
+    // One phrase of the Free plan's paragraph per PAID_ONLY entry: a new entry fails here until
+    // the terms name it.
+    const named: Record<string, string> = {
+      history:
+        "Registry value history and superseded facts are limited to the current roll year and the current facts",
+      dated_get: "dated lookups (as_of)",
+      candidates_tax_year: "equity candidates for a tax year you name",
+      recorded:
+        "recorded sales, deeds and mortgages are limited to the newest sale or deed, and the recorded-facts lookup is not included",
+      portfolio: "an owner's parcels are limited to the first three",
+      batch: "the registry batch lookups",
+      model_tools: "the model-backed tools",
+      account_tools: "the account tools are not included",
+    };
+    assert.deepEqual(
+      Object.keys(named).sort(),
+      PAID_ONLY.map((f) => f.id).sort(),
+    );
+    for (const [id, phrase] of Object.entries(named))
+      assert.ok(free.includes(phrase), `${id}: ${phrase}`);
+  });
   it("plans.json is what plans.ts says (run scripts/site/gen-plans.ts)", () => {
     assert.deepEqual(JSON.parse(read("site/_data/plans.json")), plansData());
   });
@@ -1345,7 +1370,6 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
     assert.ok(!/refreshed weekly/i.test(read("site/index.html")));
     assert.ok(!/refreshed weekly/i.test(read("site/_content/pricing.html")));
     assert.ok(!/refreshed weekly/i.test(read("README.md")));
-    assert.ok(!/refreshed weekly/i.test(read("site/terms.html")));
     // The usage totals keep a state prefix only (usage.ts regionDim), and the welcome email
     // states the interval bought (email.ts renewalText).
     assert.ok(!/state or county prefix/.test(read("site/privacy.html")));
