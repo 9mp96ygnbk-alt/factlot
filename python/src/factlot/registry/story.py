@@ -473,7 +473,7 @@ def figure_specs(p: Params, sources: dict[str, dict[str, Any]]) -> list[dict[str
     for y in p.years:
         k = [f"roll-{y}", "current"]
         add(f"y{y}.parcels", f"Parcels with a stated {vt} value, {y}", "count",
-            f"Count of in-scope parcels with a positive stated {vt} value in the tax year {y} file.", k)
+            f"Count of in-scope parcels (so, parcels in the current file) with a positive stated {vt} value in the tax year {y} file.", k)
         add(f"y{y}.total", f"Total stated {vt} value, {y}", "usd",
             f"Sum of those stated {vt} values, in dollars.", k)
     for a, b in pairs(p.years):

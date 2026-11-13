@@ -23,6 +23,15 @@ import {
   hubRollSentence,
   hubCountyLinks,
 } from "./texas-pages.mjs";
+import {
+  indexBody,
+  indexDescription,
+  indexTitle,
+  loadStories,
+  storyBody,
+  storyPath,
+  storyTitle,
+} from "./stories.mjs";
 
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -46,6 +55,14 @@ const catalog = readJson("spec/schemas/tools.json");
 const tools = Array.isArray(catalog) ? catalog : catalog.tools;
 const toolByName = new Map(tools.map((t) => [t.name, t]));
 const calcTools = tools.filter((t) => t.name.startsWith("calc_"));
+
+// Data stories (docs/data-stories.md): verified story files under site/_data/stories. With none, the
+// /data/ section is not built and not linked. FACTLOT_STORIES_DIR points the build at another folder (tests).
+const stories = loadStories(
+  process.env.FACTLOT_STORIES_DIR
+    ? path.resolve(process.env.FACTLOT_STORIES_DIR)
+    : path.join(root, "site/_data/stories"),
+);
 
 const esc = (s) =>
   String(s)
@@ -178,7 +195,7 @@ ${body}
 <a href="${REPO}/blob/main/LICENSE">Apache-2.0 (platform) and MIT (schema and SDKs)</a>
 </p>
 <p>
-Trust: ${TRUST.map(([p, name]) => `<a href="${p}">${name}</a>`).join(" · ")}
+Trust: ${TRUST.map(([p, name]) => `<a href="${p}">${name}</a>`).join(" · ")}${stories.length ? ' · Data: <a href="/data/">Data stories</a>' : ""}
 </p>
 <p class="small">"FactLot" and the FactLot logo are trademarks of their owner. The open-source licences cover the code, not the name.</p>
 </div>
@@ -205,7 +222,12 @@ function addPage(page, sources) {
     throw new Error(
       `${page.urlPath} is a path the Worker answers itself; pick another`,
     );
-  pages.push({ urlPath: page.urlPath, html: layout(page), sources });
+  pages.push({
+    urlPath: page.urlPath,
+    html: layout(page),
+    sources,
+    lastmod: page.lastmod,
+  });
 }
 
 // --- values, steps and vector checks -------------------------------------------------------
@@ -629,6 +651,48 @@ ${rows
   }
 }
 
+// --- /data/ and /data/<slug>/ (only when verified story files exist) ----------------------------
+
+if (stories.length) {
+  const hosted = new Map(
+    readJson("site/_data/texas-counties.json").counties.map((c) => [
+      `48${c.county_fips}`,
+      c.slug,
+    ]),
+  );
+  for (const { story, stamp } of stories)
+    addPage(
+      {
+        urlPath: storyPath(story),
+        title: storyTitle(story),
+        description: story.description,
+        h1: story.title,
+        crumbs: [
+          ["/data/", "Data stories"],
+          [storyPath(story), story.county.name],
+        ],
+        body: storyBody(story, stamp, hosted.get(story.county.fips) ?? null),
+        lastmod: stamp.verified_on,
+      },
+      [],
+    );
+  addPage(
+    {
+      urlPath: "/data/",
+      title: indexTitle,
+      description: indexDescription,
+      h1: "Data stories",
+      crumbs: [["/data/", "Data stories"]],
+      body: indexBody(stories),
+      lastmod: stories
+        .map((x) => x.stamp.verified_on)
+        .sort()
+        .at(-1),
+    },
+    [],
+  );
+}
+
 // --- County coverage map -------------------------------------------------------------------
 
 let coverageJson;
@@ -948,12 +1012,15 @@ const staticPages = [
   ["/terms", ["site/terms.html"]],
   ["/llms.txt", ["site/llms.txt"]],
 ];
-const entries = [...staticPages, ...pages.map((p) => [p.urlPath, p.sources])];
+const entries = [
+  ...staticPages,
+  ...pages.map((p) => [p.urlPath, p.sources, p.lastmod]),
+];
 fs.writeFileSync(
   path.join(out, "sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${entries.map(([u, src]) => `  <url><loc>${SITE}${u}</loc><lastmod>${lastmod(src)}</lastmod></url>`).join("\n")}
+${entries.map(([u, src, lm]) => `  <url><loc>${SITE}${u}</loc><lastmod>${lm ?? lastmod(src)}</lastmod></url>`).join("\n")}
 </urlset>
 `,
 );

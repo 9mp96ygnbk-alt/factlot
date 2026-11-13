@@ -308,7 +308,7 @@
       "label": "Parcels with a stated market value, 2022",
       "value": 26,
       "unit": "count",
-      "rule": "Count of in-scope parcels with a positive stated market value in the tax year 2022 file.",
+      "rule": "Count of in-scope parcels (so, parcels in the current file) with a positive stated market value in the tax year 2022 file.",
       "sources": [
         {
           "key": "roll-2022",
@@ -350,7 +350,7 @@
       "label": "Parcels with a stated market value, 2023",
       "value": 26,
       "unit": "count",
-      "rule": "Count of in-scope parcels with a positive stated market value in the tax year 2023 file.",
+      "rule": "Count of in-scope parcels (so, parcels in the current file) with a positive stated market value in the tax year 2023 file.",
       "sources": [
         {
           "key": "roll-2023",
@@ -392,7 +392,7 @@
       "label": "Parcels with a stated market value, 2024",
       "value": 26,
       "unit": "count",
-      "rule": "Count of in-scope parcels with a positive stated market value in the tax year 2024 file.",
+      "rule": "Count of in-scope parcels (so, parcels in the current file) with a positive stated market value in the tax year 2024 file.",
       "sources": [
         {
           "key": "roll-2024",
