@@ -269,10 +269,34 @@ calls below are in order; each result is reported as returned, with its warnings
 
    Without `tax_year` it compares in the newest tax year whose roll gives the subject a value; pass
    `tax_year` to pin one (on the hosted API naming a year needs a Pro or Team key and answers
-   `PlanRequired` without one, uncounted).
+   `PlanRequired` without one, uncounted). The subject and every candidate are read from that one
+   year's roll files; `selection.compared_files` lists the files the compared values are cited from (building classes
+   come from that year's buildings file, in `building_class_sources`),
+   with each file's `as_of` and `before_certification_deadline` (true when the file is dated before
+   July 25 of the tax year, the date Tax Code §26.01(a) sets for certifying the roll, so it can hold
+   preliminary values; the file itself does not say which values are certified). A tax year whose
+   files hold values but no category code or improvement area gives no candidates, with a warning
+   naming the missing facts.
 
-   `subject` carries the roll value, `value_basis`, areas, year built, state property category
-   code and `value_history` (market and appraised value by tax year, each cited to that year's
+   Optional narrowing, off by default (the default rule is unchanged without it):
+   `same_building_class` (exactly the subject's building class), `same_local_use_code` (exactly the
+   subject's local use code, the district's own use or class code) and `local_use_codes` (one of a
+   list of codes, compared exactly as the roll prints them). A parameter that needs a field the
+   subject lacks is not applied, and a warning says so. `selection.narrowing` lists each one asked
+   for and whether it was applied; `selection.steps` counts how many parcels each step of the rule
+   left, county-wide, before the tiers and `limit`. `limit` is at most 200; fewer come back when
+   fewer meet the rule, or when the neighborhood and ZIP code tiers hold at least `min_matches`
+   (the rest of the county is then not included), and a warning gives the counts.
+
+   `subject` and each candidate carry `apn` (the district's account number), the roll value,
+   `value_basis`, `value_per_sf` (that value divided by the improvement area, to the cent: the
+   roll's figures and one division, not an opinion of value), areas, year built, state property
+   category code, `local_use_code`, `neighborhood_code`, `building_class` and the citation of the
+   value; `selection.subject_summary` states the subject's category, class, use code and area in
+   words, and `selection.class_counts` and `selection.use_code_counts` count the candidates by building
+   class and by local use code, with the subject's own beside them. Separate
+   land and improvement values are not in the registry and are not returned. The subject adds
+   `value_history` (market and appraised value by tax year, each cited to that year's
    roll; on the hosted API a call without a Pro or Team key gets the current roll year only, with
    `history_withheld`, `history_note` and `history_available` saying which earlier years were left
    out, only when some were, and the candidates are unchanged). `candidates` are candidates under FactLot's default rule, a design choice, not a legal
@@ -284,7 +308,8 @@ calls below are in order; each result is reported as returned, with its warnings
    URN, `label` the situs address, `county_fips`, `value`, `value_basis`, the areas, and a
    comparable's `citation`; nulls left out; no adjustments). It is the default rule's list, not a
    selection by FactLot. `selection_rule` restates the parameters used (tax year, category code,
-   area band and year band with their bounds, counts per tier) with a `notice` saying so. The
+   area band and year band with their bounds, the subject summary, the narrowing applied, the step
+   counts, counts per tier) with a `notice` saying so. The
    order is: candidates, the person's review (remove, add or edit comparables, add adjustments
    with reasons), `calc_tx_unequal_appraisal` with the reviewed `calc_args`, then `report_create`.
 

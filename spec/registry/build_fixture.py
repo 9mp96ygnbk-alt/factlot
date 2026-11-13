@@ -201,8 +201,8 @@ reg.ingest_entity_parents([
 # (test-cad-997-2025), 2026 (test-cad-997: a July roll and a corrected October roll that changes one value), and a
 # 2027 preliminary roll (test-cad-997-2027) that changes values, codes, an area and a category, so a parcel holds
 # current facts from three years at once. Building classes come from a separate buildings file per year
-# (test-cad-997-buildings, test-cad-997-buildings-2027). Both value bases, neighborhood codes on some parcels, and
-# owners of record the tool must never return.
+# (test-cad-997-buildings, test-cad-997-buildings-2027). Both value bases, neighborhood codes and local use codes on
+# some parcels, and owners of record the tool must never return.
 CAD997 = Source("test-cad-997", "Example Central Appraisal District (synthetic)", "Appraisal roll",
                 "https://example.invalid/cad-997", "48", county_fips="997", license="Synthetic test data",
                 ai_use="unknown", redistribution="attribution_required", attribution="Example Central Appraisal District")
@@ -210,33 +210,33 @@ BAYOU, PARTNERS = "Bayou Equity Holdings LLC", "Example Office Partners LP"
 
 
 def cad(apn, category, area, year, zip5, value, *, appraised=True, nbhd=None, owner=BAYOU, tax_year=2026,
-        land=None, mailing="PO Box 9, Example City TX 77001", confidential=False):
+        land=None, mailing="PO Box 9, Example City TX 77001", confidential=False, use=None):
     extra = [("parcel.neighborhood_code", nbhd, None)] if nbhd else []
     return ParcelRecord("997", apn, category, account=f"C{apn}", situs_address=f"{int(apn[-2:])} Alpha Plaza, Example City TX {zip5}",
                         owner_name=owner, owner_mailing_address=mailing if owner else None, owner_confidential=confidential,
                         land_area_sf=land, improvement_area_sf=area, year_built=year, market_value=value,
                         appraised_value=value if appraised and value is not None else None, tax_year=tax_year,
-                        extra_facts=extra)
+                        local_use_code=use, extra_facts=extra)
 
 
 def roll_2026(subject_value):
     return [
-        cad("1000001", "F1", 50000, 2005, "77001", subject_value, nbhd="N100", land=120000),  # the subject
-        cad("1000002", "F1", 48000, 2000, "77002", 9100000, nbhd="N100"),
-        cad("1000003", "F1", 55000, 2010, "77001", 11000000, appraised=False, nbhd="N100", owner=PARTNERS),
-        cad("1000004", "F1", 40000, 1995, "77001", 7000000, owner=PARTNERS),
-        cad("1000005", "F1", 60000, None, "77001", 12000000, nbhd="N200"),
-        cad("1000006", "F1", 52000, 1980, "77001", 9900000),  # built outside the year band
+        cad("1000001", "F1", 50000, 2005, "77001", subject_value, nbhd="N100", land=120000, use="4300"),  # the subject
+        cad("1000002", "F1", 48000, 2000, "77002", 9100000, nbhd="N100", use="4300"),
+        cad("1000003", "F1", 55000, 2010, "77001", 11000000, appraised=False, nbhd="N100", owner=PARTNERS, use="4600"),
+        cad("1000004", "F1", 40000, 1995, "77001", 7000000, owner=PARTNERS, use="4600"),
+        cad("1000005", "F1", 60000, None, "77001", 12000000, nbhd="N200", use="4300"),
+        cad("1000006", "F1", 52000, 1980, "77001", 9900000, use="4300"),  # built outside the year band
         cad("1000007", "F1", 80000, 2005, "77001", 15000000),  # outside the area band
         cad("1000008", "F2", 50000, 2005, "77001", 6000000),  # another category
-        cad("1000009", "F1", 45000, 2008, "77003", 8800000, nbhd="N300"),  # elsewhere in the county
+        cad("1000009", "F1", 45000, 2008, "77003", 8800000, nbhd="N300", use="4300"),  # elsewhere in the county
         cad("1000011", "F1", 51000, 2006, "77001", None),  # no value
         cad("1000012", "F1", None, None, "77001", 3000000, land=90000),  # no improvement area
         cad("1000013", "F1", 47000, 2004, "77001", 9000000, tax_year=2025),  # a stale tax year
         # Owners the registry does not keep (data policy §3): a natural person, and an owner withheld under
         # Tax Code §25.025. The roll gives a name and mailing address for the first; neither is stored.
         cad("1000014", "F1", 49000, 2003, "77001", 9300000, owner="Jane Q Example",
-            mailing="12 Quiet Lane, Example City TX 77001"),
+            mailing="12 Quiet Lane, Example City TX 77001", use="4300"),
         cad("1000015", "F1", 50500, 2004, "77001", 9400000, owner=None, confidential=True),
     ]
 

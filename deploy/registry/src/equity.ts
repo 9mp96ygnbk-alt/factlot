@@ -12,16 +12,23 @@
  *
  * A sorted list is inline (rows, or for "X:" only areas and years) or split into area-ordered chunk files whose
  * bounds and year-built counts are in the list, so a count reads at most the two chunks at the band's edges.
+ *
+ * A call that narrows by building class or local use code reads every row of the pool within the area band instead
+ * (the counts above do not hold those fields), and selects from those rows with the SDK's own functions.
  */
 import {
   assembleTxEquity,
   equityCompare,
   equityComparable,
+  equityFunnel,
   equityMatch,
+  equityReturned,
   equityRolls,
   equityRule,
+  equityShape,
   equityWidened,
   equityYearUsed,
+  selectEquityCandidates,
   type EquityMatch,
   type EquityRule,
   type TxEquityParams,
@@ -47,7 +54,15 @@ export interface EquityManifest {
   /** [document_id, its `sources` entry] by index: what an encoded row's documents point at. */
   docs: [string, Row][];
   pools: number;
+  /**
+   * Row version: 2 when rows and subjects hold `apn` and `local_use_code` (EQUITY_ROW_VERSION); absent in a pack
+   * built before, whose rows decode with both null.
+   */
+  rv?: number;
 }
+
+/** The row version this code writes (EquityManifest.rv). */
+export const EQUITY_ROW_VERSION = 2;
 
 /**
  * [fact_id, document index, locator, as_of]. A locator that is a prefix of the pool's `locs` followed by the URN
@@ -58,7 +73,7 @@ export type EqCitation = [string, number, string | number | null, string | 0];
 /**
  * An eligible comparable: [URN after the pool's prefix, market value, appraised value, improvement area, land area,
  * year built, neighborhood code, building class, situs address, citation, document indexes of its facts (0: only
- * the cited document)].
+ * the cited document), apn, local use code]. A pack before row version 2 has no apn and local use code.
  */
 export type EqRow = [
   string,
@@ -72,6 +87,8 @@ export type EqRow = [
   string | null,
   EqCitation | null,
   number[] | 0,
+  (string | null)?,
+  (string | null)?,
 ];
 
 /** Year built (null: unknown) → rows, for counting a chunk wholly inside the area band. */
@@ -160,6 +177,8 @@ export function encodeRow(
     c.situs_address as string | null,
     citation,
     citation && docs.length === 1 && docs[0] === citation[1] ? 0 : docs,
+    c.apn as string | null,
+    c.local_use_code as string | null,
   ];
 }
 
@@ -171,6 +190,8 @@ export function rowDocs(r: EqRow): number[] {
 /** The shaped comparable (equityComparable's object, key order included) of an encoded row. */
 export function decodeRow(h: PoolHeader, m: EquityManifest, r: EqRow): Row {
   const [tail, market, appraised, area, land, year, nbhd, cls, situs, cite] = r;
+  const apn = r[11] ?? null;
+  const useCode = r[12] ?? null;
   const basis =
     appraised !== null ? "appraised" : market !== null ? "market" : null;
   let citation: Row | null = null;
@@ -189,9 +210,10 @@ export function decodeRow(h: PoolHeader, m: EquityManifest, r: EqRow): Row {
       as_of: asOf === 0 ? source.as_of : asOf,
     };
   }
-  return {
+  return equityShape({
     id: h.u + tail,
     county_fips: h.county,
+    apn,
     value: basis === "appraised" ? appraised : market,
     value_basis: basis,
     market_value: market,
@@ -200,12 +222,13 @@ export function decodeRow(h: PoolHeader, m: EquityManifest, r: EqRow): Row {
     land_area_sf: land,
     year_built: year,
     state_property_category: h.category,
+    local_use_code: useCode,
     neighborhood_code: nbhd,
     building_class: cls,
     situs_address: situs,
     tax_year: h.tax_year,
     citation,
-  };
+  });
 }
 
 // --- building sorted lists ---------------------------------------------------------------------------------------
@@ -402,6 +425,47 @@ export async function listNearest(
   return best;
 }
 
+/**
+ * The encoded rows of a list that pass the whole rule, narrowing included (the subject never), with how many each
+ * narrowing step left. Rows are tested as stored and never decoded here, and a chunk whose year counts leave no
+ * row within the year band is not read: a narrowed call decodes only the rows it may return.
+ */
+export async function listNarrowed(
+  pack: Pack,
+  h: PoolHeader,
+  list: SortedList,
+  rule: EquityRule,
+): Promise<{ rows: EqRow[]; steps: number[] }> {
+  const steps: number[] = [];
+  if (rule.buildingClass !== null) steps.push(0);
+  if (rule.useCodes !== null) steps.push(0);
+  const rows: EqRow[] = [];
+  const take = (r: EqRow) => {
+    if (h.u + r[0] === rule.urn || !inBand(rule, r[3], r[5])) return;
+    let k = 0;
+    if (rule.buildingClass !== null) {
+      if (r[7] !== rule.buildingClass) return;
+      steps[k++]! += 1;
+    }
+    if (rule.useCodes !== null) {
+      const code = r[12];
+      if (typeof code !== "string" || !rule.useCodes.includes(code)) return;
+      steps[k]! += 1;
+    }
+    rows.push(r);
+  };
+  if ("r" in list) list.r.forEach(take);
+  else if ("a" in list) throw new Error("a count-only list has no rows");
+  else
+    for (let k = 0; k < list.rc.length; k++) {
+      const [lo, hi, n, years] = list.rc[k]!;
+      if (hi < rule.lo || lo > rule.hi) continue;
+      if (years && countYears(rule, n, years) === 0) continue;
+      (await chunk<EqRow[]>(pack, `${list.f}/r${k}.json`)).forEach(take);
+    }
+  return { rows, steps };
+}
+
 /** registry_tx_equity_candidates for a subject the pack holds (its input already checked). */
 export async function equityFromPack(
   pack: Pack,
@@ -424,15 +488,42 @@ export async function equityFromPack(
   if (yearUsed !== null && !stored)
     throw new Error(`${urn}: no candidate data for tax year ${yearUsed}`);
   const rolls = stored ? stored[1] : equityRolls(years, yearUsed);
+  // A subject stored by a pack before row version 2 lacks apn and local_use_code: equityShape adds them as null.
   const subject: Row = {
-    ...(stored ? stored[3] : equityComparable(urn, new Map())),
+    ...equityShape(stored ? stored[3] : equityComparable(urn, new Map())),
     value_history: entry.r.value_history,
   };
   const rule = equityRule(urn, subject, params);
   let counts = [0, 0, 0];
+  let funnel: number[] = rule ? equityFunnel(rule, []) : [];
   let returned: EquityMatch[] = [];
   const pool = stored?.[5] ?? null;
-  if (rule && pool !== null) {
+  if (
+    rule &&
+    pool !== null &&
+    (rule.buildingClass !== null || rule.useCodes !== null)
+  ) {
+    // Narrowed: the pool's rows that pass the whole rule, tested as stored; only those are decoded and selected
+    // with the SDK's functions. The area and year-band counts come from the list counts, as below.
+    const h = await chunk<PoolHeader>(pack, `q/${pool}/h.json`);
+    const inPool = stored![6];
+    const { rows, steps } = await listNarrowed(pack, h, h.all, rule);
+    const cands = rows.map((r) => ({
+      urn: h.u + r[0],
+      row: decodeRow(h, m, r),
+      docs: rowDocs(r).map((i) => m.docs[i]![0]),
+    }));
+    ({ counts, returned } = equityReturned(
+      selectEquityCandidates(urn, subject, cands, params),
+      params,
+    ));
+    funnel = [
+      h.all.n - inPool,
+      (await listCount(pack, h.all, { ...rule, year: null })) - inPool,
+      (await listCount(pack, h.all, rule)) - inPool,
+      ...steps,
+    ];
+  } else if (rule && pool !== null) {
     const h = await chunk<PoolHeader>(pack, `q/${pool}/h.json`);
     const group = async (key: string): Promise<SortedList | undefined> => {
       const b = await chunk<Record<string, SortedList>>(
@@ -450,6 +541,12 @@ export async function equityFromPack(
         ? await group(`X:${nb}\u0000${zip}`)
         : undefined;
     const cAll = await listCount(pack, h.all, rule);
+    const inPool = stored![6];
+    funnel = [
+      h.all.n - inPool,
+      (await listCount(pack, h.all, { ...rule, year: null })) - inPool,
+      cAll - inPool,
+    ];
     const cN = await listCount(pack, listN, rule);
     const cZ =
       (await listCount(pack, listZ, rule)) -
@@ -484,6 +581,7 @@ export async function equityFromPack(
       companions: stored ? stored[2] : [],
       warnings,
       counts,
+      funnel,
       returned,
     },
     (docs) =>
