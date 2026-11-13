@@ -6,6 +6,8 @@ import { isRounded, roundInText, ungrouped } from "../format.ts";
 import { TEXT_LIMITS } from "../text.ts";
 import { TxCitation, type Checked } from "../validate.ts";
 
+import { ContextCandidate, ContextSelectionRule } from "./tx_context.ts";
+
 /** A citation the caller adds: its locator is capped tighter than a tool result's. */
 const ContextCitation = TxCitation.extend({
   locator: z.string().min(1).max(TEXT_LIMITS.locator).optional(),
@@ -89,6 +91,16 @@ export const ReportContext = z.strictObject({
     .describe(
       'tx_unequal_appraisal: the `sources` of registry_tx_equity_candidates (or registry_get) as returned: each cited document_id with its title, uri, as_of and rights (ai_use, redistribution, license, attribution). The packet\'s Sources and rights block prints each cited source with its as-of date, URL and rights; a source sent without rights, or a right of "unknown", is printed as not stated by the publisher.',
     ),
+  candidates: z
+    .array(ContextCandidate)
+    .max(201)
+    .optional()
+    .describe(
+      "tx_unequal_appraisal: the rows of registry_tx_equity_candidates' `subject` and `candidates` for this calculation's subject and comparables only, as returned, matched by id. Each row's value and improvement_area_sf must equal that subject's or comparable's in the calculation, and every id must be one of them (InputError otherwise). The packet and workbook print the account number (apn), state property category, building class, local use code, land area and year built as sent, and value per SF computed from the calculation's value and area.",
+    ),
+  selection_rule: ContextSelectionRule.optional().describe(
+    "tx_unequal_appraisal: the `selection_rule` of registry_tx_equity_candidates as returned. The packet and workbook print FactLot's default candidate rule with the parameters, narrowing, step counts and tier counts applied.",
+  ),
 });
 export type ReportContext = z.output<typeof ReportContext>;
 

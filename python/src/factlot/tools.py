@@ -553,17 +553,51 @@ def _nonempty(args: dict[str, Any], key: str) -> str:
     return v
 
 
+def _address_search_input(args: dict[str, Any]) -> tuple[str, int, dict[str, str]]:
+    """registry_search_address's query (or address), limit and place parameters, validated as the TypeScript
+    schema does: field types and lengths first, then exactly one of query or address, then the place parameters."""
+    from .registry.normalize import address_where_issues, address_where_of
+
+    issues: list[dict[str, str]] = []
+    for key, lo, hi in (("query", 1, 500), ("address", 1, 500), ("state", 2, 40), ("city", 1, 100),
+                        ("postal_code", 5, 10), ("county_fips", 3, 5)):
+        if key not in args:
+            continue
+        v = args[key]
+        if not isinstance(v, str):
+            issues.append({"path": key, "message": "expected string"})
+        elif len(v) < lo:
+            issues.append({"path": key, "message": f"expected at least {lo} character{'s' if lo > 1 else ''}"})
+        elif len(v) > hi:
+            issues.append({"path": key, "message": f"expected at most {hi} characters"})
+    limit = _limit(args)
+    if issues:
+        raise _MultiInputError(issues)
+    if ("query" in args) == ("address" in args):
+        issues.append({"path": "", "message": "provide exactly one of query or address"})
+    where = address_where_of(args)
+    issues += address_where_issues(where)
+    if issues:
+        raise _MultiInputError(issues)
+    return args["query"] if "query" in args else args["address"], limit, where
+
+
 def _search(kind: str):
     def run(args: dict[str, Any]) -> dict[str, Any]:
         from .registry import coverage
 
-        query, limit = _nonempty(args, "query"), _limit(args)  # validate before touching the registry
+        if kind == "entities":
+            query, limit = _nonempty(args, "query"), _limit(args)  # validate before touching the registry
+            reg = _registry()
+            results = reg.search_entities(query, limit)
+            return {"results": results} if results else {"results": results,
+                                                          "coverage": coverage.entities_miss(reg.coverage())}
+        query, limit, where = _address_search_input(args)
         reg = _registry()
-        results = reg.search_address(query, limit) if kind == "address" else reg.search_entities(query, limit)
+        results, hint = reg.search_address_hint(query, limit, where)
         if results:
             return {"results": results}
-        cov = coverage.address_miss(reg.coverage(), query) if kind == "address" else coverage.entities_miss(reg.coverage())
-        return {"results": results, "coverage": cov}
+        return {"results": results, "coverage": coverage.address_miss(reg.coverage(), query, where, hint)}
 
     return run
 
@@ -606,7 +640,7 @@ def _registry_coverage(args: dict[str, Any]) -> dict[str, Any]:
     from .registry import coverage
 
     reg = _registry()
-    return coverage.tool_result(reg.db, reg.coverage())
+    return coverage.tool_result(reg.db, reg.coverage(), fields=args.get("fields") is True)
 
 
 def _bounded(args: dict[str, Any], key: str, default: Any, lo: float, hi: float, *, integer: bool,
@@ -624,6 +658,32 @@ def _bounded(args: dict[str, Any], key: str, default: Any, lo: float, hi: float,
     return int(v) if integer else v
 
 
+def _flag(args: dict[str, Any], key: str) -> bool:
+    """An optional boolean, false when absent."""
+    if key not in args:
+        return False
+    if not isinstance(args[key], bool):
+        raise _InputError(key, "expected boolean")
+    return args[key]
+
+
+def _use_codes(args: dict[str, Any], most: int) -> list[str] | None:
+    """``local_use_codes``: 1 to ``most`` codes of 1 to 64 characters, or None when absent."""
+    if "local_use_codes" not in args:
+        return None
+    v = args["local_use_codes"]
+    if not isinstance(v, list):
+        raise _InputError("local_use_codes", "expected array")
+    if not 1 <= len(v) <= most:
+        raise _InputError("local_use_codes", f"expected at least 1 and at most {most} items")
+    for i, c in enumerate(v):
+        if not isinstance(c, str):
+            raise _InputError(f"local_use_codes.{i}", "expected string")
+        if not 1 <= len(c) <= 64:
+            raise _InputError(f"local_use_codes.{i}", "expected at least 1 and at most 64 characters")
+    return list(v)
+
+
 def _tx_equity_candidates(args: dict[str, Any]) -> dict[str, Any]:
     from .registry import tx_equity
 
@@ -636,6 +696,9 @@ def _tx_equity_candidates(args: dict[str, Any]) -> dict[str, Any]:
         "min_matches": _bounded(args, "min_matches", tx_equity.DEFAULTS["min_matches"], 1, 200, integer=True),
         "limit": _bounded(args, "limit", tx_equity.DEFAULTS["limit"], 1, 200, integer=True),
         "tax_year": _bounded(args, "tax_year", None, 1900, 2100, integer=True),
+        "same_building_class": _flag(args, "same_building_class"),
+        "same_local_use_code": _flag(args, "same_local_use_code"),
+        "local_use_codes": _use_codes(args, tx_equity.USE_CODES_MAX),
     }
     if "urn" in args:
         urn = _str(args, "urn")

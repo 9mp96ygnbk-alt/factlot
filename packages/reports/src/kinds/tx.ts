@@ -4,11 +4,13 @@
  * Arithmetic only: no recommendation, no opinion of value.
  */
 import type { TxUnequalAppraisalInput } from "@factlot/calc";
+import { round } from "@factlot/calc";
+import { TX_EQUITY_RULE } from "@factlot/tools";
 
 import type { Block, Provenance, ReportDoc } from "../doc.ts";
 import { appendBlocks, putLines } from "../doc.ts";
 import { pct, roundInText, usd } from "../format.ts";
-import type { TxResult } from "../validate.ts";
+import { ReportInputError, type TxResult } from "../validate.ts";
 import { Workbook, addr, fx, range, type Sheet } from "../xlsx.ts";
 import {
   closingBlocks,
@@ -232,6 +234,285 @@ export function sourcesBlocks(k: KindInput, r: TxResult): Block[] {
   return out;
 }
 
+/** The heading of the table of fields from context.candidates. */
+export const SENT_FIELDS_HEADING =
+  "Fields of the subject and comparables as returned by registry_tx_equity_candidates and sent with this request";
+/** Printed above that table: what it is, what was checked, and what FactLot computed. */
+export const SENT_FIELDS_NOTE =
+  "Account number, codes, land area and year built are as registry_tx_equity_candidates returned them and the caller sent them in context.candidates; FactLot did not look them up again. Each row's value and improvement area were checked against the value and improvement area of the same subject or comparable in this calculation, and value per SF is that value divided by that area, to the cent: one division, not an adjustment and not an opinion of value. Land and improvement values are not in the registry and are not shown.";
+/** Printed above the rule: whose rule it is. */
+export const RULE_NOTE =
+  "The candidate list came from FactLot's default rule, a design choice and not a legal standard, with the parameters below as the caller sent them in context.selection_rule. The comparables in the grid are the ones the caller sent to the calculation; the rule's counts are for the whole candidate list, not only for those.";
+/** RULE_NOTE when the selection rule sent lists a narrowing that was applied. */
+export const RULE_NOTE_NARROWED =
+  "The candidate list came from FactLot's default rule with the narrowing listed below, a design choice and not a legal standard, with the parameters below as the caller sent them in context.selection_rule. The comparables in the grid are the ones the caller sent to the calculation; the rule's counts are for the whole candidate list, not only for those.";
+
+const or = (x: unknown, none: string): string =>
+  x === null || x === undefined || x === "" ? none : String(x);
+const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null);
+
+/**
+ * The rows of context.candidates matched to this calculation's subject and comparables by id. Refuses
+ * (InputError) a row whose id is neither, an id sent twice, and a row whose value or improvement area differs
+ * from the calculation's for that id.
+ */
+function sentRows(
+  k: KindInput,
+  r: TxResult,
+): Map<string, NonNullable<KindInput["ctx"]["candidates"]>[number]> {
+  const v = r.value;
+  const args = k.checked.args as Args | undefined;
+  const parties = new Map<string, { value: number; area: unknown }>();
+  if (v.subject_id)
+    parties.set(v.subject_id, {
+      value: v.subject_value,
+      area: args?.subject.improvement_area_sf,
+    });
+  for (const c of v.comparables)
+    if (c.id && !parties.has(c.id))
+      parties.set(c.id, {
+        value: c.value,
+        area: args?.comparables[c.index]?.improvement_area_sf,
+      });
+  const out = new Map<
+    string,
+    NonNullable<KindInput["ctx"]["candidates"]>[number]
+  >();
+  const issues: { path: string; message: string }[] = [];
+  (k.ctx.candidates ?? []).forEach((c, i) => {
+    const at = `context.candidates.${i}`;
+    const party = parties.get(c.id);
+    if (!party)
+      issues.push({
+        path: `${at}.id`,
+        message: `${c.id} is not the subject or a comparable of this calculation`,
+      });
+    else if (out.has(c.id))
+      issues.push({ path: `${at}.id`, message: `${c.id} is sent twice` });
+    else {
+      if (!same(c.value, party.value))
+        issues.push({
+          path: `${at}.value`,
+          message: `${c.id}: value ${String(c.value ?? null)} differs from the calculation's ${party.value}`,
+        });
+      if (!same(c.improvement_area_sf, party.area))
+        issues.push({
+          path: `${at}.improvement_area_sf`,
+          message: `${c.id}: improvement_area_sf ${String(c.improvement_area_sf ?? null)} differs from the calculation's ${String(party.area ?? null)}`,
+        });
+      out.set(c.id, c);
+    }
+  });
+  if (issues.length)
+    throw new ReportInputError(
+      "InputError",
+      `context.candidates does not match the calculation: ${issues[0]!.message}`,
+      issues.slice(0, 20),
+    );
+  return out;
+}
+
+/**
+ * The fields of the subject and comparables from context.candidates (checked against the calculation) and the
+ * candidate rule as applied (context.selection_rule), when the caller sent them; nothing otherwise.
+ */
+export function candidateBlocks(k: KindInput, r: TxResult): Block[] {
+  const v = r.value;
+  const args = k.checked.args as Args | undefined;
+  const out: Block[] = [];
+  const byId = sentRows(k, r);
+  if (byId.size) {
+    const rows: [string, string | null | undefined, number, unknown, string][] =
+      [
+        [
+          v.subject_id ? `${v.subject_id} (subject)` : "Subject",
+          v.subject_id,
+          v.subject_value,
+          args?.subject.improvement_area_sf,
+          v.subject_value_basis,
+        ],
+        ...v.comparables.map(
+          (c): [string, string | null | undefined, number, unknown, string] => [
+            nameOf(c),
+            c.id,
+            c.value,
+            args?.comparables[c.index]?.improvement_area_sf,
+            c.value_basis,
+          ],
+        ),
+      ];
+    out.push({ t: "heading", text: SENT_FIELDS_HEADING });
+    out.push({ t: "para", grey: true, text: SENT_FIELDS_NOTE });
+    out.push({
+      t: "table",
+      size: 6.5,
+      columns: [
+        { header: "Property", fmt: "text", width: 1.5 },
+        { header: "Account", fmt: "text", width: 1.1 },
+        { header: "Category", fmt: "text", width: 0.6 },
+        { header: "Class", fmt: "text", width: 0.6 },
+        { header: "Use code", fmt: "text", width: 0.6 },
+        { header: "Impr. area (SF)", fmt: "int", width: 0.8 },
+        { header: "Land area (SF)", fmt: "int", width: 0.8 },
+        { header: "Year built", fmt: "text", width: 0.55 },
+        { header: "Value", fmt: "usd", width: 1.1 },
+        { header: "Basis", fmt: "text", width: 0.7 },
+        { header: "Value per SF", fmt: "usd", width: 0.8 },
+      ],
+      rows: rows.map(([name, id, value, area, basis]) => {
+        const c = id ? byId.get(id) : undefined;
+        const a = typeof area === "number" && area > 0 ? area : null;
+        if (!c)
+          return [
+            name,
+            "not sent",
+            "",
+            "",
+            "",
+            a,
+            null,
+            "",
+            value,
+            basis,
+            null,
+          ];
+        return [
+          name,
+          or(c.apn, "not on the roll"),
+          or(c.state_property_category, ""),
+          or(c.building_class, ""),
+          or(c.local_use_code, ""),
+          a,
+          c.land_area_sf ?? null,
+          or(c.year_built, ""),
+          value,
+          basis,
+          a === null ? null : round(value / a, 2),
+        ];
+      }),
+    });
+  }
+  const rule = k.ctx.selection_rule;
+  if (rule) {
+    out.push({ t: "heading", text: "Candidate rule as applied" });
+    out.push({
+      t: "para",
+      grey: true,
+      text: (rule.narrowing ?? []).some((n) => n.applied)
+        ? RULE_NOTE_NARROWED
+        : RULE_NOTE,
+    });
+    out.push({ t: "para", text: TX_EQUITY_RULE });
+    const band = rule.area_band;
+    const years = rule.year_band;
+    const n = (x: unknown) =>
+      typeof x === "number" ? String(Math.round(x)) : "none";
+    out.push({
+      t: "kv",
+      rows: [
+        {
+          label: "Roll year compared",
+          value: or(rule.tax_year, "none"),
+          fmt: "text",
+        },
+        {
+          label: "State property category",
+          value: or(rule.state_property_category, "none"),
+          fmt: "text",
+        },
+        {
+          label: "Improvement area band",
+          value: band
+            ? `${or(band.share, "none")} of the subject's: ${n(band.min_sf)} to ${n(band.max_sf)} SF`
+            : "none",
+          fmt: "text",
+        },
+        {
+          label: "Year-built band",
+          value: years
+            ? `${or(years.years, "none")} years: ${n(years.min)} to ${n(years.max)}`
+            : "none",
+          fmt: "text",
+        },
+        {
+          label: "min_matches",
+          value: or(rule.min_matches, "none"),
+          fmt: "text",
+        },
+        { label: "limit", value: or(rule.limit, "none"), fmt: "text" },
+        ...(rule.narrowing ?? []).map((x) => ({
+          label: x.parameter,
+          value: `${x.applied ? "applied" : "not applied"}${
+            x.value === null || x.value === undefined
+              ? ""
+              : `: ${Array.isArray(x.value) ? x.value.join(", ") : x.value}`
+          }`,
+          fmt: "text" as const,
+        })),
+        ...(rule.narrowing?.length
+          ? []
+          : [
+              {
+                label: "Narrowing",
+                value: "none (default rule)",
+                fmt: "text" as const,
+              },
+            ]),
+        {
+          label: "Widened to the county",
+          value:
+            rule.widened_to_county === undefined
+              ? "not sent"
+              : rule.widened_to_county
+                ? "yes"
+                : "no",
+          fmt: "text",
+        },
+        {
+          label: "Candidates meeting the rule",
+          value: or(rule.matched, "not sent"),
+          fmt: "text",
+        },
+        {
+          label: "Candidates returned",
+          value: or(rule.returned, "not sent"),
+          fmt: "text",
+        },
+      ],
+    });
+    if (rule.steps?.length)
+      out.push({
+        t: "table",
+        size: 7,
+        columns: [
+          { header: "Step of the rule (whole county)", fmt: "text", width: 5 },
+          { header: "Parcels left", fmt: "int", width: 1 },
+        ],
+        rows: rule.steps.map((x) => [x.step, x.left]),
+      });
+    if (rule.tiers?.length)
+      out.push({
+        t: "table",
+        size: 7,
+        columns: [
+          { header: "Tier", fmt: "text", width: 1.2 },
+          { header: "Key", fmt: "text", width: 1.6 },
+          { header: "Applied", fmt: "text", width: 0.8 },
+          { header: "Matched", fmt: "int", width: 0.9 },
+          { header: "Returned", fmt: "int", width: 0.9 },
+        ],
+        rows: rule.tiers.map((t) => [
+          t.tier,
+          or(t.key, "none"),
+          t.applied === undefined ? "" : t.applied ? "yes" : "no",
+          t.matched ?? null,
+          t.returned ?? null,
+        ]),
+      });
+  }
+  return out;
+}
+
 /** "C-1 (Oak Plaza, 100 Main St)" when a label or address was supplied. */
 function displayName(c: Comp, args: unknown): string {
   const n = compNames(c, args);
@@ -410,6 +691,7 @@ export function txDoc(k: KindInput): ReportDoc {
     ]),
   });
 
+  blocks.push(...candidateBlocks(k, r));
   blocks.push(...sourcesBlocks(k, r));
 
   blocks.push({
@@ -988,6 +1270,14 @@ function userReadme(
       "and a Status. Difference is ROUND(Excel - FactLot, n), n shown in the Tolerance column; 0 means the two agree.",
     "If you change an input on Grid, the FactLot column on Reconcile does not change (it is a recorded output); " +
       "call calc_tx_unequal_appraisal again to refresh it.",
+    ...(k.ctx.candidates?.length || k.ctx.selection_rule
+      ? [
+          "Sent_candidate_fields: the subject's and each comparable's fields as registry_tx_equity_candidates " +
+            "returned them and the caller sent them (account number, codes, land area, year built), with value and " +
+            "improvement area checked against this calculation and value per SF computed from them, then FactLot's " +
+            "default candidate rule with the parameters applied, as sent.",
+        ]
+      : []),
     "Steps: the tool's audit trail. Law: the statutes the tool cites. Provenance: each cited source with its " +
       "as-of date, URL and rights, then how the figures were reached (FactLot's run of the tool on the " +
       "arguments, listed on Inputs as sent) and when.",
@@ -1025,6 +1315,27 @@ export async function txXlsx(k: KindInput): Promise<Uint8Array> {
   rec.section(`Unequal-appraisal arithmetic, tax year ${v.tax_year}`);
   gridSheet(wb, rec, r, args, k);
   rec.finish();
+
+  // The roll fields and the candidate rule, when the caller sent registry_tx_equity_candidates' answer.
+  const cand = candidateBlocks(k, r);
+  if (cand.length) {
+    const roll = wb.sheet("Sent_candidate_fields");
+    roll.width(1, 46);
+    roll.put(
+      1,
+      1,
+      "Candidate fields sent with this request, and the candidate rule",
+      "title",
+    );
+    appendBlocks(
+      wb,
+      roll,
+      2,
+      cand,
+      `Unequal-appraisal arithmetic, tax year ${v.tax_year}`,
+      new Map(),
+    );
+  }
 
   const steps = wb.sheet("Steps");
   [44, 20, 10, 90].forEach((w, i) => steps.width(i + 1, w));

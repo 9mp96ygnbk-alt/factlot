@@ -7,6 +7,7 @@ from difflib import SequenceMatcher
 from typing import Any
 
 from ..ids import address_tokens
+from .address_places import place_counties
 
 # Texas State Property Tax Code categories kept by default (data policy §3):
 # B multifamily, F1 commercial real property, F2 industrial/manufacturing real property.
@@ -850,7 +851,11 @@ def address_words_without_ordinals(words: list[str]) -> list[str] | None:
     Some rolls write numbered streets bare ("136 WEST 42 STREET", "350 5 AVENUE"), so a query that found nothing is
     searched once more this way. The first word is left alone: there it is a house number or the leading word.
     """
-    out = [m.group(1) if i > 0 and (m := _ORDINAL_WORD.match(w)) else w for i, w in enumerate(words)]
+    return _ordinals_dropped(words, 1)
+
+
+def _ordinals_dropped(words: list[str], start: int) -> list[str] | None:
+    out = [m.group(1) if i >= start and (m := _ORDINAL_WORD.match(w)) else w for i, w in enumerate(words)]
     return out if out != words else None
 
 
@@ -1091,7 +1096,8 @@ def address_place(query: str) -> dict[str, Any]:
     """The place an address query names after its street line (``addressPlace`` in TS): ``{"city", "state", "zip"}``,
     read conservatively from the end of the part after the first comma: a trailing country ("USA", "U.S.A.", "US",
     "United States") is dropped and "D.C." is DC; a ZIP code is a 5-digit number (or ZIP+4) that ends the query and
-    does not follow a unit, suite, box, room, building or number word, and only orders the matches; a state (two
+    does not follow a unit, suite, box, room, building or number word, and only orders the matches (a number of 4 or 6
+    to 9 digits there, or "6103.0", is a ZIP code written wrongly and is passed over); a state (two
     letters, or the full name) counts only when it follows a city, in its comma part or the one before, and never
     after a unit word or floor ordinal, and is the only part that filters; the city is the comma part left at the
     end, and only orders. Anything else is ignored; a query without a comma names no place.
@@ -1126,17 +1132,28 @@ def address_place(query: str) -> dict[str, Any]:
         n = len(w)
         if n >= 2 and re.fullmatch(r"[0-9]{5}", w[-2]) and re.fullmatch(r"[0-9]{4}", w[-1]):
             k = 2
-        elif re.fullmatch(r"[0-9]{5}", w[-1]):
+        elif re.fullmatch(r"[0-9]{5}(?:[0-9]{4})?", w[-1]):
             k = 1
         else:
             k = 0
+        # A ZIP code written wrongly ("6103.0", "60701822", "7700"): not a ZIP code, and not read as anything else.
         if k:
-            before = w[n - k - 1] if n - k - 1 >= 0 else None
+            bad = 0
+        elif n >= 2 and re.fullmatch(r"[0-9]{4}", w[-2]) and w[-1] == "0":
+            bad = 2
+        elif re.fullmatch(r"[0-9]{4}|[0-9]{6,8}", w[-1]):
+            bad = 1
+        else:
+            bad = 0
+        if k or bad:
+            m = k or bad
+            before = w[n - m - 1] if n - m - 1 >= 0 else None
             # "Suite 12345", "PO Box 12345": a unit's number, and the part is no place.
             if before is not None and before != "FL" and _is_unit_word(before):
                 return none
-            zip5 = w[n - k]
-            drop(k)
+            if k:
+                zip5 = w[n - k][:5]
+            drop(m)
     state = None
     if parts:
         w = parts[-1]
@@ -1200,12 +1217,16 @@ def _label_in_city(label: Any, city: str) -> bool:
 
 def address_place_rank(place: dict[str, Any], urn: str, label: Any) -> int:
     """Where a match goes in the answer to a query naming ``place`` (``addressPlaceRank`` in TS): -1 when the place
-    names a state the match is not in (from its URN), else 0 when its label has the place's ZIP code, 1 when its
+    names a state (or county) the match is not in (from its URN), else 0 when its label has the place's ZIP code, 1 when its
     label is in the place's city, 2 otherwise."""
     if place["state"] is not None:
         m = re.match(r"fl:[a-z]+:us-([0-9]{2})", urn)
         st = STATE_BY_FIPS.get(m.group(1)) if m else None
         if st is None or st.upper() != place["state"]:
+            return -1
+    if place.get("county") is not None:
+        m = re.match(r"fl:[a-z]+:us-([0-9]{5})", urn)
+        if not m or m.group(1) != place["county"]:
             return -1
     if place["zip"] is not None and _label_zip5(label) == place["zip"]:
         return 0
@@ -1217,3 +1238,485 @@ def address_place_rank(place: dict[str, Any], urn: str, label: Any) -> int:
 def address_place_top(place: dict[str, Any]) -> int:
     """The rank of the first group a place can fill (``addressPlaceTop`` in TS)."""
     return 0 if place["zip"] is not None else 1 if place["city"] is not None else 2
+
+
+
+# --- other spellings of a query's street line (``addressSearchForms`` and friends in TS) -----------------------------
+
+_TENS_WORDS = {"TWENTY": 20, "THIRTY": 30, "FORTY": 40, "FOURTY": 40, "FIFTY": 50, "SIXTY": 60, "SEVENTY": 70,
+               "EIGHTY": 80, "NINETY": 90}
+_TENS_ORDINAL_WORDS = {"THIRTIETH": 30, "FORTIETH": 40, "FOURTIETH": 40, "FIFTIETH": 50, "SIXTIETH": 60,
+                       "SEVENTIETH": 70, "EIGHTIETH": 80, "NINETIETH": 90}
+_DIGIT_WORDS = {"ONE": 1, "TWO": 2, "THREE": 3, "FOUR": 4, "FIVE": 5, "SIX": 6, "SEVEN": 7, "EIGHT": 8, "NINE": 9}
+
+
+def ordinal_of(n: int) -> str:
+    """"5TH", "42ND", "101ST" (``ordinalOf`` in TS)."""
+    if 11 <= n % 100 <= 13:
+        return f"{n}TH"
+    return f"{n}" + {1: "ST", 2: "ND", 3: "RD"}.get(n % 10, "TH")
+
+
+def _ordinal_value(w: str | None) -> int | None:
+    if w is None:
+        return None
+    m = _ORDINAL_WORD.match(w)
+    if m:
+        return int(m.group(1))
+    return _TENS_ORDINAL_WORDS.get(w)
+
+
+def address_words_numbered(words: list[str]) -> list[str] | None:
+    """The words of a street line with a numbered street written in words made one ordinal ("FORTY 2ND ST" → "42ND ST";
+    "ONE HUNDRED TWENTY 5TH" → "125TH"; "FORTIETH" → "40TH"), or None when there is none (``addressWordsNumbered``)."""
+    out: list[str] = []
+    changed = False
+    i = 0
+    n = len(words)
+    while i < n:
+        w = words[i]
+        j, hundreds = i, 0
+        if w in _DIGIT_WORDS and i + 1 < n and words[i + 1] == "HUNDRED":
+            hundreds = _DIGIT_WORDS[w] * 100
+            j = i + 2
+            if j < n and words[j] == "AND":
+                j += 1
+        tens = _TENS_WORDS.get(words[j], 0) if j < n else 0
+        k = j + 1 if tens else j
+        ord_ = _ordinal_value(words[k] if k < n else None)
+        value = None
+        if tens and ord_ is not None and 1 <= ord_ <= 9 and _ORDINAL_WORD.match(words[k]):
+            value = hundreds + tens + ord_
+        elif not tens and hundreds and ord_ is not None and ord_ < 100:
+            value = hundreds + ord_
+        elif not tens and not hundreds and w in _TENS_ORDINAL_WORDS:
+            value = _TENS_ORDINAL_WORDS[w]
+        if value is None:
+            out.append(w)
+            i += 1
+            continue
+        out.append(ordinal_of(value))
+        changed = True
+        i = k + 1
+    return out if changed else None
+
+
+def address_words_with_ordinals(words: list[str]) -> list[str] | None:
+    """The words of a street line with each bare street number before a street type given its ordinal ending
+    ("350 5 AVE" → "350 5TH AVE"), or None when there is none (``addressWordsWithOrdinals`` in TS)."""
+    out = [ordinal_of(int(w)) if i > 0 and re.fullmatch(r"[0-9]+", w) and i + 1 < len(words)
+           and words[i + 1] in SEARCH_STREET_TYPES else w for i, w in enumerate(words)]
+    return out if out != words else None
+
+
+def address_search_forms(words: list[str]) -> list[list[str]]:
+    """The spellings a street line is searched by (``addressSearchForms`` in TS): as written first, then a numbered
+    street in words as one ordinal, and the street numbers with and without their ordinal endings."""
+    forms = [words]
+    seen = {" ".join(words)}
+
+    def add(w: list[str] | None) -> None:
+        if w is not None and " ".join(w) not in seen:
+            seen.add(" ".join(w))
+            forms.append(w)
+
+    n = address_words_numbered(words) or words
+    add(n)
+    # Manhattan's Sixth Avenue is "AVENUE OF THE AMERICAS" on the roll, mostly cut to "AVENUE OF THE AMER".
+    aoa = next((i for i in range(len(n) - 3) if n[i:i + 4] == ["AVE", "OF", "THE", "AMERICAS"]), -1)
+    if aoa >= 0:
+        add(n[:aoa + 3] + ["AMER"] + n[aoa + 4:])
+    six = next((i for i in range(len(n) - 1) if n[i] in ("6", "6TH") and n[i + 1] == "AVE"
+                and (i > 0 or not (words and words[0][:1].isdigit()))), -1)
+    if six >= 0:
+        for end in ("AMER", "AMERICAS"):
+            add(n[:six] + ["AVE", "OF", "THE", end] + n[six + 2:])
+    # "Eye Street" is also written "I Street" (Washington, DC writes I).
+    eye = [i for i, w in enumerate(n) if w == "EYE" and i + 1 < len(n) and n[i + 1] in SEARCH_STREET_TYPES]
+    if eye:
+        add(["I" if i in eye else w for i, w in enumerate(n)])
+    # San Francisco writes "03RD ST" for 3rd Street.
+    lead = not (words and words[0][:1].isdigit())
+    padded = ["0" + w if (i > 0 or lead) and re.fullmatch(r"[1-9](?:ST|ND|RD|TH)", w) else w for i, w in enumerate(n)]
+    if padded != n:
+        add(padded)
+    # Without a house number, the first word may be the street number itself ("42ND ST").
+    add(_ordinals_dropped(n, 1 if words and words[0][:1].isdigit() else 0))
+    ordn = address_words_with_ordinals(n)
+    add(ordn)
+    # A bare street number ("3 ST") is also searched as San Francisco writes it ("03RD ST").
+    if ordn is not None:
+        add(["0" + w if i > 0 and re.fullmatch(r"[1-9](?:ST|ND|RD|TH)", w) and w != n[i] else w
+             for i, w in enumerate(ordn)])
+    return forms
+
+
+def _upper_ascii(s: str) -> str:
+    return re.sub(r"[a-z]+", lambda m: m.group(0).upper(), s)
+
+
+def address_key_matches(mode: str, words: list[str], key: str) -> bool:
+    """Whether an address key matches a query's words under ``mode`` (``addressKeyMatches`` in TS): the search's LIKE
+    rule on whole words."""
+    k = _upper_ascii(key)
+    spaced = f" {k} "
+    if mode == "street":
+        return f" {' '.join(words)} " in spaced
+    if not f"{k} ".startswith(f"{words[0]} "):
+        return False
+    return all(f" {w} " in spaced for w in words[1:])
+
+
+_DIRECTIONAL_WORDS = frozenset("N S E W NE NW SE SW".split())
+# Counties whose hyphenated house numbers are one number, never a range (Queens, NY: "37-20 80 Street").
+HYPHENATED_HOUSE_NUMBER_COUNTIES = frozenset({"36081"})
+_LABEL_RANGE = re.compile(r"^\s*([0-9]+)-([0-9]+)\s")
+# A label range spanning this many house numbers or more is not a range (ADDRESS_RANGE_MAX_SPAN in TS).
+ADDRESS_RANGE_MAX_SPAN = 500
+
+
+def address_range(urn: str, label: Any, key: str) -> tuple[int, int, bool] | None:
+    """A parcel's house-number range ``(low, high, one side)`` (``addressRange`` in TS), or None."""
+    if not isinstance(label, str):
+        return None
+    m = _LABEL_RANGE.match(label)
+    if not m:
+        return None
+    c = re.match(r"fl:[a-z]+:us-([0-9]{5}):", urn)
+    if c and c.group(1) in HYPHENATED_HOUSE_NUMBER_COUNTIES:
+        return None
+    k = _upper_ascii(key).split(" ")
+    if len(k) < 2 or k[0] != m.group(1) or k[1] != m.group(2):
+        return None
+    lo, hi = int(m.group(1)), int(m.group(2))
+    return (lo, hi, lo % 2 == hi % 2) if lo < hi and hi - lo < ADDRESS_RANGE_MAX_SPAN else None
+
+
+def address_range_matches(words: list[str], urn: str, label: Any, key: str) -> bool:
+    """Whether a query with a house number falls inside a parcel's house-number range (``addressRangeMatches``)."""
+    if len(words) < 2 or not re.fullmatch(r"[0-9]+", words[0]):
+        return False
+    r = address_range(urn, label, key)
+    if r is None:
+        return False
+    lo, hi, side = r
+    n = int(words[0])
+    if n <= lo or n > hi or (side and n % 2 != lo % 2):
+        return False
+    k = _upper_ascii(key).split(" ")
+    # The street starts with the same word (the hosted index lists a range under it).
+    if address_range_list_key(words, 1) != address_range_list_key(k, 2):
+        return False
+    rest = " " + " ".join(k[2:]) + " "
+    return all(f" {w} " in rest for w in words[1:])
+
+
+def address_range_list_key(words: list[str], start: int) -> str | None:
+    """The hosted index's list of house-number ranges (``addressRangeListKey`` in TS)."""
+    for w in words[start:]:
+        if w not in _DIRECTIONAL_WORDS and w != "":
+            return f"R:{w}"
+    return None
+
+
+def address_forms(runs: list[list[str]], asked: list[str] | None = None) -> dict[str, Any]:
+    """``address_search_forms`` of each key version's words, the written ones first (``addressForms`` in TS)."""
+    seen = {" ".join(w) for w in runs}
+    other: list[list[str]] = []
+    for run in runs:
+        for f in address_search_forms(run)[1:]:
+            if " ".join(f) not in seen:
+                seen.add(" ".join(f))
+                other.append(f)
+    exact = [k for k in (asked or []) if not any(" ".join(w) == k for w in runs)]
+    return {"first": runs, "other": other, "exact": exact}
+
+
+def address_row_tier(mode: str, forms: dict[str, list[list[str]]], urn: str, label: Any,
+                     key: str) -> tuple[int, bool] | None:
+    """How one index row matches a search (``addressRowTier`` in TS): (0, exact) as written, (1, exact) another
+    spelling, (2, False) inside a house-number range only, else None."""
+    for w in forms["first"]:
+        if address_key_matches(mode, w, key):
+            return 0, any(" ".join(x) == key for x in forms["first"]) or key in forms.get("exact", [])
+    if any(address_key_matches(mode, w, key) for w in forms["other"]):
+        return 1, any(" ".join(x) == key for x in forms["other"])
+    if mode == "house_number" and any(address_range_matches(w, urn, label, key)
+                                      for w in forms["first"] + forms["other"]):
+        return 2, False
+    return None
+
+
+def address_street_words(words: list[str]) -> list[str] | None:
+    """The street of a query with a house number (``addressStreetWords`` in TS), or None."""
+    if not words or not re.fullmatch(r"[0-9]+", words[0]):
+        return None
+    for i in range(1, len(words)):
+        if words[i] in SEARCH_STREET_TYPES:
+            end = i + 2 if i + 1 < len(words) and words[i + 1] in _DIRECTIONAL_WORDS else i + 1
+            street = words[1:end]
+            return street if len(street) >= 2 else None
+    return None
+
+
+def address_list_key(mode: str, words: list[str]) -> str | None:
+    """The hosted index list a query's matches all appear in, or None (``addressListKey`` in TS)."""
+    if not words or any(w == "" for w in words):
+        return None
+    if mode == "house_number":
+        return f"F:{words[0]}"
+    if len(words) == 1:
+        return f"U:{words[0]}"
+    for i in range(1, len(words)):
+        if words[i] in SEARCH_STREET_TYPES:
+            return f"B:{words[i - 1]} {words[i]}"
+    return f"A:{words[0]} {words[1]}" if words[0] in SEARCH_STREET_TYPES else None
+
+
+def address_hint_streets(mode: str, forms: dict[str, list[list[str]]]) -> list[tuple[list[str], str]]:
+    """The street spellings a miss reads for its hint, each with its hosted index list (``addressHintStreets``)."""
+    if mode != "house_number":
+        return []
+    out: list[tuple[list[str], str]] = []
+    seen: set[str] = set()
+    for f in forms["first"] + forms["other"]:
+        street = address_street_words(f)
+        if street is None or " ".join(street) in seen:
+            continue
+        lst = address_list_key("street", street)
+        if lst is None or lst.startswith("U:"):
+            continue
+        seen.add(" ".join(street))
+        out.append((street, lst))
+    return out
+
+
+# A miss reads a street's addresses for the nearest house numbers only when its hosted list has at most this many rows.
+ADDRESS_STREET_HINT_ROWS = 5000
+
+
+def address_street_hint_from(number: str, place: dict[str, Any],
+                             lists: list[tuple[list[str], int, list[tuple[str, Any, str]] | None]]) -> dict | None:
+    """The street hint of a miss (``addressStreetHintFrom`` in TS): ``lists`` holds each street spelling, its list's
+    row count, and its rows (urn, label, key) when that is at most ADDRESS_STREET_HINT_ROWS."""
+    if not lists:
+        return None
+    n = int(number)
+    by_rank: list[list[int]] = [[], [], []]
+    held: bool | None = False
+    unread = False
+    number_held = False
+    street = None
+    for words, _count, rows in lists:
+        if rows is None:
+            unread = True
+            continue
+        for urn, label, key in rows:
+            if not address_key_matches("street", words, key):
+                continue
+            rank = address_place_rank(place, urn, label)
+            if rank < 0:
+                continue
+            held = True
+            if street is None:
+                street = " ".join(words)
+            k = _upper_ascii(key).split(" ")
+            r = address_range(urn, label, key)
+            nums = [r[0], r[1]] if r else [int(k[0])] if re.fullmatch(r"[0-9]+", k[0]) else []
+            if n in nums or (r is not None and r[0] < n < r[1] and (not r[2] or n % 2 == r[0] % 2)):
+                number_held = True
+            by_rank[rank].extend(x for x in nums if x > 0 and x != n)
+    best = next((i for i, g in enumerate(by_rank) if g), None)
+    nums = by_rank[best] if best is not None else []
+    below = [x for x in nums if x < n]
+    above = [x for x in nums if x > n]
+    nearest = ([max(below)] if below else []) + ([min(above)] if above else [])
+    # A street list too long to read leaves both the street and the number unknown.
+    if unread:
+        held = None
+    return {"street": street if street is not None else " ".join(lists[0][0]), "number": number, "held": held,
+            "nearest": nearest if held else [], "rank": best, "number_held": held is True and number_held}
+
+
+# --- what tells parcels at one address apart (``addressCard`` in TS) ------------------------------------------------
+
+ADDRESS_CARD_PREDICATES = ("parcel.apn", "parcel.state_property_category", "parcel.local_use_code",
+                           "parcel.improvement_area_sf", "parcel.year_built")
+# A designator, an optional "NO" or "NUMBER", and the value, with a lone letter after it ("UNIT 1 A").
+_LABEL_UNIT = re.compile(r"(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*(?:(?:NO|NUMBER)\.?\s+)?#?\s*"
+                         r"([A-Z0-9][A-Z0-9-]*(?: [A-Z](?=\s|$))?)")
+
+
+def _card_text(v: Any) -> str | None:
+    if isinstance(v, str) and v != "":
+        return v
+    if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and v not in (float("inf"), float("-inf")):
+        return _js_number(v)
+    return None
+
+
+def _js_number(v: float) -> str:
+    """A number as JavaScript's String() writes it, for the values rolls hold (integers and plain decimals)."""
+    if isinstance(v, float) and v.is_integer():
+        return str(int(v))
+    return repr(v) if isinstance(v, float) else str(v)
+
+
+def address_unit(text: Any) -> str | None:
+    """The unit a label or query names after its designators ("Unit 101", "#103"; "BLDG #M UNIT 4" is "M 4"), anywhere
+    in it, or None (``addressUnit`` in TS)."""
+    if not isinstance(text, str):
+        return None
+    values = [m.group(1) for m in _LABEL_UNIT.finditer(_upper_ascii(text).replace(",", " ").replace("#", " # "))]
+    return " ".join(values) if values else None
+
+
+def address_card(label: Any, facts: list[dict[str, Any]]) -> dict[str, Any]:
+    """What tells a search result apart from others at the same address (``addressCard`` in TS): account, property
+    category, use code, improvement area, land only (no improvement area and no year built) and the unit its label
+    names. Never an owner."""
+    first: dict[str, Any] = {}
+    for f in facts:
+        first.setdefault(str(f["predicate"]), f["value"])
+    area = first.get("parcel.improvement_area_sf")
+    improvement = area if isinstance(area, (int, float)) and not isinstance(area, bool) else None
+    built = first.get("parcel.year_built")
+    return {
+        "account": _card_text(first.get("parcel.apn")),
+        "property_category": _card_text(first.get("parcel.state_property_category")),
+        "use_code": _card_text(first.get("parcel.local_use_code")),
+        "improvement_area_sf": improvement,
+        "land_only": (False if (improvement is not None and improvement > 0) or built is not None
+                      else True if improvement == 0 else None),
+        "unit": address_unit(label),
+    }
+
+
+def address_card_key(urn: str, card: dict[str, Any]) -> tuple:
+    """The order of parcels sharing one label (``addressCardCompare`` in TS): improved first, the largest improvement
+    area first (none last), then URN."""
+    area = card["improvement_area_sf"]
+    return (card["land_only"] is True, area is None, -(area or 0), _code_points(urn))
+
+
+def _code_points(s: str) -> tuple:
+    """SQLite's BINARY order of a string (code point order, as ``binaryCompare`` in TS)."""
+    return tuple(ord(c) for c in s)
+
+
+def address_match_key(m: dict[str, Any]) -> tuple:
+    """The order of an address search's matches (``addressMatchCompare`` in TS): place group, the words as written,
+    then other spellings, then house-number ranges, exact address first, the label naming the query's unit first, then label (null first), then URN."""
+    label = m["label"]
+    return (m["rank"], m["tier"], not m["exact"], not m["unit"], label is not None,
+            _code_points(label) if label is not None else (), _code_points(m["urn"]))
+
+
+def _same_label_run(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    return a["rank"] == b["rank"] and a["tier"] == b["tier"] and a["exact"] == b["exact"] and a["label"] == b["label"]
+
+
+def address_window_end(ordered: list[dict[str, Any]], limit: int) -> int:
+    """How many sorted matches to take cards for (``addressWindowEnd`` in TS): the first ``limit`` and the rest of the
+    last one's label, up to twice ``limit`` in all."""
+    end = min(limit, len(ordered))
+    while 0 < end < 2 * limit and end < len(ordered) and _same_label_run(ordered[end - 1], ordered[end]):
+        end += 1
+    return end
+
+
+def address_result_rows(items: list[tuple[dict[str, Any], dict[str, Any]]], limit: int) -> list[dict[str, Any]]:
+    """The answer's rows from (match, card) pairs of the window (``addressResultRows`` in TS)."""
+    out = list(items)
+    i = 0
+    while i < len(out):
+        j = i + 1
+        while j < len(out) and _same_label_run(out[i][0], out[j][0]):
+            j += 1
+        if j - i > 1:
+            out[i:j] = sorted(out[i:j], key=lambda mc: address_card_key(mc[0]["urn"], mc[1]))
+        i = j
+    return [{"urn": m["urn"], "label": m["label"], **card} for m, card in out[:limit]]
+
+
+# --- the call's place parameters (``AddressWhere`` in TS) -----------------------------------------------------------
+
+def state_code(s: str) -> str | None:
+    """A state's two-letter code from its code or full name ("tx", "Texas", "D.C."), or None (``stateCode`` in TS)."""
+    w = re.sub(r"[^A-Z]+", " ", s.upper()).strip()
+    joined = w.replace(" ", "")
+    if len(joined) == 2 and joined in _POSTAL:
+        return joined
+    return STATE_NAMES.get(w)
+
+
+def address_where_of(args: dict[str, Any]) -> dict[str, str]:
+    """The place parameters of a call's input (``addressWhereOf`` in TS)."""
+    return {k: args[k] for k in ("state", "city", "postal_code", "county_fips") if isinstance(args.get(k), str)}
+
+
+def address_where_issues(where: dict[str, str]) -> list[dict[str, str]]:
+    """Problems with a call's place parameters, as input issues (``addressWhereIssues`` in TS)."""
+    out: list[dict[str, str]] = []
+    st = state_code(where["state"]) if "state" in where else None
+    if "state" in where and st is None:
+        out.append({"path": "state", "message": "expected a US state's two-letter code or full name"})
+    if "postal_code" in where and not re.fullmatch(r"[0-9]{5}(?:-?[0-9]{4})?", where["postal_code"].strip()):
+        out.append({"path": "postal_code", "message": "expected a 5-digit ZIP code or ZIP+4"})
+    if "county_fips" in where:
+        c = where["county_fips"].strip()
+        if not re.fullmatch(r"[0-9]{3}(?:[0-9]{2})?", c):
+            out.append({"path": "county_fips",
+                        "message": "expected a 5-digit county FIPS code (state and county), or 3 digits with state"})
+        elif len(c) == 3 and "state" not in where:
+            out.append({"path": "county_fips", "message": "a 3-digit county FIPS code needs state"})
+        elif len(c) == 5 and c[:2] not in STATE_BY_FIPS:
+            out.append({"path": "county_fips", "message": f"{c} is in no US state"})
+        elif len(c) == 5 and st is not None and STATE_BY_FIPS[c[:2]].upper() != st:
+            out.append({"path": "county_fips", "message": f"{c} is not in {st}"})
+    return out
+
+
+_FIPS_BY_POSTAL = {v.upper(): k for k, v in STATE_BY_FIPS.items()}
+
+
+def address_place_with(query: str, where: dict[str, str] | None = None) -> dict[str, Any]:
+    """The place of a query with the call's place parameters (``addressPlaceWith`` in TS)."""
+    where = where or {}
+    out = dict(address_place(query))
+    if "state" in where:
+        out["state"] = state_code(where["state"])
+    if "city" in where:
+        c = " ".join(x for x in _PLACE_WORDS.split(where["city"].upper().replace("#", " # ")) if x)
+        out["city"] = c or None
+    if "postal_code" in where:
+        out["zip"] = where["postal_code"].strip()[:5]
+    if "county_fips" in where:
+        c = where["county_fips"].strip()
+        out["county"] = c if len(c) == 5 else _FIPS_BY_POSTAL.get(out["state"] or "", "00") + c
+        if out["state"] is None:
+            st = STATE_BY_FIPS.get(out["county"][:2])
+            out["state"] = st.upper() if st else None
+    return out
+
+
+def address_query_with_place(query: str) -> str:
+    """A query with a house number and no comma whose street line goes on after its street type with a city the city
+    table knows and its state, with a comma put before the city (``addressQueryWithPlace`` in TS); any other unchanged."""
+    if "," in query:
+        return query
+    q = address_query(query)
+    if q["mode"] != "house_number":
+        return query
+    street = address_street_words(q["tokens"])
+    if street is None:
+        return query
+    end = 1 + len(street)
+    rest = q["tokens"][end:]
+    # The place starts at the first word from which a city the city table knows in the state read after it begins;
+    # words before it (a bare unit number) stay in the street line.
+    at = next((i for i in range(len(rest)) if (p := address_place("x, " + " ".join(rest[i:])))["state"] is not None
+               and p["city"] is not None and place_counties(p["state"], p["city"]) is not None), None)
+    if at is None:
+        return query
+    return " ".join(q["tokens"][:end + at]) + ", " + " ".join(rest[at:])

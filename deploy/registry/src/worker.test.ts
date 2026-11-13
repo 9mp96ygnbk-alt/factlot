@@ -50,6 +50,7 @@ import {
   byArea,
   listCount,
   listNearest,
+  listNarrowed,
   type EqRow,
   type EquityManifest,
   type PoolHeader,
@@ -188,12 +189,14 @@ async function compare(
     if (
       Object.keys(m.withheld ?? {}).length ||
       Object.keys(m.entity_scope ?? {}).length ||
-      Object.keys(m.partial_counties ?? {}).length
+      Object.keys(m.partial_counties ?? {}).length ||
+      Object.keys(m.fields ?? {}).length
     )
       scope = {
         withheld: m.withheld,
         entity_scope: m.entity_scope,
         partial_counties: m.partial_counties,
+        fields: m.fields,
       };
   }
   // The same pack on the object-storage backend: every answer must be byte for byte the assets backend's.
@@ -251,6 +254,10 @@ const EQUITY_PARAMS: Record<string, unknown>[] = [
   { tax_year: 2026, area_band: 0.2 },
   { tax_year: 2027, min_matches: 50 },
   { tax_year: 2024 },
+  { same_building_class: true },
+  { tax_year: 2026, same_building_class: true, min_matches: 1 },
+  { tax_year: 2026, same_local_use_code: true, area_band: 1 },
+  { local_use_codes: ["4600"], same_building_class: true, limit: 2 },
 ];
 
 function getCalls(): Call[] {
@@ -473,6 +480,85 @@ test("the Worker answers like runTool on the shared fixture", async () => {
   );
 });
 
+test("a pack built before row version 2 answers through this code: no apn or use code, same candidates, use-code narrowing refused", async () => {
+  const pack = join(dir, "pack-rv1");
+  buildPack([{ name: "fixture", path: fixture }], pack);
+  // Make it a row-version-1 pack: rows without apn and local use code, a manifest without rv.
+  const strip = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.length === 13 &&
+        typeof v[0] === "string" &&
+        (Array.isArray(v[10]) || v[10] === 0)
+        ? v.slice(0, 11)
+        : v.map(strip)
+      : v && typeof v === "object"
+        ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, strip(x)]))
+        : v;
+  const walk = (d: string) => {
+    for (const f of readdirSync(d, { withFileTypes: true })) {
+      const path = join(d, f.name);
+      if (f.isDirectory()) walk(path);
+      else
+        writeFileSync(
+          path,
+          JSON.stringify(strip(JSON.parse(readFileSync(path, "utf8")))),
+        );
+    }
+  };
+  walk(join(pack, "q"));
+  const mPath = join(pack, "manifest.json");
+  const manifest = JSON.parse(readFileSync(mPath, "utf8")) as Manifest;
+  assert.equal(manifest.equity?.rv, 2);
+  delete manifest.equity!.rv;
+  writeFileSync(mPath, JSON.stringify(manifest));
+  const assets = fileAssets(pack);
+  configureRegistry(fixture);
+  try {
+    const tool = getTool("registry_tx_equity_candidates")!;
+    const ask = async (input: Row) =>
+      JSON.parse(await worker(assets, tool.name, tool.input.parse(input))) as {
+        ok: boolean;
+        result?: { candidates: Row[]; selection: Row };
+        error?: { error: string; message: string };
+      };
+    const sdk = (input: Row) =>
+      runTool(tool.name, input) as {
+        ok: true;
+        result: { candidates: Row[]; selection: Row };
+      };
+    const subject = "fl:parcel:us-48997:1000001";
+    for (const input of [
+      { urn: subject, tax_year: 2026 },
+      { urn: subject, tax_year: 2026, same_building_class: true },
+      { urn: subject },
+    ]) {
+      const got = await ask(input);
+      assert.ok(got.ok, JSON.stringify(got.error));
+      const want = sdk(input).result;
+      assert.deepEqual(
+        got.result!.candidates.map((c) => c.id),
+        want.candidates.map((c) => c.id),
+      );
+      assert.deepEqual(got.result!.selection.steps, want.selection.steps);
+      assert.ok(
+        got.result!.candidates.every(
+          (c) => c.apn === null && c.local_use_code === null,
+        ),
+      );
+    }
+    for (const input of [
+      { urn: subject, same_local_use_code: true },
+      { urn: subject, local_use_codes: ["4300"] },
+    ]) {
+      const got = await ask(input);
+      assert.equal(got.error?.error, "RegistryUnavailable");
+      assert.match(got.error!.message, /need the next registry build/);
+    }
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
 test("entity search through the label-ordered list answers like runTool", async () => {
   // Posting lists of at most 2 rows: most queries take the label-ordered path.
   const pack = join(dir, "pack-names");
@@ -519,11 +605,13 @@ test("a pack of two files answers like one file holding both (coverage, misses, 
     ],
     pack,
   );
-  // Ownership links cross the split (an entity in one file owns parcels in the other), so records and ownership
-  // are compared on the single-file pack; here only what spans files: coverage, misses, resolves and searches.
+  // Ownership links cross the split (an entity in one file owns parcels in the other) and the split drops them, so
+  // records, ownership and the coverage answer with fields (whose entity_links counts them) are compared on the
+  // single-file pack; here only what spans files: coverage, misses, resolves and searches.
   const list = [...shared, ...getCalls(), ...searchCalls()].filter(
     (c) =>
       c.tool !== "registry_owned_by" &&
+      !(c.tool === "registry_coverage" && c.args.fields === true) &&
       !(
         c.tool === "registry_get" &&
         JSON.parse(JSON.stringify(runToolOn(fixture, c))).ok
@@ -549,7 +637,7 @@ test("HTTP: /run, /health and nothing else", async () => {
   };
   assert.equal(h.ok, true);
   assert.deepEqual(h.pack.regions, ["fixture"]);
-  assert.equal(h.pack.counts.parcels, 33);
+  assert.equal(h.pack.counts.parcels, 40);
   for (const path of ["/", "/manifest.json", "/g/0/0.json", "/run/x"])
     assert.equal((await req(path)).status, 404, path);
   assert.equal((await req("/run")).status, 405);
@@ -781,6 +869,8 @@ test("candidate lists split into chunks count and order like the whole list", as
         `${i} Main St, Example TX 7700${i % 3}`,
         ["f" + i, 0, null, "2026-01-01"],
         [0],
+        String(100000 + i),
+        ["4300", "4600", null][i % 3]!,
       ]);
     }
     rowsOf.sort(byArea);
@@ -840,6 +930,24 @@ test("candidate lists split into chunks count and order like the whole list", as
         want.slice(0, params.limit).map((m) => m.urn),
         JSON.stringify(params),
       );
+      // Narrowed by local use code: only the rows that pass the whole rule come back to be decoded, and they are
+      // exactly the SDK's selection over the decoded pool.
+      const narrowed = { ...params, local_use_codes: ["4600"] };
+      const nRule = equityRule(subject.urn, s, narrowed)!;
+      const { rows: kept, steps } = await listNarrowed(pack, h, list, nRule);
+      const sdk = selectEquityCandidates(subject.urn, s, pool, narrowed);
+      assert.deepEqual(
+        kept.map((r) => h.u + r[0]).sort(),
+        sdk.map((m) => m.urn).sort(),
+        `narrowed ${JSON.stringify(params)}`,
+      );
+      assert.equal(steps.at(-1), sdk.length);
+      const band = rowsOf.filter(
+        (r) => nRule.lo <= r[3] && r[3] <= nRule.hi,
+      ).length;
+      assert.ok(kept.length <= band);
+      if (band > 30)
+        assert.ok(kept.length < band, "fewer decoded than in the band");
     }
   }
 });
@@ -865,7 +973,7 @@ test("long lists share pages and read back whole", async () => {
   }
 });
 
-test("numbered streets written without the ordinal are found by a query that has it, like runTool", async () => {
+test("numbered streets match however the roll writes them, as written first, like runTool", async () => {
   const x = join(dir, "numbered-streets.db");
   copyFileSync(fixture, x);
   const d = new DatabaseSync(x);
@@ -908,14 +1016,20 @@ test("numbered streets written without the ordinal are found by a query that has
   const cafe = "fl:parcel:us-48999:0004-000-0001";
   assert.deepEqual(await found("136 W 42nd St"), [cafe]);
   assert.deepEqual(await found("W 42nd St"), [cafe]);
+  // "350 5 AVE" spelled another way, and the lot "338-350 Fifth Avenue" whose range holds 350.
   assert.deepEqual(await found("350 Fifth Avenue"), [
     "fl:parcel:us-48999:0004-000-0002",
+    "fl:parcel:us-48999:0006-000-0001",
   ]);
-  // A match as written wins: the bare form is searched only when nothing matched.
+  // Both spellings are one street: the match as written comes first.
   assert.deepEqual(await found("9 5th St"), [
     "fl:parcel:us-48999:0003-000-0001",
+    "fl:parcel:us-48999:0001-000-0002",
   ]);
-  assert.deepEqual(await found("9 5 St"), ["fl:parcel:us-48999:0001-000-0002"]);
+  assert.deepEqual(await found("9 5 St"), [
+    "fl:parcel:us-48999:0001-000-0002",
+    "fl:parcel:us-48999:0003-000-0001",
+  ]);
   assert.deepEqual(await found("136 W 43rd St"), []);
 });
 
@@ -1016,16 +1130,17 @@ test("every parcel label of the fixture, used as the query, finds its parcel thr
     "SELECT urn, label FROM subjects WHERE kind = 'parcel' AND label IS NOT NULL",
   );
   assert.ok(labels.some((r) => String(r.label).includes("CT 67021-9150")));
-  for (const r of labels) {
-    const out = JSON.parse(
-      await worker(assets, "registry_search_address", {
-        query: String(r.label),
-        limit: 100,
-      }),
-    ) as { result: { results: { urn: string }[] } };
-    if (!out.result.results.some((x) => x.urn === r.urn))
-      lost.push(String(r.label));
-  }
+  for (const limit of [5, 20, 100])
+    for (const r of labels) {
+      const out = JSON.parse(
+        await worker(assets, "registry_search_address", {
+          query: String(r.label),
+          limit,
+        }),
+      ) as { result: { results: { urn: string }[] } };
+      if (!out.result.results.some((x) => x.urn === r.urn))
+        lost.push(`${limit}: ${String(r.label)}`);
+    }
   assert.deepEqual(lost, []);
 });
 
@@ -1276,7 +1391,7 @@ test("regions outside Texas: entity registry served in part, crosswalk systems, 
   assert.equal(chelseaCov.state_loaded, true);
   assert.match(
     String(chelseaCov.message),
-    /^no parcel matched in MA: .* of MA this registry holds Suffolk County, MA \(25025, \d+ parcels\);.*\. Of Suffolk County, MA, only the City of Boston is loaded: Chelsea, Revere and Winthrop/,
+    /^no parcel matched in MA: .*\. Of MA this registry holds Suffolk County, MA \(25025, \d+ parcels\)\. Of Suffolk County, MA, only the City of Boston is loaded: Chelsea, Revere and Winthrop/,
   );
   const inNy = await call("registry_search_address", {
     query: "300 Harbor Dr, New York, NY",
@@ -1800,6 +1915,36 @@ test("parts cache: seeded from a finished build and its kept part files", async 
     ["tx"],
     "ny's file is still newer than its job",
   );
+  // Candidate rows of an earlier row version are not seeded into a build of this one.
+  const mPath = join(pack, "manifest.json");
+  const mText = readFileSync(mPath, "utf8");
+  const m = JSON.parse(mText) as Manifest;
+  delete m.equity!.rv;
+  writeFileSync(mPath, JSON.stringify(m));
+  const refused: string[] = [];
+  try {
+    assert.deepEqual(
+      seedPartsCache(
+        {
+          cache: join(dir, "parts-cache-rv"),
+          pack,
+          kept,
+          buildCode: code({}),
+          currentCode: code({}),
+        },
+        (l) => refused.push(l),
+      ),
+      [],
+    );
+  } finally {
+    writeFileSync(mPath, mText);
+  }
+  assert.ok(
+    refused.includes(
+      "tx: not seeded: its candidate rows are row version 1, not 2",
+    ),
+    refused.join("\n"),
+  );
   assert.deepEqual(snapshot(pack), packBefore, "the pack is only read");
 });
 
@@ -1959,4 +2104,94 @@ test("check_pack: a pack with a capped record checks clean, its recorded-fact pa
   );
   assert.match(out, /^registry_recorded_facts\s+\d+\s+0\s/m);
   assert.match(out, /total mismatches: 0\b/);
+});
+
+test("a pack built before house-number range lists: the Worker answers every call, and a number inside a range matches nothing there", async () => {
+  // The Worker is deployed before a pack with "R:" lists exists: on such a pack every other rule holds (spellings,
+  // cards, place parameters, misses), and a number inside a range finds what it found before.
+  const old = join(dir, "pack-no-ranges");
+  buildPack([{ name: "fixture", path: fixture }], old);
+  let stripped = 0;
+  for (const f of readdirSync(join(old, "a"))) {
+    if (!f.endsWith(".json")) continue;
+    const p = join(old, "a", f);
+    const shard = JSON.parse(readFileSync(p, "utf8")) as Row;
+    for (const k of Object.keys(shard))
+      if (k.startsWith("R:")) {
+        delete shard[k];
+        stripped++;
+      }
+    writeFileSync(p, JSON.stringify(shard));
+  }
+  assert.ok(stripped > 0, "the fixture's pack lists a range");
+  const inRange = (c: { tool: string; arguments: Row }) =>
+    c.tool === "registry_search_address" &&
+    /^3[0-9]{2} (?:5|5th|fifth) /i.test(
+      String(c.arguments.query ?? c.arguments.address ?? ""),
+    );
+  assert.deepEqual(
+    await compare(
+      old,
+      fixture,
+      calls
+        .filter((c) => !inRange(c))
+        .map((c) => ({ tool: c.tool, args: c.arguments })),
+    ),
+    [],
+  );
+  const lot = "fl:parcel:us-48999:0006-000-0001";
+  const found = async (pack: string, query: string) =>
+    (
+      JSON.parse(
+        await worker(fileAssets(pack), "registry_search_address", { query }),
+      ) as { result: { results: { urn: string }[] } }
+    ).result.results.map((r) => r.urn);
+  assert.deepEqual(await found(old, "344 5th Avenue"), []);
+  assert.deepEqual(await found(old, "338 Fifth Avenue"), [lot]);
+  assert.deepEqual(await found(join(dir, "pack"), "344 5th Avenue"), [lot]);
+});
+
+test("parcels sharing one label: a search reads at most twice its limit of records", async () => {
+  const x = join(dir, "one-label.db");
+  copyFileSync(fixture, x);
+  const d = new DatabaseSync(x);
+  // Forty parcels at one address, as a condominium building's unit lots are.
+  for (let i = 0; i < 40; i++) {
+    const urn = `fl:parcel:us-48999:0009-000-${String(i).padStart(4, "0")}`;
+    d.exec(
+      `INSERT INTO subjects (urn, kind, short, label) VALUES ('${urn}', 'parcel', 'one-label-${i}', '900 Tower Court, Example City TX 77999'); ` +
+        `INSERT INTO address_index VALUES ('900 TOWER CT EXAMPLE CITY TX 77999', '${urn}')`,
+    );
+  }
+  d.close();
+  const pack = join(dir, "pack-one-label");
+  buildPack([{ name: "x", path: x }], pack);
+  for (const limit of [1, 5, 20]) {
+    const p = new Pack(fileAssets(pack));
+    const entry = p.entry.bind(p);
+    let records = 0;
+    p.entry = (urn: string) => {
+      records++;
+      return entry(urn);
+    };
+    const out = (await runRegistryTool(p, "registry_search_address", {
+      query: "900 Tower Ct",
+      limit,
+    })) as { ok: boolean; result: { results: unknown[] } };
+    assert.equal(out.result.results.length, limit);
+    assert.ok(records <= 2 * limit, `limit ${limit}: ${records} records read`);
+  }
+  assert.deepEqual(
+    await compare(pack, x, [
+      {
+        tool: "registry_search_address",
+        args: { query: "900 Tower Ct", limit: 1 },
+      },
+      {
+        tool: "registry_search_address",
+        args: { query: "900 Tower Ct", limit: 7 },
+      },
+    ]),
+    [],
+  );
 });

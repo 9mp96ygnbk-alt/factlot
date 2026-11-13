@@ -90,7 +90,12 @@ Call `registry_tx_equity_candidates` with the subject's `urn` (or `state_fips`, 
 `apn`). Show the effective selection rule it returns in `selection` (same county and tax year,
 same category code, area band, year band, then neighborhood, ZIP and county tiers) and say that
 these are candidates under FactLot's default rule, a design choice, not a legal standard; a person
-decides. List the candidates with their values, areas, year built, situs address and citation.
+decides. List the candidates with their account number (`apn`), values, value per SF, areas, year
+built, category, building class, local use code, situs address and citation, and give the
+subject's own (`selection.subject_summary`). The person can narrow by `same_building_class`,
+`same_local_use_code` or `local_use_codes` (off by default); `selection.steps` shows how many
+parcels each step left, and the warnings say when a narrowing was not applied or when fewer
+candidates came back than `limit`.
 Relay each source's attribution, licence and AI-use terms from the result's `sources` with the
 data. `calc_args` is the same list in `calc_tx_unequal_appraisal`'s input shape and
 `selection_rule` the parameters used: show them as the default rule's output, not as FactLot's
@@ -151,7 +156,10 @@ Offer these artifacts:
   `tx_unequal_appraisal`, `format` `pdf` (the evidence packet) or `xlsx` (the adjustment grid with
   live Excel formulas), and the `calc_tx_unequal_appraisal` arguments as `arguments`. FactLot runs
   the tool itself and prints only its figures, with no model. Pass only a neutral `title` and
-  `prepared_for` in `context`; text that reads as advice or a valuation is refused. It returns a
+  `prepared_for` in `context`; text that reads as advice or a valuation is refused. To print each
+  property's candidate fields and the candidate rule as applied, add the candidates answer's `sources`,
+  the rows of its `subject` and of the candidates kept as comparables (together, as `candidates`, unchanged) and its `selection_rule` to `context`,
+  as returned. It returns a
   download link that works 24 hours, then the file is deleted; reports are 3 a month free per IP
   address, 50 on Pro and 1,000 on Team, and never count as registry lookups. Hand the user the link
   and the file's `sha256`.

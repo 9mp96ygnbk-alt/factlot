@@ -34,6 +34,9 @@ const TX_EQUITY_PARAMS = [
   "min_matches",
   "limit",
   "tax_year",
+  "same_building_class",
+  "same_local_use_code",
+  "local_use_codes",
 ] as const;
 
 type Run = (name: string, input: unknown) => Promise<ToolOutcome>;
@@ -54,10 +57,46 @@ export function registryRunner(service: Fetcher): RegistryRunner {
       throw new Error("registry service answered without an outcome");
     return outcome;
   };
+  // A registry Worker older than the narrowing parameters ignores them: its list would look narrowed and is not.
+  const guarded: Run = async (name, input) => {
+    const outcome = await one(name, input);
+    if (
+      name === TX_EQUITY_TOOL &&
+      outcome.ok &&
+      asksNarrowing(input) &&
+      !Array.isArray(
+        (outcome.result as { selection?: { narrowing?: unknown } } | null)
+          ?.selection?.narrowing,
+      )
+    )
+      return {
+        ok: false,
+        error: {
+          error: "RegistryUnavailable",
+          message: NARROWING_UNAVAILABLE,
+          issues: [],
+        },
+      };
+    return outcome;
+  };
   return (name, input) =>
     name === TX_EQUITY_BATCH_TOOL
-      ? txEquityBatch(one, input)
-      : one(name, input);
+      ? txEquityBatch(guarded, input)
+      : guarded(name, input);
+}
+
+/** The answer when the registry service does not apply the narrowing parameters it was sent. */
+export const NARROWING_UNAVAILABLE =
+  "the registry service does not apply same_building_class, same_local_use_code or local_use_codes yet; call without them, or retry after the registry update";
+
+/** Whether a candidates call asks for any narrowing (catalog defaults: false, absent). */
+function asksNarrowing(input: unknown): boolean {
+  const i = (input ?? {}) as Record<string, unknown>;
+  return (
+    i.same_building_class === true ||
+    i.same_local_use_code === true ||
+    Array.isArray(i.local_use_codes)
+  );
 }
 
 /**

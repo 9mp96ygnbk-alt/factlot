@@ -67,9 +67,26 @@ reg.ingest_parcels([
     ParcelRecord("999", "0004-000-0002", "F1", account="A31", situs_address="14 Tower Court, Example City TX 77999",
                  owner_name="Tower Unit Holdings LLC", land_area_sf=0, improvement_area_sf=-10,
                  market_value=400000, tax_year=2026),
-    # A numbered street written with its ordinal here and bare in the second state below (address search's retry).
+    # A numbered street written with its ordinal here and bare in the second state below (address search's spellings).
     ParcelRecord("999", "0005-000-0001", "F1", account="A40", situs_address="8 W 9th Street, Example City TX 77999",
                  market_value=600000, tax_year=2026),
+    # A lot whose address is a house-number range (address search finds a number inside it on the same side).
+    ParcelRecord("999", "0006-000-0001", "F1", account="A50", situs_address="338-350 Fifth Avenue, Example City TX 77999",
+                 improvement_area_sf=2000000, year_built=1931, market_value=900000000, tax_year=2026),
+    # Two accounts at one address, one with no improvement on the roll: address search lists the improved one first.
+    ParcelRecord("999", "0007-000-0001", "F1", account="A60", situs_address="500 Market Street, Example City TX 77999",
+                 land_area_sf=20000, market_value=300000, tax_year=2026),
+    ParcelRecord("999", "0007-000-0002", "F1", account="A61", situs_address="500 Market Street, Example City TX 77999",
+                 improvement_area_sf=45000, year_built=2004, market_value=7000000, tax_year=2026),
+    # Condominium units whose situs addresses have no comma, one with a "#" unit and one with a bare unit number.
+    ParcelRecord("999", "0008-000-0101", "F1", account="A70", situs_address="700 Bayou Drive # 101 Example City TX 77999",
+                 improvement_area_sf=900, market_value=200000, tax_year=2026),
+    ParcelRecord("999", "0008-000-0102", "F1", account="A71", situs_address="700 Bayou Drive # 102 Example City TX 77999",
+                 improvement_area_sf=950, market_value=210000, tax_year=2026),
+    ParcelRecord("999", "0008-000-1001", "F1", account="A72", situs_address="700 Bayou Drive 1001 Example City TX 77999",
+                 improvement_area_sf=1200, market_value=250000, tax_year=2026),
+    ParcelRecord("999", "0008-000-1102", "F1", account="A73", situs_address="700 Bayou Drive 1102 Example City TX 77999",
+                 improvement_area_sf=1100, market_value=240000, tax_year=2026),
 ], s26, state_fips="48", account_system="test-account", full_roll=True)
 # A second state (Maryland, an invented county 998) whose street lines repeat the Texas ones, for the place an
 # address search names after its street line: state, city and ZIP code.
@@ -221,10 +238,10 @@ reg.ingest_entity_parents([
 # (test-cad-997-2025), 2026 (test-cad-997: a July roll and a corrected October roll that changes one value), and a
 # 2027 preliminary roll (test-cad-997-2027) that changes values, codes, an area and a category, so a parcel holds
 # current facts from three years at once. Building classes come from a separate buildings file per year
-# (test-cad-997-buildings, test-cad-997-buildings-2027). Both value bases, neighborhood codes on some parcels, and
-# owners of record the tool must never return. Each year's roll keeps its owner facts and links current in its own
-# source; the record shows the newest owner and only that owner's link is current: 1000001 keeps one owner across
-# every year, 1000002 changes owner on the 2027 roll, and 1000010 is on the 2025 roll only.
+# (test-cad-997-buildings, test-cad-997-buildings-2027). Both value bases, neighborhood codes and local use codes on
+# some parcels, and owners of record the tool must never return. Each year's roll keeps its owner facts and links
+# current in its own source; the record shows the newest owner and only that owner's link is current: 1000001 keeps
+# one owner across every year, 1000002 changes owner on the 2027 roll, and 1000010 is on the 2025 roll only.
 CAD997 = Source("test-cad-997", "Example Central Appraisal District (synthetic)", "Appraisal roll",
                 "https://example.invalid/cad-997", "48", county_fips="997", license="Synthetic test data",
                 ai_use="unknown", redistribution="attribution_required", attribution="Example Central Appraisal District")
@@ -232,33 +249,33 @@ BAYOU, PARTNERS = "Bayou Equity Holdings LLC", "Example Office Partners LP"
 
 
 def cad(apn, category, area, year, zip5, value, *, appraised=True, nbhd=None, owner=BAYOU, tax_year=2026,
-        land=None, mailing="PO Box 9, Example City TX 77001", confidential=False):
+        land=None, mailing="PO Box 9, Example City TX 77001", confidential=False, use=None):
     extra = [("parcel.neighborhood_code", nbhd, None)] if nbhd else []
     return ParcelRecord("997", apn, category, account=f"C{apn}", situs_address=f"{int(apn[-2:])} Alpha Plaza, Example City TX {zip5}",
                         owner_name=owner, owner_mailing_address=mailing if owner else None, owner_confidential=confidential,
                         land_area_sf=land, improvement_area_sf=area, year_built=year, market_value=value,
                         appraised_value=value if appraised and value is not None else None, tax_year=tax_year,
-                        extra_facts=extra)
+                        local_use_code=use, extra_facts=extra)
 
 
 def roll_2026(subject_value):
     return [
-        cad("1000001", "F1", 50000, 2005, "77001", subject_value, nbhd="N100", land=120000),  # the subject
-        cad("1000002", "F1", 48000, 2000, "77002", 9100000, nbhd="N100"),
-        cad("1000003", "F1", 55000, 2010, "77001", 11000000, appraised=False, nbhd="N100", owner=PARTNERS),
-        cad("1000004", "F1", 40000, 1995, "77001", 7000000, owner=PARTNERS),
-        cad("1000005", "F1", 60000, None, "77001", 12000000, nbhd="N200"),
-        cad("1000006", "F1", 52000, 1980, "77001", 9900000),  # built outside the year band
+        cad("1000001", "F1", 50000, 2005, "77001", subject_value, nbhd="N100", land=120000, use="4300"),  # the subject
+        cad("1000002", "F1", 48000, 2000, "77002", 9100000, nbhd="N100", use="4300"),
+        cad("1000003", "F1", 55000, 2010, "77001", 11000000, appraised=False, nbhd="N100", owner=PARTNERS, use="4600"),
+        cad("1000004", "F1", 40000, 1995, "77001", 7000000, owner=PARTNERS, use="4600"),
+        cad("1000005", "F1", 60000, None, "77001", 12000000, nbhd="N200", use="4300"),
+        cad("1000006", "F1", 52000, 1980, "77001", 9900000, use="4300"),  # built outside the year band
         cad("1000007", "F1", 80000, 2005, "77001", 15000000),  # outside the area band
         cad("1000008", "F2", 50000, 2005, "77001", 6000000),  # another category
-        cad("1000009", "F1", 45000, 2008, "77003", 8800000, nbhd="N300"),  # elsewhere in the county
+        cad("1000009", "F1", 45000, 2008, "77003", 8800000, nbhd="N300", use="4300"),  # elsewhere in the county
         cad("1000011", "F1", 51000, 2006, "77001", None),  # no value
         cad("1000012", "F1", None, None, "77001", 3000000, land=90000),  # no improvement area
         cad("1000013", "F1", 47000, 2004, "77001", 9000000, tax_year=2025),  # a stale tax year
         # Owners the registry does not keep (data policy §3): a natural person, and an owner withheld under
         # Tax Code §25.025. The roll gives a name and mailing address for the first; neither is stored.
         cad("1000014", "F1", 49000, 2003, "77001", 9300000, owner="Jane Q Example",
-            mailing="12 Quiet Lane, Example City TX 77001"),
+            mailing="12 Quiet Lane, Example City TX 77001", use="4300"),
         cad("1000015", "F1", 50500, 2004, "77001", 9400000, owner=None, confidential=True),
     ]
 

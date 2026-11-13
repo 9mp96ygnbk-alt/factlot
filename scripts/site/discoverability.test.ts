@@ -82,6 +82,7 @@ describe("coverage catalog (/coverage.json)", () => {
     }).urn;
   const cat = buildCoverageCatalog({
     hosted,
+    fields: json("site/_data/fields.json"),
     configs,
     toolNames,
     version,

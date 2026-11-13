@@ -6,6 +6,7 @@ export function countyBody(
   c: unknown,
   template: string,
   hasExample: boolean,
+  fieldsText?: string,
 ): string;
 export function exampleTitle(c: unknown): string;
 export function exampleDescription(c: unknown): string;

@@ -94,6 +94,7 @@ import { createRecoveryToken } from "./recovery.ts";
 import {
   BATCH_CONCURRENCY,
   REGISTRY_RUN_URL,
+  NARROWING_UNAVAILABLE,
   TX_EQUITY_BATCH_TOOL,
   registryRunner,
 } from "./registry.ts";
@@ -2811,6 +2812,55 @@ describe("registry runner", () => {
       fetch: async () => new Response(JSON.stringify({ hello: 1 })),
     });
     await assert.rejects(malformed("registry_coverage", {}));
+  });
+});
+
+describe("registry runner: narrowing sent to a registry service that ignores it", () => {
+  it("answers RegistryUnavailable when the answer has no selection.narrowing, and passes a narrowed answer", async () => {
+    const answer = (narrowing: boolean) =>
+      registryRunner({
+        fetch: async () =>
+          new Response(
+            JSON.stringify({
+              ok: true,
+              result: {
+                candidates: [],
+                selection: narrowing ? { narrowing: [] } : { tiers: [] },
+              },
+            }),
+          ),
+      });
+    const single = "registry_tx_equity_candidates";
+    const old = await answer(false)(single, {
+      urn: "fl:parcel:us-48201:1",
+      same_building_class: true,
+    });
+    assert.deepEqual(old, {
+      ok: false,
+      error: {
+        error: "RegistryUnavailable",
+        message: NARROWING_UNAVAILABLE,
+        issues: [],
+      },
+    });
+    // Without narrowing an older answer is fine; a newer one with narrowing is passed through.
+    assert.ok(
+      (await answer(false)(single, { urn: "fl:parcel:us-48201:1" })).ok,
+    );
+    assert.ok(
+      (
+        await answer(true)(single, {
+          urn: "fl:parcel:us-48201:1",
+          local_use_codes: ["F1"],
+        })
+      ).ok,
+    );
+    // In a batch the subject's RegistryUnavailable fails the whole call, uncounted.
+    const batch = await answer(false)(TX_EQUITY_BATCH_TOOL, {
+      subjects: [{ id: "a", urn: "fl:parcel:us-48201:1" }],
+      same_local_use_code: true,
+    });
+    assert.equal(!batch.ok && batch.error.error, "RegistryUnavailable");
   });
 });
 

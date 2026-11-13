@@ -146,6 +146,8 @@ interface SourceLike {
 }
 interface ContextLike {
   sources?: SourceLike[] | undefined;
+  candidates?: Record<string, unknown>[] | undefined;
+  selection_rule?: Record<string, unknown> | undefined;
   title?: string | undefined;
   prepared_for?: string | undefined;
   subject_citation?: CitationLike | undefined;
@@ -192,6 +194,42 @@ export function checkCallerText(
     ] as const)
       if (typeof text === "string") fields.push({ path: `${at}.${key}`, text });
   });
+  // Ids and codes of registry_tx_equity_candidates rows and their rule, printed in the packet.
+  (ctx.candidates ?? []).forEach((c, i) => {
+    for (const key of [
+      "id",
+      "apn",
+      "state_property_category",
+      "building_class",
+      "local_use_code",
+      "neighborhood_code",
+    ]) {
+      const text = str(c[key]);
+      if (text !== undefined)
+        fields.push({ path: `context.candidates.${i}.${key}`, text });
+    }
+  });
+  const rule = ctx.selection_rule;
+  if (rule) {
+    const category = str(rule.state_property_category);
+    if (category !== undefined)
+      fields.push({
+        path: "context.selection_rule.state_property_category",
+        text: category,
+      });
+    const each = (list: unknown, key: string, at: string) =>
+      (Array.isArray(list) ? list : []).forEach((x, i) => {
+        const v = isObj(x) ? x[key] : undefined;
+        for (const [j, text] of (Array.isArray(v) ? v : [v]).entries())
+          if (typeof text === "string")
+            fields.push({
+              path: `context.selection_rule.${at}.${i}.${key}${Array.isArray(v) ? `.${j}` : ""}`,
+              text,
+            });
+      });
+    each(rule.narrowing, "value", "narrowing");
+    each(rule.tiers, "key", "tiers");
+  }
   if (kind === "tx_unequal_appraisal") fields.push(...txArgFields(args));
   if (kind === "tx_protest_deadline") fields.push(...protestArgFields(args));
 

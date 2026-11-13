@@ -11,13 +11,16 @@ Python standard library only, and nothing is invented. The rows come from gen_co
 
 Classes (the reference date is the latest `reviewed` date among the source configs, so the file is stable):
 
-* hosted: the county's registry data is served by the hosted API today (coverage-data.json "queryable" and
-  "hosted_areas"), whatever its audit state. DC's data is also the downloadable sample. A county the hosted registry
-  withholds (coverage-data.json "withheld_areas") keeps its audit class and carries the reason in `withheld`.
-* audited_load: a whole-county load from a verified source that the Tier 1 quality audit re-read against the
+* hosted: the county is served by the hosted API today: it is a county of site/_data/hosted.json, which
+  scripts/site/gen-hosted.ts writes from the manifest of the pack the API answers from (the source of
+  registry_coverage), whatever its audit state. Its parcel count and as-of date are the pack's, and a county the pack
+  holds only in part (Boston in Suffolk) carries the part in `area`. DC's data is also the downloadable sample. A
+  county the hosted registry withholds (coverage-data.json "withheld_areas") keeps its audit class and carries the
+  reason in `withheld`.
+* audited_load: built in the open-source pipeline, not on the hosted API: a whole-county load from a verified source that the Tier 1 quality audit re-read against the
   archived publisher file (the registry holds exactly the parcels the adapter yields), with 0 audit violations
   after the pass and a data as-of date no more than MAX_AGE_DAYS before the reference date. Not hosted.
-* cited_load: a whole-county load from a verified source with a per-county parcel count and an as-of date in the
+* cited_load: built in the open-source pipeline, not on the hosted API: a whole-county load from a verified source with a per-county parcel count and an as-of date in the
   record, within MAX_AGE_DAYS, that the quality audit has not covered. Not hosted.
 * grey (not in the file's `counties`): everything else. Loaded rows that do not qualify are listed in
   `not_counted` with the reason.
@@ -41,6 +44,16 @@ OUT = os.path.join(ROOT, "docs", "registry", "coverage-counties.json")
 TSV = os.path.join(ROOT, "spec", "registry", "county-names.tsv")
 AUDIT = "docs/registry/quality/tier1-2026-11-03.md"
 MAX_AGE_DAYS = 400  # the quality audit's own age warning threshold
+HOSTED_JSON = os.path.join(ROOT, "site", "_data", "hosted.json")
+
+
+def hosted_counties() -> dict[str, dict]:
+    """The counties the hosted API serves (site/_data/hosted.json, from the pack manifest), by 5-digit FIPS, each with
+    `area` when the pack holds only part of it."""
+    with open(HOSTED_JSON, encoding="utf-8") as f:
+        h = json.load(f)
+    partial = {p["fips"]: p["area"] for p in h.get("partial", [])}
+    return {c["fips"]: {**c, **({"area": partial[c["fips"]]} if c["fips"] in partial else {})} for c in h["counties"]}
 
 STATE_FIPS = {
     "AL": "01", "AK": "02", "AZ": "04", "AR": "05", "CA": "06", "CO": "08", "CT": "09", "DE": "10", "DC": "11", "FL": "12",
@@ -84,6 +97,14 @@ SPLITS["ct-parcel-cama-layer"] = {
 INCOMPLETE = {
     "49039": ("docs/registry/sources/ut-ugrc-lir.md", "Sanpete's layer leaves 9,620 of 12,976 rows without a class, so its 33 commercial parcels are a floor."),
 }
+
+
+def take_hosted(entry: dict, h: dict) -> None:
+    """A hosted county's count and date are the pack's (what registry_coverage answers), not the review row's."""
+    entry["commercial_parcels"] = h["parcels"]
+    entry["data_as_of"] = h["as_of"]
+    if h.get("area"):
+        entry["area"] = h["area"]
 
 
 def county_names() -> dict[str, str]:
@@ -143,7 +164,7 @@ def main(argv: list[str]) -> int:
     reread = reread_exact_sources()
     ref = max(s["reviewed"] for s in configs if re.match(r"\d{4}-\d{2}-\d{2}$", s.get("reviewed") or ""))
     ref_d = date.fromisoformat(ref)
-    queryable = data["queryable"]
+    hosted = hosted_counties()
 
     for sid, sp in SPLITS.items():
         if g.norm(sp["quote"]) not in g.doc_norm(sp["doc"]):
@@ -232,17 +253,13 @@ def main(argv: list[str]) -> int:
                 skip(r, "no commercial parcel count recorded")
                 continue
             a = audit.get(sid)
-            hosted_fips = {f for f in parts if g.hosted_area(data, sid, f"({f})")}
-            if hosted_fips and hosted_fips != set(parts):
-                raise SystemExit(f"{r['area']}: only part of the row is hosted")
-            if (sid in queryable and str(queryable[sid]).startswith("Yes")) or hosted_fips:
-                cls = "hosted"
-            elif a and a["violations_after"] == 0 and sid in reread:
-                cls = "audited_load"
+            if a and a["violations_after"] == 0 and sid in reread:
+                base = "audited_load"
             else:
-                cls = "cited_load"
+                base = "cited_load"
             used_sources.add(g.CFG_ALIAS.get(sid, sid))
             for f, n in parts.items():
+                cls = "hosted" if f in hosted else base
                 if f in counties:
                     raise SystemExit(f"{f} counted twice")
                 counties[f] = {
@@ -259,11 +276,43 @@ def main(argv: list[str]) -> int:
                     "hosted": cls == "hosted" and "hosted on api.factlot.com" or False,
                     "evidence": evidence,
                 }
+                if cls == "hosted":
+                    take_hosted(counties[f], hosted[f])
                 w = data.get("withheld_areas", {}).get(sid)
                 if w:
                     if cls == "hosted":
                         raise SystemExit(f"{r['area']}: both hosted and withheld")
                     counties[f]["withheld"] = re.sub(r"^No: ", "", w["text"])
+
+    # A hosted county no review row counts (a county loaded in part, a row too old or with no per-county count) is
+    # listed from the pack, so the map's hosted count is the pack's.
+    for f, h in sorted(hosted.items()):
+        if f in counties:
+            continue
+        if f not in names:
+            raise SystemExit(f"hosted county {f} not in county-names.tsv")
+        sid = h["sources"][0]
+        counties[f] = {
+            "name": names[f],
+            "state": h["state"],
+            "class": "hosted",
+            "source_id": sid,
+            "commercial_parcels": h["parcels"],
+            "organisation_owners_row": None,
+            "owner_names": None,
+            "entity_links": None,
+            "owner_link_rate_audited": None,
+            "data_as_of": h["as_of"],
+            "hosted": "hosted on api.factlot.com",
+            "evidence": "site/_data/hosted.json",
+        }
+        take_hosted(counties[f], h)
+        used_sources.add(g.CFG_ALIAS.get(sid, sid))
+        not_counted[:] = [x for x in not_counted
+                          if not (x["source_id"] in h["sources"] and x["reason"].startswith("partial county"))]
+    missing = sorted(set(hosted) - set(counties))
+    if missing:
+        raise SystemExit(f"hosted counties not listed: {missing}")
 
     sources = {}
     for sid in sorted(used_sources):
@@ -282,11 +331,12 @@ def main(argv: list[str]) -> int:
         "max_age_days": MAX_AGE_DAYS,
         "classes": {
             "hosted": "Registry lookups for this county are served by the hosted API at api.factlot.com on every plan, metered by plan; call registry_coverage to list "
-                      "what is hosted. DC's data is also the downloadable CC BY 4.0 sample database.",
-            "audited_load": "Whole-county load from a verified source; the quality audit re-read the archived publisher file and "
-                            "found the registry holds exactly its in-scope parcels, with 0 violations. Built, not yet hosted (run it on a self-hosted FactLot).",
-            "cited_load": "Whole-county load from a verified source with a per-county count and as-of date in the record; not yet "
-                          "covered by the quality audit. Built, not yet hosted (run it on a self-hosted FactLot).",
+                      "what is hosted. The parcel count and as-of date are those of the pack the API answers from. DC's data is also the downloadable CC BY 4.0 sample database.",
+            "audited_load": "Built in the open-source pipeline, not on the hosted API: a lookup on api.factlot.com is a coverage miss. Whole-county load from a verified source; "
+                            "the quality audit re-read the archived publisher file and found the registry holds exactly its in-scope parcels, with 0 violations. "
+                            "To query it, build the registry file and run a self-hosted FactLot.",
+            "cited_load": "Built in the open-source pipeline, not on the hosted API: a lookup on api.factlot.com is a coverage miss. Whole-county load from a verified source "
+                          "with a per-county count and as-of date in the record; not yet covered by the quality audit. To query it, build the registry file and run a self-hosted FactLot.",
         },
         "counts": dict(sorted(by_class.items())),
         "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",

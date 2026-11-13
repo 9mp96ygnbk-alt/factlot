@@ -82,7 +82,7 @@ coverage miss (not loaded, which is not the same as no such parcel).
 
 | The user has…                      | Call                                                                                                                                            |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| A street address                   | `registry_search_address` (`136 W 42nd St`; ordinals such as `42nd` match)                                                                      |
+| A street address                   | `registry_search_address` (`350 Fifth Ave`; `Fifth`, `5th` and `5` match, and a number inside a lot's range)                                    |
 | A county parcel number             | `registry_resolve_parcel` (state FIPS, county FIPS, the number as the county prints it)                                                         |
 | An ID from the county's own system | `registry_resolve_external` (`nyc_bbl`, `la_ain`, `sf_parcel`, `boston_pid`, `denver_schednum`, `ct_cama_link`, `sdat_account`, `hcad_account`) |
 | A FactLot URN                      | `registry_get` (facts, values by tax year, owner of record where the file has one)                                                              |
@@ -246,6 +246,22 @@ to the calculator directly.
 `"1200 Main St, Houston, TX 77002"`: the street line finds the matches, the state named after the city keeps only parcels in that state, and the ZIP code and city put the closest matches first (they never filter). Give the city with the state: a bare ", TX" or ", Texas" is not read as a state. A miss names what the registry holds in that state, so "no match in Massachusetts: only the
 City of Boston is loaded" is an answer, not a reason to retry without the state.
 
+The place can also go in its own fields: `{"query": "1200 Main St", "city": "Houston", "state": "TX",
+"postal_code": "77002"}` means the same, `address` is accepted for `query`, and `county_fips`
+(`"48201"`, or `"201"` with `state`) keeps the answer to one county. A numbered street matches
+however it is written (`Fifth Avenue`, `5th Ave`, `5 Avenue`; `Forty-Second St`), and a house
+number matches a lot whose address is a range holding it on the same side of the street (`350 5th
+Ave` finds `338-350 5 AVENUE`). Each result carries what tells parcels at one address apart
+(account or lot number, property category, use code, improvement area, `land_only`, the unit its
+label names); a parcel whose label names the unit the query names comes first, and parcels sharing a
+label come largest improvement area first, land only last (`land_only` is null when the roll records
+neither an improvement area nor a year built). A miss
+says why in `coverage.reason`: `state_not_loaded`, `county_not_loaded` (also when every county
+known to hold the named city or ZIP code is not loaded), `street_not_found`, `other_words` (the
+house number is on the street, but not with every other word of the query), `house_number_not_found`
+(with `nearest_house_numbers` on that street) or `no_match`; the registry holds commercial, industrial and multifamily parcels only, so a house
+or a condominium unit owned by a person is never in it.
+
 ### Worked example: a Harris County parcel
 
 Harris Central Appraisal District account numbers are 13 digits, as printed on the notice. The
@@ -269,10 +285,34 @@ calls below are in order; each result is reported as returned, with its warnings
 
    Without `tax_year` it compares in the newest tax year whose roll gives the subject a value; pass
    `tax_year` to pin one (on the hosted API naming a year needs a Pro or Team key and answers
-   `PlanRequired` without one, uncounted).
+   `PlanRequired` without one, uncounted). The subject and every candidate are read from that one
+   year's roll files; `selection.compared_files` lists the files the compared values are cited from (building classes
+   come from that year's buildings file, in `building_class_sources`),
+   with each file's `as_of` and `before_certification_deadline` (true when the file is dated before
+   July 25 of the tax year, the date Tax Code §26.01(a) sets for certifying the roll, so it can hold
+   preliminary values; the file itself does not say which values are certified). A tax year whose
+   files hold values but no category code or improvement area gives no candidates, with a warning
+   naming the missing facts.
 
-   `subject` carries the roll value, `value_basis`, areas, year built, state property category
-   code and `value_history` (market and appraised value by tax year, each cited to that year's
+   Optional narrowing, off by default (the default rule is unchanged without it):
+   `same_building_class` (exactly the subject's building class), `same_local_use_code` (exactly the
+   subject's local use code, the district's own use or class code) and `local_use_codes` (one of a
+   list of codes, compared exactly as the roll prints them). A parameter that needs a field the
+   subject lacks is not applied, and a warning says so. `selection.narrowing` lists each one asked
+   for and whether it was applied; `selection.steps` counts how many parcels each step of the rule
+   left, county-wide, before the tiers and `limit`. `limit` is at most 200; fewer come back when
+   fewer meet the rule, or when the neighborhood and ZIP code tiers hold at least `min_matches`
+   (the rest of the county is then not included), and a warning gives the counts.
+
+   `subject` and each candidate carry `apn` (the district's account number), the roll value,
+   `value_basis`, `value_per_sf` (that value divided by the improvement area, to the cent: the
+   roll's figures and one division, not an opinion of value), areas, year built, state property
+   category code, `local_use_code`, `neighborhood_code`, `building_class` and the citation of the
+   value; `selection.subject_summary` states the subject's category, class, use code and area in
+   words, and `selection.class_counts` and `selection.use_code_counts` count the candidates by building
+   class and by local use code, with the subject's own beside them. Separate
+   land and improvement values are not in the registry and are not returned. The subject adds
+   `value_history` (market and appraised value by tax year, each cited to that year's
    roll; on the hosted API a call without a Pro or Team key gets the current roll year only, with
    `history_withheld`, `history_note` and `history_available` saying which earlier years were left
    out, only when some were, and the candidates are unchanged). `candidates` are candidates under FactLot's default rule, a design choice, not a legal
@@ -284,7 +324,8 @@ calls below are in order; each result is reported as returned, with its warnings
    URN, `label` the situs address, `county_fips`, `value`, `value_basis`, the areas, and a
    comparable's `citation`; nulls left out; no adjustments). It is the default rule's list, not a
    selection by FactLot. `selection_rule` restates the parameters used (tax year, category code,
-   area band and year band with their bounds, counts per tier) with a `notice` saying so. The
+   area band and year band with their bounds, the subject summary, the narrowing applied, the step
+   counts, counts per tier) with a `notice` saying so. The
    order is: candidates, the person's review (remove, add or edit comparables, add adjustments
    with reasons), `calc_tx_unequal_appraisal` with the reviewed `calc_args`, then `report_create`.
 

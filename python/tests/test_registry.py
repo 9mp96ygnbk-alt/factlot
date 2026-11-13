@@ -12,7 +12,16 @@ from pathlib import Path
 import factlot
 from factlot.registry.county_names import county_name
 from factlot.registry.normalize import (
+    address_card,
     address_place,
+    address_place_with,
+    address_query_with_place,
+    address_range,
+    address_range_matches,
+    address_search_forms,
+    address_street_words,
+    address_unit,
+    address_where_issues,
     address_place_rank,
     address_query,
     address_words_without_ordinals,
@@ -94,6 +103,25 @@ class Normalization(unittest.TestCase):
             self.assertEqual(address_place(raw), expected, raw)
         for query, urn, label, rank in vectors["address_place_ranks"]:
             self.assertEqual(address_place_rank(address_place(query), urn, label), rank, f"{query} / {label}")
+        for query, forms in vectors["address_search_forms"]:
+            self.assertEqual(address_search_forms(address_query(query)["tokens"]), forms, query)
+        for urn, label, key, rng in vectors["address_ranges"]:
+            got = address_range(urn, label, key)
+            self.assertEqual(list(got) if got else None, rng, label)
+        for query, urn, label, key, hit in vectors["address_range_matches"]:
+            self.assertEqual(address_range_matches(query.split(" "), urn, label, key), hit, f"{query} / {label}")
+        for query, street in vectors["address_street_words"]:
+            self.assertEqual(address_street_words(address_query(query)["tokens"]), street, query)
+        for label, facts, card in vectors["address_cards"]:
+            self.assertEqual(address_card(label, facts), card, str(label))
+        for query, where, place in vectors["address_place_with"]:
+            self.assertEqual(address_place_with(query, where), place, query)
+        for where, issues in vectors["address_where_issues"]:
+            self.assertEqual(address_where_issues(where), issues, str(where))
+        for query, rewritten in vectors["address_queries_with_place"]:
+            self.assertEqual(address_query_with_place(query), rewritten, query)
+        for text, unit in vectors["address_units"]:
+            self.assertEqual(address_unit(text), unit, str(text))
 
     def test_county_names_match_the_census_table(self):
         tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "county-names.tsv"
@@ -103,6 +131,15 @@ class Normalization(unittest.TestCase):
             self.assertEqual(county_name(fips), name, fips)
         self.assertEqual(county_name("04021"), "Pinal County")
         self.assertIsNone(county_name("48999"))
+
+    def test_city_and_zip_county_table_matches_its_tsv(self):
+        from factlot.registry.address_places import place_counties
+        tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "address-places.tsv"
+        rows = [line.split("\t") for line in tsv.read_text("utf-8").splitlines() if line and not line.startswith("#")]
+        self.assertGreater(len(rows), 1000)
+        for st, place, counties in rows:
+            self.assertEqual(place_counties(st, place), counties.split(" "), place)
+        self.assertIsNone(place_counties("TX", "NO SUCH CITY"))
 
     def test_owner_tails_apostrophes_and_abbreviations_share_one_key(self):
         same = [
@@ -794,7 +831,7 @@ class RegistryCore(unittest.TestCase):
         self.assertEqual(len(self.reg.search_entities("twin name properties")), 2)
         self.assertEqual(self.reg.search_entities("John Example"), [], "people are not searchable")
 
-    def test_search_finds_a_numbered_street_the_roll_writes_bare(self):
+    def test_search_finds_a_numbered_street_however_the_roll_writes_it(self):
         # Some rolls write "136 WEST 42 STREET" and "350 5 AVENUE"; a query has the ordinal.
         self.reg.ingest_parcels([
             ParcelRecord("999", "0009-000-0001", "F1", situs_address="136 West 42 Street"),
@@ -805,8 +842,9 @@ class RegistryCore(unittest.TestCase):
         found = lambda q: [h["urn"] for h in self.reg.search_address(q)]  # noqa: E731
         self.assertEqual(found("136 W 42nd St"), [urn("0009-000-0001")])
         self.assertEqual(found("W 42nd St"), [urn("0009-000-0001")])
-        self.assertEqual(found("9 Fifth St"), [urn("0009-000-0002")], "a match as written wins")
-        self.assertEqual(found("9 5 St"), [urn("0009-000-0003")])
+        # Both spellings are one street: the match as written comes first.
+        self.assertEqual(found("9 Fifth St"), [urn("0009-000-0002"), urn("0009-000-0003")])
+        self.assertEqual(found("9 5 St"), [urn("0009-000-0003"), urn("0009-000-0002")])
         self.assertEqual(found("136 W 43rd St"), [])
         self.assertIsNone(address_words_without_ordinals(["42ND", "ST"]), "the first word is left alone")
         self.assertEqual(address_words_without_ordinals(["W", "42ND", "ST"]), ["W", "42", "ST"])

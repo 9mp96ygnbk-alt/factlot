@@ -1,6 +1,8 @@
 <p class="lede">
-  Where FactLot holds whole-county commercial property data, and how far it has
-  been checked. Grey means not usable yet: not reviewed, not loaded, waiting on
+  Where FactLot holds whole-county commercial property data. Only the counties
+  marked hosted answer on the hosted API ({{COV_N_HOSTED}} counties); the others
+  are built in the open-source pipeline and answer only on a self-hosted
+  FactLot. Grey means not usable yet: not reviewed, not loaded, waiting on
   publisher terms, a sample only, or too old.
 </p>
 
@@ -13,12 +15,12 @@
         <span class="n">{{COV_N_HOSTED}}</span>
       </li>
       <li>
-        <span class="sw cov-audited_load" aria-hidden="true"></span>Audited, not
-        yet hosted <span class="n">{{COV_N_AUDITED}}</span>
+        <span class="sw cov-audited_load" aria-hidden="true"></span>Open-source
+        pipeline only, audited <span class="n">{{COV_N_AUDITED}}</span>
       </li>
       <li>
-        <span class="sw cov-cited_load" aria-hidden="true"></span>Loaded, not
-        yet audited <span class="n">{{COV_N_CITED}}</span>
+        <span class="sw cov-cited_load" aria-hidden="true"></span>Open-source
+        pipeline only, not audited <span class="n">{{COV_N_CITED}}</span>
       </li>
       <li>
         <span class="sw cov-grey" aria-hidden="true"></span>Not usable yet
@@ -37,20 +39,26 @@
   <li>
     <strong>Hosted lookups.</strong> Served by the hosted API at
     <code>api.factlot.com</code> on every plan, metered by plan, including the
-    free tier. Call <code>registry_coverage</code> to list what is hosted. DC's
-    data is also published as an open sample database (CC BY 4.0) you can run
-    with the FactLot MCP server.
+    free tier. Call <code>registry_coverage</code> to list what is hosted. The
+    counts and dates are those of the data the API answers from. Suffolk County
+    is hosted for the City of Boston only. DC's data is also published as an
+    open sample database (CC BY 4.0) you can run with the FactLot MCP server.
   </li>
   <li>
-    <strong>Audited, not yet hosted.</strong> The whole county's commercial roll
-    is loaded from a source whose terms we recorded and verified, and an audit
-    re-read the publisher's archived file and found the registry holds exactly
-    its in-scope parcels, with no violations.
+    <strong>Open-source pipeline only, audited.</strong> Built in the
+    open-source pipeline, not on the hosted API: a lookup on
+    <code>api.factlot.com</code> answers that the county is not loaded. The
+    whole county's commercial roll was built from a source whose terms are
+    recorded and verified, and an audit re-read the publisher's archived file
+    and found the registry file holds exactly its in-scope parcels. To query it,
+    build the registry file and run FactLot yourself.
   </li>
   <li>
-    <strong>Loaded, not yet audited.</strong> The whole county is loaded from a
-    verified source, with a per-county count and a data date in the review
-    record, but the audit has not covered it yet.
+    <strong>Open-source pipeline only, not audited.</strong> Built in the
+    open-source pipeline, not on the hosted API, from a verified source with a
+    per-county count and a data date in the review record; the audit has not
+    covered it yet. To query it, build the registry file and run FactLot
+    yourself.
   </li>
   <li>
     <strong>Not usable yet.</strong> Everything else, including statewide loads
@@ -74,10 +82,30 @@
   >.
 </p>
 
-{{COV_MARKETS}} {{COV_NOTICES}}
+<h2 id="fields">What each hosted county has</h2>
+<p>
+  {{COV_FIELDS_LEAD}} A cell says yes only when every parcel of the county has
+  the fact, no when none has it, and partial with how many have it otherwise.
+  Owners of record and their mailing addresses are kept for organisations only,
+  never natural persons, so no county has an owner for every parcel. The roll
+  years column gives the tax years whose values the registry holds, with the
+  value type of each, and how many parcels have a value for a year when fewer
+  than 90% do. In Connecticut each year is a town's grand list year.
+</p>
+{{COV_FIELDS_TABLE}} {{COV_MARKETS}} {{COV_NOTICES}}
 
+<h2 id="pipeline">Built in the open-source pipeline, not on the hosted API</h2>
+<p>
+  These {{COV_N_PIPELINE}} counties have whole-county loads built with the
+  open-source FactLot pipeline from sources whose terms are recorded. The hosted
+  API does not serve them: a lookup there answers that the county is not loaded.
+  They answer only on a FactLot you run yourself with a registry file you build.
+</p>
 <details class="covlist">
-  <summary>Counties with data, by state ({{COV_N_COLORED}})</summary>
+  <summary>
+    Counties built in the open-source pipeline only, by state
+    ({{COV_N_PIPELINE}})
+  </summary>
   {{COV_TABLE}}
 </details>
 

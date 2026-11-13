@@ -4,14 +4,21 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { inflateSync } from "node:zlib";
 
-import { runTool } from "@factlot/tools";
+import { TX_EQUITY_RULE, TX_EQUITY_STEPS, runTool } from "@factlot/tools";
 import { build } from "esbuild";
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 
 import { fold } from "./ics.ts";
 import { adviceIn } from "./text.ts";
 import { TX_SOFTWARE } from "./kinds/protest.ts";
-import { RIGHTS_UNKNOWN, SOURCE_NOT_SENT } from "./kinds/tx.ts";
+import {
+  RIGHTS_UNKNOWN,
+  RULE_NOTE,
+  RULE_NOTE_NARROWED,
+  SENT_FIELDS_HEADING,
+  SOURCE_NOT_SENT,
+} from "./kinds/tx.ts";
+import { round } from "@factlot/calc";
 import { txDoc } from "./kinds/tx.ts";
 import { MAX_CELL_CHARS, MAX_PDF_LINES, PdfWriter } from "./pdf.ts";
 import { Workbook, fx } from "./xlsx.ts";
@@ -774,6 +781,216 @@ describe("documents", () => {
       );
       assert.equal(x.cell("Reconcile", "C4"), "0", "rows that differ");
     }
+  });
+
+  it("tx_unequal_appraisal: candidate fields and the candidate rule from registry_tx_equity_candidates, in the packet and the workbook", async () => {
+    const sample = SAMPLES[0]!;
+    // The sample with registry ids and improvement areas on the subject and its first comparable.
+    const args = structuredClone(sample.args) as {
+      subject: { id?: string; value: number; improvement_area_sf?: number };
+      comparables: {
+        id?: string;
+        value: number;
+        improvement_area_sf?: number;
+      }[];
+    };
+    args.subject.id = "fl:parcel:us-48997:1000001";
+    args.subject.improvement_area_sf = 50000;
+    args.comparables[0]!.id = "fl:parcel:us-48997:1000002";
+    args.comparables[0]!.improvement_area_sf = 48000;
+    const s = { ...sample, args: args as unknown as Json };
+    assert.ok(runTool(s.tool, s.args).ok, "the sample still runs");
+    const subjectRow = {
+      id: args.subject.id,
+      apn: "SUBJ-0001",
+      state_property_category: "F1",
+      building_class: "OFFICE BUILDING (MID-RISE)",
+      local_use_code: "C2,F1",
+      improvement_area_sf: 50000,
+      land_area_sf: 120000,
+      year_built: 2005,
+      value: args.subject.value,
+      value_basis: "market",
+      value_per_sf: 999999, // the caller's figure is never printed
+    };
+    const compRow = {
+      id: args.comparables[0]!.id,
+      apn: "COMP-0002",
+      state_property_category: "F1",
+      building_class: null,
+      local_use_code: "4600",
+      improvement_area_sf: 48000,
+      value: args.comparables[0]!.value,
+      value_basis: "market",
+      citation: { document_id: "fl:document:sha256-x" },
+    };
+    const candidates = [subjectRow, compRow];
+    const selection_rule = {
+      tax_year: 2026,
+      state_property_category: "F1",
+      area_band: { share: 0.35, min_sf: 32500, max_sf: 67500 },
+      year_band: { years: 15, min: 1990, max: 2020 },
+      min_matches: 10,
+      limit: 50,
+      narrowing: [
+        {
+          parameter: "same_local_use_code",
+          applied: true,
+          value: "4300",
+          text: "only parcels whose local use code is exactly the subject's (4300)",
+        },
+      ],
+      steps: [
+        { step: TX_EQUITY_STEPS.base, left: 9 },
+        { step: TX_EQUITY_STEPS.area, left: 8 },
+        { step: TX_EQUITY_STEPS.year, left: 7 },
+        { step: TX_EQUITY_STEPS.same_local_use_code, left: 4 },
+      ],
+      tiers: [
+        {
+          tier: "neighborhood",
+          key: "N100",
+          applied: true,
+          matched: 1,
+          returned: 1,
+        },
+        { tier: "zip", key: "77001", applied: true, matched: 2, returned: 2 },
+        { tier: "county", key: "997", applied: true, matched: 1, returned: 1 },
+      ],
+      widened_to_county: true,
+      matched: 4,
+      returned: 4,
+    };
+    const context = { candidates, selection_rule };
+    const pdfOf = (ctx: Json) =>
+      createReport(
+        {
+          kind: "tx_unequal_appraisal",
+          format: "pdf",
+          arguments: s.args,
+          context: ctx,
+        },
+        { now: NOW },
+      );
+    const squash = (t: string) => t.replace(/\s+/g, "");
+    const flat = squash((await readPdf((await pdfOf(context)).bytes)).text);
+    for (const t of [
+      SENT_FIELDS_HEADING,
+      "SUBJ-0001",
+      "COMP-0002",
+      "OFFICE BUILDING (MID-RISE)",
+      "C2,F1",
+      usd(round(args.subject.value / 50000, 2)),
+      usd(round(args.comparables[0]!.value / 48000, 2)),
+      "Candidate rule as applied",
+      RULE_NOTE_NARROWED,
+      TX_EQUITY_RULE,
+      TX_EQUITY_STEPS.same_local_use_code,
+      "applied: 4300",
+    ])
+      assert.ok(flat.includes(squash(t)), t);
+    assert.ok(
+      !flat.includes("999,999"),
+      "the caller's value per SF is not printed",
+    );
+    assert.ok(flat.includes("notsent"), "a comparable with no row sent");
+    // Without a narrowing applied, the rule note is the default one.
+    const plain = squash(
+      (
+        await readPdf(
+          (
+            await pdfOf({
+              selection_rule: { ...selection_rule, narrowing: [] },
+            })
+          ).bytes,
+        )
+      ).text,
+    );
+    assert.ok(
+      plain.includes(squash(RULE_NOTE)) &&
+        !plain.includes(squash(RULE_NOTE_NARROWED)),
+    );
+    const x = await readXlsx(
+      (
+        await createReport(
+          {
+            kind: "tx_unequal_appraisal",
+            format: "xlsx",
+            arguments: s.args,
+            context,
+          },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    assert.deepEqual(x.sheets, [
+      "ReadMe",
+      "Reconcile",
+      "Grid",
+      "Sent_candidate_fields",
+      "Steps",
+      "Law",
+      "Provenance",
+      "Inputs",
+    ]);
+    const sheet = x.values("Sent_candidate_fields");
+    for (const t of [
+      "SUBJ-0001",
+      "COMP-0002",
+      SENT_FIELDS_HEADING,
+      TX_EQUITY_RULE,
+    ])
+      assert.ok(sheet.includes(t), t);
+    assert.equal(x.cell("Reconcile", "C4"), "0", "still reconciles");
+    const req = (ctx: Json) => ({
+      kind: "tx_unequal_appraisal",
+      format: "pdf",
+      arguments: s.args,
+      context: ctx,
+    });
+    // A value or area that is not the calculation's, or a row that is not in it, is refused, naming the field.
+    await rejects(
+      req({ candidates: [{ ...compRow, value: 1 }] }),
+      "InputError",
+      /^context\.candidates\.0\.value$/,
+    );
+    await rejects(
+      req({ candidates: [{ ...compRow, improvement_area_sf: 47000 }] }),
+      "InputError",
+      /^context\.candidates\.0\.improvement_area_sf$/,
+    );
+    await rejects(
+      req({ candidates: [{ ...compRow, id: "fl:parcel:us-48997:1000099" }] }),
+      "InputError",
+      /^context\.candidates\.0\.id$/,
+    );
+    await rejects(
+      req({ candidates: [compRow, compRow] }),
+      "InputError",
+      /^context\.candidates\.1\.id$/,
+    );
+    await rejects(
+      req({ candidates: [{ ...compRow, improvement_area_sf: -5 }] }),
+      "InputError",
+    );
+    await rejects(
+      req({ candidates: [{ ...compRow, apn: "A1<script>" }] }),
+      "InputError",
+    );
+    // Codes are caller text; a step the tool does not name is refused.
+    await rejects(
+      req({ candidates: [{ ...compRow, local_use_code: "you should file" }] }),
+      "TextNotAllowed",
+      /^context\.candidates\.0\.local_use_code$/,
+    );
+    await rejects(
+      req({
+        selection_rule: {
+          steps: [{ step: "comparables FactLot chose", left: 3 }],
+        },
+      }),
+      "InputError",
+    );
   });
 
   it("critical_dates ICS: an event per date, the notice window, and a reminder 30 days before each notice event", async () => {

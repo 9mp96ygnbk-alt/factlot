@@ -378,13 +378,52 @@ start with that number and contain every other word ("1200 Main" finds "1200 MAI
 query without one must name the street with its type, and its words must appear in a row ("Main
 St"). A city or state name, or part of a word, alone matches nothing ("Ontario" does not find
 "ONTARIO RD NW"), and the miss says what to send instead. `spec/registry/normalize.json`
-(`address_queries`) pins how a query is read in both languages. A query that finds nothing is searched once more with the ordinal endings of its street numbers dropped ("W 42nd St" as "W 42 St"), because some rolls write numbered streets bare; a match as written wins, and the first word of the query is left as it is.
+(`address_queries`) pins how a query is read in both languages.
+
+**Spellings and ranges.** Every spelling of the street line is searched at once
+(`address_search_forms`): a numbered street with and without its ordinal ending ("5th Ave" and "5
+Ave", since some rolls write numbered streets bare), written in words ("Fifth Avenue", "Forty-Second
+Street", "One Hundred Twenty-Fifth Street"), with San Francisco's leading zero ("03RD ST"), Sixth
+Avenue and the Avenue of the Americas as Manhattan's roll writes them ("AVENUE OF THE AMER"), and
+Eye Street as "I ST" (Washington, DC). A query with a house number also matches a lot whose label
+starts with a house-number range holding it ("350 5th Ave" finds "338-350 5 AVENUE"): when both
+ends of the range are odd or both even the lot holds the numbers of that parity only, one side of
+the street, as about 99% of the ranges in the registry's rolls do (27,649 of 27,967 outside
+Queens); ends of differing parity hold every number between. A label range spanning 500 numbers or
+more is not read as a range (11 lots in the registry's rolls, typing slips such as "749-7570 GRANT
+AV" or a whole street's numbers). The street must start with the same
+word, and every other word of the query must follow the range. In Queens, NY a hyphenated house
+number is one number ("37-20 80 Street"), never a range. A query without a comma whose street line
+goes on after its street type with a city the city table knows and its state ("6700 Bissonnet St
+Houston TX 77074") is read as if a comma came before the city; words between the street type and
+the city (a bare unit number) stay in the street line, the street line as asked still counts as an
+exact address, and a unit is read from the whole query as asked ("BLDG #M UNIT 4" is "M 4"). In each place group, matches of the
+words as written come first, then the other spellings, then ranges; then an exact address, then the
+parcel whose label names the unit the query names ("#310"; a unit never filters), then by label.
+Parcels sharing one label come largest improvement area first, and those the roll records as land
+only last; of a label shared by more than twice the limit, the first by URN are ordered, so a search
+reads at most twice its limit of records. `address_ranges`, `address_range_matches`, `address_units` and
+`address_queries_with_place` pin these rules in both languages.
+
+**What a result carries.** Each result has `urn` and `label` and, from the parcel's current facts,
+what tells parcels at one address apart: `account` (the district's account or lot number),
+`property_category`, `use_code`, `improvement_area_sf`, `land_only` (false when the roll records an
+improvement, true when it records an improvement area of 0, null when it records neither) and `unit` (the unit its label names after a designator).
+Never an owner.
+
+**Place fields.** `address` is accepted for `query` (exactly one of the two), and `state`, `city`,
+`postal_code` and `county_fips` mean what the same words after the comma mean, replacing them:
+`state` filters, `city` and `postal_code` only order. `county_fips` (5 digits, or 3 with `state`)
+filters too, by the county in each parcel's URN, which unlike a label's ZIP code is never written
+wrongly.
 
 **The place after the street line.** The rest of the query (after its first comma) is read
 conservatively from its end. A trailing country ("USA", "U.S.A.", "US", "United States") is
 dropped, and "D.C." is DC. A ZIP code is a 5-digit number (or ZIP+4) that ends the query and does
 not follow a unit, suite, box, room, building or number word ("Suite 12345" and "PO Box 12345" are
-not ZIP codes). A state (two letters, or the full name) counts only when it follows a city, in its
+not ZIP codes); a number of 4 or 6 to 9 digits there ("6103.0", "60701822", as some Connecticut
+labels have) is a ZIP code written wrongly and is passed over, and 9 digits are ZIP+4 without its
+dash. A state (two letters, or the full name) counts only when it follows a city, in its
 comma part or the one before, and never after a unit word or a floor ordinal: "Houston, TX" and
 "Waterbury CT 06702" name a state, but a bare ", NE", ", LA", ", TX 77002" or ", Indiana" and
 "12th Fl" do not. The city is the comma part left at the end: one to five words of letters, none
@@ -401,12 +440,32 @@ leaves the search as it was. When the street line matches only outside the named
 is a miss whose `coverage` says what the registry holds in that state ("of MA this registry holds
 Suffolk County, MA (25025, … parcels)"; the hosted registry adds "only the City of Boston is
 loaded"), or that the state is not loaded; the hosted registry answers a state it holds no parcel
-in without reading its address lists. The ordinal retry keeps to the same state. A street type
+in without reading its address lists. Every spelling keeps to the same state. A street type
 alone ("Loop, Houston, TX") is placed among its first 100 matching addresses only, because the
 hosted index keeps no more for a one-word query. Same-city and same-ZIP ordering reads the
 parcel's label, so a label that leaves out the city or carries a malformed ZIP code sorts with the
 rest; this changes the order only, never which parcels are returned. `spec/registry/normalize.json`
 (`address_places`, `address_place_ranks`) pins the reading and the order in both languages.
+
+**Misses that say why.** An empty answer's `coverage` carries `reason` and a message: the named
+state is not loaded (`state_not_loaded`); the named county is not, or every county known to hold
+the named city's or ZIP code's parcels is not (`county_not_loaded`, with `place_counties`; the
+table `spec/registry/address-places.tsv` is built from registry parcel labels by
+`scripts/gen-address-places.py`, and a city it does not know is not mentioned); the query names no
+house number or street type (`no_street`); a street type alone was searched
+(`street_type_alone`); no address on the street is in the index for the state (`street_not_found`);
+the house number is on the street but not with every other word of the query (`other_words`); the
+index shows the street but no such house number on it (`house_number_not_found`, with `street` and
+`nearest_house_numbers`, the nearest numbers held on it below and above, in the named ZIP code or
+city when a label there names it, else in the state, saying that none of its labels names the place);
+or `no_match`. A miss of the street, house-number or no-match kinds also says that the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. The nearest numbers are read only when the street's list in the hosted index (its rows
+holding the word pair around the street type) has at most 5,000 rows.
+
+**The hosted index.** The registry Worker reads the pack's address lists: "F:<house number>",
+"B:<word> <street type>" and "A:<street type> <word>", "U:<street type>", exact keys under
+"E:<key>", and, in packs built from 2026-11-12, "R:<first street word>" for the lots whose label
+starts with a house-number range. On a pack built before, a number inside a range finds what it
+found before, and every other rule above holds.
 
 **Source snapshots over MCP.** Every registry fact cites a `document_id` (`fl:document:sha256-…`),
 the content hash of the source file. With a registry loaded, the MCP `fetch` tool returns that

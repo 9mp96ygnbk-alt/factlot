@@ -24,6 +24,7 @@ export function marketBody(
   d: unknown,
   hosted: unknown,
   template: string,
+  fieldsText?: string,
 ): string;
 export function marketLinks(hosted: unknown): string;
 export function sourceNotices(hosted: unknown): string;

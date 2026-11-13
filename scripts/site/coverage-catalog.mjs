@@ -121,10 +121,14 @@ const TX_TOOLS = [
 ];
 
 /**
- * @param {{hosted: object, configs: Map<string, object>, toolNames: string[], version: string, idExampleUrn: (e: object) => string}} input
+ * @param {{hosted: object, fields?: object, configs: Map<string, object>, toolNames: string[], version: string, idExampleUrn: (e: object) => string}} input
+ *
+ * `fields`: site/_data/fields.json; each county then carries `fields` (the share of its parcels with each fact group,
+ * and its roll years with the value types of each), as registry_coverage does.
  */
 export function buildCoverageCatalog({
   hosted,
+  fields,
   configs,
   toolNames,
   version,
@@ -132,6 +136,27 @@ export function buildCoverageCatalog({
 }) {
   const known = new Set(toolNames);
   const countyByFips = new Map(hosted.counties.map((c) => [c.fips, c]));
+  const fieldsByFips = new Map(
+    (fields?.counties ?? []).map((c) => [c.fips, c]),
+  );
+  const fieldsOf = (fips) => {
+    const f = fieldsByFips.get(fips);
+    if (!f) return {};
+    return {
+      fields: {
+        shares: Object.fromEntries(
+          Object.entries(f.groups).map(([g, s]) => [g, s.share]),
+        ),
+        roll_years: f.roll_years.map((y) => ({
+          tax_year: y.tax_year,
+          value_types: y.value_types,
+          parcels: y.parcels,
+          as_of: y.files[0]?.as_of ?? null,
+          ...(y.preliminary ? { preliminary: true } : {}),
+        })),
+      },
+    };
+  };
   const entityJurisdictions = new Set(
     hosted.entity_registries.map((r) => r.jurisdiction),
   );
@@ -207,6 +232,7 @@ export function buildCoverageCatalog({
         buildings: c.buildings,
         as_of: c.as_of,
         sources: [...c.sources].sort(),
+        ...fieldsOf(c.fips),
       })),
       sources,
       id_systems: idSystems,
@@ -221,6 +247,7 @@ export function buildCoverageCatalog({
     version,
     generated_from: [
       "site/_data/hosted.json",
+      ...(fields ? ["site/_data/fields.json"] : []),
       "registry/sources/*/*.json",
       "spec/schemas/tools.json",
     ],
@@ -236,6 +263,13 @@ export function buildCoverageCatalog({
       pricing: "https://factlot.com/pricing/",
     },
     totals: hosted.totals,
+    ...(fields
+      ? {
+          fields_note:
+            "Fields differ by county. Each county's fields.shares gives, per fact group, the share of its parcels with at least one fact of that group (1: every parcel, 0: none); fields.roll_years lists the tax years held with their value types, parcels and newest file date, and preliminary: true where the roll is preliminary. Owners of record are organisations only.",
+          fact_groups: fields.groups,
+        }
+      : {}),
     places,
     entity_registries: hosted.entity_registries,
     withheld: hosted.withheld,

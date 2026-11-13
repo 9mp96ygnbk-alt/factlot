@@ -56,13 +56,18 @@ import {
   registryResolveExternalResult,
   registryResolveParcelResult,
   registrySearchAddressResult,
+  addressWhereIssues,
+  addressWhereOf,
+  type AddressWhere,
   registrySearchEntitiesResult,
   registryTxEquityCandidates,
   texasOnly,
   TEXAS_FIPS,
   TX_EQUITY_DEFAULTS,
+  TX_EQUITY_LIMIT_MAX,
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
+  TX_EQUITY_USE_CODES_MAX,
   TX_EQUITY_WHICH_PARCEL,
   txEquityWithheld,
   txEquitySubjectUrn,
@@ -563,9 +568,11 @@ const TxEquityParamFields = {
     .number()
     .int()
     .min(1)
-    .max(200)
+    .max(TX_EQUITY_LIMIT_MAX)
     .default(TX_EQUITY_DEFAULTS.limit)
-    .describe("Maximum candidates returned (1–200)."),
+    .describe(
+      "Maximum candidates returned (1–200; a larger value is refused). Fewer are returned when fewer meet the rule, or when the neighborhood and ZIP code tiers hold at least min_matches, because the rest of the county is then not included; a warning gives the counts.",
+    ),
   tax_year: z
     .number()
     .int()
@@ -573,7 +580,27 @@ const TxEquityParamFields = {
     .max(2100)
     .optional()
     .describe(
-      "Roll year to compare in. Default: the newest tax year whose roll gives the subject a positive value.",
+      "Roll year to compare in: the subject and every candidate are read from that year's roll files only (building class also from that year's buildings file, named in selection.building_class_sources); selection.compared_files lists the files the compared values are cited from. Default: the newest tax year whose roll gives the subject a positive value. A year whose files hold values but no category code or improvement area gives no candidates, with a warning naming the missing facts. On the hosted API, tax_year needs a Pro or Team key.",
+    ),
+  same_building_class: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Only parcels whose building class (from the compared roll year) is exactly the subject's. Not applied, with a warning, when the subject has none. Default false: building class is not compared.",
+    ),
+  same_local_use_code: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Only parcels whose local use code (the district's own use or class code) is exactly the subject's. Not applied, with a warning, when the subject has none or local_use_codes is given. Default false.",
+    ),
+  local_use_codes: z
+    .array(z.string().min(1).max(64))
+    .min(1)
+    .max(TX_EQUITY_USE_CODES_MAX)
+    .optional()
+    .describe(
+      "Only parcels whose local use code is one of these, compared exactly as the roll prints them (1–50 codes). Default: no use-code test.",
     ),
 };
 
@@ -590,6 +617,9 @@ interface TxEquityCall {
   min_matches: number;
   limit: number;
   tax_year?: number;
+  same_building_class?: boolean;
+  same_local_use_code?: boolean;
+  local_use_codes?: string[];
 }
 
 /**
@@ -637,6 +667,11 @@ function txEquityCandidatesFor(v: TxEquityCall): Record<string, unknown> {
     min_matches: v.min_matches,
     limit: v.limit,
     ...(v.tax_year === undefined ? {} : { tax_year: v.tax_year }),
+    same_building_class: v.same_building_class ?? false,
+    same_local_use_code: v.same_local_use_code ?? false,
+    ...(v.local_use_codes === undefined
+      ? {}
+      : { local_use_codes: v.local_use_codes }),
   });
   if (!result) {
     const coverage = registryRecordMiss(urn);
@@ -755,23 +790,85 @@ const registryTools: ToolSpec[] = [
     name: "registry_search_address",
     title: "Search parcels by address",
     description:
-      "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. After the first comma, give the city, state and ZIP code ('1200 Main St, Houston, TX 77002'): a state (two letters or the full name) named after a city keeps the answer to that state, before the limit is applied; the ZIP code and the city only order the matches (same ZIP code first, then same city, then the rest) and never filter; a bare state with no city, and suite, floor or box text, are ignored. No match returns coverage: what this registry holds, in the named state when there is one." +
+      "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. A numbered street matches however it is written ('Fifth Avenue' = '5th Ave' = '5 Avenue', 'Forty-Second St' = '42nd St'), and a house number matches a lot whose address is a range holding it ('350 5th Ave' finds '338-350 5 AVENUE'): a range whose ends are both odd or both even holds only the numbers of that parity, one side of the street, and one whose ends differ holds every number between. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. Give the place after the first comma ('1200 Main St, Houston, TX 77002') or as state, city, postal_code and county_fips: a state named after a city (or given as state) keeps the answer to that state, and county_fips to that county, before the limit is applied; the ZIP code and the city only order the matches (same ZIP code first, then same city, then the rest) and never filter; a bare state with no city in the query, and suite, floor or box text, are ignored. Within each place group, matches of the street as written come first, then other spellings, then house-number ranges, an exact address first, then the parcel whose label names the unit the query names (a unit never filters), then by label; parcels sharing one label come largest improvement area first, those the roll records as land only last. Each result carries what tells parcels at one address apart: the district's account or lot number, property category, use code, improvement area, land_only (true when the roll records an improvement area of 0, false when it records an improvement, null when it records neither), and the unit its label names; never an owner. No match returns coverage: what this registry holds (in the named state when there is one), and in reason and message why: the state or county is not loaded, the street is not held, the house number is held but not with the query's other words, or the street is held but not that house number (with the nearest numbers held on it)." +
       REGISTRY_NOTE,
-    input: z.object({
-      query: z
-        .string()
-        .min(1)
-        .max(500)
-        .describe(
-          "Street address ('1200 Main St, Houston, TX 77002'), or a house number and street words, or a street name with its type; the city, state and ZIP code after the first comma narrow and order the matches.",
-        ),
-      limit: Limit,
-    }),
+    input: z
+      .object({
+        query: z
+          .string()
+          .min(1)
+          .max(500)
+          .optional()
+          .describe(
+            "Street address ('1200 Main St, Houston, TX 77002'), or a house number and street words, or a street name with its type; the city, state and ZIP code after the first comma narrow and order the matches. Give query or address, not both.",
+          ),
+        address: z
+          .string()
+          .min(1)
+          .max(500)
+          .optional()
+          .describe("The same as query (give one of the two)."),
+        state: z
+          .string()
+          .min(2)
+          .max(40)
+          .optional()
+          .describe(
+            "State, two letters or full name ('TX', 'Texas'): keeps the answer to that state, as a state after the city in the query does; it replaces one named there.",
+          ),
+        city: z
+          .string()
+          .min(1)
+          .max(100)
+          .optional()
+          .describe(
+            "City ('Houston'): matches in it come first; it never filters. Replaces a city named in the query.",
+          ),
+        postal_code: z
+          .string()
+          .min(5)
+          .max(10)
+          .optional()
+          .describe(
+            "5-digit ZIP code (or ZIP+4): matches with it come first; it never filters, since some rolls write ZIP codes wrongly. Replaces one named in the query.",
+          ),
+        county_fips: z
+          .string()
+          .min(3)
+          .max(5)
+          .optional()
+          .describe(
+            "County FIPS code, 5 digits ('48201') or 3 with state ('201'): keeps the answer to that county, read from each parcel's URN.",
+          ),
+        limit: Limit,
+      })
+      .superRefine((v, ctx) => {
+        if ((v.query === undefined) === (v.address === undefined))
+          ctx.addIssue({
+            code: "custom",
+            path: [],
+            message: "provide exactly one of query or address",
+          });
+        for (const issue of addressWhereIssues(v))
+          ctx.addIssue({
+            code: "custom",
+            path: [issue.path],
+            message: issue.message,
+          });
+      }),
     path: "/v1/registry/search_address",
     requires: "registry",
     run: (i: never) => {
-      const v = i as { query: string; limit: number };
-      return registrySearchAddressResult(v.query, v.limit);
+      const v = i as {
+        query?: string;
+        address?: string;
+        limit: number;
+      } & AddressWhere;
+      return registrySearchAddressResult(
+        (v.query ?? v.address)!,
+        v.limit,
+        addressWhereOf(v),
+      );
     },
   },
   {
@@ -868,16 +965,24 @@ const registryTools: ToolSpec[] = [
     description:
       "The counties (with parcel and building counts), entity registries, and crosswalk systems this FactLot Registry file holds, each with its sources and as-of dates. Call it before concluding that a parcel or entity does not exist: a miss outside these regions means not loaded, not absent." +
       REGISTRY_NOTE,
-    input: z.object({}),
+    input: z.object({
+      fields: z
+        .boolean()
+        .optional()
+        .describe(
+          "true: each county also carries fields, the share of its parcels with each fact group it holds and its roll years with their value types.",
+        ),
+    }),
     path: "/v1/registry/coverage",
     requires: "registry",
-    run: () => registryCoverage(),
+    run: (i: never) =>
+      registryCoverage((i as { fields?: boolean }).fields === true),
   },
   {
     name: "registry_tx_equity_candidates",
     title: "Texas unequal-appraisal candidates",
     description:
-      "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Each candidate and the subject carry their roll fields (id, value and value_basis, market and appraised value, areas, year built, codes, situs address, tax year, citation of the value fact); the subject adds its value history by tax year. calc_args gives the same subject and candidates with exactly calc_tx_unequal_appraisal's input fields (tax_year, subject, comparables; id = the FactLot URN, label = the situs address, nulls left out, no adjustments): the candidate list under the default rule, not a selection by FactLot, for the caller to review and edit (remove, add or adjust comparables, each adjustment with a reason) before passing it to calc_tx_unequal_appraisal. Order of operations: registry_tx_equity_candidates, then the person's review, then calc_tx_unequal_appraisal with the reviewed calc_args, then report_create. selection echoes the rule, the effective parameters, the tax year and roll sources used, and which tier each candidate came from; selection_rule restates the parameters used (tax year, category, area band and year band with their bounds, counts per tier) with a notice that the list is the default rule's output. Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates under FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to use. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts: ownership is outside this comparison and is not needed for it. Texas parcels only. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. On the hosted API, a call without a Pro or Team key gets the current roll year only in the subject's value_history (the answer says so); the candidates are unchanged." +
+      "Candidate comparable parcels for a Texas unequal-appraisal comparison (Tax Code §41.43(b)(3)), from one tax year of the subject's appraisal district roll (the newest year whose roll gives the subject a value, or tax_year), with every field of the subject and the candidates read from that year's roll only: same county and tax year, the same state property category code, improvement area within area_band of the subject's, year built within year_band years when both are known; parcels sharing the subject's neighborhood code first (when the roll gives one), then its ZIP code, then the rest of the county if fewer than min_matches. Optional narrowing, off by default: same_building_class, same_local_use_code, local_use_codes. Each candidate and the subject carry their roll fields: id, apn (the district's account number), value and value_basis, value_per_sf (that value divided by the improvement area, to the cent: the roll's figures and one division, not an opinion of value), market and appraised value, improvement and land area, year built, state property category, local use code, neighborhood code, building class, situs address, tax year, and the citation of the value fact; the subject adds its value history by tax year. Separate land and improvement values are not returned. calc_args gives the same subject and candidates with exactly calc_tx_unequal_appraisal's input fields (tax_year, subject, comparables; id = the FactLot URN, label = the situs address, nulls left out, no adjustments): the candidate list under the default rule, not a selection by FactLot, for the caller to review and edit (remove, add or adjust comparables, each adjustment with a reason) before passing it to calc_tx_unequal_appraisal. Order of operations: registry_tx_equity_candidates, then the person's review, then calc_tx_unequal_appraisal with the reviewed calc_args, then report_create. selection echoes the rule, the effective parameters, the tax year and roll sources used, the files the compared values come from (compared_files: as-of date, and whether the file is dated before July 25 of the tax year, the certification date in Tax Code §26.01(a)), the subject's category, class, use code and area (subject_summary), each narrowing parameter and whether it was applied, how many parcels each step of the rule left (steps), the candidates counted by building class and by local use code with the subject's own beside them (class_counts, use_code_counts), and which tier each candidate came from; selection_rule restates the parameters used (tax year, category, area band and year band with their bounds, the subject summary, the narrowing applied, the step counts, counts per tier) with a notice that the list is the default rule's output (the default rule with the narrowing listed, when a narrowing was applied). Each candidate's citation.document_id names its entry in sources, which gives that snapshot's license, attribution, ai_use and redistribution: relay them with the candidate. Candidates under FactLot's default rule, a design choice, not a legal standard; a person decides which, if any, to use. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts: ownership is outside this comparison and is not needed for it. Texas parcels only. Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear. On the hosted API, a call without a Pro or Team key gets the current roll year only in the subject's value_history (the answer says so); the candidates are unchanged." +
       REGISTRY_NOTE,
     input: z.object({ ...TxEquitySubjectFields, ...TxEquityParamFields }),
     path: "/v1/registry/tx_equity_candidates",
@@ -888,7 +993,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_tx_equity_candidates_batch",
     title: "Texas unequal-appraisal candidates (batch)",
     description:
-      "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, calc_args, selection, selection_rule, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal (each subject's calc_args is its candidate list in that tool's input shape, for review and editing first). Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts: ownership is outside this comparison. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted), and this batch tool needs a Pro or Team key; registry_tx_equity_candidates, one subject per call, stays within the free daily lookups." +
+      "registry_tx_equity_candidates for many subjects in one call (1–50, e.g. a consultant's client parcels): each subject's id (your label, echoed back) and its urn, or county_fips and apn, plus the rule parameters once for every subject (area_band, year_band, min_matches, limit, tax_year, same_building_class, same_local_use_code, local_use_codes). Each entry of results is that subject's answer from registry_tx_equity_candidates (subject, candidates, calc_args, selection, selection_rule, sources, warnings) or that subject's error (error, message, issues, and coverage on a miss), so one subject outside Texas, in Tarrant County, or not in the registry does not fail the others; the Texas-only and Tarrant checks apply to each subject. The selection rule and the notice appear once at the top (rule, notice) instead of in every answer; summary counts subjects, answered and errors. Candidates per subject only: this tool never runs calc_tx_unequal_appraisal and never picks comparables; a person decides, for each subject, which candidates (if any) to use, and only those go to calc_tx_unequal_appraisal (each subject's calc_args is its candidate list in that tool's input shape, for review and editing first). Relay each candidate's source rights from that subject's sources. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. Never returns owner names, mailing addresses, or ownership facts: ownership is outside this comparison. On the hosted API each answered subject counts as one registry lookup (a subject with an error is not counted), and this batch tool needs a Pro or Team key; registry_tx_equity_candidates, one subject per call, stays within the free daily lookups." +
       REGISTRY_NOTE,
     input: z
       .object({

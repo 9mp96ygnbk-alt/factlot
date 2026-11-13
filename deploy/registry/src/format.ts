@@ -6,6 +6,11 @@
  * that follow the SQL in packages/tools/src/registry.ts. Everything here is plain TypeScript, so the Worker and
  * the builder run the same code.
  */
+import {
+  labelValueHistory,
+  type CountyFields,
+  type ValueFile,
+} from "../../../packages/tools/src/fields.ts";
 import type { RegistryCoverage } from "../../../packages/tools/src/registry.ts";
 
 import type { EquityManifest, EquitySubject } from "./equity.ts";
@@ -94,6 +99,16 @@ export interface Manifest {
   entity_scope: Record<string, { served: number; total: number }>;
   /** Counties loaded only in part (5-digit FIPS → the part); see hosted.ts. Absent in packs built before it. */
   partial_counties?: Record<string, PartialCounty>;
+  /** 5-digit county FIPS → field availability (packages/tools/src/fields.ts). Absent in packs built before it. */
+  fields?: Record<string, CountyFields>;
+  /** The registry_coverage result with fields: true. Absent in packs built before it (the plain result answers). */
+  coverage_result_fields?: unknown;
+  /**
+   * Document ID → the snapshot as value-history labels use it (source, file name, as-of date, read date). The Worker
+   * labels each value_history entry from it at answer time (getResult); absent in older packs, whose entries then
+   * carry no labels.
+   */
+  value_files?: Record<string, ValueFile>;
   /** Texas unequal-appraisal candidate data (equity.ts), or null when the pack holds no Texas parcel. */
   equity: EquityManifest | null;
   counts: Record<string, number>;
@@ -397,12 +412,26 @@ export function withAsOf(rec: Rec, asOf: string): Rec {
   return out;
 }
 
-/** The registry_get result an entry gives, as runTool returns it. */
+/** Stored value-history entries with their labels (fields.ts labelValueHistory), from the manifest's value_files. */
+export function labeledHistory(
+  entries: Rec[],
+  files: Record<string, ValueFile>,
+): Rec[] {
+  return labelValueHistory(entries, (doc) =>
+    Object.hasOwn(files, doc) ? files[doc] : undefined,
+  );
+}
+
+/**
+ * The registry_get result an entry gives, as runTool returns it. With `files` (the manifest's value_files), each
+ * value-history entry is labelled as the SDK labels it.
+ */
 export function getResult(
   entry: GetEntry,
   dates: string[],
   includeHistory: boolean,
   asOf: string | undefined,
+  files?: Record<string, ValueFile>,
 ): Rec {
   const baseHistory = entry.h ?? (entry.r.facts as unknown[]);
   let rec = entry.r;
@@ -417,5 +446,10 @@ export function getResult(
     }
     rec = withAsOf(rec, asOf);
   }
+  if (files && Array.isArray(rec.value_history))
+    rec = {
+      ...rec,
+      value_history: labeledHistory(rec.value_history as Rec[], files),
+    };
   return includeHistory ? { ...rec, history } : rec;
 }

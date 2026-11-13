@@ -9,6 +9,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { placeCounties } from "./address_places.ts";
 import { countyName } from "./county_names.ts";
 
 import {
@@ -20,9 +21,18 @@ import {
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_WITHHELD_COUNTIES,
+  addressCard,
   addressPlace,
   addressPlaceRank,
+  addressPlaceWith,
   addressQuery,
+  addressQueryWithPlace,
+  addressRange,
+  addressRangeMatches,
+  addressSearchForms,
+  addressStreetWords,
+  addressUnit,
+  addressWhereIssues,
   addressWordsWithoutOrdinals,
   configureRegistry,
   hostedWithheldCounties,
@@ -240,7 +250,7 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
     assert.equal(river.coverage.state_loaded, true);
     assert.equal(
       river.coverage.message,
-      "no parcel matched in MD: matches are kept to the state the query names, and of MD this registry holds county 24998 (MD, 6 parcels); it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel is not found",
+      "no parcel matched in MD: no address on RIVER RD in MD is in this registry; the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of MD this registry holds county 24998 (MD, 6 parcels)",
     );
     for (const query of ["200 River Rd, 85122", "200 River Rd, 21999"]) {
       assert.equal(at({ query }).results?.length, 1, query);
@@ -314,9 +324,10 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       ).state,
       "MD",
     );
-    // The ordinal retry keeps to the place: "8 W 9th St" matches as written in Texas only.
+    // Both spellings of a numbered street are searched, as written first, within the place: "8 W 9th St" is
+    // "8 W 9TH ST" in Texas and "8 W 9 ST" in Maryland.
     const nine = "fl:parcel:us-48999:0005-000-0001";
-    assert.deepEqual(urns({ query: "8 W 9th St" }), [nine]);
+    assert.deepEqual(urns({ query: "8 W 9th St" }), [nine, md(5)]);
     assert.deepEqual(urns({ query: "8 W 9th St, Example City, TX" }), [nine]);
     assert.deepEqual(urns({ query: "8 W 9th St, Shoreville, MD" }), [md(5)]);
     // Recorded deeds, mortgages and satisfactions are many-valued too, newest first; an energy report is single-valued.
@@ -609,6 +620,31 @@ test("name and address normalization match the Python vectors", () => {
     address_queries: [string, { mode: string | null; tokens: string[] }][];
     address_places: [string, Record<string, unknown>][];
     address_place_ranks: [string, string, string, number][];
+    address_search_forms: [string, string[][]][];
+    address_ranges: [
+      string,
+      string,
+      string,
+      [number, number, boolean] | null,
+    ][];
+    address_range_matches: [string, string, string, string, boolean][];
+    address_street_words: [string, string[] | null][];
+    address_cards: [
+      string | null,
+      { predicate: string; value: unknown }[],
+      Record<string, unknown>,
+    ][];
+    address_place_with: [
+      string,
+      Record<string, string>,
+      Record<string, unknown>,
+    ][];
+    address_where_issues: [
+      Record<string, string>,
+      { path: string; message: string }[],
+    ][];
+    address_queries_with_place: [string, string][];
+    address_units: [string | null, string | null][];
   };
   for (const [input, expected] of v.names)
     assert.equal(normalizeName(input), expected, input);
@@ -626,6 +662,36 @@ test("name and address normalization match the Python vectors", () => {
       rank,
       `${query} / ${label}`,
     );
+  for (const [query, forms] of v.address_search_forms)
+    assert.deepEqual(
+      addressSearchForms(addressQuery(query).tokens),
+      forms,
+      query,
+    );
+  for (const [urn, label, key, range] of v.address_ranges)
+    assert.deepEqual(addressRange(urn, label, key), range, label);
+  for (const [query, urn, label, key, hit] of v.address_range_matches)
+    assert.equal(
+      addressRangeMatches(query.split(" "), urn, label, key),
+      hit,
+      `${query} / ${label}`,
+    );
+  for (const [query, street] of v.address_street_words)
+    assert.deepEqual(
+      addressStreetWords(addressQuery(query).tokens),
+      street,
+      query,
+    );
+  for (const [label, facts, card] of v.address_cards)
+    assert.deepEqual(addressCard(label, facts), card, String(label));
+  for (const [query, where, place] of v.address_place_with)
+    assert.deepEqual(addressPlaceWith(query, where), place, query);
+  for (const [where, issues] of v.address_where_issues)
+    assert.deepEqual(addressWhereIssues(where), issues, JSON.stringify(where));
+  for (const [query, rewritten] of v.address_queries_with_place)
+    assert.equal(addressQueryWithPlace(query), rewritten, query);
+  for (const [text, unit] of v.address_units)
+    assert.equal(addressUnit(text), unit, String(text));
 });
 
 test("address places and ranks: TypeScript matches Python on random queries", () => {
@@ -859,20 +925,23 @@ test("address search: every parcel label of the fixture, used as the query, find
   assert.ok(rows.length > 30);
   configureRegistry(db.path);
   try {
-    const lost = rows.filter((r) => {
-      const out = runTool("registry_search_address", {
-        query: String(r.label),
-        limit: 100,
+    assert.ok(rows.some((r) => String(r.label).includes("# 101 Example City")));
+    for (const limit of [5, 20, 100]) {
+      const lost = rows.filter((r) => {
+        const out = runTool("registry_search_address", {
+          query: String(r.label),
+          limit,
+        });
+        return (
+          out.ok &&
+          addressQuery(String(r.label)).mode !== null &&
+          !(out.result as { results: { urn: string }[] }).results.some(
+            (x) => x.urn === r.urn,
+          )
+        );
       });
-      return (
-        out.ok &&
-        addressQuery(String(r.label)).mode !== null &&
-        !(out.result as { results: { urn: string }[] }).results.some(
-          (x) => x.urn === r.urn,
-        )
-      );
-    });
-    assert.deepEqual(lost, []);
+      assert.deepEqual(lost, [], `limit ${limit}`);
+    }
   } finally {
     configureRegistry(undefined);
   }
@@ -891,7 +960,7 @@ function fixtureDb(name: string): {
   return { path, exec: (sql) => w.exec(sql) };
 }
 
-test("address search: a query with an ordinal finds a street the roll writes bare, when nothing else matched", () => {
+test("address search: a numbered street matches however the roll writes it, as written first", () => {
   const db = fixtureDb("ordinals.db");
   db.exec(
     "INSERT INTO address_index VALUES ('136 W 42 ST EXAMPLE CITY TX 77999', 'fl:parcel:us-48999:0004-000-0001'); " +
@@ -911,10 +980,15 @@ test("address search: a query with an ordinal finds a street the roll writes bar
       "fl:parcel:us-48999:0004-000-0001",
     ]);
     assert.deepEqual(search("W 42nd St"), ["fl:parcel:us-48999:0004-000-0001"]);
+    // Both spellings are one street: the match as written comes first.
     assert.deepEqual(search("9 Fifth St"), [
       "fl:parcel:us-48999:0003-000-0001",
+      "fl:parcel:us-48999:0001-000-0002",
     ]);
-    assert.deepEqual(search("9 5 St"), ["fl:parcel:us-48999:0001-000-0002"]);
+    assert.deepEqual(search("9 5 St"), [
+      "fl:parcel:us-48999:0001-000-0002",
+      "fl:parcel:us-48999:0003-000-0001",
+    ]);
     assert.deepEqual(search("136 W 43rd St"), []);
     assert.deepEqual(addressWordsWithoutOrdinals(["42ND", "ST"]), null);
     assert.deepEqual(addressWordsWithoutOrdinals(["W", "42ND", "ST"]), [
@@ -1123,6 +1197,69 @@ test("registry_get keeps the newest RECORDED_FACTS_LIMIT recorded facts, with a 
       assert.equal(JSON.stringify(r.facts), JSON.stringify(registryFacts(urn)));
       assert.ok(!("recorded_facts_truncated" in r), urn);
     }
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
+test("the city and ZIP code county table matches its TSV", () => {
+  const rows = readFileSync(join(spec, "address-places.tsv"), "utf8")
+    .split("\n")
+    .filter((l) => l && !l.startsWith("#"))
+    .map((l) => l.split("\t"));
+  assert.ok(rows.length > 1000);
+  for (const [st, place, counties] of rows)
+    assert.deepEqual(placeCounties(st!, place!), counties!.split(" "), place);
+  assert.equal(placeCounties("TX", "NO SUCH CITY"), null);
+});
+
+test("address search: a query without a comma keeps its unit, and a miss claims only what the index shows", () => {
+  const db = fixtureDb("units.db");
+  configureRegistry(db.path);
+  try {
+    const first = (args: Record<string, unknown>) => {
+      const r = runTool("registry_search_address", { limit: 1, ...args });
+      assert.ok(r.ok);
+      return (r.result as { results: { urn: string }[] }).results[0]?.urn;
+    };
+    // A "#" unit (dropped from the street line, read from the query as asked) and a bare unit number (kept in it).
+    assert.equal(
+      first({ query: "700 Bayou Drive # 102 Example City TX 77999" }),
+      "fl:parcel:us-48999:0008-000-0102",
+    );
+    assert.equal(
+      first({ query: "700 Bayou Drive 1102 Example City TX 77999" }),
+      "fl:parcel:us-48999:0008-000-1102",
+    );
+    const miss = (query: string) => {
+      const r = runTool("registry_search_address", { query });
+      assert.ok(r.ok);
+      return (r.result as { coverage: Record<string, unknown> }).coverage;
+    };
+    // The number is on the street: the miss never says it is not.
+    const rear = miss("500 Market St Rear, Example City, TX");
+    assert.equal(rear.reason, "other_words");
+    assert.match(
+      String(rear.message),
+      /^no parcel matched in TX: 500 MARKET ST in TX is in this registry, but not with every other word/,
+    );
+    // A city the labels write another way: the miss names the labels, it does not say the street is absent there.
+    const shore = miss("150 Main St, Shore Ville, MD");
+    assert.equal(shore.reason, "house_number_not_found");
+    assert.match(
+      String(shore.message),
+      /the nearest numbers on it are 100, and none of its labels names SHORE VILLE/,
+    );
+    // An explicit county the file does not hold: county_loaded false, so the hosted API does not charge it.
+    const r = runTool("registry_search_address", {
+      query: "500 Market St",
+      state: "TX",
+      county_fips: "001",
+    });
+    assert.ok(r.ok);
+    const c = (r.result as { coverage: Record<string, unknown> }).coverage;
+    assert.equal(c.reason, "county_not_loaded");
+    assert.equal(c.county_loaded, false);
   } finally {
     configureRegistry(undefined);
   }

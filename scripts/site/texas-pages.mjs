@@ -73,7 +73,11 @@ export function countyDescription(c) {
   return `What FactLot hosts for ${c.name} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${c.publisher} roll (${rollSpan(c)}, latest as of ${longDate(r.as_of)}), the source and its terms, and the tools that answer for the county.`;
 }
 
-export function countyBody(c, template, hasExample) {
+/**
+ * `fieldsText`: what the county has and lacks, one paragraph from site/_data/fields.json (fields.mjs
+ * placeFieldsText); shown after what is hosted when given.
+ */
+export function countyBody(c, template, hasExample, fieldsText) {
   const rolls = c.rolls
     .map(
       (r) =>
@@ -90,6 +94,9 @@ ${rolls}
 </tbody>
 </table>`
     : `<p>${esc(c.name)} County holds <strong>${int.format(c.hosted_parcels)}</strong> commercial parcels in the hosted registry, from the roll file as of ${longDate(c.data_as_of)}. Values are not in the publisher's file, so the registry holds no market value, appraised value or tax year for these parcels. It holds the account number, situs address, state property category, local use code and, where the file names an organisation, the owner of record. Every fact cites the roll file it was read from.</p>`;
+  const fieldsHtml = fieldsText
+    ? `\n<p>${esc(fieldsText)} <a href="/coverage/#fields">Every hosted county, field by field</a>.</p>`
+    : "";
   const source = table(
     `Source of the ${c.name} County roll`,
     ["", ""],
@@ -135,7 +142,7 @@ ${tiers}
     LEDE: hasValues(c)
       ? `${esc(c.name)} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${esc(c.publisher)} roll, ${rollSpan(c)}, latest as of ${longDate(latestRoll(c).as_of)}.`
       : `${esc(c.name)} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${esc(c.publisher)} roll as of ${longDate(c.data_as_of)}. Values are not in the publisher's file.`,
-    HOSTED: hosted,
+    HOSTED: hosted + fieldsHtml,
     SOURCE: source,
     TOOLS: tools,
     EXAMPLE: example,

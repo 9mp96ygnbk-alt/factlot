@@ -119,6 +119,12 @@
     "arguments": {}
   },
   {
+    "tool": "registry_coverage",
+    "arguments": {
+      "fields": true
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"
@@ -677,6 +683,157 @@
     }
   },
   {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "350 Fifth Ave, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "344 5th Avenue"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "343 5 Ave, Example City, TX 77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "address": "500 Market Street",
+      "city": "Example City",
+      "state": "TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St",
+      "county_fips": "48999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St",
+      "county_fips": "24998"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St",
+      "state": "TX",
+      "county_fips": "001"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, Houston, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "150 Main St, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "7 Seawall Blvd, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "9 Harbor Dr",
+      "postal_code": "77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "West Ninth St",
+      "state": "Maryland"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St",
+      "address": "100 Main St"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St",
+      "state": "Texsa"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "limit": 5,
+      "city": "Example City"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Dr #103, Example City TX 77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Drive Unit 102"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, Shoreville, MD 2199"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St Rear, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "150 Main St, Shore Ville, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "700 Bayou Drive # 102 Example City TX 77999",
+      "limit": 1
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "700 Bayou Drive 1102 Example City TX 77999",
+      "limit": 1
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"
@@ -835,6 +992,88 @@
     "tool": "registry_tx_equity_candidates",
     "arguments": {
       "urn": "fl:parcel:us-48997:1000010"
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2026,
+      "same_building_class": true
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2026,
+      "same_local_use_code": true
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2026,
+      "same_local_use_code": true,
+      "local_use_codes": ["4600", "4300"],
+      "min_matches": 3,
+      "limit": 2
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "same_building_class": true,
+      "same_local_use_code": true
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "county_fips": "997",
+      "apn": "1000004",
+      "tax_year": 2026,
+      "same_building_class": true,
+      "area_band": 0.5
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000012",
+      "same_building_class": true
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2026,
+      "local_use_codes": ["4600", "4600", "4300"]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000015",
+      "tax_year": 2026,
+      "local_use_codes": ["4300"]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "local_use_codes": []
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "same_building_class": "yes"
     }
   },
   {
