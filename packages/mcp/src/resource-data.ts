@@ -3766,14 +3766,14 @@ export const RESOURCE_DATA: ResourceData = {
       publisher: "Tax Appraisal District of Bell County",
       status: "verified",
       license:
-        "Public record (Tex. Gov't Code ch. 552); no terms stated on the data page",
+        "Public record (Tex. Gov't Code ch. 552); no license, terms of use or disclaimer stated on the data portal",
       ai_use: "Not addressed by the publisher",
       redistribution: "Not addressed by the publisher; public record",
       attribution: null,
       terms_url: "https://bellcad.org/data-portal/",
-      reviewed: "2026-11-07",
+      reviewed: "2026-11-12",
       review_record:
-        "https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/rights.md",
+        "https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/tx-bell-cad.md",
       config:
         "https://github.com/9mp96ygnbk-alt/factlot/blob/main/registry/sources/tx/tx-bell-cad.json",
       hosted_counties: [],
@@ -4315,14 +4315,15 @@ export const RESOURCE_DATA: ResourceData = {
       state: "TX",
       publisher: "Central Appraisal District of Johnson County",
       status: "verified",
-      license: "Public record (Tex. Gov't Code ch. 552); no licence stated",
+      license:
+        "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the roll files",
       ai_use: "Not addressed by the publisher",
       redistribution: "Not addressed by the publisher; public record",
       attribution: null,
       terms_url: "https://johnsoncad.com/downloads/",
-      reviewed: "2026-11-07",
+      reviewed: "2026-11-12",
       review_record:
-        "https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/rights.md",
+        "https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/sources/tx-johnson-cad.md",
       config:
         "https://github.com/9mp96ygnbk-alt/factlot/blob/main/registry/sources/tx/tx-johnson-cad.json",
       hosted_counties: [],
