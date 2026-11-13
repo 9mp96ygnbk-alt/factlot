@@ -480,9 +480,10 @@ async function apiChecks(harness: Harness): Promise<void> {
 
 // --- B2: requests the API Worker builds for its inner handler, and registry_lookup_batch ----------
 //
-// The inner handler (node:http in workerd) answers an empty 400 to a request without a Host header,
-// so every request this Worker builds for it must carry one. The account page reads the hosted
-// regions through the inner handler (hostedRegions); its section is there only when that read works.
+// Every request this Worker builds for its inner handler carries a Host header (internal.ts; the
+// inner handler's MCP transport answers an empty 400 without one). The account page reads the
+// hosted regions through the inner handler (hostedRegions); its section is there only when that
+// read works, and a failed read is logged.
 
 async function internalRequestChecks(harness: Harness): Promise<void> {
   const api = harness.getWorker("factlot-api");

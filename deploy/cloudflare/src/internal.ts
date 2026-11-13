@@ -1,9 +1,13 @@
 /**
  * Requests this Worker builds for its inner handler (@factlot/server, run under the runtime's
- * node:http server by worker.ts). That server follows Node's requireHostHeader rule and answers an
- * empty 400 to a request with no Host header, and a Request built inside a Worker has none. So a
- * request built for the inner handler (rather than passed through from the client, which carries
- * the Host Cloudflare routed) is made here, with the Host of the URL it is addressed to.
+ * node:http server by worker.ts), rather than passing through the client's request, which carries
+ * the Host Cloudflare routed. A Request built inside a Worker has no Host header, and the inner
+ * handler's MCP transport needs one: the MCP SDK's StreamableHTTPServerTransport.handleRequest
+ * converts the request with @hono/node-server's getRequestListener, whose newRequest throws
+ * "Missing host header" when there is no Host and no default hostname, and the listener answers
+ * that with an empty 400 (handleRequestError). FactLot's REST routes build their URLs without it,
+ * so only /mcp is affected, but every request built for the inner handler is made here, with the
+ * Host of the URL it is addressed to, so none can miss it.
  */
 export function innerRequest(
   url: string | URL,
