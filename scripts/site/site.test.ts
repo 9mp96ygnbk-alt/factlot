@@ -1314,6 +1314,13 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
     assert.ok(!/refreshed weekly/i.test(read("site/index.html")));
     assert.ok(!/refreshed weekly/i.test(read("site/_content/pricing.html")));
     assert.ok(!/refreshed weekly/i.test(read("README.md")));
+    assert.ok(!/refreshed weekly/i.test(read("site/terms.html")));
+    // The usage totals keep a state prefix only (usage.ts regionDim), and the welcome email
+    // states the interval bought (email.ts renewalText).
+    assert.ok(!/state or county prefix/.test(read("site/privacy.html")));
+    assert.ok(
+      !/renews monthly until cancelled/.test(read("site/privacy.html")),
+    );
   });
 });
 

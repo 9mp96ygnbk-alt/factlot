@@ -24,7 +24,7 @@
         <div class="wrap">
           <h1>Terms of service</h1>
           <p class="small">
-            Effective 12 November 2026. The revision history is at the end.
+            Effective 14 November 2026. The revision history is at the end.
           </p>
           <p>
             These terms cover the hosted FactLot service. Headings are for
@@ -96,13 +96,15 @@
               <strong>Free key.</strong> You may ask for an optional free key by
               email, at factlot.com/account or with
               <code>POST /v1/keys/free</code>. It is the Free plan, not a paid
-              plan: the same limits and rules as no key, counted per key instead
-              of per IP address, and none of the paid features. We send one link
-              to the address you give, which works once and expires after 30
-              minutes; you must be able to receive email at that address, and by
-              asking you accept these terms and the
-              <a href="https://factlot.com/privacy">privacy notice</a>. The key
-              is shown once. An address has one active free key: a new one
+              plan: the same limits and rules as no key, with requests and
+              registry lookups counted on the key's own meter instead of per IP
+              address, the free keys used from one IP address sharing a ceiling,
+              reports counted per IP address as well, and none of the paid
+              features. We send one link to the address you give, which works
+              once and expires after 30 minutes; you must be able to receive
+              email at that address, and by asking you accept these terms and
+              the <a href="https://factlot.com/privacy">privacy notice</a>. The
+              key is shown once. An address has one active free key: a new one
               replaces the earlier one, which stops working. At most 3 free keys
               are made a day from one IP address, and the free keys used from
               one IP address share 100 registry lookups a day. We send no
@@ -147,9 +149,9 @@
             <li>
               <strong>Free, no key:</strong> every calculator, ID, fact, rules
               and document tool at 60 requests a minute per IP address, and 25
-              registry lookups a day (UTC) per IP address. Registry value
-              history is limited to the current roll year, and the registry
-              batch lookup is not included. A free key (section 3) has the same
+              registry lookups a day (UTC) per IP address. The Free plan's
+              registry limits are those listed on the pricing page and returned
+              by <code>/v1/plans</code>. A free key (section 3) has the same
               limits, counted per key instead of per IP address, with the free
               keys used from one IP address together capped at 100 registry
               lookups a day.
@@ -169,8 +171,11 @@
                 >Registry download licence, $2,400 a year per state
                 file:</strong
               >
-              a state registry file refreshed weekly, licensed for your internal
-              use and not for redistribution. Available on request.
+              a state registry file refreshed when the hosted regions are, with
+              no refresh interval promised (see the
+              <a href="https://factlot.com/sla/">service levels</a>), licensed
+              for your internal use and not for redistribution. Available on
+              request.
             </li>
             <li>
               <strong>Enterprise, by quote:</strong> private deployment,
@@ -189,7 +194,9 @@
             <strong>Limits are hard caps.</strong> We never charge for overage.
             When you reach a limit, the call returns HTTP 429 with the time the
             limit resets and a link to the pricing page. A registry lookup is
-            one answered call to a <code>registry_</code> tool.
+            one call to a <code>registry_</code> tool that finds something;
+            searches, resolves, owner lookups and batch items that find nothing
+            (up to the hourly limit stated on the pricing page),
             <code>registry_coverage</code>, coverage misses (a county or system
             that is not loaded) and input errors are not counted. Free lookups
             count per IP address per day; paid lookups count per subscription
@@ -583,11 +590,20 @@
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
             <li>
-              12 November 2026 (third update): gave the operator's postal
+              14 November 2026: a registry lookup is a call that finds something
+              (searches, resolves, owner lookups and batch items that find
+              nothing are not counted, up to an hourly limit); the Free plan's
+              registry limits are referred to the pricing page and
+              <code>/v1/plans</code>; the registry download licence's refresh is
+              stated as on the service-levels page; a free key's counting is
+              stated as the service does it.
+            </li>
+            <li>
+              13 November 2026 (third update): gave the operator's postal
               address (a PO box) in sections 17 and 18.
             </li>
             <li>
-              12 November 2026 (second update): stated that free key holders and
+              13 November 2026 (second update): stated that free key holders and
               buyers can ask for optional emails with a separate box, and that
               Pro and Team include watch lists where offered (their limits, and
               that adding a record counts one registry lookup).

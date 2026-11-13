@@ -24,7 +24,7 @@
         <div class="wrap">
           <h1>Privacy</h1>
           <p class="small">
-            Effective 12 November 2026. The revision history is at the end.
+            Effective 14 November 2026. The revision history is at the end.
           </p>
           <p>
             FactLot collects as little as it can. This notice covers
@@ -83,17 +83,18 @@
             <li>
               <strong>Daily usage totals.</strong> We count requests and events
               in totals for each day: requests by page or route group, registry
-              lookups by tool and by state or county prefix, refusals for a
-              used-up quota or a plan limit, free answers that left earlier
-              values out, checkouts started and completed, reports and model
-              calls, each by kind of caller (no key, free connection, free key,
-              Pro, Team). We also keep an estimate of how many distinct callers
-              of each kind there were, as a fixed-size sketch built from values
-              that are already hashes (the daily-changing hash of the IP
-              address, a connection's ID, or the key ID); a sketch cannot be
-              turned back into a list of callers. The totals hold no IP address,
-              address searched, parcel, key or email, and are kept in Cloudflare
-              Workers KV and, for events, in the Analytics Engine dataset.
+              lookups by tool and by state prefix, registry answers that found
+              nothing by tool and outcome, refusals for a used-up quota or a
+              plan limit, free answers that left earlier values out, checkouts
+              started and completed, reports and model calls, each by kind of
+              caller (no key, free connection, free key, Pro, Team). We also
+              keep an estimate of how many distinct callers of each kind there
+              were, as a fixed-size sketch built from values that are already
+              hashes (the daily-changing hash of the IP address, a connection's
+              ID, or the key ID); a sketch cannot be turned back into a list of
+              callers. The totals hold no IP address, address searched, parcel,
+              key or email, and are kept in Cloudflare Workers KV and, for
+              events, in the Analytics Engine dataset.
             </li>
             <li>
               <strong>Rate-limit counters.</strong> To enforce the per-minute
@@ -106,7 +107,10 @@
               keyed by a hash of the IP address (for IPv6, of its /64 prefix),
               never the address itself, and per subscription for the current
               month on paid plans. Days and months are UTC. A counter is deleted
-              when its window ends.
+              when its window ends. Registry answers that found nothing and were
+              not counted as lookups are tallied for the current hour under the
+              same key, as a number only (no search text), and that tally is
+              deleted when the hour ends.
             </li>
             <li>
               <strong>Report counters.</strong> To enforce the monthly report
@@ -224,25 +228,25 @@
               because of something you did and none carrying an API key, besides
               the watch-list emails described under "Watch lists" below. A
               welcome email, once, to the address you gave Stripe when a
-              checkout completes: it names the plan and price, says the
-              subscription renews monthly until cancelled, and gives setup steps
-              and links to the account page and the API. We do not store that
-              address unless you tick the box for optional emails described
-              below. A sign-in link, when you enter an address under "Lost your
-              key?" at factlot.com/account and Stripe has a customer with that
-              address who has a FactLot subscription: it names each plan and has
-              a link per subscription that works once, expires after 15 minutes
-              and lets you issue a new key. A connect link, when an app
-              connecting to the hosted MCP server asks for one for an address
-              with a subscription: it names the app and has a link per plan that
-              works once and expires after 10 minutes. Nothing is sent when no
-              subscription matches, and the page answers the same either way. We
-              look the address up in Stripe in memory, and keep a marker of a
-              SHA-256 hash of the lower-case address (no secret added) for 5
-              minutes for the sign-in link and 2 minutes for the connect link,
-              so that one address gets at most one such email in that time. We
-              send no marketing email except the optional emails described next,
-              and only if you ticked the box for them.
+              checkout completes: it names the plan and price, says how the
+              subscription renews (monthly, or yearly on Pro yearly) until
+              cancelled, and gives setup steps and links to the account page and
+              the API. We do not store that address unless you tick the box for
+              optional emails described below. A sign-in link, when you enter an
+              address under "Lost your key?" at factlot.com/account and Stripe
+              has a customer with that address who has a FactLot subscription:
+              it names each plan and has a link per subscription that works
+              once, expires after 15 minutes and lets you issue a new key. A
+              connect link, when an app connecting to the hosted MCP server asks
+              for one for an address with a subscription: it names the app and
+              has a link per plan that works once and expires after 10 minutes.
+              Nothing is sent when no subscription matches, and the page answers
+              the same either way. We look the address up in Stripe in memory,
+              and keep a marker of a SHA-256 hash of the lower-case address (no
+              secret added) for 5 minutes for the sign-in link and 2 minutes for
+              the connect link, so that one address gets at most one such email
+              in that time. We send no marketing email except the optional
+              emails described next, and only if you ticked the box for them.
             </li>
             <li>
               <strong>Optional emails (only if you tick the box).</strong> When
@@ -444,7 +448,10 @@
               </tr>
               <tr>
                 <th scope="row">Lookup quota counters</th>
-                <td>Until the day (Free) or month (paid) resets</td>
+                <td>
+                  Until the day (Free) or month (paid) resets; the hourly tally
+                  of answers that found nothing, until the hour ends
+                </td>
               </tr>
               <tr>
                 <th scope="row">Report counters</th>
@@ -738,11 +745,18 @@
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
             <li>
-              12 November 2026 (fourth update): gave the operator's postal
+              14 November 2026: described the hourly tally of registry answers
+              that found nothing and were not counted as lookups, and the daily
+              totals of such answers by tool and outcome; stated that the daily
+              totals keep a state prefix only; stated that the welcome email
+              says how the subscription renews, monthly or yearly.
+            </li>
+            <li>
+              13 November 2026 (fourth update): gave the operator's postal
               address (a PO box) in the section on who we are.
             </li>
             <li>
-              12 November 2026 (third update): described the optional emails you
+              13 November 2026 (third update): described the optional emails you
               can ask for with a separate, unticked box (what is sent and how
               often, what is stored for your consent and for stopping them, and
               how to stop them), and the checkout return link; and watch lists
