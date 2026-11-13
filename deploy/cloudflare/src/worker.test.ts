@@ -3870,7 +3870,7 @@ describe("onboarding page", () => {
     assert.match(html, /1300 Pennsylvania Ave NW in Washington, DC/);
     assert.match(
       html,
-      /A lookup is one registry call that finds something\. Searches, resolves and owner lookups that find nothing \(up to an hourly limit\), registry_coverage, coverage misses and input errors are not counted\./,
+      /A lookup is one registry call that finds something\. Calls that find nothing \(up to an hourly limit\), registry_coverage, coverage misses and input errors are not counted\./,
     );
     assert.ok(html.includes(`export FACTLOT_API_KEY=&quot;${key}&quot;`));
     assert.ok(
@@ -4536,7 +4536,7 @@ describe("quota fairness: only answered lookups are charged", () => {
     assert.equal(over.status, 429);
     assert.match(
       String(((await over.json()) as { message: string }).message),
-      /Searches, resolves and owner lookups that find nothing \(up to an hourly limit\), registry_coverage, coverage misses and input errors are not counted\./,
+      /Calls that find nothing \(up to an hourly limit\), registry_coverage, coverage misses and input errors are not counted\./,
     );
   });
 });

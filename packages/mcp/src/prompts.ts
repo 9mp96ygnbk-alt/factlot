@@ -179,7 +179,7 @@ function coverageFirst(ctx: ResourceContext): string {
 }
 
 function lookups(data: ResourceData): string {
-  return `Each registry_* call except registry_coverage that finds something is one registry lookup (without a key, ${data.plans.free.registry_lookups_per_day} a day per address on the hosted API); searches, resolves and owner lookups that find nothing (up to an hourly limit), input errors and misses outside loaded coverage are free.`;
+  return `Each registry_* call except registry_coverage that finds something is one registry lookup (without a key, ${data.plans.free.registry_lookups_per_day} a day per address on the hosted API); calls that find nothing (up to an hourly limit), input errors and misses outside loaded coverage are free.`;
 }
 
 function paidPlans(data: ResourceData): string {

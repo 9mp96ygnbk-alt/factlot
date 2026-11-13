@@ -113,7 +113,7 @@ export const EMPTY_ANSWERS_PER_HOUR: Record<Tier, number> = {
 
 /** The one-line counting rule (account and onboarding pages, quota errors, news, prompts). */
 export const LOOKUP_RULE =
-  "A lookup is one registry call that finds something. Searches, resolves and owner lookups that find nothing (up to an hourly limit), registry_coverage, coverage misses and input errors are not counted.";
+  "A lookup is one registry call that finds something. Calls that find nothing (up to an hourly limit), registry_coverage, coverage misses and input errors are not counted.";
 
 /** How registry lookups are counted, one sentence each (in /v1/plans). */
 export const QUOTA_RULES = {
