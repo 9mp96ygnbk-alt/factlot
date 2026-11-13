@@ -750,7 +750,7 @@ describe("watch tools", () => {
       }),
     );
     assert.ok(!(await page.text()).includes("Watch lists"));
-    const r = await runWatchCheck(s.env);
+    const r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(r.state, "off");
     assert.equal(s.registry.calls.health, 0);
     const stop = await s.call(
@@ -849,7 +849,7 @@ describe("watch check", () => {
     const key = await issue(s.env);
     await s.call(rest("add", { urns: [P1] }, key));
     release(s, "2026-11-12T00:00:00Z", (recs) => recs.delete(P1));
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     const c = (await (await s.call(rest("changes", {}, key))).json()) as {
       changes: Rec[];
     };
@@ -921,7 +921,10 @@ describe("watch check", () => {
       recs.set(P1, parcel(P1, { owner: "NEW OWNER LP", idSuffix: "n" })),
     );
     // The scheduled run has started this check but compared nothing yet (its budget ran out).
-    const started = await runWatchCheck(s.env, { budget: 5 });
+    const started = await runWatchCheck(s.env, {
+      budget: 5,
+      now: () => s.clock.t,
+    });
     assert.equal(started.state, "run");
     assert.equal(started.subscriptions_done, 0);
     const c = (await (await s.call(rest("changes", {}, key))).json()) as {
@@ -939,7 +942,7 @@ describe("watch check", () => {
     });
     // The scheduled run then has nothing left to read.
     const before = s.registry.calls.get;
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(s.registry.calls.get, before);
   });
 
@@ -951,7 +954,7 @@ describe("watch check", () => {
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
     );
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     await s.call(rest("changes", {}, key));
     await s.call(rest("list", {}, key));
     assert.equal(await lookupsUsed(s.env), used);
@@ -967,7 +970,7 @@ describe("watch alerts and deletion", () => {
     await s.call(rest("add", { urns: [P1] }, key));
     await confirmAlerts(s, key, "owner@example.com");
     // No change, no email (only the confirmation went out).
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(s.email.sent.length, 1);
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(
@@ -975,9 +978,9 @@ describe("watch alerts and deletion", () => {
         parcel(P1, { year: 2026, market: 1_300_000, idSuffix: "n" }),
       ),
     );
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     forceRerun(s);
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(s.email.sent.length, 2);
     const m = s.email.sent[1]!;
     assert.equal(m.to, "owner@example.com");
@@ -1078,7 +1081,7 @@ describe("watch alerts and deletion", () => {
     const rec = JSON.parse((await s.env.KEYS.get(`key:${hash}`))!) as KeyRecord;
     await writeKey(s.env.KEYS, hash, { ...rec, stripe_status: "canceled" }, T0);
     release(s, "2026-11-12T00:00:00Z", () => {});
-    const r = await runWatchCheck(s.env);
+    const r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(r.subscriptions_deleted, 1);
     assert.deepEqual(s.space.object("watch:sub:sub_1").storage.tables(), []);
   });
@@ -1113,7 +1116,7 @@ describe("watch alerts and deletion", () => {
       await s.call(
         rest("alerts", { enabled: true, email: "other@example.com" }, key),
       );
-      await runWatchCheck(s.env);
+      await runWatchCheck(s.env, { now: () => s.clock.t });
       await s.call(rest("add", { urns: [P2] }));
     } finally {
       Object.assign(console, orig);
@@ -1159,6 +1162,14 @@ describe("watch alerts and deletion", () => {
     ).text();
     assert.match(html, /A confirmation link is on its way/);
     assert.match(html, /Waiting for confirmation/);
+    // The page reads the pending address on the request's clock: still pending an hour later,
+    // gone once the 24-hour link has expired.
+    s.clock.t += 3_600_000;
+    assert.match(await (await post({})).text(), /Waiting for confirmation/);
+    s.clock.t += 24 * 3_600_000;
+    html = await (await post({})).text();
+    assert.doesNotMatch(html, /Waiting for confirmation/);
+    assert.match(html, /Alert emails are off/);
     html = await (await post({ action: "watch_alerts_off" })).text();
     assert.match(html, /Alert emails are off and the addresses are deleted/);
     html = await (
@@ -1200,13 +1211,13 @@ describe("watch lists: deletion is never a guess", () => {
     // The old key replaced; the new key's hash not yet in the (stale) list.
     await writeKey(s.env.KEYS, hash, { ...rec, replaced_by: "abc123" }, T0);
     release(s, "2026-11-12T00:00:00Z", () => {});
-    let r = await runWatchCheck(s.env);
+    let r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(r.subscriptions_deleted, 0);
     await s.env.KEYS.put("sub:sub_1", "[]");
-    r = await runWatchCheck(s.env);
+    r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(r.subscriptions_deleted, 0);
     await s.env.KEYS.delete("sub:sub_1");
-    r = await runWatchCheck(s.env);
+    r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(r.subscriptions_deleted, 0);
     assert.ok(s.space.object("watch:sub:sub_1").storage.tables().length > 0);
   });
@@ -1268,11 +1279,11 @@ describe("watch lists: failures stay contained", () => {
       if (n++ > 0) return new Response("down", { status: 503 });
       return realFetch(r);
     };
-    const r = await runWatchCheck(s.env);
+    const r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(r.stopped, true);
     assert.equal(r.changes, 0);
     s.registry.fetcher.fetch = realFetch;
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     const c = (await (await s.call(rest("changes", {}, key))).json()) as {
       changes: Rec[];
     };
@@ -1300,7 +1311,7 @@ describe("watch lists: failures stay contained", () => {
     });
     // The bad subject breaks every call it is in.
     s.registry.pack.broken.add(BAD);
-    const first = await runWatchCheck(s.env);
+    const first = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(first.stopped, undefined);
     const two = (await (await s.call(rest("changes", {}, k2))).json()) as {
       changes: Rec[];
@@ -1309,7 +1320,8 @@ describe("watch lists: failures stay contained", () => {
       two.changes.map((x) => x.aspect),
       ["value"],
     );
-    for (let i = 0; i < 5; i++) await runWatchCheck(s.env);
+    for (let i = 0; i < 5; i++)
+      await runWatchCheck(s.env, { now: () => s.clock.t });
     const one = (await (await s.call(rest("changes", {}, k1))).json()) as {
       changes: Rec[];
       check: Rec;
@@ -1326,7 +1338,7 @@ describe("watch lists: failures stay contained", () => {
     // Next pack it is read again.
     s.registry.pack.broken.clear();
     release(s, "2026-11-19T00:00:00Z", () => {});
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     const l = (await (await s.call(rest("list", {}, k1))).json()) as {
       subjects: Rec[];
     };
@@ -1341,7 +1353,7 @@ describe("watch lists: failures stay contained", () => {
       recs.set(P2, parcel(P2, { year: 2026, idSuffix: "n" })),
     );
     s.registry.pack.errors.add(P1);
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     const l = (await (await s.call(rest("list", {}, key))).json()) as {
       subjects: Rec[];
     };
@@ -1382,7 +1394,7 @@ describe("watch lists: service-binding calls", () => {
     let runs = 0;
     for (;;) {
       const before = s.registry.calls.binding;
-      const r = await runWatchCheck(s.env);
+      const r = await runWatchCheck(s.env, { now: () => s.clock.t });
       runs++;
       assert.ok(r.invocations <= WATCH_CHECK.invocations);
       assert.ok(s.registry.calls.binding - before <= WATCH_CHECK.invocations);
@@ -1408,7 +1420,7 @@ describe("watch lists: service-binding calls", () => {
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(E1, entity(E1, "Forfeited", "n")),
     );
-    const r = await runWatchCheck(s.env);
+    const r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.ok(r.invocations <= WATCH_CHECK.invocations);
     const c = (await (await s.call(rest("changes", {}, key))).json()) as {
       changes: Rec[];
@@ -1453,7 +1465,7 @@ describe("watch lists: watch_add bookkeeping", () => {
     assert.equal(await owners(), 1);
     await s.env.WATCH!.index("unregister", { owner: "sub:sub_1" });
     // watch_changes registers once the scheduled check has started on the pack it sees.
-    await runWatchCheck(s.env, { budget: 5 });
+    await runWatchCheck(s.env, { budget: 5, now: () => s.clock.t });
     await s.call(rest("changes", {}, key));
     assert.equal(await owners(), 1);
   });
@@ -1541,7 +1553,7 @@ describe("watch lists: alert address confirmation", () => {
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
     );
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(s.email.sent.length, 1);
     // Rate limited per subscription, one pending address at a time.
     const again = await s.call(
@@ -1619,12 +1631,12 @@ describe("watch lists: alert address confirmation", () => {
     s.email.binding.send = async () => {
       throw new Error("nope");
     };
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     s.email.binding.send = send;
     forceRerun(s);
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     forceRerun(s);
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(
       s.email.sent.filter((m) => /registry update/.test(m.subject)).length,
       1,
@@ -1690,11 +1702,11 @@ describe("watch lists: storage", () => {
     const B = parcel(P1, { year: 2026, idSuffix: "n" });
     const builtA = s.registry.pack.built_at;
     release(s, "2026-11-12T00:00:00Z", (recs) => recs.set(P1, B));
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     release(s, builtA, (recs) => recs.set(P1, A));
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     release(s, "2026-11-12T00:00:00Z", (recs) => recs.set(P1, B));
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     const c = (await (await s.call(rest("changes", {}, key))).json()) as {
       changes: Rec[];
     };
@@ -1729,7 +1741,7 @@ describe("watch lists: second review", () => {
     });
     s.registry.pack.broken.add(urns[3]!);
     const before = s.registry.calls.binding;
-    const r = await runWatchCheck(s.env);
+    const r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.ok(r.invocations <= WATCH_CHECK.invocations);
     // Health, the failed call and the health probe: nothing more for this subscription.
     assert.equal(s.registry.calls.binding - before, 3);
@@ -1739,7 +1751,7 @@ describe("watch lists: second review", () => {
       .toArray()[0]!.n;
     assert.equal(fails, 50);
     for (let i = 0; i < 20; i++) {
-      const x = await runWatchCheck(s.env);
+      const x = await runWatchCheck(s.env, { now: () => s.clock.t });
       assert.ok(x.invocations <= WATCH_CHECK.invocations);
       if (x.state === "done") break;
     }
@@ -1757,7 +1769,7 @@ describe("watch lists: second review", () => {
     const s = setup();
     const key = await issue(s.env);
     await s.call(rest("add", { urns: [P1] }, key));
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     const before = await s.env.WATCH!.index<Rec>("state");
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
@@ -1771,7 +1783,7 @@ describe("watch lists: second review", () => {
     assert.match(String(c.check.note), /scheduled check has not started/);
     assert.deepEqual(await s.env.WATCH!.index<Rec>("state"), before);
     // The scheduled run starts it once; an isolate still seeing the old pack changes nothing.
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     const after = await s.env.WATCH!.index<Rec>("state");
     assert.equal(after.seq, Number(before.seq) + 1);
     s.registry.pack.built_at = "2026-11-05T00:00:00Z";
@@ -1793,11 +1805,11 @@ describe("watch lists: second review", () => {
     s.email.binding.send = async () => {
       throw new Error("nope");
     };
-    const first = await runWatchCheck(s.env);
+    const first = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(first.left, 1);
     s.email.binding.send = send;
-    await runWatchCheck(s.env);
-    await runWatchCheck(s.env);
+    await runWatchCheck(s.env, { now: () => s.clock.t });
+    await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(
       s.email.sent.filter((m) => /registry update/.test(m.subject)).length,
       1,
@@ -1869,7 +1881,7 @@ describe("watch lists: second review", () => {
     const key = await issue(s.env);
     await s.call(rest("add", { urns: [P1] }, key));
     release(s, "2026-11-12T00:00:00Z", () => {});
-    await runWatchCheck(s.env, { budget: 5 });
+    await runWatchCheck(s.env, { budget: 5, now: () => s.clock.t });
     s.registry.pack.errors.add(P1);
     for (let i = 0; i < 5; i++) await s.call(rest("changes", {}, key));
     const row = s.space
@@ -1989,7 +2001,8 @@ describe("watch lists: third review", () => {
     console.error = () => {};
     let last;
     try {
-      for (let i = 0; i < 10; i++) last = await runWatchCheck(s.env);
+      for (let i = 0; i < 10; i++)
+        last = await runWatchCheck(s.env, { now: () => s.clock.t });
     } finally {
       console.error = orig;
     }
