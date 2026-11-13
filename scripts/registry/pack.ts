@@ -66,6 +66,7 @@ import {
   TX_EQUITY_RANGE_SQL,
   TX_EQUITY_SOURCE_SQL,
   computeRegistryCoverage,
+  computeRegistryFields,
   configureRegistry,
   coverageReport,
   equityCompanions,
@@ -81,6 +82,7 @@ import {
   mergeCoverage,
   runTool,
   situsZip5,
+  type CountyFields,
   type RegistryCoverage,
 } from "../../packages/tools/src/index.ts";
 import {
@@ -966,6 +968,8 @@ const newEquityState = (): EquityState => ({
 export interface RegionPart {
   db: PackDb;
   coverage: RegistryCoverage;
+  /** Field availability of the region's counties (packages/tools/src/fields.ts). */
+  fields: CountyFields[];
   name_key_version: string | null;
   address_key_version: string | null;
   /** Subject prefixes ("fl:parcel:us-24005"), in the order of the file's sorted subjects. */
@@ -1008,6 +1012,7 @@ function buildRegion(
       throw new Error(`${src.name}: a date before ${BEFORE}`);
     configureRegistry(src.path);
     const cov = computeRegistryCoverage();
+    const fields = computeRegistryFields().counties;
     let texas = 0;
     for (const c of cov.counties) if (c.state_fips === "48") texas += c.parcels;
     const texasRegions = cov.counties
@@ -1152,6 +1157,7 @@ function buildRegion(
         subjects: subjects.length,
       },
       coverage: cov,
+      fields,
       name_key_version: nv,
       address_key_version: av,
       prefixes,
@@ -1172,6 +1178,7 @@ function buildRegion(
 class Combined {
   readonly dbs: PackDb[] = [];
   readonly covs: RegistryCoverage[] = [];
+  readonly fields: CountyFields[] = [];
   readonly prefixes: Record<string, number> = {};
   readonly counties: Record<string, number> = {};
   readonly crosswalk = new Map<string, string>();
@@ -1206,6 +1213,7 @@ class Combined {
     this.nameVersion = part.name_key_version;
     this.addressVersion = part.address_key_version;
     this.covs.push(part.coverage);
+    this.fields.push(...part.fields);
     for (const c of part.coverage.counties) {
       if (Object.hasOwn(this.counties, c.region))
         throw new Error(`${name}: county ${c.region} is in two files`);
@@ -1340,6 +1348,11 @@ function finishPack(
     address_key_version: c.addressVersion ?? null,
   };
   const partial = partialCounties(coverage);
+  const fields = Object.fromEntries(
+    [...c.fields]
+      .sort((a, b) => sqliteCompare(a.region, b.region))
+      .map((f) => [f.region.slice(3), f]),
+  );
   const manifest: Manifest = {
     format: PACK_FORMAT,
     built_at: new Date().toISOString(),
@@ -1353,6 +1366,7 @@ function finishPack(
         withheld,
         entity_scope: c.entityScope,
         partial_counties: partial,
+        fields,
       },
       coverage,
       coverageReport(coverage, versions),
@@ -1363,6 +1377,7 @@ function finishPack(
     withheld,
     entity_scope: c.entityScope,
     ...(Object.keys(partial).length ? { partial_counties: partial } : {}),
+    fields,
     equity: c.equity.docs.length ? c.equity : null,
     counts: {
       parcels: coverage.totals.parcels,
@@ -1625,6 +1640,8 @@ function checkPart(
   };
   const part = r.part;
   if (part.db.name !== job.name) fail(`it is region ${part.db.name}`);
+  if (!Array.isArray(part.fields))
+    fail("it has no field availability (built before the manifest carried it)");
   let bytes = 0;
   let largest = 0;
   const pools = new Set<string>();

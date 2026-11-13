@@ -6,6 +6,7 @@
  * that follow the SQL in packages/tools/src/registry.ts. Everything here is plain TypeScript, so the Worker and
  * the builder run the same code.
  */
+import type { CountyFields } from "../../../packages/tools/src/fields.ts";
 import type { RegistryCoverage } from "../../../packages/tools/src/registry.ts";
 
 import type { EquityManifest, EquitySubject } from "./equity.ts";
@@ -87,6 +88,8 @@ export interface Manifest {
   entity_scope: Record<string, { served: number; total: number }>;
   /** Counties loaded only in part (5-digit FIPS → the part); see hosted.ts. Absent in packs built before it. */
   partial_counties?: Record<string, PartialCounty>;
+  /** 5-digit county FIPS → field availability (packages/tools/src/fields.ts). Absent in packs built before it. */
+  fields?: Record<string, CountyFields>;
   /** Texas unequal-appraisal candidate data (equity.ts), or null when the pack holds no Texas parcel. */
   equity: EquityManifest | null;
   counts: Record<string, number>;

@@ -126,12 +126,14 @@ async function compare(
     if (
       Object.keys(m.withheld ?? {}).length ||
       Object.keys(m.entity_scope ?? {}).length ||
-      Object.keys(m.partial_counties ?? {}).length
+      Object.keys(m.partial_counties ?? {}).length ||
+      Object.keys(m.fields ?? {}).length
     )
       scope = {
         withheld: m.withheld,
         entity_scope: m.entity_scope,
         partial_counties: m.partial_counties,
+        fields: m.fields,
       };
   }
   configureRegistry(db);
