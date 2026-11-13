@@ -23,8 +23,9 @@ like any other keyless caller. The build fails on any other script.
   The icons are rasterised from `favicon.svg`.
 - `site/_content/` holds the prose for generated pages: `mcp.html`, `try.html`, `texas-protest-deadline.html`,
   and `calculators/` (one fragment per calculator page plus `manifest.json`).
-- `scripts/site/build.mjs` copies `site/` without `_content/` and the `.md` notes (and writes
-  `styles.css` without its comments and indentation, which must come to 60,000 bytes or less), renders
+- `scripts/site/build.mjs` copies `site/` without the `.md` notes and anything whose name starts
+  with `_`, at any depth (and writes `styles.css` without its comments and the white space between
+  rules, through esbuild, which must come to 60,000 bytes or less), renders
   `/mcp/`, `/calculators/`, the calculator pages and the Texas deadline page, and writes
   `sitemap.xml` with each page's last commit date. Every number on a generated page is computed by
   the built packages and checked against a shared test vector. The build fails on a broken
