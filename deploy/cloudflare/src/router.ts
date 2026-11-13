@@ -202,6 +202,15 @@ import {
   watchStopRoute,
   watchToolsFor,
 } from "./watch.ts";
+import { FONT_MONO, FONT_SANS } from "../../../scripts/site/shell.mjs";
+
+/** What every page loads from the built site, whichever host serves the page. */
+const PAGE_ASSETS = new Set([
+  "/styles.css",
+  "/favicon.svg",
+  FONT_SANS,
+  FONT_MONO,
+]);
 
 const API_EXACT = new Set([
   "/mcp",
@@ -975,15 +984,10 @@ async function route(
   )
     return mcpBrowserPage(site, apiBase);
 
-  // The pages' stylesheet, fonts and icon, on every host (billing and account pages can be served
-  // on the API host too).
-  if (
-    (path === "/styles.css" ||
-      path === "/favicon.svg" ||
-      path.startsWith("/fonts/")) &&
-    env.ASSETS
-  )
-    return env.ASSETS.fetch(request);
+  // The pages' stylesheet, its two font files and the icon, on every host (billing and account
+  // pages can be served on the API host too). Each by its exact path: anything else under /fonts/
+  // is the host's own to answer.
+  if (PAGE_ASSETS.has(path) && env.ASSETS) return env.ASSETS.fetch(request);
 
   // Billing pages for people (any host). Both reach Stripe, so both count against the
   // per-address free-tier budget: a crawler following "Start Pro" cannot open sessions in bulk.

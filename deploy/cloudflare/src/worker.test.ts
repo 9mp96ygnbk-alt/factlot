@@ -1354,7 +1354,7 @@ describe("router", () => {
   const assets = { fetch: async () => new Response("<html>site</html>") };
 
   it("hands the stylesheet, the fonts and the icon to the built site on every host", async () => {
-    const { api } = innerApi();
+    const { api, seen: asked } = innerApi();
     const seen: string[] = [];
     const built = {
       fetch: async (r: Request) => {
@@ -1377,6 +1377,25 @@ describe("router", () => {
         );
         assert.equal(await res.text(), "built", `${host}${p}`);
       }
+    assert.deepEqual(seen, [...paths, ...paths]);
+    // Anything else under /fonts/ on the API host is the API's own to answer (its 404), never the
+    // site's page.
+    for (const p of [
+      "/fonts/x",
+      "/fonts/",
+      "/fonts/instrument-sans-latin-wght-normal.woff2.map",
+      "/fonts/OFL-GeistMono.txt",
+      "/styles.css.map",
+    ]) {
+      const res = await handle(
+        new Request(`https://api.factlot.com${p}`),
+        env({ ASSETS: built }),
+        api,
+      );
+      assert.notEqual(await res.text(), "built", p);
+      assert.equal(new URL(asked.at(-1)!.request.url).pathname, p);
+    }
+    assert.equal(asked.length, 5);
     assert.deepEqual(seen, [...paths, ...paths]);
   });
 
