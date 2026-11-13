@@ -179,7 +179,7 @@ function coverageFirst(ctx: ResourceContext): string {
 }
 
 function lookups(data: ResourceData): string {
-  return `Each answered registry_* call except registry_coverage is one registry lookup (without a key, ${data.plans.free.registry_lookups_per_day} a day per address on the hosted API); input errors and coverage misses are free.`;
+  return `Each answered registry_* call except registry_coverage is one registry lookup (without a key, ${data.plans.free.registry_lookups_per_day} a day per address on the hosted API); a call inside loaded coverage that finds nothing still counts; input errors and misses outside loaded coverage are free.`;
 }
 
 function paidPlans(data: ResourceData): string {
@@ -194,7 +194,7 @@ function paidPlans(data: ResourceData): string {
 /** What a Pro or Team key adds, for the features a prompt touches. */
 function planNote(
   data: ResourceData,
-  features: ("history" | "dated" | "batch")[],
+  features: ("history" | "dated" | "batch" | "portfolio" | "tax_year")[],
 ): string {
   const g = data.plans.gating;
   const parts: string[] = [];
@@ -204,6 +204,14 @@ function planNote(
     );
   if (features.includes("dated"))
     parts.push(`a dated registry_get (as_of) is for ${g.dated_get} keys only`);
+  if (features.includes("tax_year"))
+    parts.push(
+      `registry_tx_equity_candidates with tax_year (a roll year you name) is for Pro and Team keys only; without tax_year it uses the newest roll year with values`,
+    );
+  if (features.includes("portfolio"))
+    parts.push(
+      `registry_owned_by without a Pro or Team key returns an owner's first three parcels and says how many were left out (portfolio_note); a Pro or Team key returns every parcel`,
+    );
   if (features.includes("batch"))
     parts.push(
       `registry_tx_equity_candidates_batch, several subjects in one call, is for ${g.batch} keys only`,
@@ -260,6 +268,7 @@ export function promptText(
           "Only if the person asks about a parcel, registry_get on it for its cited facts.",
         ]),
         "The list holds parcels in hosted (or loaded) coverage only: say that it is not a complete portfolio of the owner everywhere.",
+        planNote(data, ["portfolio"]),
         CITE,
         lookups(data),
       ].join("\n\n");
@@ -295,7 +304,10 @@ export function promptText(
         TX_EQUITY_NOTICE,
         TX_EQUITY_CALC_ARGS_NOTICE,
         "Do not look up the owners of candidate parcels; ownership is not needed for this comparison. Do not describe the list as comparables chosen for the person, and do not call any result an appraisal or a value opinion.",
-        planNote(data, ["history", "batch"]),
+        planNote(
+          data,
+          a.tax_year ? ["history", "tax_year", "batch"] : ["history", "batch"],
+        ),
         CITE,
         lookups(data),
       ].join("\n\n");

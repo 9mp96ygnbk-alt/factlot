@@ -28,3 +28,4 @@ export function marketBody(
 ): string;
 export function marketLinks(hosted: unknown): string;
 export function sourceNotices(hosted: unknown): string;
+export function marketCard(d: unknown): string;

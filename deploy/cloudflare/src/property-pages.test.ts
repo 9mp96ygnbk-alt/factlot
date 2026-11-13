@@ -20,6 +20,7 @@ import {
 } from "../../registry/src/page-rules.ts";
 import { handle as registryHandle } from "../../registry/src/worker.ts";
 
+import { FREE_PORTFOLIO_PARCELS, limitPortfolio } from "./gating.ts";
 import { page } from "./pages.ts";
 import {
   CACHE_MISS,
@@ -27,8 +28,10 @@ import {
   PROPERTY_PAGES_PER_MINUTE,
   PROPERTY_PAGE_CSP,
   SITEMAP_INDEX_PATH,
+  headingAddress,
   ownerNamesAPerson,
   propertyPagesRoute,
+  renderPropertyPage,
   resetPropertyPagesState,
   type CacheLike,
   type PagesEnv,
@@ -261,6 +264,23 @@ const W1 = "fl:parcel:us-48439:w1";
 const E1 = "fl:entity:us-dc:e1";
 const C1 = "fl:entity:us-co:c1";
 
+// An owner of six parcels, for the portfolio pack only. The registry's order starts in another
+// county and names one parcel twice (one row per link document); Q2's ZIP is written without its dash.
+const E2 = "fl:entity:us-dc:e2";
+const QD = "fl:parcel:us-08031:qd";
+const [Q1, Q2, Q3, Q4, Q5] = [1, 2, 3, 4, 5].map(
+  (i) => `fl:parcel:us-11001:q${i}`,
+) as [string, string, string, string, string];
+const E2_ORDER = [QD, Q4, QD, Q2, Q1, Q3, Q5];
+const E2_ADDRESS: Record<string, string> = {
+  [QD]: "600 Q ST, DENVER CO 80202",
+  [Q1]: "1 Q ST NW WASHINGTON DC 20001",
+  [Q2]: "2 Q ST NW WASHINGTON DC 200011234",
+  [Q3]: "3 Q ST NW WASHINGTON DC 20001",
+  [Q4]: "4 Q ST NW WASHINGTON DC 20001",
+  [Q5]: "5 Q ST NW WASHINGTON DC 20001",
+};
+
 /** P2's recorded sales and documents: the 2026 deed is the newest; the rest are for Pro and Team. */
 const P2_RECORDED: [string, Rec, string][] = [
   [
@@ -301,7 +321,10 @@ const P1_VALUES = [
   { year: 2024, market: 6666666, appraised: 6565656 },
 ];
 
-function buildPack(builtAt = "2026-11-12T12:00:00.000Z"): string {
+function buildPack(
+  builtAt = "2026-11-12T12:00:00.000Z",
+  portfolio = false,
+): string {
   const dir = mkdtempSync(join(tmpdir(), "factlot-property-pages-"));
   const subjects: Record<number, [string, Rec][]> = { 0: [], 1: [] };
   const put = (db: number, r: Rec, o?: Rec) =>
@@ -407,6 +430,31 @@ function buildPack(builtAt = "2026-11-12T12:00:00.000Z"): string {
     ],
     buildings: [],
   });
+  if (portfolio) {
+    for (const urn of new Set(E2_ORDER))
+      put(
+        0,
+        parcel({
+          urn,
+          doc: urn === QD ? DOC_DEN : DOC_DC,
+          asOf: urn === QD ? "2026-10-01" : "2026-11-02",
+          address: E2_ADDRESS[urn],
+          owner: "SIX PARCEL HOLDINGS LLC",
+          entity: E2,
+          values: [P1_VALUES[0]!],
+        }),
+      );
+    put(0, entityRec(E2, "SIX PARCEL HOLDINGS LLC", DOC_DC_ENT, "2026-11-02"), {
+      results: E2_ORDER.map((urn) => ({
+        urn,
+        label: urn,
+        confidence: 0.9,
+        as_of: "2026-11-02",
+        building: null,
+      })),
+      buildings: [],
+    });
+  }
   put(
     1,
     parcel({
@@ -822,8 +870,14 @@ describe("property pages: a permitted-source parcel", () => {
     const res = await get(h, "/property/us-11001/p4");
     assert.equal(res.status, 200);
     const html = await res.text();
+    // The footer's trademark line ("trademarks of their owner") is the site's, not the parcel's.
     assert.ok(
-      !/owner/i.test(html.replace(/opinion|own system|owned/gi, "")),
+      !/owner/i.test(
+        html.replace(
+          /opinion|own system|owned|trademarks of their owner/gi,
+          "",
+        ),
+      ),
       "no owner wording",
     );
     assert.ok(!html.includes("Registered entity"));
@@ -877,6 +931,228 @@ describe("property pages: a permitted-source parcel", () => {
     const dc = await (await get(harness(), P1_PATH)).text();
     assert.ok(!dc.includes("Denver Open Data Catalog"));
     assert.ok(!dc.includes("STATE OF COLORADO"));
+  });
+});
+
+describe("property pages: the owner's other parcels", () => {
+  const pack = buildPack("2026-11-12T12:00:00.000Z", true);
+  const pathOf = (urn: string) => propertyPath(urn)!;
+  const linked = (html: string) =>
+    [
+      ...(
+        /<th scope="row">Other hosted parcels[\s\S]*?<\/tr>/.exec(html)?.[0] ??
+        ""
+      ).matchAll(/href="(\/property\/[^"]+)"/g),
+    ].map((m) => m[1]);
+  // What a caller without a key gets from registry_owned_by for this owner: the API's own cut.
+  const free = [
+    ...new Set(
+      (
+        limitPortfolio({
+          results: E2_ORDER.map((urn) => ({ urn })),
+        }) as { results: { urn: string }[] }
+      ).results.map((r) => r.urn),
+    ),
+  ];
+
+  it("for an owner of more than three parcels, every one of its pages lists only parcels of the free first three, in the API's order", async () => {
+    assert.deepEqual(free, [QD, Q4, Q2]);
+    assert.equal(free.length, FREE_PORTFOLIO_PARCELS);
+    const all = [...new Set(E2_ORDER)];
+    assert.equal(all.length, 6);
+    for (const urn of all) {
+      const h = harness({}, { pack });
+      const res = await get(h, pathOf(urn));
+      assert.equal(res.status, 200, urn);
+      const html = await res.text();
+      const expected = free.filter((u) => u !== urn).map(pathOf);
+      assert.deepEqual(linked(html), expected, urn);
+      // No other parcel of the owner is linked anywhere on the page.
+      for (const other of all)
+        if (other !== urn && !free.includes(other))
+          assert.ok(!html.includes(`href="${pathOf(other)}"`), other);
+      // The count is the owner's other parcels; the rest are named as a number, for Pro and Team.
+      assert.match(html, /Other hosted parcels of this entity<\/th><td>5<ul/);
+      const beyond = all.length - 1 - expected.length;
+      assert.ok(
+        html.includes(
+          `<p>${beyond} more parcels of this owner: the whole list, through <code>registry_owned_by</code> on the hosted API.</p>`,
+        ),
+        `${urn}: ${beyond} beyond the free three`,
+      );
+      assert.ok(
+        html.includes(
+          '<h2 id="pro">What a Pro or Team key adds for this parcel</h2>',
+        ),
+      );
+      // The page asked the registry for the free three only (and itself, and the entity).
+      const got = h.registryCalls.filter((c) => c.includes('"registry_get"'));
+      assert.equal(got.length, 2 + expected.length, urn);
+    }
+  });
+
+  it("an owner of three parcels or fewer shows them all, with no line about more", async () => {
+    const html = await (await get(harness(), P1_PATH)).text();
+    assert.deepEqual(linked(html), [pathOf(P2), pathOf(P3)]);
+    assert.ok(!html.includes("more parcels of this owner"));
+    assert.ok(!html.includes("more parcel of this owner"));
+  });
+
+  it("writes a nine-digit ZIP as ZIP+4 in the heading, the title and a link to the page, never in the publisher's row", async () => {
+    const h = harness({}, { pack });
+    const html = await (await get(h, pathOf(Q2))).text();
+    assert.ok(
+      html.includes(
+        '<h1 id="page-title">2 Q ST NW WASHINGTON DC 20001-1234</h1>',
+      ),
+    );
+    assert.match(
+      html,
+      /<title>2 Q ST NW WASHINGTON DC 20001-1234 · District of Columbia, DC · FactLot<\/title>/,
+    );
+    assert.ok(
+      html.includes(
+        '<th scope="row">Situs address (as the publisher wrote it)</th><td>2 Q ST NW WASHINGTON DC 200011234</td>',
+      ),
+    );
+    const from = await (await get(harness({}, { pack }), pathOf(Q5))).text();
+    assert.ok(
+      from.includes(
+        `<a href="${pathOf(Q2)}">2 Q ST NW WASHINGTON DC 20001-1234</a>`,
+      ),
+    );
+    assert.equal(
+      headingAddress("DALLAS TX 752165628", "TX"),
+      "DALLAS TX 75216-5628",
+    );
+    assert.equal(
+      headingAddress("1 MAIN ST, DALLAS, TX 752165628", "TX"),
+      "1 MAIN ST, DALLAS, TX 75216-5628",
+    );
+    // Only after the record's own state code: nine digits after any other word stay as written.
+    for (const [same, state] of [
+      ["100 MAIN ST BLDG NO 123456789", "TX"],
+      ["1 ST 123456789", "TX"],
+      ["DALLAS TX 752165628", "DC"],
+      ["DALLAS TX 752165628", ""],
+      ["DALLAS TX 752165628", "tx"],
+      ["900 G ST NW WASHINGTON DC 20001", "DC"],
+      ["1 MAIN ST, HOUSTON TX 77002-1234", "TX"],
+      ["ACCOUNT 123456789", "TX"],
+      ["752165628 MAIN ST DALLAS TX", "TX"],
+    ] as const)
+      assert.equal(headingAddress(same, state), same, `${same} (${state})`);
+    assert.equal(headingAddress(null, "TX"), null);
+  });
+});
+
+describe("property pages: citation chips", () => {
+  const strip = (html: string) => html.replace(/<[^>]+>/g, " ");
+  const chipsOf = (html: string) =>
+    [
+      ...html.matchAll(
+        /<a class="cite" href="#([^"]+)" title="([^"]*)"><b>(\d+)<\/b>([^<]*)<\/a>/g,
+      ),
+    ].map(([, id, title, n, short]) => ({ id, title, n, short }));
+
+  it("are short, and each leads to its whole record locator, which stands once under its source", async () => {
+    const html = await (await get(harness(), P1_PATH)).text();
+    const chips = chipsOf(html);
+    assert.ok(chips.length >= 10, `${chips.length} chips`);
+    // Every citation on the page is one of these chips or a source heading's number.
+    assert.equal(
+      html.split('class="cite"').length - 1,
+      chips.length + html.split('<h3 id="source-').length - 1,
+    );
+    for (const c of chips) {
+      assert.match(c.id!, new RegExp(`^source-${c.n}-\\d+$`));
+      assert.ok(html.includes(`<h3 id="source-${c.n}">`), c.id);
+      assert.ok(
+        html.includes(`<span class="record" id="${c.id}">${c.title}</span>`),
+        `${c.id}: the record under the source says what the chip's title says`,
+      );
+      assert.ok(c.title!.length > c.short!.trim().length);
+    }
+    // The fixture's locators name no file: the chip is the number and the date.
+    assert.ok(chips.some((c) => c.title === "row p1, as of 2026-11-02"));
+    assert.ok(chips.every((c) => /^ as of \d{4}-\d\d-\d\d$/.test(c.short!)));
+    assert.equal(strip(html).split("row p1, as of 2026-11-02").length - 1, 1);
+    assert.equal(strip(html).split("row e1, as of 2026-11-02").length - 1, 1);
+    assert.equal(html.split('id="source-1-1"').length - 1, 1);
+  });
+
+  it("name the file a locator starts with, and keep two records of one file apart", () => {
+    const urn = "fl:parcel:us-48201:0011440000001";
+    const doc = `fl:document:sha256-${"9".repeat(64)}`;
+    const f = (predicate: string, value: unknown, section: string) => ({
+      id: `flf_${predicate}`,
+      subject: urn,
+      predicate,
+      value,
+      as_of: "2026-11-01",
+      provenance: {
+        method: "public_record",
+        sources: [
+          {
+            document_id: doc,
+            title:
+              "Harris Central Appraisal District: Buildings (building_other.txt)",
+            uri: "https://example.gov/data",
+            retrieved_at: "2026-11-02T00:00:00+00:00",
+            section,
+          },
+        ],
+      },
+      rights: RIGHTS[DOC_DC],
+    });
+    const long = "building_other.txt acct 0011440000001 bld_num 1";
+    const html = renderPropertyPage({
+      site: "https://factlot.com",
+      rec: {
+        urn,
+        facts: [
+          f(
+            "parcel.situs_address",
+            "1000 LOUISIANA ST, HOUSTON TX 77002",
+            long,
+          ),
+          f("parcel.year_built", 1983, long),
+          f("parcel.building_class", "A", `${long.slice(0, -1)}2`),
+        ],
+      },
+      place: { region: "us-48201", name: "Harris County", state: "TX" },
+      entity: null,
+      otherCount: null,
+      links: [],
+      sourceOf: () => null,
+    });
+    const chips = chipsOf(html);
+    assert.deepEqual(
+      chips.map((c) => [c.id, c.short, c.title]),
+      [
+        [
+          "source-1-1",
+          " building_other.txt, as of 2026-11-01",
+          `${long}, as of 2026-11-01`,
+        ],
+        [
+          "source-1-1",
+          " building_other.txt, as of 2026-11-01",
+          `${long}, as of 2026-11-01`,
+        ],
+        [
+          "source-1-2",
+          " building_other.txt, as of 2026-11-01",
+          "building_other.txt acct 0011440000001 bld_num 2, as of 2026-11-01",
+        ],
+      ],
+    );
+    assert.ok(html.includes('<th scope="row">Records cited</th>'));
+    for (const c of chips)
+      assert.ok(
+        html.includes(`<span class="record" id="${c.id}">${c.title}</span>`),
+      );
+    assert.equal(strip(html).split(`${long}, as of`).length - 1, 1);
   });
 });
 
@@ -1131,16 +1407,16 @@ describe("property pages: cost and abuse", () => {
     assert.equal(post.headers.get("allow"), "GET, HEAD");
   });
 
-  it("send a strict CSP, and the existing pages' CSP is unchanged", async () => {
+  it("send a strict CSP that allows the site's own fonts, and the account pages take every style from the stylesheet", async () => {
     const res = await get(harness(), P1_PATH);
     assert.equal(
       res.headers.get("content-security-policy"),
-      "default-src 'none'; style-src 'self'; img-src 'self'; script-src 'none'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; script-src 'none'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
     );
     const csp = page("t", "<p>x</p>").headers.get("content-security-policy")!;
     assert.equal(
       csp.replace(/'nonce-[A-Za-z0-9_-]+'/g, "'nonce-N'"),
-      "default-src 'none'; style-src 'self' 'nonce-N'; img-src 'self'; script-src 'nonce-N'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; script-src 'nonce-N'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'",
     );
   });
 });

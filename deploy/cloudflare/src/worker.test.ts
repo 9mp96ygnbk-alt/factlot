@@ -87,6 +87,8 @@ import {
 import { body } from "./email.ts";
 import {
   MAX_REGISTRY_CALLS_PER_MCP_REQUEST,
+  MODEL_TOOLS,
+  PAID_ONLY,
   PLANS,
   REPORTS_PER_MONTH,
   planForLookupKey,
@@ -1350,6 +1352,52 @@ describe("addresses", () => {
 
 describe("router", () => {
   const assets = { fetch: async () => new Response("<html>site</html>") };
+
+  it("hands the stylesheet, the fonts and the icon to the built site on every host", async () => {
+    const { api, seen: asked } = innerApi();
+    const seen: string[] = [];
+    const built = {
+      fetch: async (r: Request) => {
+        seen.push(new URL(r.url).pathname);
+        return new Response("built");
+      },
+    };
+    const paths = [
+      "/styles.css",
+      "/favicon.svg",
+      "/fonts/instrument-sans-latin-wght-normal.woff2",
+      "/fonts/geist-mono-latin-wght-normal.woff2",
+    ];
+    for (const host of ["api.factlot.com", "factlot.com"])
+      for (const p of paths) {
+        const res = await handle(
+          new Request(`https://${host}${p}`),
+          env({ ASSETS: built }),
+          api,
+        );
+        assert.equal(await res.text(), "built", `${host}${p}`);
+      }
+    assert.deepEqual(seen, [...paths, ...paths]);
+    // Anything else under /fonts/ on the API host is the API's own to answer (its 404), never the
+    // site's page.
+    for (const p of [
+      "/fonts/x",
+      "/fonts/",
+      "/fonts/instrument-sans-latin-wght-normal.woff2.map",
+      "/fonts/OFL-GeistMono.txt",
+      "/styles.css.map",
+    ]) {
+      const res = await handle(
+        new Request(`https://api.factlot.com${p}`),
+        env({ ASSETS: built }),
+        api,
+      );
+      assert.notEqual(await res.text(), "built", p);
+      assert.equal(new URL(asked.at(-1)!.request.url).pathname, p);
+    }
+    assert.equal(asked.length, 5);
+    assert.deepEqual(seen, [...paths, ...paths]);
+  });
 
   it("serves its own robots.txt on the API host", async () => {
     const { api } = innerApi();
@@ -3747,7 +3795,7 @@ describe("onboarding page", () => {
     assert.match(html, /1300 Pennsylvania Ave NW in Washington, DC/);
     assert.match(
       html,
-      /A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free\./,
+      /A lookup is one answered call to a registry tool, and a call inside loaded coverage that finds nothing still counts; coverage checks, misses outside loaded coverage and input errors are free\./,
     );
     assert.ok(html.includes(`export FACTLOT_API_KEY=&quot;${key}&quot;`));
     assert.ok(
@@ -3766,7 +3814,10 @@ describe("onboarding page", () => {
     const nonce = csp.match(/script-src 'nonce-([A-Za-z0-9_-]+)'/)?.[1];
     assert.ok(nonce);
     assert.ok(html.includes(`<script nonce="${nonce}">`));
-    assert.ok(html.includes(`<style nonce="${nonce}">`));
+    // Every style comes from the stylesheet: the page carries no style block and the policy allows none.
+    assert.doesNotMatch(html, /<style\b|\sstyle=/);
+    assert.match(csp, /style-src 'self';/);
+    assert.match(csp, /font-src 'self';/);
     assert.match(csp, /connect-src https:\/\/api\.factlot\.com;/);
     assert.match(csp, /default-src 'none'/);
     assert.doesNotMatch(csp, /unsafe-inline/);
@@ -4321,7 +4372,7 @@ describe("quota fairness: only answered lookups are charged", () => {
     assert.equal(over.status, 429);
     assert.match(
       String(((await over.json()) as { message: string }).message),
-      /coverage checks, misses and input errors are free/,
+      /coverage checks, misses outside loaded coverage and input errors are free/,
     );
   });
 });
@@ -4959,6 +5010,13 @@ describe("account usage, tools and page", () => {
       html,
       /<svg class="spark"[^>]*aria-label="1 registry lookup from 2026-10-09 to 2026-11-07; most on 2026-11-07 \(1\)"/,
     );
+    // This month's use is set apart as readouts: lookups with their bar, reports and keys.
+    assert.match(
+      html,
+      /<dl class="usage">\n<div><dt>Registry lookups<\/dt><dd><progress max="100000" value="1"[^>]*>1 of 100000<\/progress><br>1 of 100,000 used this month \(99,999 left\); resets [^<]+<\/dd><\/div>\n<div><dt>Reports<\/dt><dd>0 of 1,000 built this month with <code>report_create<\/code> \(XLSX, PDF, ICS\); resets [^<]+<\/dd><\/div>\n<div><dt>Keys<\/dt><dd>1 of 5<\/dd><\/div>\n<\/dl>\n<dl class="facts">/,
+    );
+    for (const label of ["Registry lookups", "Reports", "Keys"])
+      assert.equal(html.split(`<dt>${label}</dt>`).length - 1, 1, label);
     assert.match(html, /<code>us-11<\/code> 1/);
     assert.match(html, /2026-11-07 12:00 UTC/, "the key's last use");
     assert.match(
@@ -7081,6 +7139,7 @@ describe("paid gating (GATING_ENABLED)", () => {
         candidates_tax_year: string;
         recorded_facts: string;
         pricing: string;
+        paid_only: unknown;
       };
       plans: {
         free: Record<string, unknown>;
@@ -7092,7 +7151,23 @@ describe("paid gating (GATING_ENABLED)", () => {
     const enabled = (await (
       await call(on(), api, "/v1/plans", { method: "GET" })
     ).json()) as P;
-    assert.deepEqual(enabled.gating, {
+    const { paid_only, ...rules } = enabled.gating!;
+    // Every gate in gating.ts, the model-backed tools and the account tools; each one's behaviour is
+    // checked in "every PAID_ONLY entry is what the router enforces".
+    assert.deepEqual(
+      (paid_only as { id: string; tools: string[] }[]).map((f) => f.id),
+      [
+        "history",
+        "dated_get",
+        "candidates_tax_year",
+        "recorded",
+        "portfolio",
+        "batch",
+        "model_tools",
+        "account_tools",
+      ],
+    );
+    assert.deepEqual(rules, {
       enabled: true,
       free_history: "current roll year only",
       free_portfolio: "first 3 parcels of an owner (registry_owned_by)",
@@ -11547,4 +11622,255 @@ describe("registry_lookup_batch: single calls fanned out, metered per item", () 
       true,
     );
   });
+});
+
+describe("every PAID_ONLY entry is what the router enforces", () => {
+  const parcels = (n: number) =>
+    Array.from({ length: n }, (_, i) => `fl:parcel:us-11001:${i}`);
+  const ENTITY = "fl:entity:us-dc:e1";
+  const answers: Record<string, (body: Record<string, unknown>) => unknown> = {
+    "/v1/registry/get": (b) =>
+      b.urn === "sales"
+        ? {
+            urn: "sales",
+            facts: [
+              {
+                id: "s1",
+                predicate: "transaction.sale",
+                value: { recorded_date: "2020-01-01", amount: 1 },
+              },
+              {
+                id: "s2",
+                predicate: "transaction.sale",
+                value: { recorded_date: "2024-01-01", amount: 2 },
+              },
+            ],
+            coverage: { county_loaded: true },
+          }
+        : b.urn === ENTITY
+          ? {
+              kind: "entity",
+              urn: ENTITY,
+              relationships: parcels(5).map((p) => ({
+                type: "owns",
+                from_urn: ENTITY,
+                to_urn: p,
+              })),
+              coverage: { loaded: true },
+            }
+          : {
+              urn: "hist",
+              facts: [{ id: "f2", predicate: "parcel.market_value", value: 2 }],
+              value_history: [
+                { tax_year: 2026, market_value: 2 },
+                { tax_year: 2025, market_value: 1 },
+              ],
+              ...(b.include_history
+                ? {
+                    history: [
+                      { id: "f2", predicate: "parcel.market_value", value: 2 },
+                      { id: "f1", predicate: "parcel.market_value", value: 1 },
+                    ],
+                  }
+                : {}),
+              coverage: { county_loaded: true },
+            },
+    "/v1/registry/owned_by": () => ({
+      results: parcels(5).map((urn) => ({ urn })),
+      coverage: { loaded: true },
+    }),
+  };
+  const api = {
+    fetch: async (r: Request) => {
+      const text = await r.text();
+      const path = new URL(r.url).pathname;
+      const body = (text ? JSON.parse(text) : {}) as Record<string, unknown>;
+      // The open server's tool list holds no account tool; the router adds them for a paid key.
+      const answer =
+        path === "/mcp" && body.method === "tools/list"
+          ? { jsonrpc: "2.0", id: body.id, result: { tools: [] } }
+          : (answers[path]?.(body) ?? {
+              ok: true,
+              coverage: { county_loaded: true },
+            });
+      return new Response(JSON.stringify(answer), {
+        headers: { "content-type": "application/json" },
+      });
+    },
+  };
+  type J = Record<string, unknown>;
+  type Answer = { status: number; body: J };
+  /** A free key as freekey.ts stores it. */
+  async function freeKey(e: Env): Promise<string> {
+    const key = `fl_free_${"A".repeat(43)}`;
+    await e.KEYS.put(
+      `freekey:${await hashKey(key)}`,
+      JSON.stringify({
+        tier: "free",
+        email_hash: await hashKey("paid-only-audit"),
+        created: new Date(T0).toISOString(),
+      }),
+    );
+    return key;
+  }
+  /** The callers: a keyless one and a free key (the free tier), and a Pro key. */
+  async function callers() {
+    const e = env({
+      GATING_ENABLED: "true",
+      FREE_KEY_ENABLED: "true",
+      ANTHROPIC_API_KEY: "test-placeholder",
+    });
+    return {
+      e,
+      free: { keyless: undefined, "free key": await freeKey(e) } as Record<
+        string,
+        string | undefined
+      >,
+      pro: (await issue(e)).key,
+    };
+  }
+  /** The free answers (by caller) and the Pro answer of one REST call. */
+  async function both(path: string, body: unknown) {
+    const c = await callers();
+    const free: Record<string, Answer> = {};
+    for (const [who, key] of Object.entries(c.free)) {
+      const r = await call(c.e, api, path, { body, ...(key ? { key } : {}) });
+      free[who] = { status: r.status, body: (await r.json()) as J };
+    }
+    const r = await call(c.e, api, path, { body, key: c.pro });
+    return { free, pro: { status: r.status, body: (await r.json()) as J } };
+  }
+  const refused = async (path: string, body: unknown) => {
+    const r = await both(path, body);
+    for (const [who, a] of Object.entries(r.free)) {
+      assert.equal(a.status, 403, `${path} ${who}`);
+      assert.equal(a.body.error, "PlanRequired", `${path} ${who}`);
+    }
+    assert.equal(r.pro.status, 200, `${path} pro`);
+  };
+  const len = (x: unknown) => (x as unknown[]).length;
+  async function mcp(
+    e: ReturnType<typeof env>,
+    method: string,
+    params: unknown,
+    key?: string,
+  ) {
+    return (await (
+      await call(e, api, "/mcp", {
+        body: { jsonrpc: "2.0", id: 1, method, params },
+        ...(key ? { key } : {}),
+      })
+    ).json()) as { result: J };
+  }
+
+  const scenarios: Record<string, () => Promise<void>> = {
+    history: async () => {
+      const r = await both("/v1/registry/get", {
+        urn: "hist",
+        include_history: true,
+      });
+      for (const [who, a] of Object.entries(r.free)) {
+        assert.equal(len(a.body.value_history), 1, who);
+        assert.equal(len(a.body.history), 1, `${who}: include_history cut`);
+        assert.equal(a.body.history_available, "pro", who);
+      }
+      assert.equal(len(r.pro.body.value_history), 2);
+      assert.equal(len(r.pro.body.history), 2);
+    },
+    dated_get: () =>
+      refused("/v1/registry/get", { urn: "hist", as_of: "2025-01-01" }),
+    candidates_tax_year: () =>
+      refused("/v1/registry/tx_equity_candidates", {
+        urn: "x",
+        tax_year: 2025,
+      }),
+    recorded: async () => {
+      await refused("/v1/registry/recorded_facts", { urn: "x" });
+      const r = await both("/v1/registry/get", { urn: "sales" });
+      for (const [who, a] of Object.entries(r.free)) {
+        assert.equal(len(a.body.facts), 1, who);
+        assert.ok(a.body.sales_withheld, who);
+      }
+      assert.equal(len(r.pro.body.facts), 2);
+    },
+    portfolio: async () => {
+      const owned = await both("/v1/registry/owned_by", { entity_urn: ENTITY });
+      const entity = await both("/v1/registry/get", { urn: ENTITY });
+      for (const who of Object.keys(owned.free)) {
+        assert.equal(len(owned.free[who]!.body.results), 3, who);
+        assert.equal(len(entity.free[who]!.body.relationships), 3, who);
+      }
+      assert.equal(len(owned.pro.body.results), 5);
+      assert.equal(len(entity.pro.body.relationships), 5);
+    },
+    batch: async () => {
+      await refused("/v1/registry/lookup/batch", { items: [{ urn: "x" }] });
+      await refused("/v1/registry/tx_equity_candidates/batch", {
+        subjects: [{ id: "a", urn: "x" }],
+      });
+    },
+    model_tools: async () => {
+      const c = await callers();
+      for (const name of MODEL_TOOLS) {
+        for (const [who, key] of Object.entries(c.free))
+          assert.match(
+            JSON.stringify(
+              await mcp(c.e, "tools/call", { name, arguments: {} }, key),
+            ),
+            /PlanRequired/,
+            `${name} ${who}`,
+          );
+        assert.doesNotMatch(
+          JSON.stringify(
+            await mcp(c.e, "tools/call", { name, arguments: {} }, c.pro),
+          ),
+          /PlanRequired/,
+          `${name} pro`,
+        );
+      }
+    },
+    account_tools: async () => {
+      const c = await callers();
+      const tools = PAID_ONLY.find((f) => f.id === "account_tools")!.tools;
+      for (const [who, key] of Object.entries(c.free)) {
+        // REST: refused with 401.
+        const r = await call(c.e, api, "/v1/account", {
+          method: "GET",
+          ...(key ? { key } : {}),
+        });
+        assert.equal(r.status, 401, who);
+        await r.body?.cancel();
+        // MCP: the router does not list them for a free caller.
+        const names = (
+          (await mcp(c.e, "tools/list", {}, key)).result.tools as {
+            name: string;
+          }[]
+        ).map((t) => t.name);
+        for (const t of tools) assert.ok(!names.includes(t), `${t} ${who}`);
+      }
+      const ok = await call(c.e, api, "/v1/account", {
+        method: "GET",
+        key: c.pro,
+      });
+      assert.equal(ok.status, 200);
+      await ok.body?.cancel();
+      const names = (
+        (await mcp(c.e, "tools/list", {}, c.pro)).result.tools as {
+          name: string;
+        }[]
+      ).map((t) => t.name);
+      for (const t of tools) assert.ok(names.includes(t), `${t} pro`);
+    },
+  };
+
+  it("has one behaviour check per PAID_ONLY entry", () => {
+    assert.deepEqual(
+      Object.keys(scenarios).sort(),
+      PAID_ONLY.map((f) => f.id).sort(),
+    );
+  });
+  for (const f of PAID_ONLY)
+    it(`${f.id}: keyless and free-key callers are refused or cut, a Pro key is not`, async () => {
+      await scenarios[f.id]!();
+    });
 });

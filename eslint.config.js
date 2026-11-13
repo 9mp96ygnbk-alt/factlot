@@ -3,7 +3,15 @@ import eslintConfigPrettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**"] },
+  {
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/.wrangler/**",
+      // The built site (npm run build:site); git ignores it too.
+      "deploy/cloudflare/public/**",
+    ],
+  },
   eslint.configs.recommended,
   tseslint.configs.recommended,
   eslintConfigPrettier,

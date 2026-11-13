@@ -215,6 +215,12 @@ export function resourceData(): ResourceData {
         free_history: GATING_INFO.free_history,
         batch: GATING_INFO.batch,
         dated_get: GATING_INFO.dated_get,
+        paid_only: GATING_INFO.paid_only.map((f) => ({
+          what: f.what,
+          free: f.free,
+          tools: [...f.tools],
+          ...(f.arg ? { arg: f.arg } : {}),
+        })),
       },
       quota_rules: { ...QUOTA_RULES },
     },

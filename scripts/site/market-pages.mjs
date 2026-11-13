@@ -6,6 +6,7 @@
 // these same functions, so a page cannot say a number the data does not hold. A place the hosted pack does not
 // serve gets no page.
 
+import { sourceTitle } from "./shell.mjs";
 import { esc, longDate } from "./texas-pages.mjs";
 
 const int = new Intl.NumberFormat("en-US");
@@ -209,7 +210,10 @@ export function marketBody(m, d, hosted, template, fieldsText) {
       table(`Source ${s.source_id}`, [
         ["Source ID", `<code>${esc(s.source_id)}</code>`],
         ["Publisher", esc(s.publisher)],
-        ["File", `${esc(s.title)}, <a href="${esc(s.url)}">${esc(s.url)}</a>`],
+        [
+          "File",
+          `${esc(sourceTitle(s.title))}, <a href="${esc(s.url)}">${esc(s.url)}</a>`,
+        ],
         ["Licence as recorded", esc(s.license)],
         ["AI use", esc(s.ai_use)],
         ["Redistribution", esc(s.redistribution)],
@@ -232,7 +236,7 @@ export function marketBody(m, d, hosted, template, fieldsText) {
     .join(", ");
   const tools = `<ul>
 <li><code>registry_search_address</code>: <code>${esc(s.query)}</code> finds ${s.matches === 1 ? "one parcel" : "parcels"}, the first being <code>${esc(s.urn)}</code> (${esc(s.label)}).</li>
-<li><code>registry_get</code> on it: ${value}${year}; facts <span class="try-wrap">${facts}</span>, each citing the file it came from.</li>
+<li><code>registry_get</code> on it: ${value}${year}; facts <span class="try-wrap">${facts}</span>, each citing the file it came from${s.predicates.some((x) => x.startsWith("ownership.")) ? " (the owner facts are kept for organisation owners only)" : ""}.</li>
 <li><code>registry_resolve_parcel</code> and <code>registry_resolve_external</code>: the URN from the county's own number (<code>${esc(s.external_id)}</code> in system <code>${esc(d.id_system)}</code>).</li>
 ${d.holds.owner_of_record ? "<li><code>registry_search_entities</code> and <code>registry_owned_by</code>: organisation owners and the parcels linked to them.</li>" : ""}
 </ul>
@@ -264,6 +268,48 @@ ${d.holds.owner_of_record ? "<li><code>registry_search_entities</code> and <code
     LIMITS: `<ul>\n${limits.map((l) => `<li>${esc(l)}</li>`).join("\n")}\n</ul>`,
     NOTICES: notices ? `<h2 id="notices">Source notices</h2>\n${notices}` : "",
   });
+}
+
+/**
+ * The page's worked example as a fact card: the parcel the tools' section names, its value and
+ * year, and the source they are cited to. Every value is one the page's body states.
+ */
+export function marketCard(d) {
+  const s = d.sample;
+  const src = d.sources[0];
+  const value =
+    s.market_value !== null
+      ? ["Market value", usd.format(s.market_value)]
+      : s.appraised_value !== null
+        ? ["Appraised value", usd.format(s.appraised_value)]
+        : null;
+  const chip = `<dd class="src"><span class="cite"><b>1</b> ${esc(src.source_id)}</span></dd>`;
+  const rows = [
+    ...(value
+      ? [
+          `<div><dt>${value[0]}</dt><dd class="big">${value[1]}</dd>${chip}</div>`,
+        ]
+      : []),
+    ...(s.tax_year !== null
+      ? [`<div><dt>Tax year</dt><dd>${s.tax_year}</dd>${chip}</div>`]
+      : []),
+    `<div><dt>The county's own number</dt><dd>${esc(s.external_id)}</dd><dd class="src"><span class="cite">${esc(d.id_system)}</span></dd></div>`,
+  ];
+  return `<div class="factcard">
+<p class="factcard-bar"><span><b>registry_search_address</b> · ${esc(s.query)}</span></p>
+<div class="factcard-head">
+<p class="factcard-title">${esc(s.label)}</p>
+<p>${esc(s.urn)}</p>
+</div>
+<dl class="factrows">
+${rows.join("\n")}
+</dl>
+<div class="factcard-foot">
+<ol>
+<li data-n="1">${esc(src.publisher)}: ${esc(sourceTitle(src.title))}</li>
+</ol>
+</div>
+</div>`;
 }
 
 /** The coverage page's section on the places with a page of their own ("" when none). */

@@ -897,7 +897,7 @@ const registryTools: ToolSpec[] = [
     name: "registry_owned_by",
     title: "Parcels owned by an entity",
     description:
-      "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence), each with the building it belongs to, plus a per-building summary so condominium units count once per building." +
+      "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence), each with the building it belongs to, plus a per-building summary so condominium units count once per building. On the hosted API, a call without a Pro or Team key gets the first three parcels, with every row of each and their buildings (the answer says how many were left out in portfolio_withheld and portfolio_note); a Pro or Team key gets every parcel." +
       REGISTRY_NOTE,
     input: z.object({
       entity_urn: z

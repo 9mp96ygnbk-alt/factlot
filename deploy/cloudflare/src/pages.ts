@@ -1,9 +1,10 @@
 /**
  * The HTML pages the Worker serves: onboarding after checkout, /account, recovery and messages.
  *
- * They share the site's look: the served /styles.css (tokens, header, footer, dark mode) plus a
- * small nonce'd style block for the parts the landing page does not have (steps, copy buttons,
- * forms). Every interpolated value is escaped. Scripts run only with the response's nonce and
+ * They share the site's look: the header and footer come from the site's own shell
+ * (scripts/site/shell.mjs) and every style from the served /styles.css, which has a section for
+ * the parts only these pages have (steps, copy buttons, forms). No style is inline.
+ * Every interpolated value is escaped. Scripts run only with the response's nonce and
  * only do two things: copy a block to the clipboard and call GET /v1/account for "Test your key".
  * Forms post to the Worker; a key never travels in a URL.
  */
@@ -31,12 +32,18 @@ import {
   type Plan,
 } from "./plans.ts";
 import type { UsageSummary } from "./types.ts";
+import {
+  NAV,
+  headLinks,
+  siteFooter,
+  siteHeader,
+} from "../../../scripts/site/shell.mjs";
 
 export { escapeHtml };
 
 /** The one-line counting rule on the onboarding and account pages. */
 export const LOOKUP_RULE =
-  "A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free.";
+  "A lookup is one answered call to a registry tool, and a call inside loaded coverage that finds nothing still counts; coverage checks, misses outside loaded coverage and input errors are free.";
 
 export const REPORT_RULE =
   "A report is one document report_create builds and stores; input errors are free, and reports never count as lookups.";
@@ -45,44 +52,11 @@ const DEFAULT_SITE = "https://factlot.com";
 const DEFAULT_API = "https://api.factlot.com";
 const trim = (u: string) => u.replace(/\/$/, "");
 
-const EXTRA_CSS = `
-.flow{padding:2.25rem 0 3rem;border-bottom:0;background:var(--bg)}
-.narrow{max-width:46rem}
-.flow h1{margin-bottom:1rem}
-.lead{font-size:1.1rem;color:var(--muted);max-width:60ch}
-.flow section.step{margin:2.5rem 0 0;padding:0;border:0;background:none}
-.step>h2{font-size:1.35rem;display:flex;gap:.6rem;align-items:baseline;margin-bottom:.6rem}
-.step>h2 .n{color:var(--muted);font-size:1rem;font-variant-numeric:tabular-nums}
-.block{position:relative;margin:.5rem 0 1rem}
-.block .label{margin:0 0 .25rem;font-size:.85rem;color:var(--muted)}
-.block pre{margin:0;padding-right:4.75rem;white-space:pre-wrap;word-break:break-all}
-.block.key pre{border:2px solid var(--accent);font-size:1rem}
-.copy{position:absolute;right:.5rem;bottom:.5rem;font:inherit;font-size:.8rem;padding:.25rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);cursor:pointer}
-.notice{border-left:3px solid var(--accent);background:var(--bg-alt);padding:.75rem 1rem;border-radius:0 6px 6px 0;margin:0 0 1.5rem}
-.notice.warn{border-left-color:var(--focus)}
-.notice p:last-child{margin:0}
-.warn{color:var(--focus)}
-details.client{border:1px solid var(--border);border-radius:8px;margin:.5rem 0;padding:0 1rem}
-details.client>summary{cursor:pointer;padding:.8rem 0;font-weight:600}
-details.client[open]>summary{border-bottom:1px solid var(--border);margin-bottom:.75rem}
-details.client ol{padding-left:1.25rem}
-dl.facts{display:grid;grid-template-columns:minmax(8.5rem,max-content) 1fr;gap:.45rem 1.25rem;margin:0 0 1rem}
-dl.facts dt{color:var(--muted)}dl.facts dd{margin:0}
-label{display:block;font-weight:600;margin:0 0 .35rem}
-input[type=password],input[type=email],input[type=text]{width:100%;font:1rem ui-monospace,SFMono-Regular,Menlo,monospace;padding:.65rem .75rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)}
-input[type=email]{font-family:inherit}
-form{margin:0}
-.buttons{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin:1rem 0}
-button.button{font:inherit;font-weight:600;cursor:pointer;background:transparent}
-button.button.primary{background:var(--accent);color:var(--accent-text)}
-button.link{font:inherit;background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer}
-progress{width:100%;height:.7rem;accent-color:var(--accent)}
-.out{min-height:1.5rem}
-.spark{display:block;width:100%;height:56px;color:var(--accent)}
-table.keys td,table.keys th{padding-right:1rem}
-table.keys form{display:inline}
-@media (max-width:40rem){dl.facts{grid-template-columns:1fr;gap:.1rem}dl.facts dd{margin-bottom:.6rem}table.keys td[data-label]::before{content:attr(data-label) ": ";color:var(--muted)}}
-`;
+/** The site's navigation with the account in the button's place: these pages are where a key is managed. */
+const ACCOUNT_NAV: [string, string][] = [
+  ...NAV.slice(0, -1),
+  ["/account", "Account"],
+];
 
 const COPY_JS = `document.querySelectorAll("button.copy").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-copy"));if(!t)return;var done=function(m){b.textContent=m;setTimeout(function(){b.textContent="Copy"},2000)};if(navigator.clipboard){navigator.clipboard.writeText(t.textContent).then(function(){done("Copied")},function(){done("Select and copy")})}else done("Select and copy")})});`;
 
@@ -112,18 +86,21 @@ export function page(
     .filter(Boolean)
     .join("\n");
   const html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>${escapeHtml(title)} · FactLot</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style nonce="${nonce}">${EXTRA_CSS}</style></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>${escapeHtml(title)} · FactLot</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+${headLinks()}
+<link rel="stylesheet" href="/styles.css"></head>
 <body><a class="skip" href="#main">Skip to content</a>
-<header class="site-header"><div class="wrap row"><a class="brand" href="${site}/" aria-label="FactLot home">FactLot</a><nav aria-label="Site"><ul><li><a href="${site}/pricing/">Pricing</a></li><li><a href="${site}/account">Account</a></li><li><a href="mailto:${CONTACT}">Help</a></li></ul></nav></div></header>
+${siteHeader({ base: site, nav: ACCOUNT_NAV })}
 <main id="main"><section class="flow"><div class="wrap narrow">
 ${body}
 </div></section></main>
-<footer class="site-footer"><div class="wrap"><p><a href="${REPO}">GitHub</a> · <a href="mailto:${CONTACT}">${CONTACT}</a> · <a href="${site}/privacy">Privacy</a> · <a href="${site}/terms">Terms</a></p></div></footer>
+${siteFooter({ base: site })}
 ${scripts ? `<script nonce="${nonce}">${scripts}</script>` : ""}
 </body></html>`;
   const csp = [
     "default-src 'none'",
-    `style-src 'self' 'nonce-${nonce}'`,
+    "style-src 'self'",
+    "font-src 'self'",
     "img-src 'self'",
     `script-src 'nonce-${nonce}'`,
     `connect-src ${o.testApi ? trim(o.testApi) : "'none'"}`,
@@ -382,7 +359,7 @@ export const FREE_KEY_SENT =
 function freeKeySection(state: RecoveryState, lifecycle = false): string {
   const form =
     state === "on"
-      ? `<p>No plan needed. A free key gives you the free limits (${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day, ${REPORTS_PER_MONTH.anonymous} reports a month, ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute) on your own meter instead of one shared with everyone on your network.</p>
+      ? `<p>No plan needed. A free key counts your requests (${ANONYMOUS_REQUESTS_PER_MINUTE} a minute) and registry lookups (${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} a day) on your own meter instead of one shared with everyone on your network; all the free keys used from one network together share ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. Reports (${REPORTS_PER_MONTH.anonymous} a month) count per email address and per network as well.</p>
 <form method="post" action="/account/free-key"><label for="free-email">Email</label><input id="free-email" name="email" type="email" autocomplete="email" required maxlength="254">
 <p><label><input type="checkbox" name="accept_terms" value="1" required> I accept the <a href="https://factlot.com/terms">terms</a> and <a href="https://factlot.com/privacy">privacy policy</a>.</label></p>
 ${lifecycle ? `<p><label><input type="checkbox" name="lifecycle_emails" value="1"> ${escapeHtml(freeConsentText())}</label></p>\n<p class="small">${escapeHtml(CONSENT_FOOTNOTE)}</p>` : ""}
@@ -522,17 +499,20 @@ function accountFacts(s: AccountSummary, receipts?: string): string {
   const st = statusText(s);
   const q = s.registry_lookups;
   const left = Math.max(0, q.limit - q.used);
-  return `<dl class="facts">
+  // This month's use, as readouts: the same rows and words, set apart from the plan's terms.
+  return `<dl class="usage">
+<div><dt>Registry lookups</dt><dd><progress max="${q.limit}" value="${Math.min(q.used, q.limit)}" aria-label="Registry lookups used">${q.used} of ${q.limit}</progress><br>${q.used.toLocaleString("en-US")} of ${q.limit.toLocaleString("en-US")} used this month (${left.toLocaleString("en-US")} left); resets ${escapeHtml(utc(q.resets_at))}</dd></div>
+<div><dt>Reports</dt><dd>${s.reports.used.toLocaleString("en-US")} of ${s.reports.limit.toLocaleString("en-US")} built this month with <code>report_create</code> (XLSX, PDF, ICS); resets ${escapeHtml(utc(s.reports.resets_at))}</dd></div>
+<div><dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd></div>
+</dl>
+<dl class="facts">
 <dt>Status</dt><dd${st.warn ? ' class="warn"' : ""}>${escapeHtml(st.text)}</dd>
 <dt>Price</dt><dd>${escapeHtml(s.price)}, renews monthly until cancelled</dd>
 ${s.renewal_at ? `<dt>Renewal</dt><dd>Renews on ${escapeHtml(day(s.renewal_at))}</dd>` : ""}
 ${s.ends_at ? `<dt>Ends</dt><dd class="warn">Ends on ${escapeHtml(day(s.ends_at))}; it will not renew</dd>` : ""}
 ${receipts ? `<dt>Receipts</dt><dd>Stripe emails receipts to ${escapeHtml(receipts)}</dd>` : ""}
 <dt>Rate limit</dt><dd>${s.requests_per_minute.toLocaleString("en-US")} requests a minute per key</dd>
-<dt>Registry lookups</dt><dd><progress max="${q.limit}" value="${Math.min(q.used, q.limit)}" aria-label="Registry lookups used">${q.used} of ${q.limit}</progress><br>${q.used.toLocaleString("en-US")} of ${q.limit.toLocaleString("en-US")} used this month (${left.toLocaleString("en-US")} left); resets ${escapeHtml(utc(q.resets_at))}</dd>
-<dt>Reports</dt><dd>${s.reports.used.toLocaleString("en-US")} of ${s.reports.limit.toLocaleString("en-US")} built this month with <code>report_create</code> (XLSX, PDF, ICS); resets ${escapeHtml(utc(s.reports.resets_at))}</dd>
 <dt>Model-backed tools</dt><dd>${modelFacts(s)}</dd>
-<dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd>
 <dt>What counts</dt><dd>${escapeHtml(LOOKUP_RULE)} ${escapeHtml(REPORT_RULE)}</dd>
 ${s.payment_failed_at ? `<dt>Last failed payment</dt><dd class="warn">${escapeHtml(utc(s.payment_failed_at))}</dd>` : ""}
 ${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} unless the key is active again</dd>` : ""}

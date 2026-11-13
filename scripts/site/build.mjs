@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-// Builds factlot.com into one folder: copies site/ (without its notes and _content/) and renders
+// Builds factlot.com into one folder: copies site/ (without its notes and anything named _*) and renders
 // the pages generated from the tool catalog and the shared vectors. Every number on a generated
 // page is computed here by the built packages and checked against a vector case, and the build
 // fails on a broken internal link, an external script or stylesheet, or JSON-LD that does not parse.
 //
 //   npm run build && node scripts/site/build.mjs [outDir]   (default deploy/cloudflare/public)
+import { Buffer } from "node:buffer";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { transformSync } from "esbuild";
 
 import {
   countyBody,
@@ -25,8 +28,26 @@ import {
   hubHostedTable,
   hubRollSentence,
   hubCountyLinks,
+  hubReadouts,
+  countyReadouts,
+  texasMap,
 } from "./texas-pages.mjs";
-import { connectBody, connectJson } from "./connect.mjs";
+import {
+  connectBody,
+  connectData,
+  connectFigure,
+  connectJson,
+} from "./connect.mjs";
+import {
+  HOME_CONNECT,
+  connectTile,
+  coveragePreview,
+  factCard,
+  flowTall,
+  flowWide,
+  platSvg,
+  texasSoftwareSentence,
+} from "./home.mjs";
 import {
   buildCoverageCatalog,
   loadSourceConfigs,
@@ -34,12 +55,16 @@ import {
 import {
   hostedMarkets,
   marketBody,
+  marketCard,
   marketDescription,
   marketLinks,
   marketTitle,
   sourceNotices,
 } from "./market-pages.mjs";
 import { FIELDS_LEAD, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
+import { headLinks, siteFooter, siteHeader } from "./shell.mjs";
+import { published } from "./site-files.mjs";
+import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import {
   indexBody,
   indexDescription,
@@ -102,6 +127,57 @@ function lastmod(files) {
   return d || TODAY;
 }
 
+// Plan facts from site/_data/plans.json (scripts/site/gen-plans.ts writes it from deploy/cloudflare/src/plans.ts):
+// what needs a Pro or Team key, how a lookup is counted, prices and the checkout links /v1/plans gives. The
+// pricing, home, MCP and Try pages state them through these {{PLAN_*}} placeholders, so none of them can drift.
+const plansData = readJson("site/_data/plans.json");
+/** Escaped text with each snake_case identifier (registry_get, as_of, registry_*) as code. */
+const codeify = (text) =>
+  esc(text).replace(
+    /\bregistry_\*|\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g,
+    (m) => `<code>${m}</code>`,
+  );
+const proPlan = plansData.paid.find((p) => p.id === "pro");
+const teamPlan = plansData.paid.find((p) => p.id === "team");
+const grouped = (v) => v.toLocaleString("en-US");
+// The paid-only entries as a list: the sentence's own opening, then one item per entry with what
+// Free gets instead. The sentence must be exactly its entries, so the list cannot say otherwise.
+const paidOnlyLead = plansData.paid_only_text.split(": ")[0];
+{
+  const whats = plansData.paid_only.map((f) => f.what);
+  if (
+    plansData.paid_only_text !==
+    `${paidOnlyLead}: ${whats.slice(0, -1).join("; ")}; and ${whats.at(-1)}.`
+  )
+    throw new Error("plans.json: paid_only_text is not its paid_only entries");
+}
+const PLAN_VARS = {
+  PLAN_PAID_ONLY_LEAD: esc(paidOnlyLead),
+  PLAN_PAID_ONLY_LIST: `<ul class="paid-only">
+${plansData.paid_only.map((f) => `<li>${codeify(f.what)}<br /><span class="small">Free: ${codeify(f.free)}</span></li>`).join("\n")}
+</ul>`,
+  PLAN_FREE_RPM: grouped(plansData.free.requests_per_minute),
+  PLAN_FREE_LOOKUPS_DAY: grouped(plansData.free.registry_lookups_per_day),
+  PLAN_FREE_REPORTS: grouped(plansData.free.reports_per_month),
+  PLAN_PRO_KEYS: grouped(proPlan.keys),
+  PLAN_PRO_RPM: grouped(proPlan.requests_per_minute),
+  PLAN_PRO_LOOKUPS: grouped(proPlan.registry_lookups_per_month),
+  PLAN_PRO_REPORTS: grouped(proPlan.reports_per_month),
+  PLAN_TEAM_MONTHLY_USD: String(teamPlan.usd_per_month),
+  PLAN_TEAM_KEYS: grouped(teamPlan.keys),
+  PLAN_TEAM_RPM: grouped(teamPlan.requests_per_minute),
+  PLAN_TEAM_LOOKUPS: grouped(teamPlan.registry_lookups_per_month),
+  PLAN_TEAM_REPORTS: grouped(teamPlan.reports_per_month),
+  PLAN_PAID_ONLY: codeify(plansData.paid_only_text),
+  PLAN_LOOKUP_COUNTED: codeify(plansData.lookup_counted),
+  PLAN_FREE_KEY_NOTE: esc(plansData.free.free_key_note),
+  PLAN_PRO_MONTHLY_USD: String(proPlan.usd_per_month),
+  PLAN_PRO_YEARLY_USD: String(proPlan.usd_per_year),
+  PLAN_CHECKOUT_PRO: esc(plansData.checkout.pro),
+  PLAN_CHECKOUT_PRO_YEARLY: esc(plansData.checkout.pro_yearly),
+  PLAN_CHECKOUT_TEAM: esc(plansData.checkout.team),
+};
+
 function fill(template, vars) {
   return template.replace(/\{\{([A-Z_]+)\}\}/g, (m, k) => {
     if (!(k in vars)) throw new Error(`no value for ${m}`);
@@ -109,25 +185,87 @@ function fill(template, vars) {
   });
 }
 
-const NAV = [
-  ["/try/", "Try it"],
-  ["/calculators/", "Calculators"],
-  ["/mcp-server/", "MCP server"],
-  ["/connect/", "Connect"],
-  ["/texas/", "Texas"],
-  ["/coverage/", "Coverage"],
-  [`${REPO}/blob/main/docs/getting-started.md`, "Docs"],
-  ["/pricing/", "Pricing"],
-];
+const text = (html) =>
+  html
+    .replace(/<[^>]+>/g, "")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&amp;", "&")
+    .replace(/\s+/g, " ")
+    .trim();
 
-/** The trust package, in reading order: how it is run, what is promised, how numbers are proven. */
-const TRUST = [
-  ["/status/", "Status"],
-  ["/security/", "Security"],
-  ["/sla/", "Service levels"],
-  ["/assurance/", "Assurance"],
-];
+/**
+ * The body with an id on every h2 (a heading without one gets its words, lower-cased and
+ * hyphenated), and the sections for the contents list: [id, text] of each h2 that is not a
+ * card's or a boxed panel's heading.
+ */
+function sections(body) {
+  const taken = new Set([...body.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
+  const list = [];
+  const out = body.replace(
+    /<h2\b([^>]*)>([\s\S]*?)<\/h2>/g,
+    (whole, attrs, inner, offset) => {
+      const before = body.slice(0, offset).trimEnd();
+      if (/<article class="[^"]*">$/.test(before)) return whole;
+      let id = /\bid="([^"]+)"/.exec(attrs)?.[1];
+      if (!id) {
+        const base =
+          text(inner)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || "section";
+        id = base;
+        for (let n = 2; taken.has(id); n += 1) id = `${base}-${n}`;
+        taken.add(id);
+        attrs += ` id="${id}"`;
+      }
+      // A boxed section's heading: the contents list points at the box.
+      const box = /<section class="[^"]*" id="([^"]+)"[^>]*>$/.exec(before);
+      list.push([box ? box[1] : id, text(inner)]);
+      return `<h2${attrs}>${inner}</h2>`;
+    },
+  );
+  return { body: out, list };
+}
 
+/**
+ * A table marked `stack` becomes one box per row on a phone, so each cell takes its column's
+ * heading as `data-label` (the row's own heading is the first column).
+ */
+function labelCells(table) {
+  const heads = [
+    ...(/<thead>[\s\S]*?<\/thead>/.exec(table)?.[0] ?? "").matchAll(
+      /<th\b[^>]*>([\s\S]*?)<\/th>/g,
+    ),
+  ].map((m) => text(m[1]));
+  return table.replace(/<tr>([\s\S]*?)<\/tr>/g, (row, cells) => {
+    let i = /<th\b/.test(cells) ? 1 : 0;
+    return `<tr>${cells.replace(/<td\b/g, () => `<td data-label="${esc(heads[i++] ?? "")}"`)}</tr>`;
+  });
+}
+
+/**
+ * Every table in a box: one it can scroll in, so a wide table never widens the page, or, for a
+ * table marked `stack`, one that lets its rows stand as boxes on a phone.
+ */
+const boxTables = (body) =>
+  body.replace(/<table\b[\s\S]*?<\/table>/g, (table, offset) =>
+    /<div class="(?:covscroll|tablewrap)[^"]*">$/.test(
+      body.slice(0, offset).trimEnd(),
+    )
+      ? table
+      : /^<table class="stack"/.test(table)
+        ? `<div class="tablewrap stacks">${labelCells(table)}</div>`
+        : `<div class="tablewrap">${table}</div>`,
+  );
+
+/**
+ * A page. `lead`: HTML under the title (a page type's own figures). `figure`: HTML beside the
+ * title on a wide screen and under it on a narrow one (a map, a fact card, a specification).
+ * Both say only what the page's body says. `contents`: false leaves out the "On this page" list
+ * (a page whose body needs the full width).
+ */
 function layout({
   urlPath,
   title,
@@ -137,6 +275,9 @@ function layout({
   crumbs,
   jsonld = [],
   scripts = [],
+  lead = "",
+  figure = "",
+  contents = true,
 }) {
   const url = SITE + urlPath;
   const breadcrumb = {
@@ -159,6 +300,17 @@ function layout({
     .map(([p, name]) => `<a href="${p}">${esc(name)}</a>`)
     .concat(esc(crumbs.at(-1)[1]))
     .join(" › ");
+  const { body: withIds, list } = sections(body);
+  const toc =
+    contents && list.length >= 3
+      ? `<nav class="toc" aria-label="On this page">
+<p>On this page</p>
+<ol>
+${list.map(([id, label]) => `<li><a href="#${id}">${esc(label)}</a></li>`).join("\n")}
+</ol>
+</nav>
+`
+      : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -178,50 +330,41 @@ function layout({
 <meta property="og:description" content="${esc(description)}" />
 <meta property="og:image" content="${SITE}/social-preview.png" />
 <meta name="twitter:card" content="summary_large_image" />
+${headLinks()}
 <link rel="stylesheet" href="/styles.css" />
 ${ld}
 ${scripts.map((src) => `<script src="${src}" defer></script>`).join("\n")}
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="site-header">
-<div class="wrap row">
-<a class="brand" href="/" aria-label="FactLot home">FactLot</a>
-<nav aria-label="Site">
-<ul>
-${NAV.map(([href, label]) => `<li><a href="${href}"${href === urlPath ? ' aria-current="page"' : ""}>${label}</a></li>`).join("\n")}
-</ul>
-</nav>
-</div>
-</header>
+${siteHeader({ current: urlPath })}
 <main id="main">
 <section aria-labelledby="page-title">
-<div class="wrap">
+<div class="wrap doc${toc ? " has-toc" : ""}">
+<header class="doc-head${figure ? " has-figure" : ""}">
+<div class="doc-title">
 <p class="small breadcrumbs">${crumbHtml}</p>
 <h1 id="page-title">${esc(h1)}</h1>
-${body}
+${lead}
 </div>
+${figure ? `<div class="doc-figure">\n${figure}\n</div>` : ""}
+</header>
+<div class="doc-body">
+${boxTables(withIds)}
+</div>
+${toc}</div>
 </section>
 </main>
-<footer class="site-footer">
-<div class="wrap">
-<p>
-<a href="${REPO}">GitHub</a> ·
-<a href="mailto:contact@factlot.com">contact@factlot.com</a> ·
-<a href="/privacy">Privacy</a> ·
-<a href="/terms">Terms</a> ·
-<a href="${REPO}/blob/main/LICENSE">Apache-2.0 (platform) and MIT (schema and SDKs)</a>
-</p>
-<p>
-Trust: ${TRUST.map(([p, name]) => `<a href="${p}">${name}</a>`).join(" · ")}${stories.length ? ' · Data: <a href="/data/">Data stories</a>' : ""}
-</p>
-<p class="small">"FactLot" and the FactLot logo are trademarks of their owner. The open-source licences cover the code, not the name.</p>
-</div>
-</footer>
+${siteFooter({ stories: stories.length > 0 })}
 </body>
 </html>
 `;
 }
+
+/** A specification plate: [label, html] rows, set like a title block on a drawing. */
+const spec = (rows) => `<dl class="spec">
+${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join("\n")}
+</dl>`;
 
 const pages = []; // { urlPath, html, sources }
 // The Worker strips trailing slashes and answers these paths itself on every host
@@ -342,10 +485,18 @@ addPage(
       "FactLot's hosted MCP server gives AI agents CRE calculators with audit trails, lease document verification, property IDs and cited public-record facts. No API key.",
     h1: "Commercial real estate MCP server",
     crumbs: [["/mcp-server/", "MCP server"]],
-    body: fill(read("site/_content/mcp.html"), { VERSION }),
+    figure: `${spec([
+      ["Remote URL", "<code>https://api.factlot.com/mcp</code>"],
+      ["Transport", "Streamable HTTP, stateless"],
+      ["Registry name", "<code>io.github.9mp96ygnbk-alt/factlot</code>"],
+    ])}
+<ul class="families" aria-label="Tool families">
+${["calc_*", "doc_*", "id_*", "fact_*", "rules_*", "registry_*", "report_create", "search", "fetch", "schema_get"].map((f) => `<li><code>${f}</code></li>`).join("\n")}
+</ul>`,
+    body: fill(read("site/_content/mcp.html"), { VERSION, ...PLAN_VARS }),
     scripts: ["/try/freekey.js"],
   },
-  ["site/_content/mcp.html", "site/try/freekey.js"],
+  ["site/_content/mcp.html", "site/try/freekey.js", "site/_data/plans.json"],
 );
 
 // --- /connect/ and /connect.json ---------------------------------------------------------------
@@ -361,6 +512,7 @@ addPage(
       "How to connect FactLot's hosted MCP server to Claude, ChatGPT, Gemini, Microsoft Copilot Studio, Amazon Bedrock, Cursor, VS Code, Windsurf, Zed and agent frameworks: the URL, command or config to paste, and whether a key is needed.",
     h1: "Connect FactLot to your AI client",
     crumbs: [["/connect/", "Connect"]],
+    figure: connectFigure(connectRaw, VERSION),
     body: connectBody(connectRaw, VERSION),
   },
   [
@@ -384,6 +536,7 @@ addPage(
     h1: "Try a lookup",
     crumbs: [["/try/", "Try a lookup"]],
     body: fill(read("site/_content/try.html"), {
+      ...PLAN_VARS,
       TEXAS_LINKS: tryTexasLinks(
         readJson("site/_data/texas-counties.json").counties,
         readJson("site/_data/texas-examples.json").examples.map(
@@ -399,6 +552,7 @@ addPage(
     "scripts/site/texas-pages.mjs",
     "site/try/try.js",
     "site/try/freekey.js",
+    "site/_data/plans.json",
   ],
 );
 
@@ -414,12 +568,13 @@ addPage(
       "FactLot's hosted API: Free, Pro ($49 a month or $490 a year) and Team ($599 a month). What each plan includes, request rates, registry lookups, reports, what counts as a lookup, and how to cancel.",
     h1: "Pricing",
     crumbs: [["/pricing/", "Pricing"]],
-    body: fill(read("site/_content/pricing.html"), { REPO }),
+    body: fill(read("site/_content/pricing.html"), { REPO, ...PLAN_VARS }),
     scripts: ["/try/freekey.js"],
   },
   [
     "site/_content/pricing.html",
     "deploy/cloudflare/src/plans.ts",
+    "site/_data/plans.json",
     "site/try/freekey.js",
   ],
 );
@@ -475,6 +630,12 @@ for (const m of manifest) {
         ["/calculators/", "Calculators"],
         [`/calculators/${m.slug}/`, m.title],
       ],
+      figure: spec([
+        ["Tool", `<code>${esc(m.tool)}</code>`],
+        ["Formula", `<code>${esc(formulaId)}</code>`],
+        ["REST", `<code>https://api.factlot.com${esc(tool.path)}</code>`],
+        ["MCP", "<code>https://api.factlot.com/mcp</code>"],
+      ]),
       body: `<p class="lede">${esc(m.description)}</p>
 ${read(fragmentRel)}
 <h2 id="example">Worked example</h2>
@@ -514,8 +675,13 @@ addPage(
     h1: "Commercial real estate calculators",
     crumbs: [["/calculators/", "Calculators"]],
     body: `<p class="lede">FactLot has ${calcTools.length} calculators for lease economics, debt, valuation and returns. Each returns the value, every intermediate step with its formula, warnings, and a versioned formula ID, so an analyst or an AI agent can show exactly how a number was made. The TypeScript and Python libraries produce identical results, checked by shared test cases.</p>
-<div class="cards">
-${manifest.map((m) => `<article class="card"><h2><a href="/calculators/${m.slug}/">${esc(m.h1)}</a></h2><p>${esc(m.description)}</p></article>`).join("\n")}
+<div class="cards catalogue">
+${manifest
+  .map((m) => {
+    const t = toolByName.get(m.tool);
+    return `<article class="card"><h2><a href="/calculators/${m.slug}/">${esc(m.h1)}</a></h2><p>${esc(m.description)}</p><p class="card-ids"><code>${esc(m.tool)}</code> <code>${esc(`${t.formula.id}@${t.formula.version}`)}</code></p></article>`;
+  })
+  .join("\n")}
 </div>
 <h2 id="all">Every calculator</h2>
 <p>All of them run on the hosted <a href="/mcp-server/">MCP server</a> and REST API, and offline in the SDKs.</p>
@@ -617,6 +783,10 @@ ${rows
   );
 }
 
+// The county boundaries the maps are drawn from (scripts/site/coverage-geometry.mjs wrote the file).
+const geoRel = "site/_content/coverage-geometry.json";
+const geo = readJson(geoRel);
+
 // --- /texas/ hub ------------------------------------------------------------------------------------
 
 {
@@ -633,6 +803,8 @@ ${rows
       description: `Roll values by year, candidate comparables under a stated rule, the unequal-appraisal arithmetic and the deadline rule for Texas commercial accounts: ${hubTotal.toLocaleString("en-US")} parcels in ${countWord(hubCounties.length)} counties, from $49 a month. Software, not advice.`,
       h1: "Unequal-appraisal evidence for commercial accounts, cited to the appraisal roll",
       crumbs: [["/texas/", "Texas"]],
+      lead: hubReadouts(hubCounties),
+      figure: texasMap(geo, hubCounties),
       body: fill(read("site/_content/texas.html"), {
         COUNTY_COUNT: countWord(hubCounties.length),
         VALUE_COUNTY_COUNT: valueCountyCount(hubCounties),
@@ -692,6 +864,8 @@ const fieldsOf = (fips) => {
           ["/texas/", "Texas"],
           [`/texas/${c.slug}/`, `${c.name} County`],
         ],
+        lead: countyReadouts(c),
+        figure: texasMap(geo, counties, c.slug),
         body: countyBody(
           c,
           countyTpl,
@@ -760,6 +934,7 @@ const hostedJson = readJson("site/_data/hosted.json");
           ["/coverage/", "Coverage"],
           [`/${m.slug}/`, m.title.split(": ")[0]],
         ],
+        figure: marketCard(d),
         body: marketBody(
           m,
           d,
@@ -829,11 +1004,11 @@ if (stories.length) {
 // --- County coverage map -------------------------------------------------------------------
 
 let coverageJson;
+let coverageMini;
+let homeCoverage;
 {
   const covRel = "docs/registry/coverage-counties.json";
-  const geoRel = "site/_content/coverage-geometry.json";
   const cov = readJson(covRel);
-  const geo = readJson(geoRel);
   const CLASSES = ["hosted", "audited_load", "cited_load"];
   const LABEL = {
     hosted: "Hosted lookups",
@@ -850,45 +1025,20 @@ let coverageJson;
       throw new Error(`coverage: ${fips} has no boundary`);
   }
   // Tiny counties (DC, Manhattan) get a dot so they can be seen and tapped.
-  const box = (d) => {
-    const xs = [],
-      ys = [];
-    let x = 0,
-      y = 0;
-    for (const [, cmd, body] of d.matchAll(/([MlZ])([^MlZ]*)/g)) {
-      const nums = (body.match(/-?\d*\.?\d+/g) ?? []).map(Number);
-      if (cmd === "M") {
-        [x, y] = nums;
-        xs.push(x);
-        ys.push(y);
-      }
-      if (cmd === "l")
-        for (let i = 0; i + 1 < nums.length; i += 2) {
-          x += nums[i];
-          y += nums[i + 1];
-          xs.push(x);
-          ys.push(y);
-        }
-    }
-    return {
-      x0: Math.min(...xs),
-      x1: Math.max(...xs),
-      y0: Math.min(...ys),
-      y1: Math.max(...ys),
-    };
-  };
   const ordered = entries.sort(
     (a, b) => CLASSES.indexOf(b[1].class) - CLASSES.indexOf(a[1].class),
   );
+  const titleOf = (c) =>
+    `${c.name}, ${c.state}: ${LABEL[c.class]}${c.area ? ` for ${c.area} only` : ""}${c.withheld ? ` (${c.withheld})` : ""}. ${fmtN(c.commercial_parcels)} commercial parcels, data as of ${c.data_as_of}.`;
   const shapes = ordered
     .map(([fips, c]) => {
-      const t = `<title>${esc(c.name)}, ${esc(c.state)}: ${LABEL[c.class]}${c.area ? ` for ${esc(c.area)} only` : ""}${c.withheld ? ` (${esc(c.withheld)})` : ""}. ${fmtN(c.commercial_parcels)} commercial parcels, data as of ${c.data_as_of}.</title>`;
+      const t = `<title>${esc(titleOf(c))}</title>`;
       const b = box(geo.counties[fips].d);
       const dot =
         Math.max(b.x1 - b.x0, b.y1 - b.y0) < 6
           ? `<circle cx="${((b.x0 + b.x1) / 2).toFixed(1)}" cy="${((b.y0 + b.y1) / 2).toFixed(1)}" r="4.5" class="dot"/>`
           : "";
-      return `<g class="cty cov-${c.class}" data-fips="${fips}" tabindex="0">${t}<path d="${geo.counties[fips].d}"/>${dot}</g>`;
+      return `<g class="cty cov-${c.class}" data-fips="${fips}" tabindex="0">${t}<path id="p${fips}" d="${geo.counties[fips].d}"/>${dot}</g>`;
     })
     .join("\n");
   const n = Object.fromEntries(
@@ -910,11 +1060,25 @@ let coverageJson;
   const svg = `<svg class="covsvg" viewBox="${geo.viewBox}" role="img" aria-labelledby="covsvg-t covsvg-d" xmlns="http://www.w3.org/2000/svg">
 <title id="covsvg-t">FactLot commercial property data coverage by US county</title>
 <desc id="covsvg-d">${n.hosted} counties with hosted lookups; ${n.audited_load + n.cited_load} counties built in the open-source pipeline only, not on the hosted API (${n.audited_load} audited, ${n.cited_load} not audited); the other ${total - entries.length} counties are grey. The lists are below the map.</desc>
-<path class="nation" d="${geo.nation}"/>
+<path class="nation" id="cov-nation" d="${geo.nation}"/>
 ${shapes}
-<path class="cmesh" d="${geo.countyMesh}"/>
-<path class="smesh" d="${geo.stateMesh}"/>
+<path class="cmesh" id="cov-cmesh" d="${geo.countyMesh}"/>
+<path class="smesh" id="cov-smesh" d="${geo.stateMesh}"/>
 </svg>`;
+  // The insets: the same counties and classes, where the hosted ones are large enough to read.
+  const classed = ordered.map(([fips, c]) => ({
+    fips,
+    cls: c.class,
+    title: titleOf(c),
+  }));
+  const insets = `<div class="insets">
+${INSETS.map((i) => `<div class="insetfig">\n${insetSvg(geo, i, classed, { idPrefix: "cov", refs: true })}\n<p>${esc(i.name)}</p>\n</div>`).join("\n")}
+</div>`;
+  coverageMini = miniMapSvg(geo, hostedFips);
+  homeCoverage = coveragePreview(
+    geo,
+    classed.filter((c) => c.cls === "hosted"),
+  );
   // The hosted counties are the field table's rows; this list is the counties the hosted API does not serve.
   const byState = {};
   for (const [fips, c] of entries)
@@ -974,6 +1138,7 @@ ${Object.keys(byState)
   addPage(
     {
       urlPath: "/coverage/",
+      contents: false,
       title: "County coverage map: commercial property data | FactLot",
       description: `Which US counties FactLot serves on its hosted API (${n.hosted}) and which are built in its open-source pipeline only (${n.audited_load + n.cited_load}), as of ${long}, with the facts each hosted county holds. Everything else is grey.`,
       h1: "County coverage",
@@ -1005,6 +1170,7 @@ ${Object.keys(byState)
       ],
       body: fill(read("site/_content/coverage.html"), {
         COV_SVG: svg,
+        COV_INSETS: insets,
         COV_N_HOSTED: String(n.hosted),
         COV_N_AUDITED: String(n.audited_load),
         COV_N_CITED: String(n.cited_load),
@@ -1023,6 +1189,7 @@ ${Object.keys(byState)
     },
     [
       "site/_content/coverage.html",
+      "scripts/site/coverage-maps.mjs",
       covRel,
       geoRel,
       fieldsRel,
@@ -1041,13 +1208,24 @@ ${Object.keys(byState)
 
 {
   const trustCrumb = (slug, name) => [[`/${slug}/`, name]];
-  const trustPage = (slug, title, description, h1, fragment, vars = {}) =>
+  // `head`: a page's own figures beside or under its title ({ lead, figure }), from the same
+  // values its text is filled with; a page with nothing to count has none.
+  const trustPage = (
+    slug,
+    title,
+    description,
+    h1,
+    fragment,
+    vars = {},
+    head = {},
+  ) =>
     addPage(
       {
         urlPath: `/${slug}/`,
         title: `${title} | FactLot`,
         description,
         h1,
+        ...head,
         crumbs: trustCrumb(slug, title),
         body: fill(read(`site/_content/${fragment}`), {
           VERSION,
@@ -1064,6 +1242,17 @@ ${Object.keys(byState)
     "How FactLot's hosted service is checked, the live health endpoint, the incident history and how to report a problem. No uptime percentage is shown because none is measured.",
     "Service status",
     "status.html",
+    {},
+    {
+      // The check the page gives: the health endpoint and its answer for this version.
+      figure: spec([
+        ["Check", "<code>curl -s https://api.factlot.com/health</code>"],
+        [
+          "Answer",
+          `<code>${esc(JSON.stringify({ ok: true, version: VERSION }))}</code>`,
+        ],
+      ]),
+    },
   );
   trustPage(
     "security",
@@ -1146,6 +1335,14 @@ ${Object.keys(byState)
         )
         .join(", "),
     },
+    {
+      // The sizes the page says are counted at build, as it counts them.
+      lead: `<dl class="stats">
+<div><dt>Shared test cases</dt><dd>${vectorCases}</dd></div>
+<div><dt>Vector files</dt><dd>${vectorFiles}</dd></div>
+<div><dt>Calculators</dt><dd>${calcTools.length}</dd></div>
+</dl>`,
+    },
   );
 }
 
@@ -1154,21 +1351,85 @@ ${Object.keys(byState)
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(root, "site"), out, {
   recursive: true,
-  filter: (src) => {
-    const rel = path.relative(path.join(root, "site"), src);
-    return (
-      !rel.startsWith("_content") &&
-      !rel.startsWith("_data") &&
-      !rel.endsWith(".md")
-    );
-  },
+  filter: (src) => published(path.relative(path.join(root, "site"), src)),
 });
+// The hand-written pages name the shell where it goes; the same header, footer and head links as
+// every generated page are put there. Nothing else in them is touched.
+for (const [file, urlPath] of [
+  ["privacy.html", "/privacy"],
+  ["terms.html", "/terms"],
+  ["404.html", ""],
+]) {
+  const at = path.join(out, file);
+  fs.writeFileSync(
+    at,
+    fill(fs.readFileSync(at, "utf8"), {
+      HEAD_LINKS: headLinks(),
+      SITE_HEADER: siteHeader({ current: urlPath }),
+      SITE_FOOTER: siteFooter({ stories: stories.length > 0 }),
+    }),
+  );
+}
+
+// The stylesheet is served without its comments and the white space between rules. esbuild parses
+// it, so a comment marker inside a string or a url() is left alone; only white space is minified,
+// and no rule or value is rewritten for an older browser.
+{
+  const file = path.join(out, "styles.css");
+  const { code, warnings } = transformSync(fs.readFileSync(file, "utf8"), {
+    loader: "css",
+    minifyWhitespace: true,
+    legalComments: "none",
+  });
+  if (warnings.length > 0)
+    throw new Error(`styles.css: ${warnings.map((w) => w.text).join("; ")}`);
+  const bytes = Buffer.byteLength(code);
+  if (bytes > 60_000)
+    throw new Error(
+      `styles.css is ${bytes} bytes as served; the limit is 60,000`,
+    );
+  fs.writeFileSync(file, code);
+}
+// The home page states plan facts through the same placeholders as the generated pages, takes the
+// shared shell, and its figures are drawn here from the data other pages are built from: the
+// Harris County worked example, the coverage geometry, connect.json and plans.json.
+{
+  const harris = readJson("site/_data/texas-examples.json").examples.find(
+    (e) => e.county === "harris",
+  );
+  if (!harris) throw new Error("home: no Harris County worked example");
+  const connect = connectData(connectRaw, VERSION);
+  fs.writeFileSync(
+    path.join(out, "index.html"),
+    fill(read("site/index.html"), {
+      ...PLAN_VARS,
+      HEAD_LINKS: headLinks(),
+      SITE_HEADER: siteHeader({ current: "/", brandHref: "#top" }),
+      SITE_FOOTER: siteFooter({ stories: stories.length > 0 }),
+      PLAT: platSvg(),
+      FACT_CARD: factCard(harris, "/texas/harris/example/"),
+      FLOW: `${flowWide(harris)}\n${flowTall(harris)}`,
+      COVERAGE_PREVIEW: homeCoverage,
+      CALC_COUNT: String(calcTools.length),
+      TEXAS_SOFTWARE_SENTENCE: esc(
+        texasSoftwareSentence(read("site/_content/texas.html")),
+      ),
+      CONNECT_CLAUDE: connectTile(connect, HOME_CONNECT.claude),
+      CONNECT_CHATGPT: connectTile(connect, HOME_CONNECT.chatgpt),
+      CONNECT_GEMINI: connectTile(connect, HOME_CONNECT.gemini),
+      CONNECT_MICROSOFT: connectTile(connect, HOME_CONNECT.microsoft),
+      CONNECT_AMAZON: connectTile(connect, HOME_CONNECT.amazon),
+      CONNECT_OTHERS: connectTile(connect, HOME_CONNECT.others),
+    }),
+  );
+}
 for (const p of pages) {
   const file = path.join(out, p.urlPath, "index.html");
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, p.html);
 }
 fs.writeFileSync(path.join(out, "coverage", "counties.json"), coverageJson);
+fs.writeFileSync(path.join(out, "coverage", "map-mini.svg"), coverageMini);
 fs.writeFileSync(
   path.join(out, "connect.json"),
   connectJson(connectRaw, VERSION),
@@ -1201,7 +1462,7 @@ fs.writeFileSync(
 );
 
 const staticPages = [
-  ["/", ["site/index.html"]],
+  ["/", ["site/index.html", "site/_data/plans.json"]],
   ["/privacy", ["site/privacy.html"]],
   ["/terms", ["site/terms.html"]],
   ["/llms.txt", ["site/llms.txt"]],

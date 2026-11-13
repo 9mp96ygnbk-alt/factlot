@@ -1,0 +1,9 @@
+{
+  "example": "harris",
+  "urn": "fl:parcel:us-48201:0011440000001",
+  "label": "1000 LOUISIANA ST, HOUSTON TX 77002",
+  "market_value": 303755215,
+  "year_built": 1983,
+  "as_of": "2026-11-01",
+  "locator": "real_acct.txt acct 0011440000001"
+}

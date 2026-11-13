@@ -6246,7 +6246,7 @@
     {
       "type": "function",
       "name": "registry_owned_by",
-      "description": "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence), each with the building it belongs to, plus a per-building summary so condominium units count once per building. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Commercial parcels currently linked to a legal entity as owner of record (inferred links carry a confidence), each with the building it belongs to, plus a per-building summary so condominium units count once per building. On the hosted API, a call without a Pro or Team key gets the first three parcels, with every row of each and their buildings (the answer says how many were left out in portfolio_withheld and portfolio_note); a Pro or Team key gets every parcel. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "parameters": {
         "type": "object",
         "properties": {

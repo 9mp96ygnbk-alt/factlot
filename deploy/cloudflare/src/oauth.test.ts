@@ -1592,3 +1592,222 @@ describe("property_sheet over an OAuth connection", () => {
     assert.ok(x.includes("1010101") && x.includes("7777777"));
   });
 });
+
+describe("every PAID_ONLY entry applies to a free connection", () => {
+  const parcels = (n: number) =>
+    Array.from({ length: n }, (_, i) => `fl:parcel:us-11001:${i}`);
+  const ENTITY = "fl:entity:us-dc:e1";
+  const answerOf = (name: string, args: Record<string, unknown>): unknown => {
+    if (name === "registry_owned_by")
+      return {
+        results: parcels(5).map((urn) => ({ urn })),
+        coverage: { loaded: true },
+      };
+    if (name !== "registry_get") return { coverage: { county_loaded: true } };
+    if (args.urn === ENTITY)
+      return {
+        kind: "entity",
+        urn: ENTITY,
+        relationships: parcels(5).map((p) => ({
+          type: "owns",
+          from_urn: ENTITY,
+          to_urn: p,
+        })),
+        coverage: { loaded: true },
+      };
+    if (args.urn === "sales")
+      return {
+        urn: "sales",
+        facts: ["2020-01-01", "2024-01-01"].map((d, i) => ({
+          id: `s${i}`,
+          predicate: "transaction.sale",
+          value: { recorded_date: d, amount: i + 1 },
+        })),
+        coverage: { county_loaded: true },
+      };
+    return {
+      urn: "hist",
+      facts: [{ id: "f2", predicate: "parcel.market_value", value: 2 }],
+      value_history: [
+        { tax_year: 2026, market_value: 2 },
+        { tax_year: 2025, market_value: 1 },
+      ],
+      history: [
+        { id: "f2", predicate: "parcel.market_value", value: 2 },
+        { id: "f1", predicate: "parcel.market_value", value: 1 },
+      ],
+      coverage: { county_loaded: true },
+    };
+  };
+  const registryInner: Fetcher = {
+    fetch: async (r: Request) => {
+      const m = JSON.parse(await r.text()) as {
+        id: number;
+        method: string;
+        params?: { name: string; arguments?: Record<string, unknown> };
+      };
+      const result =
+        m.method === "tools/list"
+          ? { tools: [] }
+          : (() => {
+              const a = answerOf(m.params!.name, m.params!.arguments ?? {});
+              return {
+                content: [{ type: "text", text: JSON.stringify(a) }],
+                structuredContent: a,
+              };
+            })();
+      return new Response(
+        JSON.stringify({ jsonrpc: "2.0", id: m.id, result }),
+        {
+          headers: { "content-type": "application/json" },
+        },
+      );
+    },
+  };
+  type Result = {
+    isError?: boolean;
+    structuredContent?: Record<string, unknown>;
+    tools?: { name: string }[];
+  };
+  async function rpc(
+    e: TestEnv,
+    token: string,
+    method: string,
+    params: unknown = {},
+  ): Promise<Result> {
+    const res = await handle(
+      new Request(`${API}/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          authorization: `Bearer ${token}`,
+          "cf-connecting-ip": IP,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      }),
+      e,
+      registryInner,
+    );
+    return ((await res.json()) as { result: Result }).result;
+  }
+  const tool = (e: TestEnv, t: string, name: string, args: unknown) =>
+    rpc(e, t, "tools/call", { name, arguments: args });
+  async function tokens() {
+    const e = env({
+      GATING_ENABLED: "true",
+      ANTHROPIC_API_KEY: "test-placeholder",
+    });
+    const free = (await connect(e, { decision: "free" })).tokens.access_token;
+    const { key } = await issue(e);
+    const paid = (await connect(e, { decision: "key", key })).tokens
+      .access_token;
+    return { e, free, paid };
+  }
+  const refusedCall = async (name: string, args: unknown) => {
+    const { e, free, paid } = await tokens();
+    const f = await tool(e, free, name, args);
+    assert.equal(f.isError, true, `${name} free`);
+    assert.equal(f.structuredContent?.error, "PlanRequired", `${name} free`);
+    const p = await tool(e, paid, name, args);
+    assert.notEqual(p.structuredContent?.error, "PlanRequired", `${name} paid`);
+  };
+  const n = (r: Result, k: string) =>
+    (r.structuredContent?.[k] as unknown[]).length;
+
+  const scenarios: Record<string, () => Promise<void>> = {
+    history: async () => {
+      const { e, free, paid } = await tokens();
+      const args = { urn: "hist", include_history: true };
+      const f = await tool(e, free, "registry_get", args);
+      assert.equal(n(f, "value_history"), 1);
+      assert.equal(n(f, "history"), 1, "include_history cut");
+      const p = await tool(e, paid, "registry_get", args);
+      assert.equal(n(p, "value_history"), 2);
+      assert.equal(n(p, "history"), 2);
+    },
+    dated_get: () =>
+      refusedCall("registry_get", { urn: "hist", as_of: "2025-01-01" }),
+    candidates_tax_year: () =>
+      refusedCall("registry_tx_equity_candidates", {
+        urn: "x",
+        tax_year: 2025,
+      }),
+    recorded: async () => {
+      await refusedCall("registry_recorded_facts", { urn: "x" });
+      const { e, free, paid } = await tokens();
+      assert.equal(
+        n(await tool(e, free, "registry_get", { urn: "sales" }), "facts"),
+        1,
+      );
+      assert.equal(
+        n(await tool(e, paid, "registry_get", { urn: "sales" }), "facts"),
+        2,
+      );
+    },
+    portfolio: async () => {
+      const { e, free, paid } = await tokens();
+      const owned = { entity_urn: ENTITY };
+      assert.equal(
+        n(await tool(e, free, "registry_owned_by", owned), "results"),
+        3,
+      );
+      assert.equal(
+        n(await tool(e, paid, "registry_owned_by", owned), "results"),
+        5,
+      );
+      const ent = { urn: ENTITY };
+      assert.equal(
+        n(await tool(e, free, "registry_get", ent), "relationships"),
+        3,
+      );
+      assert.equal(
+        n(await tool(e, paid, "registry_get", ent), "relationships"),
+        5,
+      );
+    },
+    batch: async () => {
+      await refusedCall("registry_lookup_batch", { items: [{ urn: "x" }] });
+      await refusedCall("registry_tx_equity_candidates_batch", {
+        subjects: [{ id: "a", urn: "x" }],
+      });
+    },
+    model_tools: async () => {
+      const { e, free, paid } = await tokens();
+      for (const name of ["doc_extract_lease", "report_narrative"]) {
+        assert.match(
+          JSON.stringify(await tool(e, free, name, {})),
+          /PlanRequired/,
+          name,
+        );
+        assert.doesNotMatch(
+          JSON.stringify(await tool(e, paid, name, {})),
+          /PlanRequired/,
+          name,
+        );
+      }
+    },
+    account_tools: async () => {
+      const { e, free, paid } = await tokens();
+      const names = async (t: string) =>
+        ((await rpc(e, t, "tools/list")).tools ?? []).map((x) => x.name);
+      const [f, p] = [await names(free), await names(paid)];
+      for (const t of ["account_status", "account_usage"]) {
+        assert.ok(!f.includes(t), `${t} free`);
+        assert.ok(p.includes(t), `${t} paid`);
+      }
+    },
+  };
+
+  it("has one check per PAID_ONLY entry", async () => {
+    const { PAID_ONLY } = await import("./plans.ts");
+    assert.deepEqual(
+      Object.keys(scenarios).sort(),
+      PAID_ONLY.map((f) => f.id).sort(),
+    );
+  });
+  for (const id of Object.keys(scenarios))
+    it(`${id}: a free connection is refused or cut, a paid connection is not`, async () => {
+      await scenarios[id]!();
+    });
+});

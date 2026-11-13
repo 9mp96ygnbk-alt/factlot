@@ -72,7 +72,11 @@ export async function sendEmail(
   }
 }
 
-/** Plain text and a minimal HTML twin, built from the same paragraphs. */
+// The site's ink and accent (site/styles.css, light theme), inline because mail clients drop stylesheets.
+const EMAIL_INK = "#12171c";
+const EMAIL_ACCENT = "#b83707";
+
+/** Plain text and a minimal HTML twin, built from the same paragraphs, under the name. */
 export function body(paragraphs: string[]): { text: string; html: string } {
   // Links are found in the raw text, then each piece is escaped: a trailing "." or "'" is kept
   // out of the link, and an escaped entity is never cut in half.
@@ -89,7 +93,7 @@ export function body(paragraphs: string[]): { text: string; html: string } {
   };
   return {
     text: paragraphs.join("\n\n") + "\n",
-    html: `<!doctype html><html><body style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.5;max-width:560px">${paragraphs
+    html: `<!doctype html><html><body style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.5;color:${EMAIL_INK};max-width:560px"><p style="margin:0 0 20px;padding:0 0 10px;border-bottom:2px solid ${EMAIL_ACCENT};font-size:20px;font-weight:700;letter-spacing:-0.02em">FactLot</p>${paragraphs
       .map((p) => `<p>${link(p).replaceAll("\n", "<br>")}</p>`)
       .join("")}</body></html>`,
   };

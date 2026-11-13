@@ -13,8 +13,8 @@
   },
   "auth": {
     "free": "No key. 60 requests a minute and 25 registry lookups a day per IP address.",
-    "key": "Pro or Team key in the header Authorization: Bearer <key>.",
-    "oauth": "Clients that cannot send a header connect to the sign-in URL (OAuth 2.1, dynamic client registration) and paste a key once or continue on the free tier."
+    "key": "A Pro, Team or free key in the header Authorization: Bearer <key>.",
+    "oauth": "Clients that cannot send a header connect to the sign-in URL (OAuth 2.1, dynamic client registration) and paste a Pro or Team key once or continue on the free tier."
   },
   "verification_note": "Steps follow each vendor's documentation as read on 2026-11-12, except where a path says otherwise. One path has been exercised from the vendor's own app, the claude.ai custom connector on 2026-11-12; no other path has been. The connectors guide in the repository lists what has been tested.",
   "surfaces": [
@@ -30,7 +30,7 @@
           "url": "https://api.factlot.com/mcp/signin",
           "auth": {
             "free": "Choose Continue on the free tier on the FactLot sign-in page, or use the keyless URL below.",
-            "key": "Choose Connect with my key on the sign-in page and paste a Pro or Team key once; or add the key as a request header Authorization: Bearer <key> and use the keyless URL.",
+            "key": "Choose Connect with my key on the sign-in page and paste a Pro or Team key once (the sign-in page does not take a free key); or add a Pro, Team or free key as a request header Authorization: Bearer <key> and use the keyless URL.",
             "oauth": "OAuth 2.1 with dynamic client registration; sign-in starts when the client reaches the URL without credentials."
           },
           "steps": [
@@ -80,7 +80,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": [
@@ -158,7 +158,7 @@
           "url": "https://api.factlot.com/mcp/signin",
           "auth": {
             "free": "No authentication with https://api.factlot.com/mcp, or sign in and choose Continue on the free tier.",
-            "key": "Choose OAuth with the sign-in URL and paste a Pro or Team key once.",
+            "key": "Choose OAuth with the sign-in URL and paste a Pro or Team key once (the sign-in page does not take a free key).",
             "oauth": "OAuth 2.1 with dynamic client registration."
           },
           "steps": [
@@ -180,7 +180,7 @@
           "url": "https://api.factlot.com/openapi-3.0.json",
           "auth": {
             "free": "Authentication None.",
-            "key": "Authentication API Key, Bearer, with a Pro or Team key.",
+            "key": "Authentication API Key, Bearer, with a Pro, Team or free key.",
             "oauth": null
           },
           "steps": [
@@ -243,7 +243,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": [
@@ -479,7 +479,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": [
@@ -568,7 +568,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": [
@@ -601,7 +601,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": [
@@ -634,7 +634,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": [
@@ -670,7 +670,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": ["pip install openai-agents"],
@@ -702,7 +702,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": ["pip install crewai"],
@@ -730,7 +730,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": ["npm i @ai-sdk/mcp ai"],
@@ -760,7 +760,7 @@
           "url": "https://api.factlot.com/mcp",
           "auth": {
             "free": "No key needed (60 requests a minute and 25 registry lookups a day per address).",
-            "key": "Pro or Team key as the header Authorization: Bearer <key>.",
+            "key": "A Pro, Team or free key as the header Authorization: Bearer <key>.",
             "oauth": null
           },
           "steps": [

@@ -15,6 +15,7 @@ export function otherDistrictsTable(): string;
 export function countWord(n: number): string;
 export function hubHostedTable(counties: unknown[]): string;
 export function hubRollSentence(counties: unknown[]): string;
+export function texasRollsText(counties: unknown[]): string;
 export function hubCountyLinks(
   counties: unknown[],
   exampleSlugs: string[],
@@ -28,3 +29,21 @@ export function hubExampleLinks(
   counties: unknown[],
   exampleSlugs: string[],
 ): string;
+export function hubReadouts(counties: unknown[]): string;
+export function countyReadouts(c: unknown): string;
+export function texasMap(
+  geo: unknown,
+  counties: unknown[],
+  current?: string,
+): string;
+export function exampleFacts(e: unknown): {
+  predicate: string;
+  label: string;
+  value: string;
+  as_of: string;
+  source: number;
+  locator: string;
+}[];
+export function exampleSources(
+  e: unknown,
+): { n: number; title: string; retrieved: string }[];
