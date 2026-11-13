@@ -19,6 +19,8 @@ import {
   exampleTitle,
   otherDistrictsTable,
   tryTexasLinks,
+  valueCountyCount,
+  hubExampleLinks,
   countWord,
   hubHostedTable,
   hubRollSentence,
@@ -603,12 +605,15 @@ ${rows
   addPage(
     {
       urlPath: "/texas/",
-      title: "Texas commercial property data and tools | FactLot",
-      description: `What FactLot hosts for Texas: ${hubTotal.toLocaleString("en-US")} commercial parcels in ${countWord(hubCounties.length)} counties, the unequal-appraisal calculator, the protest-deadline rule, reports, and how to connect.`,
-      h1: "Texas",
+      title:
+        "Texas commercial property tax evidence: values by year, candidates, workbook | FactLot",
+      description: `Roll values by year, candidate comparables under a stated rule, the unequal-appraisal arithmetic and the deadline rule for Texas commercial accounts: ${hubTotal.toLocaleString("en-US")} parcels in ${countWord(hubCounties.length)} counties, from $49 a month. Software, not advice.`,
+      h1: "Unequal-appraisal evidence for commercial accounts, cited to the appraisal roll",
       crumbs: [["/texas/", "Texas"]],
       body: fill(read("site/_content/texas.html"), {
         COUNTY_COUNT: countWord(hubCounties.length),
+        VALUE_COUNTY_COUNT: valueCountyCount(hubCounties),
+        EXAMPLE_LINKS: hubExampleLinks(hubCounties, hubExamples),
         HOSTED_TABLE: hubHostedTable(hubCounties),
         ROLL_SENTENCE: hubRollSentence(hubCounties),
         COUNTY_LINKS: hubCountyLinks(hubCounties, hubExamples),

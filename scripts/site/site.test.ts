@@ -9,7 +9,10 @@ import { describe, it } from "node:test";
 
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  PLANS,
+  PRO_YEARLY,
   QUOTA_RULES,
+  REPORTS_PER_MONTH,
 } from "../../deploy/cloudflare/src/plans.ts";
 import {
   countyBody,
@@ -246,6 +249,62 @@ describe("texas hub", () => {
     assert.ok(!html.includes("one roll year per county"));
     assert.ok(
       hubRollSentence(data.counties).startsWith("Nine of the sixteen counties"),
+    );
+  });
+  it("leads with what the account gets, for whom, the price and the next step", () => {
+    const first = html.slice(0, html.indexOf('id="get"'));
+    for (const part of [
+      "values by roll year",
+      "candidate comparables under a stated default rule",
+      "§41.43(b)(3) and §42.26(a)(3)",
+      "Excel file",
+      "{{VALUE_COUNTY_COUNT}}",
+      'href="/try/"',
+      'href="#examples"',
+      'href="/pricing/"',
+      "property tax consultants, tax attorneys",
+      "you choose the comparables",
+    ])
+      assert.ok(first.includes(part), part);
+    assert.ok(
+      html.indexOf('id="limits"') > html.indexOf('id="price"') &&
+        html.indexOf('id="limits"') > html.indexOf('id="status"'),
+      "the notice follows the offer, the coverage and Tarrant",
+    );
+    assert.ok(html.includes("{{EXAMPLE_LINKS}}"));
+    assert.ok(html.includes("{{ROLL_SENTENCE}}"));
+    assert.ok(
+      html.includes("does not choose comparables for a client") &&
+        html.includes("Tarrant County is not served"),
+    );
+  });
+  it("states the plan numbers plans.ts enforces, and no result claims", () => {
+    const n = (v: number) => v.toLocaleString("en-US");
+    const free = ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY;
+    assert.ok(html.includes(`${free} registry lookups a day`));
+    assert.ok(html.includes(`${REPORTS_PER_MONTH.anonymous} reports a month`));
+    assert.ok(
+      html.includes(
+        `$${PLANS.pro.monthlyCents / 100} a month or $${PRO_YEARLY.cents / 100} a year`,
+      ),
+    );
+    assert.ok(
+      html.includes(`Plans from $${PLANS.pro.monthlyCents / 100} a month`),
+    );
+    assert.ok(
+      html.includes(
+        `${n(PLANS.pro.registryLookupsPerMonth)} lookups and ${REPORTS_PER_MONTH.pro} reports a month`,
+      ),
+    );
+    assert.ok(
+      html.includes(
+        `Team, $${PLANS.team.monthlyCents / 100} a month:</strong> up to ${PLANS.team.maxKeys} keys, ${n(PLANS.team.registryLookupsPerMonth)} lookups and ${n(REPORTS_PER_MONTH.team)} reports a month`,
+      ),
+    );
+    assert.ok(
+      !/\b(save|win|lower your|best comparables|founding|refund|discount)\b/i.test(
+        html,
+      ),
     );
   });
   it("keeps the legal disclaimers word for word", () => {

@@ -355,3 +355,20 @@ ${counties
   .join("\n")}
 </ul>`;
 }
+
+/** The hub's count of hosted counties whose roll carries values, in words. */
+export const valueCountyCount = (counties) =>
+  countWord(counties.filter(hasValues).length);
+
+/** The hub's list of worked examples. */
+export function hubExampleLinks(counties, exampleSlugs) {
+  return `<ul>
+${counties
+  .filter((c) => exampleSlugs.includes(c.slug))
+  .map(
+    (c) =>
+      `  <li><a href="/texas/${c.slug}/example/">${esc(c.name)} County worked example</a></li>`,
+  )
+  .join("\n")}
+</ul>`;
+}
