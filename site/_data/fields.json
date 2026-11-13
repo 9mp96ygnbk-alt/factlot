@@ -1,6 +1,6 @@
 {
   "about": "Which fact groups each county the hosted registry serves holds, for what share of its parcels, and which roll years with the value type and files of each. Computed from the registry files by packages/tools/src/fields.ts (scripts/site/gen-fields.ts); a parcel counts for a group when the file holds at least one fact of the group for it. Owners of record are organisations only: natural persons are never stored.",
-  "pack_built_at": "2026-11-12T23:02:45.001Z",
+  "pack_built_at": "2026-11-13T16:34:05.736Z",
   "groups": [
     {
       "key": "owner_of_record",
@@ -200,7 +200,7 @@
       "as_of": "2026-10-29",
       "groups": {
         "owner_of_record": {
-          "parcels": 11145,
+          "parcels": 11144,
           "share": 0.823
         },
         "owner_mailing_address": {
@@ -692,8 +692,8 @@
       "as_of": "2026-11-09",
       "groups": {
         "owner_of_record": {
-          "parcels": 1947,
-          "share": 0.79
+          "parcels": 1946,
+          "share": 0.789
         },
         "owner_mailing_address": {
           "parcels": 1807,
@@ -938,8 +938,8 @@
       "as_of": "2026-11-09",
       "groups": {
         "owner_of_record": {
-          "parcels": 2268,
-          "share": 0.766
+          "parcels": 2267,
+          "share": 0.765
         },
         "owner_mailing_address": {
           "parcels": 2123,
@@ -1358,11 +1358,11 @@
       "as_of": "2026-11-04",
       "groups": {
         "owner_of_record": {
-          "parcels": 11571,
+          "parcels": 11569,
           "share": 0.64
         },
         "owner_mailing_address": {
-          "parcels": 10745,
+          "parcels": 10742,
           "share": 0.594
         },
         "market_value": {
@@ -3159,11 +3159,11 @@
       "area": "the City of Boston",
       "groups": {
         "owner_of_record": {
-          "parcels": 9347,
+          "parcels": 9343,
           "share": 0.703
         },
         "owner_mailing_address": {
-          "parcels": 8714,
+          "parcels": 8713,
           "share": 0.655
         },
         "market_value": {
@@ -3303,7 +3303,7 @@
       "as_of": "2026-05-15",
       "groups": {
         "owner_of_record": {
-          "parcels": 39611,
+          "parcels": 39609,
           "share": 0.659
         },
         "owner_mailing_address": {
@@ -3375,8 +3375,8 @@
       "as_of": "2026-05-15",
       "groups": {
         "owner_of_record": {
-          "parcels": 32682,
-          "share": 0.777
+          "parcels": 32679,
+          "share": 0.776
         },
         "owner_mailing_address": {
           "parcels": 0,
@@ -3447,7 +3447,7 @@
       "as_of": "2026-05-15",
       "groups": {
         "owner_of_record": {
-          "parcels": 26774,
+          "parcels": 26771,
           "share": 0.668
         },
         "owner_mailing_address": {
@@ -3487,7 +3487,7 @@
           "share": 0
         },
         "entity_links": {
-          "parcels": 20695,
+          "parcels": 20694,
           "share": 0.516
         }
       },
@@ -3519,7 +3519,7 @@
       "as_of": "2026-05-15",
       "groups": {
         "owner_of_record": {
-          "parcels": 3738,
+          "parcels": 3737,
           "share": 0.742
         },
         "owner_mailing_address": {
@@ -3584,6 +3584,112 @@
       ]
     },
     {
+      "fips": "48027",
+      "name": "Bell County",
+      "state": "TX",
+      "parcels": 13685,
+      "as_of": "2026-10-01",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 7224,
+          "share": 0.528
+        },
+        "owner_mailing_address": {
+          "parcels": 6519,
+          "share": 0.476
+        },
+        "market_value": {
+          "parcels": 13685,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 13685,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 13400,
+          "share": 0.979
+        },
+        "neighborhood_and_class": {
+          "parcels": 13685,
+          "share": 1
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 5181,
+          "share": 0.379
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 13685,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-bell-cad",
+              "filename": "2026-Bell-County-Certified-Export-3.zip",
+              "as_of": "2026-10-01",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 13685
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 13573,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-bell-cad-2025",
+              "filename": "2025-Bell-County-Certified-Export.7z",
+              "as_of": "2025-07-22",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 13573
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 13232,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-bell-cad-2024",
+              "filename": "BellCAD-Certified-Appraisal-Export-2024.rar",
+              "as_of": "2024-07-21",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 13232
+            }
+          ]
+        }
+      ]
+    },
+    {
       "fips": "48041",
       "name": "Brazos County",
       "state": "TX",
@@ -3591,11 +3697,11 @@
       "as_of": "2026-08-11",
       "groups": {
         "owner_of_record": {
-          "parcels": 5849,
-          "share": 0.709
+          "parcels": 5842,
+          "share": 0.708
         },
         "owner_mailing_address": {
-          "parcels": 5424,
+          "parcels": 5423,
           "share": 0.657
         },
         "market_value": {
@@ -3833,11 +3939,11 @@
       "as_of": "2026-07-23",
       "groups": {
         "owner_of_record": {
-          "parcels": 7079,
+          "parcels": 7073,
           "share": 0.499
         },
         "owner_mailing_address": {
-          "parcels": 6447,
+          "parcels": 6445,
           "share": 0.455
         },
         "market_value": {
@@ -3905,12 +4011,12 @@
       "as_of": "2026-11-02",
       "groups": {
         "owner_of_record": {
-          "parcels": 13183,
+          "parcels": 13180,
           "share": 0.731
         },
         "owner_mailing_address": {
-          "parcels": 12183,
-          "share": 0.676
+          "parcels": 12180,
+          "share": 0.675
         },
         "market_value": {
           "parcels": 17795,
@@ -3977,11 +4083,11 @@
       "as_of": "2026-10-12",
       "groups": {
         "owner_of_record": {
-          "parcels": 33501,
+          "parcels": 33500,
           "share": 0.562
         },
         "owner_mailing_address": {
-          "parcels": 31241,
+          "parcels": 31240,
           "share": 0.524
         },
         "market_value": {
@@ -4117,11 +4223,11 @@
       "as_of": "2026-11-07",
       "groups": {
         "owner_of_record": {
-          "parcels": 9516,
-          "share": 0.715
+          "parcels": 9500,
+          "share": 0.714
         },
         "owner_mailing_address": {
-          "parcels": 8799,
+          "parcels": 8797,
           "share": 0.661
         },
         "market_value": {
@@ -4261,7 +4367,7 @@
       "as_of": "2026-08-05",
       "groups": {
         "owner_of_record": {
-          "parcels": 5898,
+          "parcels": 5897,
           "share": 0.585
         },
         "owner_mailing_address": {
@@ -4301,7 +4407,7 @@
           "share": 0
         },
         "entity_links": {
-          "parcels": 3992,
+          "parcels": 3991,
           "share": 0.396
         }
       },
@@ -4545,11 +4651,11 @@
       "as_of": "2026-11-01",
       "groups": {
         "owner_of_record": {
-          "parcels": 56892,
+          "parcels": 56890,
           "share": 0.649
         },
         "owner_mailing_address": {
-          "parcels": 52955,
+          "parcels": 52954,
           "share": 0.604
         },
         "market_value": {
@@ -4685,11 +4791,11 @@
       "as_of": "2026-10-07",
       "groups": {
         "owner_of_record": {
-          "parcels": 5964,
-          "share": 0.622
+          "parcels": 5958,
+          "share": 0.621
         },
         "owner_mailing_address": {
-          "parcels": 5327,
+          "parcels": 5324,
           "share": 0.555
         },
         "market_value": {
@@ -4770,6 +4876,112 @@
               "dated": "file",
               "roll": "certified",
               "parcels": 9409
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48251",
+      "name": "Johnson County",
+      "state": "TX",
+      "parcels": 4416,
+      "as_of": "2026-08-10",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 2868,
+          "share": 0.649
+        },
+        "owner_mailing_address": {
+          "parcels": 2586,
+          "share": 0.586
+        },
+        "market_value": {
+          "parcels": 4416,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 4416,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 4171,
+          "share": 0.945
+        },
+        "neighborhood_and_class": {
+          "parcels": 4416,
+          "share": 1
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 2308,
+          "share": 0.523
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 4416,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-johnson-cad",
+              "filename": "BATCH_896.all_.zip",
+              "as_of": "2026-08-10",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": null,
+              "parcels": 4416
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 4355,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-johnson-cad-2025",
+              "filename": "JCAD-2025-Certified-Data-2026-04-27.zip",
+              "as_of": "2026-04-27",
+              "read_on": "2026-11-13",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 4355
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 4270,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-johnson-cad-2024",
+              "filename": "2024-Certified-Data-Roll-1.zip",
+              "as_of": "2024-07-24",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 4270
             }
           ]
         }
@@ -4943,11 +5155,11 @@
       "as_of": "2026-10-13",
       "groups": {
         "owner_of_record": {
-          "parcels": 8840,
+          "parcels": 8838,
           "share": 0.648
         },
         "owner_mailing_address": {
-          "parcels": 8209,
+          "parcels": 8208,
           "share": 0.602
         },
         "market_value": {
@@ -5100,7 +5312,7 @@
       "as_of": "2026-10-06",
       "groups": {
         "owner_of_record": {
-          "parcels": 18100,
+          "parcels": 18098,
           "share": 0.592
         },
         "owner_mailing_address": {
@@ -5249,12 +5461,12 @@
       "as_of": "2026-11-07",
       "groups": {
         "owner_of_record": {
-          "parcels": 8148,
-          "share": 0.693
+          "parcels": 8138,
+          "share": 0.692
         },
         "owner_mailing_address": {
-          "parcels": 7474,
-          "share": 0.636
+          "parcels": 7470,
+          "share": 0.635
         },
         "market_value": {
           "parcels": 10916,

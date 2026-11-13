@@ -10,7 +10,7 @@
   "counts": {
     "audited_load": 3,
     "cited_load": 86,
-    "hosted": 60
+    "hosted": 62
   },
   "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",
   "counties": {
@@ -1541,6 +1541,20 @@
       "hosted": false,
       "evidence": "docs/registry/tier2/README.md"
     },
+    "48027": {
+      "name": "Bell County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-bell-cad",
+      "commercial_parcels": 13685,
+      "organisation_owners_row": null,
+      "owner_names": null,
+      "entity_links": null,
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-10-01",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "site/_data/hosted.json"
+    },
     "48041": {
       "name": "Brazos County",
       "state": "TX",
@@ -1708,6 +1722,20 @@
       "data_as_of": "2026-10-07",
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-10.md"
+    },
+    "48251": {
+      "name": "Johnson County",
+      "state": "TX",
+      "class": "hosted",
+      "source_id": "tx-johnson-cad",
+      "commercial_parcels": 4416,
+      "organisation_owners_row": null,
+      "owner_names": null,
+      "entity_links": null,
+      "owner_link_rate_audited": null,
+      "data_as_of": "2026-08-10",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "site/_data/hosted.json"
     },
     "48257": {
       "name": "Kaufman County",
@@ -2901,6 +2929,15 @@
       "reviewed": "2026-11-03",
       "record": "docs/registry/sources/tn-davidson-assessor.md"
     },
+    "tx-bell-cad": {
+      "publisher": "Tax Appraisal District of Bell County",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license, terms of use or disclaimer stated on the data portal",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://bellcad.org/data-portal/",
+      "reviewed": "2026-11-12",
+      "record": "docs/registry/sources/tx-bell-cad.md"
+    },
     "tx-brazos-cad": {
       "publisher": "Brazos Central Appraisal District",
       "license": "Public record (Tex. Gov't Code ch. 552); no licence stated; page: \"Brazos Central Appraisal District claims no responsibility for the downloading of this data.\"",
@@ -3008,6 +3045,15 @@
       "terms_url": "https://jcad.org/data-download/",
       "reviewed": "2026-11-07",
       "record": null
+    },
+    "tx-johnson-cad": {
+      "publisher": "Central Appraisal District of Johnson County",
+      "license": "Public record (Tex. Gov't Code ch. 552); no license or terms of use stated for the roll files",
+      "redistribution": "Not addressed by the publisher; public record",
+      "ai_use": "Not addressed by the publisher",
+      "terms_url": "https://johnsoncad.com/downloads/",
+      "reviewed": "2026-11-12",
+      "record": "docs/registry/sources/tx-johnson-cad.md"
     },
     "tx-kaufman-cad": {
       "publisher": "Kaufman Central Appraisal District",

@@ -75,7 +75,7 @@ an identifier. This page covers which tool to call, when, and how to report the 
 
 The `registry_*` tools answer from public records, with every fact cited to its source file and
 that source's licence or attribution. The hosted API serves
-<!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, sixteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe and Kaufman), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)<!-- /hosted:places -->. Call `registry_coverage` first: it lists the
+<!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, eighteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe, Kaufman, Bell and Johnson), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)<!-- /hosted:places -->. Call `registry_coverage` first: it lists the
 
 counties, entity registries and ID systems loaded, with as-of dates, and a lookup outside them is a
 coverage miss (not loaded, which is not the same as no such parcel).
