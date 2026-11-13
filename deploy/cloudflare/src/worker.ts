@@ -17,6 +17,7 @@ import { ANONYMOUS_REQUESTS_PER_MINUTE } from "./plans.ts";
 import { registryRunner } from "./registry.ts";
 import { handle } from "./router.ts";
 import type { Env, Fetcher } from "./types.ts";
+import { objectWatch, runWatchCheck } from "./watch-check.ts";
 
 export { RateLimiterObject } from "./limiter.ts";
 
@@ -29,24 +30,44 @@ const node = httpServerHandler({ port: PORT }) as {
 
 let boundRegistry: Fetcher | undefined;
 
+type RawEnv = Omit<Env, "RL_ANON" | "RL_CLAIM" | "METER" | "WATCH"> & {
+  LIMITER: DurableObjectNamespaceLike;
+};
+
+function workerEnv(raw: RawEnv): Env {
+  return {
+    ...raw,
+    RL_ANON: objectLimiter(raw.LIMITER, "anon", ANONYMOUS_REQUESTS_PER_MINUTE),
+    RL_CLAIM: objectLimiter(raw.LIMITER, "claim", 1, CLAIM_POLL_MS),
+    METER: objectMeter(raw.LIMITER),
+    WATCH: objectWatch(raw.LIMITER),
+  };
+}
+
 export default {
-  async fetch(
-    request: Request,
-    raw: Omit<Env, "RL_ANON" | "RL_CLAIM" | "METER"> & {
-      LIMITER: DurableObjectNamespaceLike;
-    },
-    ctx: unknown,
-  ): Promise<Response> {
-    const env: Env = {
-      ...raw,
-      RL_ANON: objectLimiter(
-        raw.LIMITER,
-        "anon",
-        ANONYMOUS_REQUESTS_PER_MINUTE,
-      ),
-      RL_CLAIM: objectLimiter(raw.LIMITER, "claim", 1, CLAIM_POLL_MS),
-      METER: objectMeter(raw.LIMITER),
-    };
+  /** A cron trigger (none is configured): the watch-list check, while WATCH_LISTS_ENABLED is on. */
+  async scheduled(_controller: unknown, raw: RawEnv, ctx: unknown) {
+    const work = runWatchCheck(workerEnv(raw)).then(
+      (r) => {
+        if (r.state === "run")
+          console.log(JSON.stringify({ msg: "watch check", ...r }));
+      },
+      (err: unknown) =>
+        console.error(
+          JSON.stringify({
+            msg: "watch check failed",
+            error: err instanceof Error ? err.name : typeof err,
+          }),
+        ),
+    );
+    const waitUntil = (ctx as { waitUntil?: (p: Promise<unknown>) => void })
+      ?.waitUntil;
+    if (waitUntil) waitUntil.call(ctx, work);
+    await work;
+  },
+
+  async fetch(request: Request, raw: RawEnv, ctx: unknown): Promise<Response> {
+    const env = workerEnv(raw);
     // The binding is the same object on every request; the runner closes over it.
     if (raw.REGISTRY && raw.REGISTRY !== boundRegistry) {
       boundRegistry = raw.REGISTRY;

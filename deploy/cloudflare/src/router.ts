@@ -141,6 +141,7 @@ import {
   gatingEnabled,
   GATING_INFO,
   reportLimits,
+  watchPlansInfo,
   type Tier,
 } from "./plans.ts";
 import {
@@ -162,6 +163,20 @@ import type {
   QuotaSpec,
   QuotaState,
 } from "./types.ts";
+import {
+  STOP_PATH,
+  WATCH_PATHS,
+  WATCH_TOOL_NAMES,
+  answerWatchCall,
+  isWatchCall,
+  watchAccountAction,
+  watchAccountSection,
+  watchCaller,
+  watchEnabled,
+  watchRestRoute,
+  watchStopRoute,
+  watchToolsFor,
+} from "./watch.ts";
 
 const API_EXACT = new Set([
   "/mcp",
@@ -190,6 +205,7 @@ const USAGE_TOOL_NAMES: ReadonlySet<string> = new Set([
   REPORT_TOOL.name,
   "doc_extract_lease",
   "report_narrative",
+  ...WATCH_TOOL_NAMES,
 ]);
 
 /** The inner handler's limit on messages in one MCP batch (createHandler's maxMcpBatch). */
@@ -853,6 +869,15 @@ async function route(
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
     return recoverRoute(request, env, url, path, opts);
   if (path === "/account") return accountRoute(request, env, url, api, opts);
+  // Watch-list alert stop links (watch.ts); dark unless WATCH_LISTS_ENABLED is "true".
+  if (watchEnabled(env) && path.startsWith(STOP_PATH)) {
+    const ok = await metered(
+      env.RL_ANON.limit({ key: `watchstop:${await addressKey()}` }),
+    );
+    if (!ok.success)
+      return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
+    return watchStopRoute(request, env, path);
+  }
   if (path === "/v1/billing/webhook") {
     if (request.method !== "POST")
       return apiError(
@@ -910,6 +935,7 @@ async function route(
           ...(gating ? { gating: GATING_INFO } : {}),
           model_tools: modelPlansInfo(modelEnabled(env)),
           reports: { available: reportsEnabled(env), ...reportLimits() },
+          ...(watchEnabled(env) ? { watch_lists: watchPlansInfo() } : {}),
           checkout_open,
           checkout,
         }),
@@ -1263,7 +1289,10 @@ async function route(
     // caller: without a key they answer PlanRequired, without the model ModelUnavailable) and
     // report_create (any caller).
     const hosted = (m: unknown) =>
-      (paid && isAccountCall(m)) || isModelCall(m) || refusedBatch(m);
+      (paid && isAccountCall(m)) ||
+      isModelCall(m) ||
+      refusedBatch(m) ||
+      isWatchCall(env, m);
     if (mcpBody !== undefined) {
       accountCalls = items.filter(hosted);
       reportCalls = reportsEnabled(env) ? items.filter(isReportCall) : [];
@@ -1559,6 +1588,20 @@ async function route(
       doubles: [status, 1],
     });
 
+  // Watch lists (watch.ts): answered here; dark unless WATCH_LISTS_ENABLED is "true".
+  if (watchEnabled(env) && WATCH_PATHS.has(path)) {
+    const res = await watchRestRoute(
+      request,
+      env,
+      path,
+      watchCaller(paid),
+      kind,
+      { now },
+    );
+    meterUsage(res.status);
+    return withHeaders(res, { ...corsHeaders(), ...headers });
+  }
+
   // REST routes of the model-backed tools, answered here (never by the inner handler).
   if (MODEL_PATHS.has(path)) {
     const res = await modelRestRoute(
@@ -1658,15 +1701,19 @@ async function route(
           accountCalls.map((m) =>
             refusedBatch(m)
               ? refusedBatchAnswer(m, noteRefusal)
-              : isModelCall(m)
-                ? answerModelCall(
-                    env,
-                    modelCaller,
-                    m,
-                    opts.model,
-                    ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
-                  )
-                : metered(answerAccountCall(env, paid!.hash, paid!.record, m)),
+              : isWatchCall(env, m)
+                ? answerWatchCall(env, watchCaller(paid), kind, m, { now })
+                : isModelCall(m)
+                  ? answerModelCall(
+                      env,
+                      modelCaller,
+                      m,
+                      opts.model,
+                      ++modelCalls > MAX_MODEL_CALLS_PER_REQUEST,
+                    )
+                  : metered(
+                      answerAccountCall(env, paid!.hash, paid!.record, m),
+                    ),
           ),
         )),
         ...(await Promise.all(
@@ -1681,6 +1728,7 @@ async function route(
         ...(paid ? ACCOUNT_TOOLS : []),
         ...(reportsEnabled(env) ? [REPORT_TOOL] : []),
         ...modelToolsFor(env, modelCaller),
+        ...watchToolsFor(env, watchCaller(paid)),
       ],
     );
   }
@@ -2194,6 +2242,13 @@ async function accountRoute(
       regions,
       connections,
       api: apiBase,
+      watch: await watchAccountSection(
+        env,
+        k,
+        deriveStatus(r) === "active"
+          ? watchCaller({ hash: h, record: r })
+          : undefined,
+      ),
       ...o,
     });
   };
@@ -2219,6 +2274,19 @@ async function accountRoute(
       });
     }
   }
+  if (watchEnabled(env) && action.startsWith("watch_"))
+    return show(key, hash, record, {
+      notice: paid.active
+        ? await watchAccountAction(
+            env,
+            watchCaller(paid),
+            paid.record.plan,
+            action,
+            form,
+            { now },
+          )
+        : "Watch lists can be changed only while the subscription is active.",
+    });
   if (action === "disconnect") {
     const id = form.get("id") ?? "";
     const ok = await disconnect(env, record.subscription, id);

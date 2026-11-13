@@ -58,6 +58,7 @@ import { sendWelcomeEmail } from "./email.ts";
 import { messagePage, onboardingPage } from "./pages.ts";
 import { claimUrl, newClaim, storeClaim } from "./claim.ts";
 import { countEvent } from "./usage.ts";
+import { forgetWatch } from "./watch-forget.ts";
 
 /** How long a key's subscription status is trusted before it is re-checked with Stripe. */
 export const RECHECK_MS = 6 * 60 * 60 * 1000;
@@ -766,6 +767,11 @@ export async function handleWebhook(
           revoked++;
         }
       }
+      // Watch lists of a cancelled subscription are deleted (watch-forget.ts).
+      if (stripeStatusIsTerminal(state.stripe_status))
+        await forgetWatch(env, sub).catch(() => {
+          console.error(JSON.stringify({ msg: "watch delete failed" }));
+        });
       if (created)
         await kv.put(`subevt:${sub}`, String(created), {
           expirationTtl: INACTIVE_RETENTION_SECONDS,

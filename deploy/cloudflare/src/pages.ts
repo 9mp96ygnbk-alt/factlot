@@ -541,6 +541,8 @@ export interface AccountPageOptions {
   /** Apps connected to the subscription by OAuth sign-in. */
   connections?: Connection[];
   api?: string;
+  /** Watch lists (watch.ts), as HTML, while they are on. */
+  watch?: string;
 }
 
 /** Connected apps (OAuth sign-ins) with a Disconnect button each. */
@@ -623,6 +625,7 @@ ${opts.notice ? notice(opts.notice, (opts.status ?? 200) >= 400) : ""}
 ${newKey}
 ${accountFacts(s, opts.receipts)}
 ${usage}
+${opts.watch ?? ""}
 <section class="step" aria-labelledby="h-billing"><h2 id="h-billing">Billing</h2>
 <p>Change your card, see invoices, switch plans or cancel in Stripe's billing portal.</p>
 <div class="buttons">${actionForm(key, "portal", "Manage billing / cancel", "", "primary")}</div></section>

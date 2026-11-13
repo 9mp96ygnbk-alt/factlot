@@ -136,3 +136,39 @@ export function freeKeyDeleteMessage(
     ]),
   };
 }
+
+/**
+ * One registry update's watch-list alert: what changed, a link per subject, the one-click stop
+ * link, and the operator's postal address line.
+ */
+export function watchDigestMessage(o: {
+  /** The registry update (pack built_at, ISO). */
+  builtAt: string;
+  items: { urn: string; label: string | null; summary: string }[];
+  /** Changes not listed (over the email's limit). */
+  more: number;
+  account: string;
+  stop: string;
+  postal?: string;
+}): { subject: string; text: string; html: string } {
+  const n = o.items.length + o.more;
+  const day = o.builtAt.slice(0, 10);
+  return {
+    subject: `FactLot watch list: ${n} change${n === 1 ? "" : "s"} in the ${day} registry update`,
+    ...body([
+      `This is a transactional message: you turned on watch-list alerts for this address. The FactLot registry update of ${day} changed ${n === 1 ? "one thing" : `${n} things`} you watch.`,
+      ...o.items.map(
+        (i) => `${i.label ? `${i.label} (${i.urn})` : i.urn}: ${i.summary}`,
+      ),
+      ...(o.more > 0
+        ? [
+            `And ${o.more} more. Every change, with old and new values and citations: the watch_changes tool, or ${o.account}`,
+          ]
+        : [
+            `Old and new values with citations: the watch_changes tool, or ${o.account}`,
+          ]),
+      `Stop these emails (one click; your watch lists stay): ${o.stop}`,
+      `FactLot, ${CONTACT}${o.postal ? `, ${o.postal}` : ""}`,
+    ]),
+  };
+}

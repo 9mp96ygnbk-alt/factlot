@@ -134,6 +134,19 @@ export interface SendEmail {
   send(message: EmailMessageBuilder): Promise<{ messageId: string }>;
 }
 
+/**
+ * Watch-list storage (watch-store.ts): operations on one subscription's object or on the index,
+ * inside the LIMITER Durable Object class.
+ */
+export interface WatchService {
+  sub<T>(
+    subscription: string,
+    op: string,
+    args?: Record<string, unknown>,
+  ): Promise<T>;
+  index<T>(op: string, args?: Record<string, unknown>): Promise<T>;
+}
+
 export interface Env {
   /** API-key records, Stripe checkout sessions already redeemed, cached price IDs. */
   KEYS: KV;
@@ -186,4 +199,10 @@ export interface Env {
   USAGE_COUNTERS_ENABLED?: string;
   /** "true" opens the free API key by email (POST /v1/keys/free, /account/free-key). Anything else, or unset: off, the routes answer 404 and the form is not shown. */
   FREE_KEY_ENABLED?: string;
+  /** "true" turns watch lists on (watch.ts). Unset or anything else: off, tools unlisted, routes 404, no checks. */
+  WATCH_LISTS_ENABLED?: string;
+  /** Watch-list storage (set by worker.ts over the LIMITER namespace). */
+  WATCH?: WatchService;
+  /** Optional: the operator's postal address, printed at the foot of watch-list alert emails. */
+  OPERATOR_POSTAL_ADDRESS?: string;
 }
