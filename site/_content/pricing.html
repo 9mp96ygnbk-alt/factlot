@@ -404,17 +404,20 @@
   <li>
     A lookup is one call to a <code>registry_*</code> tool that finds something:
     a record, a resolved ID, owners or search results. Not counted: a call that
-    finds nothing (an empty list or urn null), <code>registry_coverage</code>,
-    input errors, misses outside loaded coverage (county, state, entity registry
-    or ID system not loaded) and calls the registry could not answer.
+    finds nothing (an empty list or urn null; up to an hourly limit),
+    <code>registry_coverage</code>, input errors, misses outside loaded coverage
+    (county, state, entity registry or ID system not loaded) and calls the
+    registry could not answer.
   </li>
   <li>
     Answers that find nothing are not counted, and say counted: false, up to 60
     an hour per IP address without a key, a further 60 an hour shared by the
     free keys used from that address, 600 an hour on Pro and 3,000 an hour on
-    Team; a free sign-in connection's are counted like its lookups. Past that,
-    until the hour ends (UTC), each one counts as a lookup and carries counted:
-    true with a note saying why.
+    Team; a free sign-in connection has its own 60 an hour, shared by the
+    connections started from one address. A <code>registry_get</code> or
+    <code>registry_tx_equity_candidates</code> NotFound inside loaded coverage
+    is an answer that finds nothing. Past that, until the hour ends (UTC), each
+    one counts as a lookup and carries counted: true with a note saying why.
   </li>
   <li>
     A registry batch tool needs one lookup per subject or item left in the

@@ -1194,6 +1194,37 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
       tools: { name: string; input_schema?: { properties?: object } }[];
     }
   ).tools;
+  it("the registry batch tools' descriptions state how they are counted as QUOTA_RULES.batch does", () => {
+    const desc = (name: string) =>
+      (
+        JSON.parse(read("spec/schemas/tools.json")) as {
+          tools: { name: string; description: string }[];
+        }
+      ).tools.find((t) => t.name === name)!.description;
+    for (const [tool, phrase] of [
+      [
+        "registry_lookup_batch",
+        "an item that finds nothing inside loaded coverage, a URN not in the registry included, is an answer that finds nothing",
+      ],
+      [
+        "registry_tx_equity_candidates_batch",
+        "subjects with an error are given back (a subject not in the registry inside loaded coverage as an answer that finds nothing",
+      ],
+    ] as const) {
+      assert.ok(
+        QUOTA_RULES.batch.includes(phrase),
+        `QUOTA_RULES.batch: ${phrase}`,
+      );
+      assert.ok(desc(tool).includes(phrase), `${tool}: ${phrase}`);
+      assert.match(desc(tool), /up to an hourly limit/, tool);
+      assert.doesNotMatch(
+        desc(tool),
+        /a miss inside loaded coverage count|is not counted\)/,
+        `${tool} states the old rule`,
+      );
+    }
+    assert.match(QUOTA_RULES.counted, /up to an hourly limit/);
+  });
   it("plans.json is what plans.ts says (run scripts/site/gen-plans.ts)", () => {
     assert.deepEqual(JSON.parse(read("site/_data/plans.json")), plansData());
   });
