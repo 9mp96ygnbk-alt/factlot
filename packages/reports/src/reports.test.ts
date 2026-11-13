@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { inflateSync } from "node:zlib";
 
-import { runTool } from "@factlot/tools";
+import { TX_EQUITY_RULE, TX_EQUITY_STEPS, runTool } from "@factlot/tools";
 import { build } from "esbuild";
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 
@@ -774,6 +774,171 @@ describe("documents", () => {
       );
       assert.equal(x.cell("Reconcile", "C4"), "0", "rows that differ");
     }
+  });
+
+  it("tx_unequal_appraisal: roll fields and the candidate rule from registry_tx_equity_candidates, in the packet and the workbook", async () => {
+    const sample = SAMPLES[0]!;
+    // The sample with registry ids: the subject and its first comparable.
+    const args = structuredClone(sample.args) as {
+      subject: { id?: string };
+      comparables: { id?: string }[];
+    };
+    args.subject.id = "fl:parcel:us-48997:1000001";
+    args.comparables[0]!.id = "fl:parcel:us-48997:1000002";
+    const s = { ...sample, args: args as unknown as Json };
+    const ids = args.comparables.map((c, i) => c.id ?? `#${i + 1}`);
+    const candidates = [
+      {
+        id: args.subject.id,
+        apn: "SUBJ-0001",
+        state_property_category: "F1",
+        building_class: "B",
+        local_use_code: "4300",
+        improvement_area_sf: 50000,
+        land_area_sf: 120000,
+        year_built: 2005,
+        value: 9800000,
+        value_basis: "appraised",
+        value_per_sf: 196,
+      },
+      {
+        id: args.comparables[0]!.id,
+        apn: "COMP-0002",
+        state_property_category: "F1",
+        building_class: null,
+        local_use_code: "4600",
+        improvement_area_sf: 48000,
+        value: 9100000,
+        value_basis: "appraised",
+        value_per_sf: 189.58,
+        citation: { document_id: "fl:document:sha256-x" },
+      },
+      { id: "fl:parcel:us-48997:1000099", apn: "NOT-USED" },
+    ];
+    const selection_rule = {
+      tax_year: 2026,
+      state_property_category: "F1",
+      area_band: { share: 0.35, min_sf: 32500, max_sf: 67500 },
+      year_band: { years: 15, min: 1990, max: 2020 },
+      min_matches: 10,
+      limit: 50,
+      subject_summary: "the subject on the 2026 roll",
+      narrowing: [
+        {
+          parameter: "same_local_use_code",
+          applied: true,
+          value: "4300",
+          text: "only parcels whose local use code is exactly the subject's (4300)",
+        },
+      ],
+      steps: [
+        { step: TX_EQUITY_STEPS.base, left: 9 },
+        { step: TX_EQUITY_STEPS.area, left: 8 },
+        { step: TX_EQUITY_STEPS.year, left: 7 },
+        { step: TX_EQUITY_STEPS.same_local_use_code, left: 4 },
+      ],
+      tiers: [
+        {
+          tier: "neighborhood",
+          key: "N100",
+          applied: true,
+          matched: 1,
+          returned: 1,
+        },
+        { tier: "zip", key: "77001", applied: true, matched: 2, returned: 2 },
+        { tier: "county", key: "997", applied: true, matched: 1, returned: 1 },
+      ],
+      widened_to_county: true,
+      matched: 4,
+      returned: 4,
+      notice: "calc_args is the candidate list under FactLot's default rule",
+    };
+    const context = { candidates, selection_rule };
+    const pdf = await createReport(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: s.args,
+        context,
+      },
+      { now: NOW },
+    );
+    const squash = (t: string) => t.replace(/\s+/g, "");
+    const flat = squash((await readPdf(pdf.bytes)).text);
+    for (const t of [
+      "Roll fields of the subject and comparables",
+      "SUBJ-0001",
+      "COMP-0002",
+      "4600",
+      usd(189.58),
+      "Candidate rule as applied",
+      TX_EQUITY_RULE,
+      TX_EQUITY_STEPS.same_local_use_code,
+      "same_local_use_code",
+      "applied: 4300",
+      "Sent in context.candidates but not in this calculation: 1",
+    ])
+      assert.ok(flat.includes(squash(t)), t);
+    // A comparable the caller sent no row for says so.
+    if (ids.length > 1) assert.ok(flat.includes("notsent"), "not sent");
+    const x = await readXlsx(
+      (
+        await createReport(
+          {
+            kind: "tx_unequal_appraisal",
+            format: "xlsx",
+            arguments: s.args,
+            context,
+          },
+          { now: NOW },
+        )
+      ).bytes,
+    );
+    assert.deepEqual(x.sheets, [
+      "ReadMe",
+      "Reconcile",
+      "Grid",
+      "Roll_fields",
+      "Steps",
+      "Law",
+      "Provenance",
+      "Inputs",
+    ]);
+    const roll = x.values("Roll_fields");
+    for (const t of [
+      "SUBJ-0001",
+      "COMP-0002",
+      "Candidate rule as applied",
+      TX_EQUITY_RULE,
+    ])
+      assert.ok(roll.includes(t), t);
+    assert.equal(x.cell("Reconcile", "C4"), "0", "still reconciles");
+    // Codes are caller text; a step the tool does not name is refused.
+    await rejects(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: s.args,
+        context: {
+          candidates: [{ ...candidates[1], local_use_code: "you should file" }],
+        },
+      },
+      "TextNotAllowed",
+      /^context\.candidates\.0\.local_use_code$/,
+    );
+    await rejects(
+      {
+        kind: "tx_unequal_appraisal",
+        format: "pdf",
+        arguments: s.args,
+        context: {
+          selection_rule: {
+            steps: [{ step: "comparables FactLot chose", left: 3 }],
+          },
+        },
+      },
+      "InputError",
+    );
   });
 
   it("critical_dates ICS: an event per date, the notice window, and a reminder 30 days before each notice event", async () => {
