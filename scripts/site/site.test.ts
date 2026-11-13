@@ -73,6 +73,25 @@ describe("site/llms.txt", () => {
 
 const flat = (rel: string) => read(rel).replace(/\s+/g, " ");
 
+describe("operator's postal address", () => {
+  const ADDRESS = "Postal address: PO Box 12488, San Antonio, TX 78212.";
+  it("is on the privacy notice once and on the terms in both places", () => {
+    const privacy = flat("site/privacy.html");
+    const terms = flat("site/terms.html");
+    assert.equal(privacy.split(ADDRESS).length - 1, 1);
+    assert.equal(terms.split(ADDRESS).length - 1, 2);
+    for (const page of [privacy, terms])
+      assert.ok(!/Postal address: pending/i.test(page));
+  });
+  it("states a PO box and no street address or phone number", () => {
+    for (const f of ["site/privacy.html", "site/terms.html"])
+      assert.ok(
+        !/\(\d{3}\)\s*\d{3}-\d{4}|\b\d{3}-\d{3}-\d{4}\b/.test(read(f)),
+        f,
+      );
+  });
+});
+
 describe("pricing page", () => {
   const html = flat("site/_content/pricing.html");
   const plans = read("deploy/cloudflare/src/plans.ts");
