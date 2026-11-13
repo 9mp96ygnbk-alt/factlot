@@ -13,6 +13,8 @@ import {
 import { tmpdir } from "node:os";
 import { describe, it } from "node:test";
 
+import { transformSync } from "esbuild";
+
 import { CONTACT, REPO } from "../../deploy/cloudflare/src/contact.ts";
 import { page } from "../../deploy/cloudflare/src/pages.ts";
 import {
@@ -687,13 +689,44 @@ describe("the built site", () => {
       );
       for (const f of [shell.FONT_SANS, shell.FONT_MONO, "/styles.css"])
         assert.ok(existsSync(`${out}${f}`), f);
-      // As served: the same rules without comments and indentation, under 60 KB.
+      // As served: the source with its comments and white space taken out by a CSS parser, and
+      // nothing else changed; under 60 KB.
       const served = readFileSync(`${out}/styles.css`, "utf8");
-      const squeeze = (css: string) =>
-        css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, "");
-      assert.equal(squeeze(served), squeeze(read("site/styles.css")));
-      assert.ok(served.length <= 60_000, `${served.length} bytes of CSS`);
+      const source = read("site/styles.css");
+      assert.equal(
+        served,
+        transformSync(source, {
+          loader: "css",
+          minifyWhitespace: true,
+          legalComments: "none",
+        }).code,
+      );
+      // The same stylesheet: both reduce to one form, and the served file is already at rest.
+      const reduced = (css: string) =>
+        transformSync(css, { loader: "css", minify: true }).code;
+      assert.equal(reduced(served), reduced(source));
+      assert.ok(
+        Buffer.byteLength(served) <= 60_000,
+        `${Buffer.byteLength(served)} bytes of CSS`,
+      );
       assert.ok(!served.includes("/*"));
+      // Every selector the source writes is in the served file (white space aside).
+      const tight = (x: string) => x.replace(/\s+|"/g, "");
+      for (const [, selector] of source
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .matchAll(/(?:^|\})\s*([^{}@]+?)\s*\{/g))
+        assert.ok(
+          tight(served).includes(`${tight(selector!)}{`),
+          `the served stylesheet lost ${selector}`,
+        );
+      // Only what the publishing rule lets through is in the folder.
+      const names = (dir: string): string[] =>
+        readdirSync(dir, { withFileTypes: true }).flatMap((e) => [
+          e.name,
+          ...(e.isDirectory() ? names(`${dir}/${e.name}`) : []),
+        ]);
+      for (const name of names(out))
+        assert.ok(!name.startsWith("_") && !name.endsWith(".md"), name);
       // The Worker serves this folder: wrangler's assets directory is the build's default output.
       assert.match(
         read("deploy/cloudflare/wrangler.jsonc"),

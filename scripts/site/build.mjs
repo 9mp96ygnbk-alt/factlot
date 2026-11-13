@@ -5,10 +5,13 @@
 // fails on a broken internal link, an external script or stylesheet, or JSON-LD that does not parse.
 //
 //   npm run build && node scripts/site/build.mjs [outDir]   (default deploy/cloudflare/public)
+import { Buffer } from "node:buffer";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { transformSync } from "esbuild";
 
 import {
   countyBody,
@@ -1374,24 +1377,24 @@ for (const [file, urlPath] of [
   );
 }
 
-// The stylesheet is served without its comments and indentation: every rule and value as written,
-// each on one line. A line that ends a selector, a rule or a declaration joins the next directly;
-// any other (a value that runs over several lines) keeps a space.
+// The stylesheet is served without its comments and the white space between rules. esbuild parses
+// it, so a comment marker inside a string or a url() is left alone; only white space is minified,
+// and no rule or value is rewritten for an older browser.
 {
   const file = path.join(out, "styles.css");
-  const css = fs
-    .readFileSync(file, "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => (/[{};,]$/.test(line) ? line : `${line} `))
-    .join("");
-  if (css.length > 60_000)
+  const { code, warnings } = transformSync(fs.readFileSync(file, "utf8"), {
+    loader: "css",
+    minifyWhitespace: true,
+    legalComments: "none",
+  });
+  if (warnings.length > 0)
+    throw new Error(`styles.css: ${warnings.map((w) => w.text).join("; ")}`);
+  const bytes = Buffer.byteLength(code);
+  if (bytes > 60_000)
     throw new Error(
-      `styles.css is ${css.length} bytes as served; the limit is 60,000`,
+      `styles.css is ${bytes} bytes as served; the limit is 60,000`,
     );
-  fs.writeFileSync(file, `${css}\n`);
+  fs.writeFileSync(file, code);
 }
 // The home page states plan facts through the same placeholders as the generated pages, takes the
 // shared shell, and its figures are drawn here from the data other pages are built from: the
