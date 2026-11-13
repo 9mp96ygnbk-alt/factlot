@@ -126,11 +126,14 @@ function parse(text: string): unknown {
 /**
  * An MCP POST to /mcp on the same host carrying only what identifies the caller: their
  * Authorization header and Cloudflare's client address. The router answers it as theirs.
+ * The Host header is set because the inner HTTP handler (node:http) answers 400 to a request
+ * without one, and a Request built here has none of its own.
  */
 export function asCaller(request: Request, url: URL, body: string): Request {
   const headers = new Headers({
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
+    host: url.host,
   });
   for (const h of ["authorization", "cf-connecting-ip", "user-agent"]) {
     const v = request.headers.get(h);

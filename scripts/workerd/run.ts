@@ -409,6 +409,33 @@ async function apiChecks(harness: Harness): Promise<void> {
       }),
     },
   );
+  // A property sheet: report_create runs registry_get as the caller through the router and the
+  // inner HTTP handler again, then stores the PDF; the download link answers the file.
+  const sheet = await get("https://api.factlot.com/v1/reports", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      kind: "property_sheet",
+      format: "pdf",
+      arguments: { urn: "fl:parcel:us-48999:0001-000-0001" },
+    }),
+  });
+  const sh = (await asJson(sheet)) as { download_url?: string };
+  expect(
+    sheet.status === 201 && typeof sh.download_url === "string",
+    "api POST /v1/reports property_sheet (keyless, registry_get as the caller)",
+    sh,
+  );
+  if (typeof sh.download_url === "string") {
+    const file = await get(sh.download_url);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    expect(
+      file.status === 200 &&
+        new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-",
+      "api GET the property sheet's download link (a PDF)",
+      file.status,
+    );
+  }
   const bb = (await asJson(batch)) as { summary?: { subjects?: number } };
   expect(
     batch.status === 200 && bb.summary?.subjects === 2,
