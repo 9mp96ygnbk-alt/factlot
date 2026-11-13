@@ -15,7 +15,7 @@
       "post": {
         "operationId": "calc_rent_schedule",
         "summary": "Lease rent schedule",
-        "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace. Optional unit (kw, mw, unit, acre, key, room, space) relabels area and $/SF for data-center, ground, yard, residential, hotel, or parking leases without changing any number. Deterministic: use this instead of doing the math yourself; cite formula calc.rent_schedule@1 and the returned steps, and surface any warnings.",
+        "description": "Build a base-rent schedule from commencement date, term, area, starting $/SF/yr, escalations (percent or fixed $/SF), and abated months. Lease months run from the commencement day-of-month with no calendar proration (warns when commencement is mid-month). Returns rent steps, totals, expiration date, and a calculation trace. Optional unit (kw, mw, unit, acre, key, room, space) relabels area and $/SF for data-center, ground, yard, residential, hotel, or parking leases without changing any number. Deterministic: the same inputs always give the same result, with formula ID calc.rent_schedule@1, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -207,7 +207,7 @@
       "post": {
         "operationId": "calc_net_effective_rent",
         "summary": "Net effective rent (NER)",
-        "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12. schedule.unit (kw, mw, unit, acre, key, room, space) reports $/kW/yr, $/acre/yr and so on instead of $/SF/yr. Deterministic: use this instead of doing the math yourself; cite formula calc.net_effective_rent@1 and the returned steps, and surface any warnings.",
+        "description": "Compute effective rent, straight-line net effective rent, and discounted net effective rent ($/SF/yr) after free rent, TI allowance, leasing commissions, and other landlord concessions. Rent is monthly in advance from the commencement day (no calendar proration), discounted at annual rate ÷ 12. schedule.unit (kw, mw, unit, acre, key, room, space) reports $/kW/yr, $/acre/yr and so on instead of $/SF/yr. Deterministic: the same inputs always give the same result, with formula ID calc.net_effective_rent@1, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -432,7 +432,7 @@
       "post": {
         "operationId": "calc_compare_proposals",
         "summary": "Compare lease proposals",
-        "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ. schedule.unit (kw, mw, unit, acre, key, room, space, the same for every proposal) ranks per kW, MW, unit, acre, key, room, or space instead of per SF. Deterministic: use this instead of doing the math yourself; cite formula calc.compare_proposals@2 and the returned steps, and surface any warnings.",
+        "description": "Rank 2–20 lease proposals with different terms, sizes, free rent, TI, concessions, and operating-expense structures (gross, NNN, base year, expense stop, with opex growth) on one discounted $/SF/yr basis, per rentable or usable SF (load factor): effective occupancy cost (tenant perspective) or discounted net effective rent after landlord-borne opex and optional pre-commencement downtime (landlord perspective). Cash flows monthly in advance at annual rate ÷ 12; warns when the usable-SF ranking differs and when terms differ. schedule.unit (kw, mw, unit, acre, key, room, space, the same for every proposal) ranks per kW, MW, unit, acre, key, room, or space instead of per SF. Deterministic: the same inputs always give the same result, with formula ID calc.compare_proposals@2, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -836,7 +836,7 @@
       "post": {
         "operationId": "calc_cam_reconciliation",
         "summary": "CAM / operating expense reconciliation",
-        "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings. Deterministic: use this instead of doing the math yourself; cite formula calc.cam_reconciliation@2 and the returned steps, and surface any warnings.",
+        "description": "Reconcile a tenant's annual CAM charge: exclusions, occupancy gross-up of variable expenses, pro rata share, controllable-expense caps (compounding_from_base, simple_from_base, year_over_year), an admin fee (before or after the cap, inside or outside it, with per-line exclusions), base year or expense stop, partial-year occupancy (move-in/move-out prorates share, cap, and base by days), and estimates paid. Returns balance due and a full trace with order-of-operations warnings. Deterministic: the same inputs always give the same result, with formula ID calc.cam_reconciliation@2, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1124,7 +1124,7 @@
       "post": {
         "operationId": "calc_debt_sizing",
         "summary": "Loan sizing (LTV / DSCR / debt yield)",
-        "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics; optionally a stress table over NOI, rate, and value shocks (max loan, binding constraint, LTV, DSCR, debt yield per scenario) and the refinance shortfall against an existing loan balance. Deterministic: use this instead of doing the math yourself; cite formula calc.debt_sizing@3 and the returned steps, and surface any warnings.",
+        "description": "Size the maximum loan under any combination of max LTV, min DSCR, and min debt yield for a given NOI, rate, and amortization. Reports the binding constraint, debt service, and resulting metrics; optionally a stress table over NOI, rate, and value shocks (max loan, binding constraint, LTV, DSCR, debt yield per scenario) and the refinance shortfall against an existing loan balance. Deterministic: the same inputs always give the same result, with formula ID calc.debt_sizing@3, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1301,7 +1301,7 @@
       "post": {
         "operationId": "calc_irr",
         "summary": "Internal rate of return",
-        "description": "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed). Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period. Deterministic: use this instead of doing the math yourself; cite formula calc.irr@2 and the returned steps, and surface any warnings.",
+        "description": "Periodic and annualized IRR of periodic cash flows, as decimals (0.085 = 8.5%), solved deterministically by scanning a 1-point grid of per-period rates and bisecting each sign change; reports every root it finds when cash flows have multiple IRRs (two roots within one grid step can be missed). Errors when the flows do not change sign or no root lies between -99.99% and 1000% per period. Deterministic: the same inputs always give the same result, with formula ID calc.irr@2, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -1386,7 +1386,7 @@
       "post": {
         "operationId": "calc_dcf_pro_forma",
         "summary": "Property DCF from a rent roll",
-        "description": "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, with fractional downtime and free rent kept as part months rather than rounded); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated. Deterministic: use this instead of doing the math yourself; cite formula calc.dcf_pro_forma@2 and the returned steps, and surface any warnings.",
+        "description": "Property-level discounted cash flow from an in-place rent roll: each lease's rent, escalations, remaining term, and expense recovery (NNN, gross, base year), then at expiration one blended lease weighted by the renewal probability (renewal vs new-tenant rent, free rent, TI, leasing commissions, and new-tenant downtime, with fractional downtime and free rent kept as part months rather than rounded); market rent growth, general vacancy and credit loss, operating expenses, management fee, and capital reserves. Returns the annual cash-flow table (NOI and cash flow before debt) for the hold plus one year, the exit value at a cap rate on forward (or trailing) NOI less selling costs, the value (PV at the discount rate, end-of-year or mid-year), and with a purchase price the NPV, unlevered IRR, and equity multiple, with every lease event and convention stated. Deterministic: the same inputs always give the same result, with formula ID calc.dcf_pro_forma@2, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,

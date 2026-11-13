@@ -39,9 +39,9 @@ export const TX_PACKET_INSTRUCTIONS = [
   "Texas unequal-appraisal packet, in order:",
   "1 registry_resolve_parcel (county_fips, apn) or registry_search_address gives the parcel URN.",
   "2 registry_get gives cited facts and value_history by tax year.",
-  "3 registry_tx_equity_candidates lists candidates under FactLot's default rule (see selection_rule) for the person to review and edit; FactLot does not select comparables.",
+  "3 registry_tx_equity_candidates lists candidates under FactLot's default rule (see selection_rule) for the person to review and edit; FactLot selects none. Never look up their owners.",
   "4 calc_tx_unequal_appraisal with the reviewed calc_args (normalize_by improvement_area_sf when areas differ; adjustments only with evidence); relay flags and warnings.",
-  "5 rules_tx_property_tax_protest_deadline (tax_year, notice_delivered_date if known): status says open or passed as of today; next_season gives the next year.",
+  "5 rules_tx_property_tax_protest_deadline (tax_year, notice_delivered_date if known): status is open or passed today; next_season is next year.",
   "6 report_create kind tx_unequal_appraisal with the step 4 arguments: pdf (evidence packet) or xlsx (adjustment grid).",
   "calc_critical_dates and its ICS calendar are for lease notice windows, not protests.",
 ].join("\n");

@@ -1178,7 +1178,7 @@
       "post": {
         "operationId": "calc_percentage_rent",
         "summary": "Retail percentage rent",
-        "description": "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid.",
+        "description": "Percentage (overage) rent for a lease year: net sales after exclusions over a natural or fixed breakpoint, prorated for partial years, less amounts already paid. Deterministic: the same inputs always give the same result, with formula ID calc.percentage_rent@1, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -2281,7 +2281,7 @@
       "post": {
         "operationId": "calc_walt",
         "summary": "Weighted average lease term (WALT)",
-        "description": "Weighted average remaining lease term in years as of a date (actual days ÷ 365.25), weighted by each lease's area_sf (weight_by \"area\") or annual_rent (weight_by \"rent\").",
+        "description": "Weighted average remaining lease term in years as of a date (actual days ÷ 365.25), weighted by each lease's area_sf (weight_by \"area\") or annual_rent (weight_by \"rent\"). Deterministic: the same inputs always give the same result, with formula ID calc.walt@1, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -2396,7 +2396,7 @@
       "post": {
         "operationId": "calc_npv",
         "summary": "Net present value",
-        "description": "NPV of periodic cash flows (t = 0, 1, 2, ...; the t = 0 flow is not discounted) at a per-period discount rate given as a decimal. Deterministic: use this instead of doing the math yourself; cite formula calc.npv@1 and the returned steps, and surface any warnings.",
+        "description": "NPV of periodic cash flows (t = 0, 1, 2, ...; the t = 0 flow is not discounted) at a per-period discount rate given as a decimal. Deterministic: the same inputs always give the same result, with formula ID calc.npv@1, every step, and any warnings.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
