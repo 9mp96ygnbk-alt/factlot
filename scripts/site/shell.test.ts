@@ -576,17 +576,17 @@ describe("the brand images", () => {
 // page changes its hash: update it in the same commit as the change, on purpose.
 const LEGAL_TEXT = {
   "privacy.html":
-    "9365c15794a1b7f680d36497bdc1b43647753637fd1f5f2275bcb036eb2dbf65",
+    "cee617c962bbcc3d2b943976b0547f6aa397463555590294314c388e135cb57e",
   "terms.html":
-    "0d01872ae9736587b88ee4decd6f99ab1889a36bf334fc22836920cf704421ec",
+    "b0b31795eec011641812cdfb55f4797b5024579fb83d04b3b9c010fd3087a726",
 };
 // The same pages' <main>, byte for byte: every tag, attribute and link target as well as the
 // words. Only the chrome outside <main> was meant to change when the pages took the shell.
 const LEGAL_MAIN = {
   "privacy.html":
-    "53baf5a18fd39802a8e81cc9dfe69a2e8989dda47bdc02e1ff017ab73c15726b",
+    "142ab26a4b29f18b7298fe5b6272401f46b19b00996293cdaab8bf370ab1ae25",
   "terms.html":
-    "612781fd64675906ae2ad3fbf4e698cd20c57eeeb9981222b7801779ed815eb7",
+    "ebb871c0546158487d91eb1a1537ef0bd1676cb8c53b570d5ff6b6b4b4bc5e31",
 };
 const mainOf = (html: string) =>
   /<main\b[^>]*>([\s\S]*?)<\/main>/.exec(html)![1]!;
