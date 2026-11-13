@@ -12,6 +12,7 @@ import {
 import { PLANS, WATCH_LIMITS } from "./plans.ts";
 import { handle } from "./router.ts";
 import { hmacSha256Hex } from "./stripe.ts";
+import { forgetWatch } from "./watch-forget.ts";
 import { resetUsageForTests, snapshot } from "./usage.ts";
 import type { Env, KV, RateLimit } from "./types.ts";
 import {
@@ -919,6 +920,10 @@ describe("watch check", () => {
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(P1, parcel(P1, { owner: "NEW OWNER LP", idSuffix: "n" })),
     );
+    // The scheduled run has started this check but compared nothing yet (its budget ran out).
+    const started = await runWatchCheck(s.env, { budget: 5 });
+    assert.equal(started.state, "run");
+    assert.equal(started.subscriptions_done, 0);
     const c = (await (await s.call(rest("changes", {}, key))).json()) as {
       changes: Rec[];
       check: Rec;
@@ -1317,7 +1322,7 @@ describe("watch lists: failures stay contained", () => {
       (one.check.not_compared as Rec[]).map((x) => x.urn),
       [BAD],
     );
-    assert.equal((await s.env.WATCH!.index<Rec>("state")).done_seq, 2);
+    assert.equal((await s.env.WATCH!.index<Rec>("state")).done_seq, 1);
     // Next pack it is read again.
     s.registry.pack.broken.clear();
     release(s, "2026-11-19T00:00:00Z", () => {});
@@ -1447,6 +1452,8 @@ describe("watch lists: watch_add bookkeeping", () => {
     await s.call(rest("list", {}, key));
     assert.equal(await owners(), 1);
     await s.env.WATCH!.index("unregister", { owner: "sub:sub_1" });
+    // watch_changes registers once the scheduled check has started on the pack it sees.
+    await runWatchCheck(s.env, { budget: 5 });
     await s.call(rest("changes", {}, key));
     assert.equal(await owners(), 1);
   });
@@ -1703,5 +1710,191 @@ describe("watch lists: storage", () => {
     assert.notEqual(keyed.dk, other.dk);
     assert.notEqual(keyed.documents.items[0]!.h, plain.documents.items[0]!.h);
     assert.deepEqual(compare(keyed, other, new Set(ASPECTS)), []);
+  });
+});
+
+// --- Second review ------------------------------------------------------------------------------
+
+describe("watch lists: second review", () => {
+  it("W1: a call that breaks while the registry answers counts two calls and ends that subscription's reads", async () => {
+    const s = setup();
+    const key = await issue(s.env, { plan: "team" });
+    const urns = Array.from({ length: 150 }, (_, i) => parcelUrn(i));
+    for (const u of urns) s.registry.pack.records.set(u, parcel(u));
+    for (let i = 0; i < 150; i += 50)
+      await s.call(rest("add", { urns: urns.slice(i, i + 50) }, key));
+    release(s, "2026-11-12T00:00:00Z", (recs) => {
+      for (const u of urns)
+        recs.set(u, parcel(u, { year: 2026, idSuffix: "n" }));
+    });
+    s.registry.pack.broken.add(urns[3]!);
+    const before = s.registry.calls.binding;
+    const r = await runWatchCheck(s.env);
+    assert.ok(r.invocations <= WATCH_CHECK.invocations);
+    // Health, the failed call and the health probe: nothing more for this subscription.
+    assert.equal(s.registry.calls.binding - before, 3);
+    const fails = s.space
+      .object("watch:sub:sub_1")
+      .storage.sql.exec("SELECT COUNT(*) AS n FROM w_prints WHERE fails = 1")
+      .toArray()[0]!.n;
+    assert.equal(fails, 50);
+    for (let i = 0; i < 20; i++) {
+      const x = await runWatchCheck(s.env);
+      assert.ok(x.invocations <= WATCH_CHECK.invocations);
+      if (x.state === "done") break;
+    }
+    const c = (await (
+      await s.call(rest("changes", { limit: 200 }, key))
+    ).json()) as { changes: Rec[]; check: Rec };
+    assert.equal(c.changes.length, 149);
+    assert.deepEqual(
+      (c.check.not_compared as Rec[]).map((x) => x.urn),
+      [urns[3]],
+    );
+  });
+
+  it("W2: tools never move the check number, and skip inline work when their pack differs", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    await runWatchCheck(s.env);
+    const before = await s.env.WATCH!.index<Rec>("state");
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
+    );
+    await s.call(rest("add", { urns: [P2] }, key));
+    const c = (await (await s.call(rest("changes", {}, key))).json()) as {
+      changes: Rec[];
+      check: Rec;
+    };
+    assert.equal(c.changes.length, 0);
+    assert.match(String(c.check.note), /scheduled check has not started/);
+    assert.deepEqual(await s.env.WATCH!.index<Rec>("state"), before);
+    // The scheduled run starts it once; an isolate still seeing the old pack changes nothing.
+    await runWatchCheck(s.env);
+    const after = await s.env.WATCH!.index<Rec>("state");
+    assert.equal(after.seq, Number(before.seq) + 1);
+    s.registry.pack.built_at = "2026-11-05T00:00:00Z";
+    resetWatchHealthCache();
+    await s.call(rest("changes", {}, key));
+    await s.call(rest("add", { urns: [E1] }, key));
+    assert.deepEqual(await s.env.WATCH!.index<Rec>("state"), after);
+  });
+
+  it("W3: a digest that could not be sent is sent by the next run", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    await confirmAlerts(s, key, "owner@example.com");
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
+    );
+    const send = s.email.binding.send;
+    s.email.binding.send = async () => {
+      throw new Error("nope");
+    };
+    const first = await runWatchCheck(s.env);
+    assert.equal(first.left, 1);
+    s.email.binding.send = send;
+    await runWatchCheck(s.env);
+    await runWatchCheck(s.env);
+    assert.equal(
+      s.email.sent.filter((m) => /registry update/.test(m.subject)).length,
+      1,
+    );
+  });
+
+  it("W4: forgetting always takes the subscription out of the index", async () => {
+    const s = setup();
+    await s.env.WATCH!.index("register", { owner: "sub:sub_7" });
+    await forgetWatch(s.env, "sub_7");
+    assert.equal((await s.env.WATCH!.index<Rec>("state")).owners, 0);
+  });
+
+  it("W5: one MCP request answers at most two watch_add or watch_changes calls; the rest are refused, uncharged", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    const call = (id: number, name: string, args: Rec) => ({
+      jsonrpc: "2.0",
+      id,
+      method: "tools/call",
+      params: { name, arguments: args },
+    });
+    const res = (await (
+      await s.call(
+        mcp(
+          [
+            call(1, "watch_add", { urns: [P1] }),
+            call(2, "watch_changes", {}),
+            call(3, "watch_add", { urns: [P2] }),
+            call(4, "watch_list", {}),
+          ],
+          key,
+        ),
+      )
+    ).json()) as {
+      id: number;
+      result: { isError?: boolean; structuredContent: Rec };
+    }[];
+    const by = new Map(res.map((m) => [m.id, m.result]));
+    assert.equal(by.get(1)!.isError, undefined);
+    assert.equal(by.get(3)!.isError, true);
+    assert.equal(by.get(3)!.structuredContent.code, "WatchCallLimit");
+    assert.equal(by.get(4)!.isError, undefined);
+    assert.equal(await lookupsUsed(s.env), 1);
+  });
+
+  it("W6: an unconfirmed address's masked form goes once its link has expired", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(
+      rest("alerts", { enabled: true, email: "new@example.com" }, key),
+    );
+    s.clock.t += 25 * 3_600_000;
+    const l = (await (await s.call(rest("list", {}, key))).json()) as {
+      alerts: Rec;
+    };
+    assert.equal(l.alerts.state, "off");
+    const meta = JSON.stringify(
+      s.space
+        .object("watch:sub:sub_1")
+        .storage.sql.exec("SELECT * FROM w_meta")
+        .toArray(),
+    );
+    assert.ok(!meta.includes("pending"));
+  });
+
+  it("W7: failed inline reads never count toward giving a subject up", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    release(s, "2026-11-12T00:00:00Z", () => {});
+    await runWatchCheck(s.env, { budget: 5 });
+    s.registry.pack.errors.add(P1);
+    for (let i = 0; i < 5; i++) await s.call(rest("changes", {}, key));
+    const row = s.space
+      .object("watch:sub:sub_1")
+      .storage.sql.exec("SELECT fails, skipped_seq FROM w_prints")
+      .toArray()[0]!;
+    assert.deepEqual({ ...row }, { fails: 0, skipped_seq: 0 });
+  });
+
+  it("W8: a subscription with no key record at all is deleted after three distinct checks", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    for (const k of [...s.env.KEYS.data.keys()])
+      if (k.startsWith("key:") || k.startsWith("sub:"))
+        await s.env.KEYS.delete(k);
+    const tables = () =>
+      s.space.object("watch:sub:sub_1").storage.tables().length;
+    for (const [n, day] of ["12", "19", "26"].entries()) {
+      release(s, `2026-11-${day}T00:00:00Z`, () => {});
+      // Several runs of one check count once.
+      await runWatchCheck(s.env);
+      await runWatchCheck(s.env);
+      if (n < 2) assert.ok(tables() > 0, `after check ${n + 1}`);
+    }
+    assert.equal(tables(), 0);
   });
 });

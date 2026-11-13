@@ -271,6 +271,13 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
     if (empty !== undefined) return empty;
   }
   for (const q of SUB_SCHEMA) sql.exec(q);
+  // An unconfirmed address's masked form goes once its link has expired.
+  if (a.now !== undefined) {
+    const exp = getMeta(sql, "pending_expires");
+    if (exp !== undefined && Date.parse(exp) <= nowOf(a))
+      for (const k of ["pending_email", "pending_id", "pending_expires"])
+        deleteMeta(sql, k);
+  }
   switch (op) {
     case "room": {
       // Which URNs are new to the list, and how many more the plan allows.
@@ -522,6 +529,7 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       // Watched URNs not yet compared in check `seq` (and not given up for it), the oldest
       // membership first; only the first maxSubjects URNs are checked (a downgraded plan).
       prune(sql, nowOf(a));
+      if (a.keys_seen === true) deleteMeta(sql, "no_keys");
       const seq = Number(a.seq);
       const max = Math.max(0, Number(a.max));
       const pending: {
@@ -633,6 +641,14 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       setMeta(sql, "last_built_at", builtAt);
       prune(sql, Date.parse(now));
       return { stored, skipped };
+    }
+    case "no_keys": {
+      // Distinct checks in a row that found no key record for the subscription.
+      const seq = Number(a.seq);
+      const [last, n] = (getMeta(sql, "no_keys") ?? "0|0").split("|");
+      const count = Number(last) === seq ? Number(n) : Number(n) + 1;
+      setMeta(sql, "no_keys", `${seq}|${count}`);
+      return { count };
     }
     case "check_state": {
       // Subjects whose reads are failing, or were given up for check `seq`.
@@ -769,8 +785,12 @@ export function indexOp(sql: SqlLike, op: string, a: Args): unknown {
     case "unregister":
       sql.exec("DELETE FROM w_owners WHERE owner = ?", String(a.owner));
       return { ok: true };
-    case "seq":
-      return { seq: ensureSeq(sql, String(a.built_at)) };
+    case "current":
+      // The check the scheduled run last started; tools never start one.
+      return {
+        seq: Number(getMeta(sql, "seq") ?? 0),
+        built_at: getMeta(sql, "built_at") ?? null,
+      };
     case "begin": {
       // Start or resume the check of pack `built_at`: refused while another run holds the lease.
       const seq = ensureSeq(sql, String(a.built_at));

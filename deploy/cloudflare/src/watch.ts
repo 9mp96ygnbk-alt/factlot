@@ -314,22 +314,27 @@ const ownerOf = (c: WatchCaller) => `sub:${c.subscription}`;
 const register = (env: Env, c: WatchCaller) =>
   env.WATCH!.index("register", { owner: ownerOf(c) });
 
-/** The check number of the registry's current pack (0 when the registry does not say). */
+/**
+ * The pack this isolate sees and the check the scheduled run last started. Only the scheduled
+ * check, which reads the pack date fresh, starts a check; a tool's reading may be up to a minute
+ * old (or come from the other pack during a gradual deploy), so a tool never moves the check
+ * number. `same` says whether both name the same pack: only then is a tool's work filed under it.
+ */
 async function currentCheck(
   env: Env,
   reader: RegistryReader | undefined,
-): Promise<{ builtAt: string; seq: number }> {
+): Promise<{ builtAt: string; seq: number; same: boolean }> {
   let builtAt = "";
   try {
     if (reader) builtAt = (await reader.builtAt()) ?? "";
   } catch {
     builtAt = "";
   }
-  if (!builtAt) return { builtAt, seq: 0 };
-  const { seq } = await env.WATCH!.index<{ seq: number }>("seq", {
-    built_at: builtAt,
-  });
-  return { builtAt, seq };
+  const cur = await env.WATCH!.index<{ seq: number; built_at: string | null }>(
+    "current",
+  );
+  const same = builtAt !== "" && cur.seq > 0 && cur.built_at === builtAt;
+  return { builtAt, seq: same ? cur.seq : 0, same };
 }
 
 /** Registry calls watch_add may make when the registry Worker has no /get-many (an older one). */
@@ -716,6 +721,11 @@ async function catchUp(
       note: "the registry did not say which update it holds; changes are as of the last check",
     };
   view.built_at = check.builtAt;
+  if (!check.same)
+    return {
+      ...view,
+      note: "the scheduled check has not started on this registry update yet; changes are as of the last check",
+    };
   const p = await env.WATCH!.sub<{
     items: PendingItem[];
     remaining: number;
@@ -739,6 +749,9 @@ async function catchUp(
           p.items,
           newContext(reader, deps.now, () => {}, env.RECOVERY_SIGNING_SECRET),
           2,
+          new Set(),
+          // Failed reads here never count toward giving a subject up.
+          false,
         )
       ).settled;
     } catch {
@@ -1026,21 +1039,43 @@ export function isWatchCall(env: Env, item: unknown): item is WatchCall {
   );
 }
 
+/**
+ * watch_add and watch_changes calls answered per MCP request: each may read the registry (one
+ * /get-many call, or up to 10 single calls against an older registry Worker; watch_changes two),
+ * so this keeps one request well inside Cloudflare's 32 invocations. Further ones get an error,
+ * uncharged, to send in another request.
+ */
+export const MAX_WATCH_READ_CALLS_PER_REQUEST = 2;
+const READING_TOOLS = new Set(["watch_add", "watch_changes"]);
+
+/** Whether a watch call may read the registry (and so counts toward the cap above). */
+export const readsRegistry = (m: WatchCall) => READING_TOOLS.has(m.params.name);
+
 export async function answerWatchCall(
   env: Env,
   caller: WatchCaller | undefined,
   kind: CallerKind,
   m: WatchCall,
   deps: WatchDeps = {},
+  /** This call is over MAX_WATCH_READ_CALLS_PER_REQUEST: refused, nothing run or charged. */
+  overCap = false,
 ): Promise<unknown> {
-  const a = await runWatchTool(
-    m.params.name,
-    m.params.arguments ?? {},
-    env,
-    caller,
-    kind,
-    deps,
-  );
+  const a =
+    overCap && caller
+      ? fail(
+          429,
+          "WatchCallLimit",
+          `one request may hold at most ${MAX_WATCH_READ_CALLS_PER_REQUEST} watch_add or watch_changes calls; this one was not run and nothing was counted.`,
+          "send it in another request",
+        )
+      : await runWatchTool(
+          m.params.name,
+          m.params.arguments ?? {},
+          env,
+          caller,
+          kind,
+          deps,
+        );
   return {
     jsonrpc: "2.0",
     id: m.id,

@@ -279,12 +279,19 @@ export async function compareItems(
   maxCalls: number,
   /** URNs already settled for this subscription in this run: left alone, and added to. */
   seen: Set<string> = new Set(),
+  /**
+   * Whether failed reads count toward giving a subject up (the scheduled check). Inline reads
+   * (watch_changes) never count them: a failed subject there is simply left pending.
+   */
+  countFailures = true,
 ): Promise<{
   settled: number;
   stored: number;
   reads: number;
   /** Subjects that failed and will be read again (not yet given up). */
   retry: number;
+  /** A call failed while the registry answered: nothing more was read. */
+  stopped?: boolean;
 }> {
   items = items.filter((i) => !seen.has(i.urn));
   // Calls: a subject that failed before is read alone; the rest in chunks.
@@ -304,6 +311,7 @@ export async function compareItems(
   if (chunk.length) groups.push(chunk);
   let calls = 0;
   let reads = 0;
+  let stopped = false;
   for (const g of groups) {
     if (calls >= maxCalls) break;
     const urns = g.map((i) => i.urn);
@@ -319,7 +327,8 @@ export async function compareItems(
       });
     } catch (err) {
       if (!(err instanceof RegistryCallFailed)) throw err;
-      calls++;
+      // The failed call and the health probe.
+      calls += 2;
       ctx.spend(2);
       // Is the registry down, or did these subjects break the call?
       const up = await ctx.reader.builtAt().then(
@@ -327,7 +336,11 @@ export async function compareItems(
         () => false,
       );
       if (!up) throw new RegistryDown("registry does not answer");
+      // These subjects broke the call: record their failure now (each is read alone next run)
+      // and read nothing more for this subscription in this run.
       for (const u of urns) ctx.cache.set(u, { error: "registry error" });
+      stopped = true;
+      break;
     }
   }
   const results: {
@@ -338,11 +351,13 @@ export async function compareItems(
     changes: ChangeBody[];
   }[] = [];
   const failed: { urn: string; reason: string }[] = [];
+  let uncounted = 0;
   for (const it of items) {
     const read = ctx.cache.get(it.urn);
     if (!read) continue;
     if ("error" in read) {
-      failed.push({ urn: it.urn, reason: read.error });
+      if (countFailures) failed.push({ urn: it.urn, reason: read.error });
+      else uncounted++;
       continue;
     }
     const old = it.print ? (JSON.parse(it.print) as Print) : undefined;
@@ -368,7 +383,7 @@ export async function compareItems(
     });
   }
   if (results.length === 0 && failed.length === 0)
-    return { settled: 0, stored: 0, reads, retry: 0 };
+    return { settled: 0, stored: 0, reads, retry: uncounted, stopped };
   for (const x of [...results, ...failed]) seen.add(x.urn);
   ctx.spend(1);
   const r = await watch.sub<{ stored: number; skipped: number }>(
@@ -387,7 +402,8 @@ export async function compareItems(
     settled: results.length + failed.length,
     stored: r.stored,
     reads,
-    retry: failed.length - r.skipped,
+    retry: failed.length - r.skipped + uncounted,
+    stopped,
   };
 }
 
@@ -550,7 +566,7 @@ export interface CheckReport {
 export async function subscriptionPlan(
   env: Env,
   subscription: string,
-): Promise<PlanId | "gone" | "inactive" | "skip"> {
+): Promise<PlanId | "gone" | "inactive" | "skip" | "none"> {
   let records: KeyRecord[];
   try {
     const hashes = await subscriptionKeys(env.KEYS, subscription);
@@ -567,8 +583,17 @@ export async function subscriptionPlan(
   if (records.some((r) => stripeStatusIsTerminal(r.stripe_status)))
     return "gone";
   if (records.some((r) => isLiveKey(r))) return "inactive";
-  return "skip";
+  return records.length === 0 ? "none" : "skip";
 }
+
+/**
+ * Checks in a row that found no key record at all before a subscription's watch data is deleted.
+ * A subscription cancelled while watch lists were off has no webhook left to delete it, and its
+ * key records expire 365 days after it became inactive. KV staleness lasts seconds to a minute
+ * and checks are a registry update apart (days), so three distinct checks with no record at all
+ * cannot be a half-seen write.
+ */
+export const NO_KEY_CHECKS_BEFORE_DELETE = 3;
 
 type Outcome = "done" | "later" | "budget";
 
@@ -584,6 +609,17 @@ async function checkSubscription(
 ): Promise<Outcome> {
   const plan = await subscriptionPlan(env, subscription);
   if (plan === "skip") return "later";
+  if (plan === "none") {
+    ctx.spend(1);
+    const n = await watch.sub<{ count: number }>(subscription, "no_keys", {
+      seq,
+    });
+    if (n.count < NO_KEY_CHECKS_BEFORE_DELETE) return "later";
+    ctx.spend(2);
+    await forgetWatch(env, subscription);
+    report.subscriptions_deleted++;
+    return "done";
+  }
   if (plan === "gone") {
     ctx.spend(2);
     await forgetWatch(env, subscription);
@@ -612,6 +648,8 @@ async function checkSubscription(
         max: calls * WATCH_CHECK.chunk,
         maxSubjects: WATCH_LIMITS[plan].subjects,
         now: new Date(ctx.now()).toISOString(),
+        // A key record was found: the no-key count starts again.
+        keys_seen: true,
       },
     );
     const fresh = p.items.filter((i) => !seen.has(i.urn));
@@ -629,6 +667,7 @@ async function checkSubscription(
     report.changes += r.stored;
     report.subjects_read += r.reads;
     retry += r.retry;
+    if (r.stopped) return "later";
     if (r.settled < fresh.length) return "budget";
     if (p.remaining <= p.items.length) break;
   }
@@ -657,6 +696,8 @@ async function checkSubscription(
     else {
       ctx.spend(1);
       await watch.sub(subscription, "digest_release", { seq });
+      // Not done: a later run sends it.
+      return "later";
     }
   }
   return "done";

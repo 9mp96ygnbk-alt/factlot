@@ -185,6 +185,8 @@ import {
   watchAccountAction,
   watchAccountSection,
   watchCaller,
+  readsRegistry,
+  MAX_WATCH_READ_CALLS_PER_REQUEST,
   watchConfirmRoute,
   watchEnabled,
   watchRestRoute,
@@ -1786,6 +1788,7 @@ async function route(
   }
   if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;
+    let watchReads = 0;
     res = await withAccountTools(
       res,
       [
@@ -1794,7 +1797,15 @@ async function route(
             refusedBatch(m)
               ? refusedBatchAnswer(m, noteRefusal)
               : isWatchCall(env, m)
-                ? answerWatchCall(env, watchCaller(paid), kind, m, { now })
+                ? answerWatchCall(
+                    env,
+                    watchCaller(paid),
+                    kind,
+                    m,
+                    { now },
+                    readsRegistry(m) &&
+                      ++watchReads > MAX_WATCH_READ_CALLS_PER_REQUEST,
+                  )
                 : isModelCall(m)
                   ? answerModelCall(
                       env,
