@@ -189,7 +189,8 @@ export function marketDescription(m, hosted) {
   return `What FactLot hosts for ${m.name}: ${int.format(p.parcels)} commercial parcels, data as of ${longDate(p.as_of)}, the sources and their recorded terms, the ID system, and what the tools answer there and do not.`;
 }
 
-export function marketBody(m, d, hosted, template) {
+/** `fieldsText`: what the place has and lacks, one paragraph from site/_data/fields.json (fields.mjs placeFieldsText). */
+export function marketBody(m, d, hosted, template, fieldsText) {
   const p = placeOf(m, hosted);
   const parcelSource = d.sources[0];
   const reg = m.entity
@@ -253,7 +254,9 @@ ${d.holds.owner_of_record ? "<li><code>registry_search_entities</code> and <code
     .join("\n");
   return fill(template, {
     LEDE: `${esc(m.name[0].toUpperCase() + m.name.slice(1))}: ${int.format(p.parcels)} commercial parcels from ${esc(parcelSource.publisher)}, data as of ${longDate(p.as_of)}.`,
-    HOSTED: hostedHtml,
+    HOSTED: fieldsText
+      ? `${hostedHtml}\n<p>${esc(fieldsText)} <a href="/coverage/#fields">Every hosted county, field by field</a>.</p>`
+      : hostedHtml,
     SOURCE: sources,
     ID_NAME: esc(m.idName),
     ID_TEXT: m.idText,

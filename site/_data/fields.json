@@ -1,0 +1,5461 @@
+{
+  "about": "Which fact groups each county the hosted registry serves holds, for what share of its parcels, and which roll years with the value type and files of each. Computed from the registry files by packages/tools/src/fields.ts (scripts/site/gen-fields.ts); a parcel counts for a group when the file holds at least one fact of the group for it. Owners of record are organisations only: natural persons are never stored.",
+  "pack_built_at": "2026-11-12T23:02:45.001Z",
+  "groups": [
+    {
+      "key": "owner_of_record",
+      "label": "owner of record"
+    },
+    {
+      "key": "owner_mailing_address",
+      "label": "owner mailing address"
+    },
+    {
+      "key": "market_value",
+      "label": "market value"
+    },
+    {
+      "key": "appraised_value",
+      "label": "appraised value"
+    },
+    {
+      "key": "building_facts",
+      "label": "building facts (area, year built, floors or units)"
+    },
+    {
+      "key": "neighborhood_and_class",
+      "label": "neighborhood or building class codes"
+    },
+    {
+      "key": "zoning",
+      "label": "zoning"
+    },
+    {
+      "key": "recorded_sales",
+      "label": "recorded sales"
+    },
+    {
+      "key": "deeds_and_mortgages",
+      "label": "recorded deeds and mortgages"
+    },
+    {
+      "key": "energy_benchmarks",
+      "label": "energy benchmarks"
+    },
+    {
+      "key": "entity_links",
+      "label": "links to a company registry"
+    }
+  ],
+  "counties": [
+    {
+      "fips": "06037",
+      "name": "Los Angeles County",
+      "state": "CA",
+      "parcels": 203179,
+      "as_of": "2026-10-14",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "appraised_value": {
+          "parcels": 203179,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 195539,
+          "share": 0.962
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 203179,
+          "value_types": ["appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ca-los-angeles-assessor",
+              "filename": "csv",
+              "as_of": "2026-10-14",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 203179
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "06075",
+      "name": "San Francisco County",
+      "state": "CA",
+      "parcels": 19048,
+      "as_of": "2026-06-26",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "appraised_value": {
+          "parcels": 19035,
+          "share": 0.999
+        },
+        "building_facts": {
+          "parcels": 18170,
+          "share": 0.954
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 16874,
+          "share": 0.886
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2025,
+          "parcels": 19048,
+          "value_types": ["appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ca-san-francisco-assessor",
+              "filename": "wv5m-vpq2.csv",
+              "as_of": "2026-06-26",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 19048
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "08031",
+      "name": "Denver County",
+      "state": "CO",
+      "parcels": 13539,
+      "as_of": "2026-10-29",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 11145,
+          "share": 0.823
+        },
+        "owner_mailing_address": {
+          "parcels": 10455,
+          "share": 0.772
+        },
+        "market_value": {
+          "parcels": 13539,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 13539,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 11293,
+          "share": 0.834
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 13539,
+          "share": 1
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 9562,
+          "share": 0.706
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 13539,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "co-denver-assessor",
+              "filename": "csv",
+              "as_of": "2026-10-29",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 13539
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09001",
+      "name": "Fairfield County",
+      "state": "CT",
+      "parcels": 8607,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 6799,
+          "share": 0.79
+        },
+        "owner_mailing_address": {
+          "parcels": 6368,
+          "share": 0.74
+        },
+        "market_value": {
+          "parcels": 8607,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 8604,
+          "share": 1
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 5702,
+          "share": 0.662
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 2110,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 2110
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 6108,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 6108
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 73,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 73
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 17,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 17
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 174,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 174
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09003",
+      "name": "Hartford County",
+      "state": "CT",
+      "parcels": 11567,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 9519,
+          "share": 0.823
+        },
+        "owner_mailing_address": {
+          "parcels": 8877,
+          "share": 0.767
+        },
+        "market_value": {
+          "parcels": 11567,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 10747,
+          "share": 0.929
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 8270,
+          "share": 0.715
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 2,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 2
+            }
+          ]
+        },
+        {
+          "tax_year": 2026,
+          "parcels": 6213,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 6213
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 2865,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 2865
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 105,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 105
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 777,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 777
+            }
+          ]
+        },
+        {
+          "tax_year": 2021,
+          "parcels": 1605,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 1605
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09005",
+      "name": "Litchfield County",
+      "state": "CT",
+      "parcels": 3280,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 2432,
+          "share": 0.741
+        },
+        "owner_mailing_address": {
+          "parcels": 2241,
+          "share": 0.683
+        },
+        "market_value": {
+          "parcels": 3280,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 3262,
+          "share": 0.995
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 1999,
+          "share": 0.609
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 2370,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 2370
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 340,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 340
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 33,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 33
+            }
+          ]
+        },
+        {
+          "tax_year": null,
+          "parcels": 102,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 102
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09007",
+      "name": "Middlesex County",
+      "state": "CT",
+      "parcels": 2465,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 1947,
+          "share": 0.79
+        },
+        "owner_mailing_address": {
+          "parcels": 1807,
+          "share": 0.733
+        },
+        "market_value": {
+          "parcels": 2465,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 2286,
+          "share": 0.927
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 1669,
+          "share": 0.677
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 1002,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 1002
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 466,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 466
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 861,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 861
+            }
+          ]
+        },
+        {
+          "tax_year": 2021,
+          "parcels": 44,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 44
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09009",
+      "name": "New Haven County",
+      "state": "CT",
+      "parcels": 11284,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 8906,
+          "share": 0.789
+        },
+        "owner_mailing_address": {
+          "parcels": 8306,
+          "share": 0.736
+        },
+        "market_value": {
+          "parcels": 11284,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 11281,
+          "share": 1
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 7469,
+          "share": 0.662
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 4140,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 4140
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 5250,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 5250
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 821,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 821
+            }
+          ]
+        },
+        {
+          "tax_year": 2021,
+          "parcels": 1073,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 1073
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09011",
+      "name": "New London County",
+      "state": "CT",
+      "parcels": 2962,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 2268,
+          "share": 0.766
+        },
+        "owner_mailing_address": {
+          "parcels": 2123,
+          "share": 0.717
+        },
+        "market_value": {
+          "parcels": 2962,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 2955,
+          "share": 0.998
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 1940,
+          "share": 0.655
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 1708,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 1708
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 568,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 568
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 348,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 348
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 46,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 46
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09013",
+      "name": "Tolland County",
+      "state": "CT",
+      "parcels": 1451,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 1123,
+          "share": 0.774
+        },
+        "owner_mailing_address": {
+          "parcels": 1037,
+          "share": 0.715
+        },
+        "market_value": {
+          "parcels": 1451,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 1451,
+          "share": 1
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 968,
+          "share": 0.667
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 385,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 385
+            }
+          ]
+        },
+        {
+          "tax_year": 2026,
+          "parcels": 471,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 471
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 494,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 494
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 80,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 80
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 6,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 6
+            }
+          ]
+        },
+        {
+          "tax_year": 2021,
+          "parcels": 15,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "09015",
+      "name": "Windham County",
+      "state": "CT",
+      "parcels": 1782,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 1295,
+          "share": 0.727
+        },
+        "owner_mailing_address": {
+          "parcels": 1232,
+          "share": 0.691
+        },
+        "market_value": {
+          "parcels": 1782,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 1782,
+          "share": 1
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 1114,
+          "share": 0.625
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 48,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 48
+            }
+          ]
+        },
+        {
+          "tax_year": 2026,
+          "parcels": 1058,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 1058
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 104,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 104
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 544,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 544
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 28,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ct-parcel-cama-layer",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "11001",
+      "name": "District of Columbia",
+      "state": "DC",
+      "parcels": 18077,
+      "as_of": "2026-11-04",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 11571,
+          "share": 0.64
+        },
+        "owner_mailing_address": {
+          "parcels": 10745,
+          "share": 0.594
+        },
+        "market_value": {
+          "parcels": 18077,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 18077,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 13143,
+          "share": 0.727
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 16648,
+          "share": 0.921
+        },
+        "recorded_sales": {
+          "parcels": 12594,
+          "share": 0.697
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 7931,
+          "share": 0.439
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 18077,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "dc-otr-real-property",
+              "filename": "ITSPE.csv",
+              "as_of": "2026-11-02",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 18077
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24001",
+      "name": "Allegany County",
+      "state": "MD",
+      "parcels": 3434,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3262,
+          "share": 0.95
+        },
+        "appraised_value": {
+          "parcels": 3258,
+          "share": 0.949
+        },
+        "building_facts": {
+          "parcels": 2063,
+          "share": 0.601
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3262,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3262
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24003",
+      "name": "Anne Arundel County",
+      "state": "MD",
+      "parcels": 9049,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 8675,
+          "share": 0.959
+        },
+        "appraised_value": {
+          "parcels": 8675,
+          "share": 0.959
+        },
+        "building_facts": {
+          "parcels": 5854,
+          "share": 0.647
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 8675,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 8675
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24005",
+      "name": "Baltimore County",
+      "state": "MD",
+      "parcels": 14490,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 13502,
+          "share": 0.932
+        },
+        "appraised_value": {
+          "parcels": 13498,
+          "share": 0.932
+        },
+        "building_facts": {
+          "parcels": 9020,
+          "share": 0.622
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 13502,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 13502
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24009",
+      "name": "Calvert County",
+      "state": "MD",
+      "parcels": 1042,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 991,
+          "share": 0.951
+        },
+        "appraised_value": {
+          "parcels": 991,
+          "share": 0.951
+        },
+        "building_facts": {
+          "parcels": 723,
+          "share": 0.694
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 991,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 991
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24011",
+      "name": "Caroline County",
+      "state": "MD",
+      "parcels": 887,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 865,
+          "share": 0.975
+        },
+        "appraised_value": {
+          "parcels": 865,
+          "share": 0.975
+        },
+        "building_facts": {
+          "parcels": 626,
+          "share": 0.706
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 865,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 865
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24013",
+      "name": "Carroll County",
+      "state": "MD",
+      "parcels": 3327,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3091,
+          "share": 0.929
+        },
+        "appraised_value": {
+          "parcels": 3090,
+          "share": 0.929
+        },
+        "building_facts": {
+          "parcels": 2435,
+          "share": 0.732
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3091,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3091
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24015",
+      "name": "Cecil County",
+      "state": "MD",
+      "parcels": 2606,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 2313,
+          "share": 0.888
+        },
+        "appraised_value": {
+          "parcels": 2313,
+          "share": 0.888
+        },
+        "building_facts": {
+          "parcels": 1404,
+          "share": 0.539
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 2313,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 2313
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24017",
+      "name": "Charles County",
+      "state": "MD",
+      "parcels": 3043,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 2851,
+          "share": 0.937
+        },
+        "appraised_value": {
+          "parcels": 2851,
+          "share": 0.937
+        },
+        "building_facts": {
+          "parcels": 1894,
+          "share": 0.622
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 2851,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 2851
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24019",
+      "name": "Dorchester County",
+      "state": "MD",
+      "parcels": 1132,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 1099,
+          "share": 0.971
+        },
+        "appraised_value": {
+          "parcels": 1099,
+          "share": 0.971
+        },
+        "building_facts": {
+          "parcels": 790,
+          "share": 0.698
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 1099,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 1099
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24021",
+      "name": "Frederick County",
+      "state": "MD",
+      "parcels": 4351,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 4074,
+          "share": 0.936
+        },
+        "appraised_value": {
+          "parcels": 4075,
+          "share": 0.937
+        },
+        "building_facts": {
+          "parcels": 3294,
+          "share": 0.757
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 4075,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 4075
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24023",
+      "name": "Garrett County",
+      "state": "MD",
+      "parcels": 1445,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 1376,
+          "share": 0.952
+        },
+        "appraised_value": {
+          "parcels": 1376,
+          "share": 0.952
+        },
+        "building_facts": {
+          "parcels": 865,
+          "share": 0.599
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 1376,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 1376
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24025",
+      "name": "Harford County",
+      "state": "MD",
+      "parcels": 3738,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3419,
+          "share": 0.915
+        },
+        "appraised_value": {
+          "parcels": 3419,
+          "share": 0.915
+        },
+        "building_facts": {
+          "parcels": 2658,
+          "share": 0.711
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3419,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3419
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24027",
+      "name": "Howard County",
+      "state": "MD",
+      "parcels": 4225,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3870,
+          "share": 0.916
+        },
+        "appraised_value": {
+          "parcels": 3870,
+          "share": 0.916
+        },
+        "building_facts": {
+          "parcels": 2691,
+          "share": 0.637
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3870,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3870
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24029",
+      "name": "Kent County",
+      "state": "MD",
+      "parcels": 677,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 655,
+          "share": 0.968
+        },
+        "appraised_value": {
+          "parcels": 655,
+          "share": 0.968
+        },
+        "building_facts": {
+          "parcels": 495,
+          "share": 0.731
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 655,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 655
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24031",
+      "name": "Montgomery County",
+      "state": "MD",
+      "parcels": 11579,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 10953,
+          "share": 0.946
+        },
+        "appraised_value": {
+          "parcels": 10950,
+          "share": 0.946
+        },
+        "building_facts": {
+          "parcels": 8589,
+          "share": 0.742
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 10953,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 10953
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24033",
+      "name": "Prince George's County",
+      "state": "MD",
+      "parcels": 13029,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 12880,
+          "share": 0.989
+        },
+        "appraised_value": {
+          "parcels": 12880,
+          "share": 0.989
+        },
+        "building_facts": {
+          "parcels": 8749,
+          "share": 0.672
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 12880,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 12880
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24035",
+      "name": "Queen Anne's County",
+      "state": "MD",
+      "parcels": 1530,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 1481,
+          "share": 0.968
+        },
+        "appraised_value": {
+          "parcels": 1480,
+          "share": 0.967
+        },
+        "building_facts": {
+          "parcels": 1118,
+          "share": 0.731
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 1481,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 1481
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24037",
+      "name": "St. Mary's County",
+      "state": "MD",
+      "parcels": 1944,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 1812,
+          "share": 0.932
+        },
+        "appraised_value": {
+          "parcels": 1812,
+          "share": 0.932
+        },
+        "building_facts": {
+          "parcels": 1402,
+          "share": 0.721
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 1812,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 1812
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24039",
+      "name": "Somerset County",
+      "state": "MD",
+      "parcels": 995,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 972,
+          "share": 0.977
+        },
+        "appraised_value": {
+          "parcels": 972,
+          "share": 0.977
+        },
+        "building_facts": {
+          "parcels": 509,
+          "share": 0.512
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 972,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 972
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24041",
+      "name": "Talbot County",
+      "state": "MD",
+      "parcels": 1416,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 1364,
+          "share": 0.963
+        },
+        "appraised_value": {
+          "parcels": 1364,
+          "share": 0.963
+        },
+        "building_facts": {
+          "parcels": 1133,
+          "share": 0.8
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 1364,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 1364
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24043",
+      "name": "Washington County",
+      "state": "MD",
+      "parcels": 3716,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3521,
+          "share": 0.948
+        },
+        "appraised_value": {
+          "parcels": 3521,
+          "share": 0.948
+        },
+        "building_facts": {
+          "parcels": 2692,
+          "share": 0.724
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3521,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3521
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24045",
+      "name": "Wicomico County",
+      "state": "MD",
+      "parcels": 3201,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3119,
+          "share": 0.974
+        },
+        "appraised_value": {
+          "parcels": 3119,
+          "share": 0.974
+        },
+        "building_facts": {
+          "parcels": 2081,
+          "share": 0.65
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3119,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3119
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24047",
+      "name": "Worcester County",
+      "state": "MD",
+      "parcels": 3592,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3464,
+          "share": 0.964
+        },
+        "appraised_value": {
+          "parcels": 3464,
+          "share": 0.964
+        },
+        "building_facts": {
+          "parcels": 2459,
+          "share": 0.685
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3464,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3464
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "24510",
+      "name": "Baltimore city",
+      "state": "MD",
+      "parcels": 14801,
+      "as_of": "2026-11-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 14468,
+          "share": 0.978
+        },
+        "appraised_value": {
+          "parcels": 14473,
+          "share": 0.978
+        },
+        "building_facts": {
+          "parcels": 9888,
+          "share": 0.668
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 14473,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "md-sdat-real-property",
+              "filename": "ed4q-f8tm.csv",
+              "as_of": "2026-11-05",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 14473
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "25025",
+      "name": "Suffolk County",
+      "state": "MA",
+      "parcels": 13296,
+      "as_of": "2025-01-01",
+      "area": "the City of Boston",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 9347,
+          "share": 0.703
+        },
+        "owner_mailing_address": {
+          "parcels": 8714,
+          "share": 0.655
+        },
+        "market_value": {
+          "parcels": 13294,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 10134,
+          "share": 0.762
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 13296,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ma-boston-assessing",
+              "filename": "fy2026-property-assessment-data_rev.csv",
+              "as_of": "2025-01-01",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 13296
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "36005",
+      "name": "Bronx County",
+      "state": "NY",
+      "parcels": 17331,
+      "as_of": "2026-05-15",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 14659,
+          "share": 0.846
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 17331,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 17331,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 16387,
+          "share": 0.946
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 10802,
+          "share": 0.623
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 17331,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ny-nyc-dof",
+              "filename": "fy27_tc234.zip",
+              "as_of": "2026-05-15",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 17331
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "36047",
+      "name": "Kings County",
+      "state": "NY",
+      "parcels": 60100,
+      "as_of": "2026-05-15",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 39611,
+          "share": 0.659
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 60100,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 60100,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 57039,
+          "share": 0.949
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 31264,
+          "share": 0.52
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 60100,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ny-nyc-dof",
+              "filename": "fy27_tc234.zip",
+              "as_of": "2026-05-15",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 60100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "36061",
+      "name": "New York County",
+      "state": "NY",
+      "parcels": 42087,
+      "as_of": "2026-05-15",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 32682,
+          "share": 0.777
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 42087,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 42087,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 41667,
+          "share": 0.99
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 22397,
+          "share": 0.532
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 42087,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ny-nyc-dof",
+              "filename": "fy27_tc234.zip",
+              "as_of": "2026-05-15",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 42087
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "36081",
+      "name": "Queens County",
+      "state": "NY",
+      "parcels": 40080,
+      "as_of": "2026-05-15",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 26774,
+          "share": 0.668
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 40080,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 40080,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 38003,
+          "share": 0.948
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 20695,
+          "share": 0.516
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 40080,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ny-nyc-dof",
+              "filename": "fy27_tc234.zip",
+              "as_of": "2026-05-15",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 40080
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "36085",
+      "name": "Richmond County",
+      "state": "NY",
+      "parcels": 5035,
+      "as_of": "2026-05-15",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 3738,
+          "share": 0.742
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 5035,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 5035,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 4610,
+          "share": 0.916
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 2583,
+          "share": 0.513
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 5035,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ny-nyc-dof",
+              "filename": "fy27_tc234.zip",
+              "as_of": "2026-05-15",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 5035
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48041",
+      "name": "Brazos County",
+      "state": "TX",
+      "parcels": 8252,
+      "as_of": "2026-08-11",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 5849,
+          "share": 0.709
+        },
+        "owner_mailing_address": {
+          "parcels": 5424,
+          "share": 0.657
+        },
+        "market_value": {
+          "parcels": 8252,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 8252,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 7582,
+          "share": 0.919
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 4516,
+          "share": 0.547
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 7580,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad",
+              "filename": "2026-CERTIFIED-ROLL-TOTALS-ALL-ENTITIES.zip",
+              "as_of": "2026-08-11",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 7580
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 7289,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2025",
+              "filename": "2025-CERTIFIED-EXPORT.zip",
+              "as_of": "2025-08-26",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 7289
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 7225,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2024",
+              "filename": "2024-CERTIFICATION-EXPORT.zip",
+              "as_of": "2024-08-19",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 7225
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 7155,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2023",
+              "filename": "2023-CERTIFIED-EXPORT.zip",
+              "as_of": "2023-08-18",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 7155
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 7110,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2022",
+              "filename": "2022-CERTIFIED-DATA-DOWNLOAD.zip",
+              "as_of": "2023-08-03",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 7110
+            }
+          ]
+        },
+        {
+          "tax_year": 2021,
+          "parcels": 7063,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2021",
+              "filename": "2021-CERTIFICATION-EXPORT.zip",
+              "as_of": "2023-08-03",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 7063
+            }
+          ]
+        },
+        {
+          "tax_year": 2020,
+          "parcels": 6998,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2020",
+              "filename": "2020-CERTIFICATION-EXPORTS-1.zip",
+              "as_of": "2023-08-03",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 6998
+            }
+          ]
+        },
+        {
+          "tax_year": 2019,
+          "parcels": 6919,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2019",
+              "filename": "2019-CERTIFED-APPRAISAL-EXPORT-1.zip",
+              "as_of": "2023-08-03",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 6919
+            }
+          ]
+        },
+        {
+          "tax_year": 2018,
+          "parcels": 6804,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2018",
+              "filename": "2018-Certified-All-Detail.zip",
+              "as_of": "2023-08-03",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 6804
+            }
+          ]
+        },
+        {
+          "tax_year": 2017,
+          "parcels": 6753,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2017",
+              "filename": "2017-Certified-Export.zip",
+              "as_of": "2023-08-03",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 6753
+            }
+          ]
+        },
+        {
+          "tax_year": 2016,
+          "parcels": 6666,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-brazos-cad-2016",
+              "filename": "Brazos-2016-Certified-Export.zip",
+              "as_of": "2023-08-03",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 6666
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48061",
+      "name": "Cameron County",
+      "state": "TX",
+      "parcels": 14173,
+      "as_of": "2026-07-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 7079,
+          "share": 0.499
+        },
+        "owner_mailing_address": {
+          "parcels": 6447,
+          "share": 0.455
+        },
+        "market_value": {
+          "parcels": 14173,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 14173,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 12346,
+          "share": 0.871
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 5059,
+          "share": 0.357
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 14173,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-cameron-cad",
+              "filename": "cameron-2026-certified-appraisal-export-20260723.zip",
+              "as_of": "2026-07-23",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 14173
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48085",
+      "name": "Collin County",
+      "state": "TX",
+      "parcels": 18035,
+      "as_of": "2026-11-02",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 13183,
+          "share": 0.731
+        },
+        "owner_mailing_address": {
+          "parcels": 12183,
+          "share": 0.676
+        },
+        "market_value": {
+          "parcels": 17795,
+          "share": 0.987
+        },
+        "appraised_value": {
+          "parcels": 17795,
+          "share": 0.987
+        },
+        "building_facts": {
+          "parcels": 17125,
+          "share": 0.95
+        },
+        "neighborhood_and_class": {
+          "parcels": 17125,
+          "share": 0.95
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 11244,
+          "share": 0.623
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 17795,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-collin-cad",
+              "filename": "LiteDatabaseCurrent.zip",
+              "as_of": "2026-11-02",
+              "read_on": "2026-11-02",
+              "dated": "read",
+              "roll": null,
+              "parcels": 17795
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48113",
+      "name": "Dallas County",
+      "state": "TX",
+      "parcels": 59645,
+      "as_of": "2026-10-12",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 33501,
+          "share": 0.562
+        },
+        "owner_mailing_address": {
+          "parcels": 31241,
+          "share": 0.524
+        },
+        "market_value": {
+          "parcels": 59645,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 59294,
+          "share": 0.994
+        },
+        "neighborhood_and_class": {
+          "parcels": 59645,
+          "share": 1
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 23891,
+          "share": 0.401
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 59645,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-dallas-cad",
+              "filename": "ViewPDFs.aspx",
+              "as_of": "2026-10-12",
+              "read_on": "2026-11-02",
+              "dated": "file",
+              "roll": null,
+              "parcels": 59645
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 56892,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-dallas-cad-2025",
+              "filename": "DCAD2025_CERTIFIED_07242025.zip",
+              "as_of": "2025-07-24",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 56892
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 56959,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-dallas-cad-2024",
+              "filename": "DCAD2024_CERTIFIED_07252024.zip",
+              "as_of": "2024-07-25",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 56959
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 55577,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-dallas-cad-2023",
+              "filename": "DCAD2023_CERTIFIED_07252023.zip",
+              "as_of": "2023-07-25",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 55577
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 54915,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-dallas-cad-2022",
+              "filename": "DCAD2022_CERTIFIED_07252022.ZIP",
+              "as_of": "2022-07-25",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 54915
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48121",
+      "name": "Denton County",
+      "state": "TX",
+      "parcels": 13304,
+      "as_of": "2026-11-07",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 9516,
+          "share": 0.715
+        },
+        "owner_mailing_address": {
+          "parcels": 8799,
+          "share": 0.661
+        },
+        "market_value": {
+          "parcels": 13304,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 13304,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 12982,
+          "share": 0.976
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 6963,
+          "share": 0.523
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 13304,
+          "value_types": ["market", "appraised"],
+          "preliminary": true,
+          "files": [
+            {
+              "source_id": "tx-denton-cad",
+              "filename": "query",
+              "as_of": "2026-11-07",
+              "read_on": "2026-11-07",
+              "dated": "read",
+              "roll": "preliminary",
+              "parcels": 13304
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48135",
+      "name": "Ector County",
+      "state": "TX",
+      "parcels": 7036,
+      "as_of": "2026-07-22",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 3977,
+          "share": 0.565
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 7036,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 5800,
+          "share": 0.824
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 3107,
+          "share": 0.442
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 7036,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-ector-cad",
+              "filename": "2026_CERTIFIED_RE_APPRAISAL_ROLL-7222026.ZIP",
+              "as_of": "2026-07-22",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 7036
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48167",
+      "name": "Galveston County",
+      "state": "TX",
+      "parcels": 10088,
+      "as_of": "2026-08-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 5898,
+          "share": 0.585
+        },
+        "owner_mailing_address": {
+          "parcels": 5501,
+          "share": 0.545
+        },
+        "market_value": {
+          "parcels": 10088,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 10088,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 7951,
+          "share": 0.788
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 3992,
+          "share": 0.396
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 9065,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-galveston-cad",
+              "filename": "2026-CERTIFIED-ROLL-WEB-EXPORT-W-EXPORT-LAYOUT.zip",
+              "as_of": "2026-08-05",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 9065
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 9160,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-galveston-cad-2025",
+              "filename": "2025_Cert_Web_Export.zip",
+              "as_of": "2025-08-20",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 9160
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 8674,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-galveston-cad-2024",
+              "filename": "2024_Cert_Web_Export.zip",
+              "as_of": "2024-08-12",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 8674
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 9473,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-galveston-cad-2023",
+              "filename": "2023-07-26_002061_CERTIFIED-ROLL.zip",
+              "as_of": "2023-07-27",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 9473
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48181",
+      "name": "Grayson County",
+      "state": "TX",
+      "parcels": 6613,
+      "as_of": "2026-10-15",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 3955,
+          "share": 0.598
+        },
+        "owner_mailing_address": {
+          "parcels": 3640,
+          "share": 0.55
+        },
+        "market_value": {
+          "parcels": 6613,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 6613,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 5664,
+          "share": 0.856
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 2671,
+          "share": 0.404
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 6613,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-grayson-cad",
+              "filename": "GCAD_Export.zip",
+              "as_of": "2026-10-15",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": null,
+              "parcels": 6613
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48187",
+      "name": "Guadalupe County",
+      "state": "TX",
+      "parcels": 4081,
+      "as_of": "2026-07-28",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 2480,
+          "share": 0.608
+        },
+        "owner_mailing_address": {
+          "parcels": 2113,
+          "share": 0.518
+        },
+        "market_value": {
+          "parcels": 4081,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 4081,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 3408,
+          "share": 0.835
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 1733,
+          "share": 0.425
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 4021,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-guadalupe-cad",
+              "filename": "2026-GCO-Certified-Appraisal-Roll-Supp-0.zip",
+              "as_of": "2026-07-28",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 4021
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 3874,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-guadalupe-cad-2025",
+              "filename": "2025-GCO-CERTF-APPR-ROLL-SUPP0.zip",
+              "as_of": "2026-06-17",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 3874
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48201",
+      "name": "Harris County",
+      "state": "TX",
+      "parcels": 87717,
+      "as_of": "2026-11-01",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 56892,
+          "share": 0.649
+        },
+        "owner_mailing_address": {
+          "parcels": 52955,
+          "share": 0.604
+        },
+        "market_value": {
+          "parcels": 87671,
+          "share": 0.999
+        },
+        "appraised_value": {
+          "parcels": 87671,
+          "share": 0.999
+        },
+        "building_facts": {
+          "parcels": 78391,
+          "share": 0.894
+        },
+        "neighborhood_and_class": {
+          "parcels": 87715,
+          "share": 1
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 45257,
+          "share": 0.516
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 87717,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-harris-cad",
+              "filename": "Real_acct_owner.zip",
+              "as_of": "2026-11-01",
+              "read_on": "2026-11-02",
+              "dated": "file",
+              "roll": null,
+              "parcels": 87717
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 86479,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-harris-cad-2025",
+              "filename": "Real_acct_owner.zip",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 86479
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 85290,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-harris-cad-2024",
+              "filename": "Real_acct_owner.zip",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 85290
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 84163,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-harris-cad-2023",
+              "filename": "Real_acct_owner.zip",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 84163
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 82977,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-harris-cad-2022",
+              "filename": "Real_acct_owner.zip",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 82977
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48245",
+      "name": "Jefferson County",
+      "state": "TX",
+      "parcels": 9594,
+      "as_of": "2026-10-07",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 5964,
+          "share": 0.622
+        },
+        "owner_mailing_address": {
+          "parcels": 5327,
+          "share": 0.555
+        },
+        "market_value": {
+          "parcels": 9594,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 9594,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 7675,
+          "share": 0.8
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 4219,
+          "share": 0.44
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 9458,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-jefferson-cad",
+              "filename": "SUPL_GRP_2026_05_PUBLIC.zip",
+              "as_of": "2026-10-07",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": null,
+              "parcels": 9454
+            },
+            {
+              "source_id": "tx-jefferson-cad",
+              "filename": "CERTIFIED-2026_0_PUBLIC.zip",
+              "as_of": "2026-07-30",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 9458
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 9409,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-jefferson-cad-2025",
+              "filename": "2025-CERTIFIED_2025_0_PUBLIC.zip",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 9409
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48257",
+      "name": "Kaufman County",
+      "state": "TX",
+      "parcels": 3557,
+      "as_of": "2026-07-17",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 2381,
+          "share": 0.669
+        },
+        "owner_mailing_address": {
+          "parcels": 2191,
+          "share": 0.616
+        },
+        "market_value": {
+          "parcels": 3557,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 3557,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 2862,
+          "share": 0.805
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 1440,
+          "share": 0.405
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 3429,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-kaufman-cad",
+              "filename": "2026-Certified-Export-Files.zip",
+              "as_of": "2026-07-17",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 3429
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 3366,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-kaufman-cad-2025",
+              "filename": "2025-Complete-Roll-as-of-01202026.zip",
+              "as_of": "2026-01-21",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3366
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 3360,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-kaufman-cad-2024",
+              "filename": "2024-Certified-Files-as-of-Supplement-423-02242025.zip",
+              "as_of": "2025-02-26",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 3360
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48329",
+      "name": "Midland County",
+      "state": "TX",
+      "parcels": 7641,
+      "as_of": "2026-08-17",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 5006,
+          "share": 0.655
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 0,
+          "share": 0
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 3790,
+          "share": 0.496
+        }
+      },
+      "roll_years": []
+    },
+    {
+      "fips": "48355",
+      "name": "Nueces County",
+      "state": "TX",
+      "parcels": 13634,
+      "as_of": "2026-10-13",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 8840,
+          "share": 0.648
+        },
+        "owner_mailing_address": {
+          "parcels": 8209,
+          "share": 0.602
+        },
+        "market_value": {
+          "parcels": 13634,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 13634,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 8013,
+          "share": 0.588
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 6079,
+          "share": 0.446
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 12093,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-nueces-cad",
+              "filename": "Certified-Public-Export-2026.zip",
+              "as_of": "2026-10-13",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 12093
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 12255,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-nueces-cad-2025",
+              "filename": "2025-Certified-Public-Export.zip",
+              "as_of": "2025-09-10",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 12255
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 12508,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-nueces-cad-2024",
+              "filename": "2024-Certified-Appraisal-Roll-Public-Export.zip",
+              "as_of": "2024-07-30",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 12508
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 12595,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-nueces-cad-2023",
+              "filename": "2023.1-Certified-Roll-with-new-HS.zip",
+              "as_of": "2024-02-20",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 12595
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 12578,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-nueces-cad-2022",
+              "filename": "2022-Certified-Public-Export.zip",
+              "as_of": "2024-01-21",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 12578
+            }
+          ]
+        },
+        {
+          "tax_year": 2021,
+          "parcels": 12507,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-nueces-cad-2021",
+              "filename": "2021-Certified-Public-Export-v2.zip",
+              "as_of": "2024-01-21",
+              "read_on": "2026-11-08",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 12507
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48453",
+      "name": "Travis County",
+      "state": "TX",
+      "parcels": 30556,
+      "as_of": "2026-10-06",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 18100,
+          "share": 0.592
+        },
+        "owner_mailing_address": {
+          "parcels": 16832,
+          "share": 0.551
+        },
+        "market_value": {
+          "parcels": 30556,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 30556,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 30097,
+          "share": 0.985
+        },
+        "neighborhood_and_class": {
+          "parcels": 30552,
+          "share": 1
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 14080,
+          "share": 0.461
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 30555,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-travis-cad",
+              "filename": "travis_SUPP%20335_2026_WEBSITE%20EXPORT_Renamed.zip",
+              "as_of": "2026-10-06",
+              "read_on": "2026-11-02",
+              "dated": "file",
+              "roll": null,
+              "parcels": 30555
+            },
+            {
+              "source_id": "tx-travis-cad",
+              "filename": "2026%20Certified%20Appraisal%20Export%20Supp%200_07182026.zip",
+              "as_of": "2026-07-18",
+              "read_on": "2026-11-02",
+              "dated": "file",
+              "roll": "certified",
+              "parcels": 30551
+            }
+          ]
+        },
+        {
+          "tax_year": 2025,
+          "parcels": 30364,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-travis-cad-2025",
+              "filename": "227EARS090425.zip",
+              "as_of": "2025-09-04",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 30364
+            }
+          ]
+        },
+        {
+          "tax_year": 2024,
+          "parcels": 30225,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-travis-cad-2024",
+              "filename": "227EARS082824.2.zip",
+              "as_of": "2024-08-28",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 30225
+            }
+          ]
+        },
+        {
+          "tax_year": 2023,
+          "parcels": 29855,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-travis-cad-2023",
+              "filename": "227EARS082923.2.zip",
+              "as_of": "2023-08-29",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 29855
+            }
+          ]
+        },
+        {
+          "tax_year": 2022,
+          "parcels": 29504,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "tx-travis-cad-2022",
+              "filename": "227EARS092822.2.zip",
+              "as_of": "2022-09-28",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 29504
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "48491",
+      "name": "Williamson County",
+      "state": "TX",
+      "parcels": 11758,
+      "as_of": "2026-11-07",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 8148,
+          "share": 0.693
+        },
+        "owner_mailing_address": {
+          "parcels": 7474,
+          "share": 0.636
+        },
+        "market_value": {
+          "parcels": 10916,
+          "share": 0.928
+        },
+        "appraised_value": {
+          "parcels": 10916,
+          "share": 0.928
+        },
+        "building_facts": {
+          "parcels": 11226,
+          "share": 0.955
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 6763,
+          "share": 0.575
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 11299,
+          "value_types": ["market", "appraised"],
+          "preliminary": true,
+          "files": [
+            {
+              "source_id": "tx-williamson-cad",
+              "filename": "absk-uy9g.csv",
+              "as_of": "2026-11-07",
+              "read_on": "2026-11-07",
+              "dated": "read",
+              "roll": "preliminary",
+              "parcels": 11299
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49023",
+      "name": "Juab County",
+      "state": "UT",
+      "parcels": 359,
+      "as_of": "2025-11-26",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 359,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 13,
+          "share": 0.036
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 359,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-11-26",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 359
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49043",
+      "name": "Summit County",
+      "state": "UT",
+      "parcels": 1169,
+      "as_of": "2025-11-26",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 1169,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 506,
+          "share": 0.433
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 1169,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-11-26",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 1169
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

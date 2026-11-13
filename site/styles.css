@@ -536,6 +536,29 @@ ul.principles li {
   font-weight: 500;
 }
 
+/* The hosted counties' field table is wide: it scrolls inside its box, not the page. */
+.covscroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.fieldtable {
+  font-size: 0.8rem;
+}
+
+.fieldtable th[scope="col"] {
+  vertical-align: bottom;
+}
+
+.fieldtable .f-no {
+  color: var(--muted);
+}
+
+.fieldtable .f-yes {
+  font-weight: 600;
+}
+
 /* Try a lookup */
 
 .try-form label {

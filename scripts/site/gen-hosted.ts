@@ -15,6 +15,7 @@ import { ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY } from "../../deploy/cloudflare/src/
 import type { Manifest } from "../../deploy/registry/src/format.ts";
 import { countyName } from "../../packages/tools/src/county_names.ts";
 
+import { FIELDS_DATA, fieldsData, writeFieldsData } from "./gen-fields.ts";
 import {
   DATA_FILE as MCP_DATA_FILE,
   mcpDataCurrent,
@@ -188,6 +189,15 @@ async function main(argv: string[]): Promise<void> {
       console.log(
         `${DATA}: ${data.totals.parcels} parcels in ${data.totals.counties} counties, ${data.places.length} places`,
       );
+      // A pack built since the manifest carries field availability gives fields.json too; for an older pack, run
+      // gen-fields.ts on the registry files it was built from.
+      if (m.fields) {
+        writeFieldsData(fieldsData(Object.values(m.fields), data));
+        console.log(`${FIELDS_DATA}: from the manifest`);
+      } else
+        console.log(
+          `${FIELDS_DATA}: the manifest has no field availability; run scripts/site/gen-fields.ts on the pack's registry files`,
+        );
     }
   } else {
     data = JSON.parse(readFileSync(join(root, DATA), "utf8")) as HostedData;
