@@ -366,9 +366,17 @@
     card.appendChild(ids);
 
     if (values.length) {
+      // The roll as the registry marks it (value_history's `roll`): "preliminary" where it says so.
+      var entry = (record.value_history || []).filter(function (e) {
+        return year && e.tax_year === year.value;
+      })[0];
+      var rollNote =
+        entry && entry.roll === "preliminary" ? ", preliminary roll" : "";
       card.appendChild(
         el("h3", {
-          text: "Values" + (year ? " (roll year " + year.value + ")" : ""),
+          text:
+            "Values" +
+            (year ? " (roll year " + year.value + rollNote + ")" : ""),
         }),
       );
       card.appendChild(factsTable("Values from the county roll", values));

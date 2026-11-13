@@ -49,6 +49,10 @@ export interface ValueEntry {
   appraised_value?: number | null;
   as_of?: string;
   citations?: Record<string, Citation | undefined>;
+  /** "preliminary" or "certified" where the registry marks the roll (value_history's `roll`). */
+  roll?: string | null;
+  /** The file the values were read from (value_history's `file`). */
+  file?: { as_of?: string; read_on?: string; filename?: string | null } | null;
 }
 
 export interface PageRecord {

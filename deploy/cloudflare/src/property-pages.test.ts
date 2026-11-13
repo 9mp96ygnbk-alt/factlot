@@ -136,7 +136,7 @@ interface ParcelSpec {
   apn?: string;
   owner?: string;
   entity?: string;
-  values?: { year: number; market: number; appraised: number }[];
+  values?: { year: number; market: number; appraised: number; roll?: string }[];
 }
 
 function parcel(p: ParcelSpec): Rec {
@@ -214,6 +214,7 @@ function parcel(p: ParcelSpec): Rec {
         market_value: cite("market_value", i),
         appraised_value: cite("appraised_value", i),
       },
+      ...(v.roll ? { roll: v.roll } : {}),
     })),
     warnings: [],
   };
@@ -319,7 +320,14 @@ function buildPack(builtAt = "2026-11-12T12:00:00.000Z"): string {
       address: "1801 CALIFORNIA ST",
       owner: "CALIFORNIA TOWER LLC",
       entity: C1,
-      values: [{ year: 2026, market: 5000000, appraised: 4000000 }],
+      values: [
+        {
+          year: 2026,
+          market: 5000000,
+          appraised: 4000000,
+          roll: "preliminary",
+        },
+      ],
     }),
   );
   put(0, entityRec(E1, "G STREET HOLDINGS LLC", DOC_DC_ENT, "2026-11-02"), {
@@ -764,6 +772,10 @@ describe("property pages: a permitted-source parcel", () => {
     assert.ok(html.includes(CO_DISCLAIMER.slice(0, 80)));
     assert.ok(html.includes("<code>co-denver-assessor</code>"));
     assert.ok(html.includes("<code>co-sos-entities</code>"));
+    // A roll the registry marks preliminary says so where its value is shown.
+    assert.ok(
+      html.includes("figure from the publisher&#39;s 2026 preliminary roll"),
+    );
     // A DC page carries neither.
     const dc = await (await get(harness(), P1_PATH)).text();
     assert.ok(!dc.includes("Denver Open Data Catalog"));
