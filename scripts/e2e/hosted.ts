@@ -2,10 +2,22 @@
 //
 //   node --experimental-strip-types scripts/e2e/hosted.ts
 //
-// Environment:
-//   FACTLOT_E2E_URL       API base (default https://api.factlot.com)
-//   FACTLOT_E2E_SITE      Site base (default https://factlot.com)
-//   FACTLOT_E2E_DELAY_MS  Pause between API calls (default 1100, under the free 60/min limit)
+// Environment and flags:
+//   FACTLOT_E2E_URL         API base (default https://api.factlot.com)
+//   FACTLOT_E2E_SITE        Site base (default https://factlot.com)
+//   FACTLOT_E2E_DELAY_MS    Pause between API calls (default 1100, under the free 60/min limit)
+//   FACTLOT_API_KEY         Run on that key's plan and quotas instead of the free tier's (never printed)
+//   --no-reports, or FACTLOT_E2E_NO_REPORTS=1
+//                           Skip every call that builds a report or calls a model-backed tool (with a key these
+//                           spend the key's reports and model allowance); the keyless checks that they answer
+//                           PlanRequired still run, since those spend nothing
+//
+// It prints up front how many registry lookups, reports and model calls the run will spend. The calls it makes
+// first are the real lookups in the hosted regions, so a free allowance that runs out (25 registry lookups a day
+// per address) is spent on those; when it runs out, the rest of the registry calls are skipped and reported as one
+// failure. Calls a free caller's plan does not answer (registry batch tools, recorded facts) are expected to answer
+// PlanRequired without a Pro or Team key, and their real answer with one. With a key, it prints the quota left
+// from the response headers at the end.
 //
 // It replays every conformance vector (spec/vectors: calculators, rules, tools) against the
 // hosted REST API with the vectors' own comparison rules, calls every MCP tool and checks the
@@ -18,6 +30,14 @@ import { isDeepStrictEqual } from "node:util";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
+import {
+  PAID_TIERS,
+  RegistryGate,
+  isPaidOnlyCall,
+  plannedSpend,
+} from "./hosted_plan.ts";
+import { HOSTED_REGISTRY_CASES } from "./hosted_cases.ts";
+
 const API = (process.env.FACTLOT_E2E_URL ?? "https://api.factlot.com").replace(
   /\/+$/,
   "",
@@ -27,350 +47,14 @@ const SITE = (process.env.FACTLOT_E2E_SITE ?? "https://factlot.com").replace(
   "",
 );
 const DELAY = Number(process.env.FACTLOT_E2E_DELAY_MS ?? 1100);
+const NO_REPORTS =
+  process.argv.includes("--no-reports") ||
+  process.env.FACTLOT_E2E_NO_REPORTS === "1";
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 let passed = 0;
 const failures: string[] = [];
 const notes: string[] = [];
-// What the hosted pack serves (site/_data/hosted.json, which scripts/site/gen-hosted.ts writes from the
-// pack's manifest).
-const HOSTED = JSON.parse(
-  readFileSync(
-    new URL("../../site/_data/hosted.json", import.meta.url),
-    "utf8",
-  ),
-) as {
-  totals: { parcels: number; entities: number; counties: number };
-  withheld: { fips: string }[];
-  partial: { fips: string; area: string }[];
-};
-// Real lookups in the hosted regions. Values come from the registry files the hosted pack is built
-// from; update them when the pack is rebuilt.
-const HOSTED_REGISTRY_CASES: {
-  tool: string;
-  arguments: Record<string, unknown>;
-  expect?: Record<string, unknown>;
-  /** Paths whose value must match the regular expression. */
-  expect_match?: Record<string, string>;
-  /** Fact predicates the answer's `facts` must carry, or must not carry. */
-  has_predicates?: string[];
-  no_predicates?: string[];
-  expect_error?: string;
-}[] = [
-  {
-    tool: "registry_coverage",
-    arguments: {},
-    expect: {
-      "totals.parcels": HOSTED.totals.parcels,
-      "totals.entities": HOSTED.totals.entities,
-      "totals.counties": HOSTED.totals.counties,
-      "hosted.withheld_counties.0.region": `us-${HOSTED.withheld[0]!.fips}`,
-      // A county loaded in part (the City of Boston, in Suffolk County) is listed with its part.
-      ...(HOSTED.partial.length
-        ? {
-            "hosted.partial_counties.0.region": `us-${HOSTED.partial[0]!.fips}`,
-            "hosted.partial_counties.0.area": HOSTED.partial[0]!.area,
-          }
-        : {}),
-    },
-  },
-  // Outside Texas the candidate tool is an input error (Texas-only), whatever regions are hosted.
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: { urn: "fl:parcel:us-36061:1000010001" },
-    expect_error: "InputError",
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-11001:02570824" },
-    expect: { status: "current", kind: "parcel" },
-  },
-  {
-    tool: "registry_resolve_parcel",
-    arguments: { state_fips: "11", county_fips: "001", apn: "0257 0824" },
-    expect: { urn: "fl:parcel:us-11001:02570824" },
-  },
-  {
-    tool: "registry_resolve_external",
-    arguments: { system: "dc_ssl", external_id: "0257 0824" },
-    expect: { urn: "fl:parcel:us-11001:02570824" },
-  },
-  {
-    tool: "registry_search_address",
-    arguments: { query: "1300 Pennsylvania Ave NW", limit: 3 },
-    expect: { "results.0.urn": "fl:parcel:us-11001:02570824" },
-  },
-  {
-    tool: "registry_search_address",
-    arguments: { query: "100 Light St", limit: 2 },
-    expect: { "results.0.urn": "fl:parcel:us-24510:0304110671-001" },
-  },
-  { tool: "registry_search_entities", arguments: { query: "LLC", limit: 5 } },
-  {
-    tool: "registry_owned_by",
-    arguments: { entity_urn: "fl:entity:us-dc:c00008141728" },
-  },
-  // Texas. Values from the pack of 2026-11-10 (release-2026-11-10 tx.db with md.db, ut.db, dc.db;
-  // Tarrant 48439 withheld): sixteen counties, Denton and Williamson 2027 preliminary rolls, the
-  // Comptroller entities that own a hosted parcel. Expectations were computed with runTool on the
-  // release copies.
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-48201:0180580000001" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2026,
-      "value_history.0.market_value": 2748333,
-    },
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-48201:0011440000001" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2026,
-      "value_history.0.market_value": 303755215,
-    },
-  },
-  // Brazos holds eleven roll years (2016 to 2026): value_history runs newest first.
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-48041:100022" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2026,
-      "value_history.0.market_value": 1268807,
-      "value_history.10.tax_year": 2016,
-      "value_history.10.market_value": 521990,
-    },
-  },
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: { urn: "fl:parcel:us-48041:100022" },
-    expect: {
-      "selection.tax_year": 2026,
-      "selection.available_tax_years.0": 2026,
-      "selection.available_tax_years.10": 2016,
-      "selection.roll_sources.0": "tx-brazos-cad",
-      "selection.returned": 38,
-      "candidates.0.id": "fl:parcel:us-48041:96141",
-      "sources.0.rights.attribution": "Brazos Central Appraisal District",
-    },
-  },
-  // Midland: the parcel is held, its publisher's file has no values.
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-48329:r000000017" },
-    expect: { status: "current", kind: "parcel" },
-  },
-  {
-    tool: "registry_resolve_parcel",
-    arguments: {
-      state_fips: "48",
-      county_fips: "113",
-      apn: "00000100057000000",
-    },
-    expect: { urn: "fl:parcel:us-48113:00000100057000000" },
-  },
-  {
-    tool: "registry_search_address",
-    arguments: { query: "1201 S Lamar Blvd", limit: 3 },
-    expect: { "results.0.urn": "fl:parcel:us-48453:100008" },
-  },
-  {
-    tool: "registry_search_address",
-    arguments: { query: "1706 W University Dr", limit: 3 },
-    expect: { "results.0.urn": "fl:parcel:us-48085:10000" },
-  },
-  {
-    tool: "registry_search_entities",
-    arguments: { query: "holdings", limit: 3 },
-    expect: { "results.0.urn": "fl:entity:us-tx:0804844512" },
-  },
-  {
-    tool: "registry_owned_by",
-    arguments: { entity_urn: "fl:entity:us-tx:0000452810" },
-    expect: { "results.0.urn": "fl:parcel:us-48453:126012" },
-  },
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: { urn: "fl:parcel:us-48201:0180580000001" },
-    expect: {
-      "selection.tax_year": 2026,
-      "selection.roll_sources.0": "tx-harris-cad",
-      "selection.building_class_sources.0": "tx-harris-cad-buildings",
-      "selection.tiers.0.matched": 6,
-      "selection.tiers.2.matched": 293,
-      "selection.widened_to_county": true,
-      "selection.returned": 50,
-      "candidates.0.id": "fl:parcel:us-48201:0540160000008",
-      "sources.0.rights.attribution": "Harris Central Appraisal District",
-    },
-  },
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: {
-      urn: "fl:parcel:us-48201:0180580000001",
-      area_band: 0.2,
-      year_band: 10,
-      limit: 5,
-    },
-    expect: {
-      "selection.returned": 5,
-      "candidates.0.id": "fl:parcel:us-48201:0540160000008",
-    },
-  },
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: { county_fips: "113", apn: "00000100057000000" },
-    expect: {
-      "selection.tax_year": 2026,
-      "selection.matched": 54,
-      "selection.returned": 50,
-      "candidates.0.id": "fl:parcel:us-48113:000010001301a0000",
-    },
-  },
-  // Denton: a 2027 preliminary roll, compared in that year only.
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: { urn: "fl:parcel:us-48121:1002521" },
-    expect: {
-      "selection.tax_year": 2027,
-      "selection.available_tax_years.0": 2027,
-      "subject.value_history.0.tax_year": 2027,
-      "selection.returned": 14,
-      "candidates.0.id": "fl:parcel:us-48121:565139",
-      "candidates.0.tax_year": 2027,
-    },
-  },
-  // Tarrant is withheld: an input error from the candidate tool, a miss that says why elsewhere.
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: { urn: "fl:parcel:us-48439:00001234" },
-    expect_error: "InputError",
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-48439:00001234" },
-    expect_error: "NotFound",
-  },
-  // A Texas parcel the registry does not hold (residential): a coverage miss, not a failure.
-  {
-    tool: "registry_tx_equity_candidates",
-    arguments: { urn: "fl:parcel:us-48201:1" },
-    expect_error: "NotFound",
-  },
-  // New York City, Los Angeles County, San Francisco, the City of Boston, Denver and Connecticut. Values
-  // from the registry files of release-2026-11-12 (national/ny.db, ca.db, ma.db, co.db, ct.db); the tools'
-  // own answers were read with runTool on read-only copies.
-  {
-    tool: "registry_resolve_parcel",
-    arguments: { state_fips: "36", county_fips: "061", apn: "1000020002" },
-    expect: { urn: "fl:parcel:us-36061:1000020002" },
-  },
-  {
-    tool: "registry_resolve_external",
-    arguments: { system: "nyc_bbl", external_id: "1009941201" },
-    expect: { urn: "fl:parcel:us-36061:1009941201" },
-  },
-  // A New York address with an ordinal: the file writes "214 WEST 42 STREET", the search matches "42nd".
-  {
-    tool: "registry_search_address",
-    arguments: { query: "214 W 42nd St", limit: 3 },
-    expect: { "results.0.urn": "fl:parcel:us-36061:1010130039" },
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-36061:1010130039" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2027,
-      "value_history.0.market_value": 30444000,
-    },
-    has_predicates: ["ownership.owner_of_record"],
-  },
-  // Los Angeles County and San Francisco: the public files carry no owner names, so no owner fact.
-  {
-    tool: "registry_resolve_external",
-    arguments: { system: "la_ain", external_id: "5151015013" },
-    expect: { urn: "fl:parcel:us-06037:5151015013" },
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-06037:5151015013" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2026,
-      "value_history.0.appraised_value": 509842812,
-    },
-    has_predicates: ["parcel.situs_address"],
-    no_predicates: ["ownership.owner_of_record"],
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-06075:0259026" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2025,
-      "value_history.0.appraised_value": 1159518020,
-    },
-    no_predicates: ["ownership.owner_of_record"],
-  },
-  // The City of Boston: a hit, and a Suffolk County miss that says only the City is loaded.
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-25025:0401037100" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2026,
-      "value_history.0.market_value": 564317600,
-    },
-  },
-  {
-    tool: "registry_resolve_parcel",
-    arguments: { state_fips: "25", county_fips: "025", apn: "0000000000" },
-    expect: { urn: null, "coverage.county_area": "the City of Boston" },
-    expect_match: { "coverage.message": "for the City of Boston only" },
-  },
-  {
-    tool: "registry_resolve_external",
-    arguments: { system: "denver_schednum", external_id: "0234513035000" },
-    expect: { urn: "fl:parcel:us-08031:0234513035000" },
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-08031:0234513035000" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.market_value": 16827500,
-    },
-    has_predicates: ["ownership.owner_of_record", "zoning.district"],
-  },
-  {
-    tool: "registry_resolve_external",
-    arguments: { system: "ct_cama_link", external_id: "37070-204534125" },
-    expect: { urn: "fl:parcel:us-09003:37070-204534125" },
-  },
-  {
-    tool: "registry_get",
-    arguments: { urn: "fl:parcel:us-09003:37070-204534125" },
-    expect: {
-      status: "current",
-      kind: "parcel",
-      "value_history.0.tax_year": 2021,
-      "value_history.0.market_value": 107600,
-    },
-    has_predicates: ["ownership.owner_of_record"],
-  },
-];
 
 function ok(cond: unknown, label: string): void {
   if (cond) passed++;
@@ -382,13 +66,26 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // plan's quotas instead of the free tier's 25 registry lookups a day per address (several runs a
 // day from one machine exhaust the free quota and every registry check answers 429).
 const KEY = process.env.FACTLOT_API_KEY;
+// The caller's plan (x-factlot-tier on the API's answers): Pro and Team keys get the paid registry calls.
+let tier: string | null = null;
+const paid = () => tier !== null && PAID_TIERS.has(tier);
+// Reports left this month, from x-factlot-reports-quota-remaining.
+let reportsLeft: string | null = null;
+const gate = new RegistryGate();
 async function api(path: string, init?: RequestInit): Promise<Response> {
   await sleep(DELAY);
-  if (!KEY) return fetch(`${API}${path}`, init);
-  const headers = new Headers(init?.headers);
-  if (!headers.has("authorization"))
-    headers.set("authorization", `Bearer ${KEY}`);
-  return fetch(`${API}${path}`, { ...init, headers });
+  let res: Response;
+  if (!KEY) res = await fetch(`${API}${path}`, init);
+  else {
+    const headers = new Headers(init?.headers);
+    if (!headers.has("authorization"))
+      headers.set("authorization", `Bearer ${KEY}`);
+    res = await fetch(`${API}${path}`, { ...init, headers });
+  }
+  tier = res.headers.get("x-factlot-tier") ?? tier;
+  reportsLeft =
+    res.headers.get("x-factlot-reports-quota-remaining") ?? reportsLeft;
+  return res;
 }
 async function post(
   path: string,
@@ -399,7 +96,32 @@ async function post(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  return { status: res.status, json: await res.json().catch(() => undefined) };
+  const json = await res.json().catch(() => undefined);
+  if (path.startsWith("/v1/registry/"))
+    gate.observe(res.status, (json as { error?: unknown })?.error, res.headers);
+  return { status: res.status, json };
+}
+/**
+ * A registry call through the gate: undefined when the lookups have run out (the call is not made, and the run
+ * reports the stop once), else the answer.
+ */
+async function registryPost(
+  path: string,
+  body: unknown,
+): Promise<{ status: number; json: unknown } | undefined> {
+  if (!gate.open()) return undefined;
+  const r = await post(path, body);
+  return r.status === 429 &&
+    (r.json as { error?: string })?.error === "RegistryQuotaExceeded"
+    ? undefined
+    : r;
+}
+/** The check of a paid-only call made without a Pro or Team key: 403 PlanRequired. */
+function planRequired(label: string, status: number, json: unknown): void {
+  ok(
+    status === 403 && (json as { error?: string })?.error === "PlanRequired",
+    `${label}: want 403 PlanRequired without a Pro or Team key (tier ${tier ?? "unknown"}), got ${status} ${JSON.stringify(json).slice(0, 120)}`,
+  );
 }
 
 // One unknown subject in a candidates batch: HTTP 200, the subject's own NotFound (with the
@@ -665,6 +387,99 @@ async function main(): Promise<void> {
   notes.push(
     hostedRegistry ? "hosted registry: served" : "hosted registry: not bound",
   );
+  // What this run will spend, printed before any of it is spent.
+  {
+    const toolsCases = (
+      readJson("spec/vectors/tools.json") as { cases: Case[] }
+    ).cases;
+    const finds = (c: (typeof HOSTED_REGISTRY_CASES)[number]) =>
+      !c.expect_error && at(c.expect ?? {}, "urn") !== null;
+    const hostedCalls = hostedRegistry
+      ? HOSTED_REGISTRY_CASES.map((c) => ({
+          tool: c.tool,
+          arguments: c.arguments,
+          finds: finds(c),
+        }))
+      : [];
+    // MCP repeats one finding call per registry tool.
+    const mcpCalls = [
+      ...new Map(
+        hostedCalls.filter((c) => c.finds).map((c) => [c.tool, c]),
+      ).values(),
+    ];
+    // The vectors written against the test registry file may find something in the hosted regions too.
+    const unknown = hostedRegistry
+      ? toolsCases.filter(
+          (c) =>
+            c.tool?.startsWith("registry_") &&
+            !c.expect_error &&
+            !(isPaidOnlyCall(c.tool, c.arguments) && !paid()),
+        ).length
+      : 0;
+    const spend = plannedSpend([...hostedCalls, ...mcpCalls], {
+      paid: paid(),
+      keyed: KEY !== undefined,
+      reports: !NO_REPORTS && reportsOn,
+      unknown,
+    });
+    console.log(
+      `plan: ${KEY ? `a key (tier ${tier ?? "unknown"})` : "no key (the free tier: 25 registry lookups a day per address, 3 reports a month)"}; ` +
+        `this run spends about ${spend.lookups} registry lookups (at most ${spend.lookups_max}), ` +
+        `${spend.reports} report${spend.reports === 1 ? "" : "s"} and ${spend.model_calls} model calls` +
+        (NO_REPORTS ? " (--no-reports)" : ""),
+    );
+    if (!KEY && spend.lookups > 25)
+      console.log(
+        "plan: that is more than the free allowance: the registry checks stop when it runs out (the real lookups in the hosted regions run first)",
+      );
+  }
+  // Hosted registry regions (registry_coverage lists them): one real lookup per tool, with values read from the
+  // source files. They run before every other registry call, so a free allowance is spent on them first. These also
+  // give the MCP section its registry inputs.
+  if (hostedRegistry)
+    for (const c of HOSTED_REGISTRY_CASES) {
+      vectorCount++;
+      const label = `hosted ${c.tool} ${JSON.stringify(c.arguments).slice(0, 80)}`;
+      const r = await registryPost(pathOf.get(c.tool)!, c.arguments);
+      if (!r) continue;
+      const { status, json } = r;
+      if (isPaidOnlyCall(c.tool, c.arguments) && !paid()) {
+        planRequired(label, status, json);
+        continue;
+      }
+      if (c.expect_error) {
+        ok(
+          status >= 400 &&
+            (json as { error?: string })?.error === c.expect_error,
+          `${label}: want ${c.expect_error}, got ${status}`,
+        );
+        continue;
+      }
+      ok(status === 200, `${label}: HTTP ${status}`);
+      for (const [k, v] of Object.entries(c.expect ?? {}))
+        ok(
+          same(at(json, k), v),
+          `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
+        );
+      for (const [k, re] of Object.entries(c.expect_match ?? {}))
+        ok(
+          new RegExp(re).test(String(at(json, k))),
+          `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
+        );
+      const predicates = new Set(
+        ((at(json, "facts") as { predicate?: string }[] | undefined) ?? []).map(
+          (f) => f.predicate,
+        ),
+      );
+      for (const p of c.has_predicates ?? [])
+        ok(predicates.has(p), `${label}: no ${p} fact`);
+      for (const p of c.no_predicates ?? [])
+        ok(!predicates.has(p), `${label}: has a ${p} fact`);
+      if (status === 200 && !restResults.has(c.tool)) {
+        restResults.set(c.tool, json);
+        restArgs.set(c.tool, c.arguments);
+      }
+    }
   // The batch candidates vector whose only subject is outside the hosted regions: its REST answer,
   // kept for the MCP check.
   let batchMiss: { args: unknown; json: unknown } | undefined;
@@ -681,7 +496,18 @@ async function main(): Promise<void> {
       );
       continue;
     }
-    const { status, json } = await post(path, c.arguments);
+    let status: number;
+    let json: unknown;
+    if (tool.startsWith("registry_")) {
+      const r = await registryPost(path, c.arguments);
+      if (!r) continue;
+      ({ status, json } = r);
+      // A caller without a Pro or Team key gets PlanRequired before the input is read.
+      if (hostedRegistry && isPaidOnlyCall(tool, c.arguments) && !paid()) {
+        planRequired(label, status, json);
+        continue;
+      }
+    } else ({ status, json } = await post(path, c.arguments));
     if (tool.startsWith("registry_") && !c.expect_error) {
       // These vectors are written against a test registry file, not the hosted regions. With a
       // registry service, the hosted answer is a result or a NotFound that carries coverage;
@@ -750,46 +576,6 @@ async function main(): Promise<void> {
       restArgs.set(tool, c.arguments);
     }
   }
-  // Hosted registry regions (registry_coverage lists them): one real lookup per tool, with
-  // values read from the source files. These also give the MCP section its registry inputs.
-  if (hostedRegistry)
-    for (const c of HOSTED_REGISTRY_CASES) {
-      vectorCount++;
-      const label = `hosted ${c.tool} ${JSON.stringify(c.arguments).slice(0, 80)}`;
-      const { status, json } = await post(pathOf.get(c.tool)!, c.arguments);
-      if (c.expect_error) {
-        ok(
-          status >= 400 &&
-            (json as { error?: string })?.error === c.expect_error,
-          `${label}: want ${c.expect_error}, got ${status}`,
-        );
-        continue;
-      }
-      ok(status === 200, `${label}: HTTP ${status}`);
-      for (const [k, v] of Object.entries(c.expect ?? {}))
-        ok(
-          same(at(json, k), v),
-          `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
-        );
-      for (const [k, re] of Object.entries(c.expect_match ?? {}))
-        ok(
-          new RegExp(re).test(String(at(json, k))),
-          `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
-        );
-      const predicates = new Set(
-        ((at(json, "facts") as { predicate?: string }[] | undefined) ?? []).map(
-          (f) => f.predicate,
-        ),
-      );
-      for (const p of c.has_predicates ?? [])
-        ok(predicates.has(p), `${label}: no ${p} fact`);
-      for (const p of c.no_predicates ?? [])
-        ok(!predicates.has(p), `${label}: has a ${p} fact`);
-      if (status === 200 && !restResults.has(c.tool)) {
-        restResults.set(c.tool, json);
-        restArgs.set(c.tool, c.arguments);
-      }
-    }
   // The Texas batch tools: two items, two subjects. The rule answers both; the candidates batch
   // answers each subject or gives it its own error (a coverage miss where Texas is not hosted), so
   // only the shape is checked.
@@ -827,10 +613,11 @@ async function main(): Promise<void> {
         { id: "b", county_fips: "113", apn: "1" },
       ],
     };
-    const { status, json } = await post(
+    const r = await registryPost(
       pathOf.get(tool) ?? "/v1/registry/tx_equity_candidates/batch",
       args,
     );
+    const { status, json } = r ?? { status: 0, json: undefined };
     const b = json as
       | {
           error?: string;
@@ -840,11 +627,14 @@ async function main(): Promise<void> {
           notice?: unknown;
         }
       | undefined;
-    if (!hostedRegistry)
+    if (!r) {
+      // The registry lookups ran out: reported once at the end.
+    } else if (!hostedRegistry)
       ok(
         status === 503 && b?.error === "RegistryUnavailable",
         `${tool} without a registry: ${status} ${b?.error}`,
       );
+    else if (!paid()) planRequired(`${tool} two subjects`, status, json);
     else {
       const each = (b?.results ?? []).every(
         (r) =>
@@ -906,7 +696,7 @@ async function main(): Promise<void> {
         : anon.status === 503 && anonError === "ModelUnavailable",
       `${path} without a key: ${anon.status} ${anonError}`,
     );
-    if (KEY) {
+    if (KEY && !NO_REPORTS) {
       const { status, json } = await post(path, body);
       const r = json as Record<string, unknown> | undefined;
       ok(
@@ -926,7 +716,8 @@ async function main(): Promise<void> {
   // on the free tier. Created reports answer 201. Reports are open on api.factlot.com; a
   // deployment that has them closed (/v1/plans reports.available false) answers 503
   // ReportsUnavailable: noted, not failed.
-  {
+  if (NO_REPORTS) notes.push("report_create: skipped (--no-reports)");
+  else {
     const vector = readJson("spec/vectors/calc/tx_unequal_appraisal.json") as {
       cases: Case[];
     };
@@ -1132,7 +923,37 @@ async function main(): Promise<void> {
       c.arguments,
     ]),
   );
+  // Inputs of the calls a free caller's plan does not answer (their REST answer was PlanRequired).
+  const caseArgs = new Map(
+    [...HOSTED_REGISTRY_CASES]
+      .reverse()
+      .filter((c) => !c.expect_error)
+      .map((c) => [c.tool, c.arguments]),
+  );
   for (const t of tools) {
+    if (t.name.startsWith("registry_") && hostedRegistry && !gate.open()) {
+      // The registry lookups ran out: reported once at the end.
+      continue;
+    }
+    // A paid-only registry tool without a Pro or Team key: a PlanRequired tool error, unmetered.
+    const paidArgs = caseArgs.get(t.name);
+    if (
+      hostedRegistry &&
+      paidArgs &&
+      isPaidOnlyCall(t.name, paidArgs) &&
+      !paid()
+    ) {
+      await sleep(DELAY);
+      const r = (await client.callTool({
+        name: t.name,
+        arguments: paidArgs,
+      })) as { isError?: boolean; content: { type: string; text: string }[] };
+      ok(
+        r.isError && /PlanRequired/.test(r.content?.[0]?.text ?? ""),
+        `MCP ${t.name}: want a PlanRequired tool error without a Pro or Team key, got ${r.content?.[0]?.text?.slice(0, 160)}`,
+      );
+      continue;
+    }
     // report_create: an input error is free, so the check spends no report.
     if (t.name === "report_create") {
       await sleep(DELAY);
@@ -1161,6 +982,10 @@ async function main(): Promise<void> {
     }
     if (keyOnly.has(t.name) && !KEY) {
       notes.push(`MCP ${t.name}: skipped (needs FACTLOT_API_KEY)`);
+      continue;
+    }
+    if (modelMcp[t.name] && NO_REPORTS) {
+      notes.push(`MCP ${t.name}: skipped (--no-reports)`);
       continue;
     }
     if (modelMcp[t.name]) {
@@ -1203,7 +1028,7 @@ async function main(): Promise<void> {
         );
       continue;
     }
-    const args = restArgs.get(t.name) ?? extra[t.name];
+    const args = restArgs.get(t.name) ?? extra[t.name] ?? caseArgs.get(t.name);
     if (args === undefined) {
       failures.push(`MCP ${t.name}: no test input (add a vector)`);
       continue;
@@ -1216,6 +1041,11 @@ async function main(): Promise<void> {
       isError?: boolean;
       content: { type: string; text: string }[];
     };
+    if (r.isError && /RegistryQuotaExceeded/.test(r.content?.[0]?.text ?? "")) {
+      // The registry lookups ran out: stop the registry calls, reported once at the end.
+      gate.observe(429, "RegistryQuotaExceeded", new Headers());
+      continue;
+    }
     ok(
       !r.isError,
       `MCP ${t.name}: isError ${r.content?.[0]?.text?.slice(0, 160)}`,
@@ -1320,6 +1150,15 @@ async function main(): Promise<void> {
   ok(!successText.includes("<script>"), "success page escapes its input");
 
   // --- Report -------------------------------------------------------------------------------
+  const stop = gate.failure();
+  if (stop) failures.push(stop);
+  // From the response headers only: never the key itself.
+  if (gate.remaining !== null)
+    notes.push(
+      `registry lookups left${KEY ? " on the key" : " for this address"}: ${gate.remaining}${gate.resets ? ` (resets ${gate.resets})` : ""}`,
+    );
+  if (KEY && reportsLeft !== null)
+    notes.push(`reports left on the key this month: ${reportsLeft}`);
   for (const n of notes) console.log(`note: ${n}`);
   for (const f of failures) console.log(`FAIL: ${f}`);
   console.log(`\n${passed} checks passed, ${failures.length} failed`);

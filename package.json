@@ -21,7 +21,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --experimental-strip-types --conditions=factlot-source --import ./scripts/test/workers-stub.mjs --test \"packages/*/src/**/*.test.ts\" \"deploy/cloudflare/src/**/*.test.ts\" \"deploy/registry/src/**/*.test.ts\" \"scripts/site/*.test.ts\" \"scripts/ops/*.test.ts\" \"scripts/conformance/*.test.ts\"",
+    "test": "node --experimental-strip-types --conditions=factlot-source --import ./scripts/test/workers-stub.mjs --test \"packages/*/src/**/*.test.ts\" \"deploy/cloudflare/src/**/*.test.ts\" \"deploy/registry/src/**/*.test.ts\" \"scripts/site/*.test.ts\" \"scripts/ops/*.test.ts\" \"scripts/conformance/*.test.ts\" \"scripts/e2e/*.test.ts\"",
     "test:e2e": "node --experimental-strip-types --test-reporter=spec scripts/e2e/run.ts",
     "build": "npm run build --workspaces",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build && npm run test:built && npm run test:workerd",
