@@ -1019,8 +1019,7 @@ async function route(
     return withHeaders(
       json(200, {
         name: "FactLot",
-        description:
-          "An open fact layer for commercial real estate AI agents.",
+        description: "An open fact layer for commercial real estate AI agents.",
         mcp: `${apiBase}/mcp`,
         openapi: `${apiBase}/openapi.json`,
         openapi_3_0: `${apiBase}/openapi-3.0.json`,
