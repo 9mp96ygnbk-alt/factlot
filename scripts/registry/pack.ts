@@ -62,6 +62,8 @@ import {
 
 import {
   ADDRESS_STREET_TYPES,
+  addressRange,
+  addressRangeListKey,
   TX_EQUITY_COUNTY_SOURCES_SQL,
   TX_EQUITY_RANGE_SQL,
   TX_EQUITY_SOURCE_SQL,
@@ -1288,6 +1290,12 @@ function finishPack(
       if (j > 0 && t[j - 1]) keys.add(`B:${t[j - 1]} ${x}`);
       if (j + 1 < t.length && t[j + 1]) keys.add(`A:${x} ${t[j + 1]}`);
     });
+    // A label starting with a house-number range is also listed under its first street word, for a query with a
+    // number inside the range (addressRangeMatches).
+    if (addressRange(row[0], row[1], row[2])) {
+      const r = addressRangeListKey(t, 2);
+      if (r !== null) keys.add(r);
+    }
     for (const key of keys) add(key, row);
     const e = exact.get(row[2]);
     if (!e) exact.set(row[2], [[row[0], row[1]]]);

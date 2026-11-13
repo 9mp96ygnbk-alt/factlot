@@ -677,6 +677,113 @@
     }
   },
   {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "350 Fifth Ave, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "344 5th Avenue"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "343 5 Ave, Example City, TX 77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "address": "500 Market Street",
+      "city": "Example City",
+      "state": "TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St",
+      "county_fips": "48999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St",
+      "county_fips": "24998"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 Market St",
+      "state": "TX",
+      "county_fips": "001"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, Houston, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "150 Main St, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "7 Seawall Blvd, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "9 Harbor Dr",
+      "postal_code": "77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "West Ninth St",
+      "state": "Maryland"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St",
+      "address": "100 Main St"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St",
+      "state": "Texsa"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "limit": 5,
+      "city": "Example City"
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"

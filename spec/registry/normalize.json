@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code), read conservatively: only a state named after a city filters; a ZIP code and a city only order; unit, floor and box text and a bare two-letter or full state name name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state).",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code), read conservatively: only a state named after a city filters; a ZIP code and a city only order; unit, floor and box text and a bare two-letter or full state name name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state). 'address_search_forms': the spellings a street line is searched by (as written first). 'address_ranges' and 'address_range_matches': a lot's house-number range [low, high, one side] and whether a query's number falls in it. 'address_street_words': the street a miss reads for its nearest house numbers. 'address_cards': what a search result carries from its label and current facts. 'address_place_with' and 'address_where_issues': the call's place parameters. 'address_queries_with_place': a query without a comma whose street line ends in a place, with the comma put in.",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -1265,5 +1265,610 @@
       "1100 K ST, WASHINGTON WA 98001",
       1
     ]
+  ],
+  "address_search_forms": [
+    [
+      "350 Fifth Avenue",
+      [
+        ["350", "5TH", "AVE"],
+        ["350", "5", "AVE"]
+      ]
+    ],
+    [
+      "350 5 Avenue",
+      [
+        ["350", "5", "AVE"],
+        ["350", "5TH", "AVE"]
+      ]
+    ],
+    [
+      "350 5th Ave",
+      [
+        ["350", "5TH", "AVE"],
+        ["350", "5", "AVE"]
+      ]
+    ],
+    [
+      "Forty-Second Street",
+      [
+        ["FORTY", "2ND", "ST"],
+        ["42ND", "ST"],
+        ["42", "ST"]
+      ]
+    ],
+    [
+      "West Forty Second St",
+      [
+        ["W", "FORTY", "2ND", "ST"],
+        ["W", "42ND", "ST"],
+        ["W", "42", "ST"]
+      ]
+    ],
+    [
+      "One Hundred Twenty-Fifth Street",
+      [
+        ["ONE", "HUNDRED", "TWENTY", "5TH", "ST"],
+        ["125TH", "ST"],
+        ["125", "ST"]
+      ]
+    ],
+    [
+      "1 Hundred and 5th St",
+      [
+        ["1", "HUNDRED", "AND", "5TH", "ST"],
+        ["1", "HUNDRED", "AND", "5", "ST"]
+      ]
+    ],
+    [
+      "Fortieth Ave",
+      [
+        ["FORTIETH", "AVE"],
+        ["40TH", "AVE"],
+        ["40", "AVE"]
+      ]
+    ],
+    [
+      "Ninetieth St",
+      [
+        ["NINETIETH", "ST"],
+        ["90TH", "ST"],
+        ["90", "ST"]
+      ]
+    ],
+    ["Sixty Foot Rd", [["SIXTY", "FOOT", "RD"]]],
+    ["Thirty Seven Ct", [["THIRTY", "SEVEN", "CT"]]],
+    ["100 Main St", [["100", "MAIN", "ST"]]],
+    [
+      "136 W 42nd St",
+      [
+        ["136", "W", "42ND", "ST"],
+        ["136", "W", "42", "ST"]
+      ]
+    ],
+    [
+      "9 5 St NW",
+      [
+        ["9", "5", "ST", "NW"],
+        ["9", "5TH", "ST", "NW"]
+      ]
+    ],
+    ["5 Ave", [["5", "AVE"]]],
+    [
+      "Avenue of the Americas",
+      [
+        ["AVE", "OF", "THE", "AMERICAS"],
+        ["AVE", "OF", "THE", "AMER"]
+      ]
+    ],
+    [
+      "1700 Twenty-First St NW",
+      [
+        ["1700", "TWENTY", "1ST", "ST", "NW"],
+        ["1700", "21ST", "ST", "NW"],
+        ["1700", "21", "ST", "NW"]
+      ]
+    ],
+    [
+      "1225 Eye Street NW",
+      [
+        ["1225", "EYE", "ST", "NW"],
+        ["1225", "I", "ST", "NW"]
+      ]
+    ],
+    [
+      "1111 Sixth Avenue",
+      [
+        ["1111", "6TH", "AVE"],
+        ["1111", "AVE", "OF", "THE", "AMER"],
+        ["1111", "AVE", "OF", "THE", "AMERICAS"],
+        ["1111", "6", "AVE"]
+      ]
+    ],
+    [
+      "1166 Avenue of the Americas",
+      [
+        ["1166", "AVE", "OF", "THE", "AMERICAS"],
+        ["1166", "AVE", "OF", "THE", "AMER"]
+      ]
+    ],
+    ["6th Ave", [["6TH", "AVE"]]],
+    [
+      "1 6 Ave",
+      [
+        ["1", "6", "AVE"],
+        ["1", "AVE", "OF", "THE", "AMER"],
+        ["1", "AVE", "OF", "THE", "AMERICAS"],
+        ["1", "6TH", "AVE"]
+      ]
+    ]
+  ],
+  "address_ranges": [
+    [
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      [338, 350, true]
+    ],
+    [
+      "fl:parcel:us-36061:1",
+      "510-525 EAST 146 STREET, BRONX NY 10455",
+      "510 525 E 146 ST BRONX NY 10455",
+      [510, 525, false]
+    ],
+    [
+      "fl:parcel:us-36081:1",
+      "37-20 80 STREET, QUEENS NY 11372",
+      "37 20 80 ST QUEENS NY 11372",
+      null
+    ],
+    [
+      "fl:parcel:us-36061:2",
+      "2530-2518 GRAND CONCOURSE, BRONX NY 10458",
+      "2530 2518 GRAND CONCOURSE BRONX NY 10458",
+      null
+    ],
+    [
+      "fl:parcel:us-48201:1",
+      "1200 2 ST, HOUSTON TX 77002",
+      "1200 2 ST HOUSTON TX 77002",
+      null
+    ],
+    [
+      "fl:parcel:us-25025:1",
+      "226-228 PRINCETON ST, EAST BOSTON MA 02128",
+      "226 228 PRINCETON ST E BOSTON MA 02128",
+      [226, 228, true]
+    ],
+    [
+      "fl:parcel:us-06075:1",
+      "2701-2731 TAYLOR ST, SAN FRANCISCO, CA",
+      "2701 2731 TAYLOR ST SAN FRANCISCO CA",
+      [2701, 2731, true]
+    ],
+    [
+      "fl:parcel:us-09003:1",
+      "66-102 JOES HILL RD, Danbury CT 6810",
+      "66 102 JOES HILL RD DANBURY CT 6810",
+      [66, 102, true]
+    ],
+    [
+      "fl:parcel:us-36061:3",
+      "1707-13 MONTGOMERY AVENUE, BRONX NY 10453",
+      "1707 13 MONTGOMERY AVE BRONX NY 10453",
+      null
+    ]
+  ],
+  "address_range_matches": [
+    [
+      "350 5 AVE",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      true
+    ],
+    [
+      "340 5 AVE",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      true
+    ],
+    [
+      "339 5 AVE",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      false
+    ],
+    [
+      "338 5 AVE",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      false
+    ],
+    [
+      "352 5 AVE",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      false
+    ],
+    [
+      "350 5 AVE NEW YORK",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      true
+    ],
+    [
+      "350 6 AVE",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      false
+    ],
+    [
+      "350",
+      "fl:parcel:us-36061:1008350041",
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      "338 350 5 AVE NEW YORK NY 10118",
+      false
+    ],
+    [
+      "525 E 146 ST",
+      "fl:parcel:us-36061:1",
+      "510-525 EAST 146 STREET, BRONX NY 10455",
+      "510 525 E 146 ST BRONX NY 10455",
+      true
+    ],
+    [
+      "511 E 146 ST",
+      "fl:parcel:us-36061:1",
+      "510-525 EAST 146 STREET, BRONX NY 10455",
+      "510 525 E 146 ST BRONX NY 10455",
+      true
+    ],
+    [
+      "512 146 ST",
+      "fl:parcel:us-36061:1",
+      "510-525 EAST 146 STREET, BRONX NY 10455",
+      "510 525 E 146 ST BRONX NY 10455",
+      true
+    ],
+    [
+      "25 80 ST",
+      "fl:parcel:us-36081:1",
+      "37-20 80 STREET, QUEENS NY 11372",
+      "37 20 80 ST QUEENS NY 11372",
+      false
+    ],
+    [
+      "227 PRINCETON ST",
+      "fl:parcel:us-25025:1",
+      "226-228 PRINCETON ST, EAST BOSTON MA 02128",
+      "226 228 PRINCETON ST E BOSTON MA 02128",
+      false
+    ],
+    [
+      "228 PRINCETON ST",
+      "fl:parcel:us-25025:1",
+      "226-228 PRINCETON ST, EAST BOSTON MA 02128",
+      "226 228 PRINCETON ST E BOSTON MA 02128",
+      true
+    ],
+    [
+      "2711 TAYLOR ST",
+      "fl:parcel:us-06075:1",
+      "2701-2731 TAYLOR ST, SAN FRANCISCO, CA",
+      "2701 2731 TAYLOR ST SAN FRANCISCO CA",
+      true
+    ]
+  ],
+  "address_street_words": [
+    ["1600 Smith Street", ["SMITH", "ST"]],
+    ["1100 New York Avenue NW, Washington", ["NEW", "YORK", "AVE", "NW"]],
+    ["1801 California", null],
+    ["350 Ave", null],
+    ["Main St", null],
+    ["6700 Bissonnet Street Houston TX 77074", ["BISSONNET", "ST"]],
+    ["12 N Main St S", ["N", "MAIN", "ST", "S"]]
+  ],
+  "address_cards": [
+    [
+      "338-350 5 AVENUE, NEW YORK NY 10118",
+      [
+        {
+          "predicate": "parcel.apn",
+          "value": "1008350041"
+        },
+        {
+          "predicate": "parcel.improvement_area_sf",
+          "value": 2812739.0
+        },
+        {
+          "predicate": "parcel.local_use_code",
+          "value": "O4"
+        },
+        {
+          "predicate": "parcel.state_property_category",
+          "value": "F1"
+        },
+        {
+          "predicate": "parcel.year_built",
+          "value": 1931
+        }
+      ],
+      {
+        "account": "1008350041",
+        "property_category": "F1",
+        "use_code": "O4",
+        "improvement_area_sf": 2812739.0,
+        "land_only": false,
+        "unit": null
+      }
+    ],
+    [
+      "300 Harbor Dr Unit 101, Example City TX 77999",
+      [
+        {
+          "predicate": "parcel.apn",
+          "value": "0002-000-1001"
+        }
+      ],
+      {
+        "account": "0002-000-1001",
+        "property_category": null,
+        "use_code": null,
+        "improvement_area_sf": null,
+        "land_only": true,
+        "unit": "101"
+      }
+    ],
+    [
+      "300 HARBOR DRIVE #103, EXAMPLE CITY TX 77999",
+      [
+        {
+          "predicate": "parcel.year_built",
+          "value": 1984
+        },
+        {
+          "predicate": "parcel.improvement_area_sf",
+          "value": 0
+        }
+      ],
+      {
+        "account": null,
+        "property_category": null,
+        "use_code": null,
+        "improvement_area_sf": 0,
+        "land_only": false,
+        "unit": "103"
+      }
+    ],
+    [
+      "1700 SMITH ST 259, HOUSTON TX 77002",
+      [
+        {
+          "predicate": "parcel.apn",
+          "value": "0943660000001"
+        },
+        {
+          "predicate": "parcel.improvement_area_sf",
+          "value": 0
+        }
+      ],
+      {
+        "account": "0943660000001",
+        "property_category": null,
+        "use_code": null,
+        "improvement_area_sf": 0,
+        "land_only": true,
+        "unit": null
+      }
+    ],
+    [
+      null,
+      [
+        {
+          "predicate": "parcel.apn",
+          "value": "A"
+        },
+        {
+          "predicate": "parcel.apn",
+          "value": "B"
+        },
+        {
+          "predicate": "parcel.improvement_area_sf",
+          "value": 120.5
+        }
+      ],
+      {
+        "account": "A",
+        "property_category": null,
+        "use_code": null,
+        "improvement_area_sf": 120.5,
+        "land_only": false,
+        "unit": null
+      }
+    ]
+  ],
+  "address_place_with": [
+    [
+      "1200 Main St",
+      {
+        "state": "tx"
+      },
+      {
+        "city": null,
+        "state": "TX",
+        "zip": null
+      }
+    ],
+    [
+      "1200 Main St, Houston, TX 77002",
+      {
+        "state": "New York"
+      },
+      {
+        "city": "HOUSTON",
+        "state": "NY",
+        "zip": "77002"
+      }
+    ],
+    [
+      "1200 Main St",
+      {
+        "city": "St. Louis",
+        "postal_code": "63101-1234"
+      },
+      {
+        "city": "ST LOUIS",
+        "state": null,
+        "zip": "63101"
+      }
+    ],
+    [
+      "1200 Main St",
+      {
+        "county_fips": "48201"
+      },
+      {
+        "city": null,
+        "state": "TX",
+        "zip": null,
+        "county": "48201"
+      }
+    ],
+    [
+      "1200 Main St",
+      {
+        "state": "TX",
+        "county_fips": "201"
+      },
+      {
+        "city": null,
+        "state": "TX",
+        "zip": null,
+        "county": "48201"
+      }
+    ],
+    [
+      "1200 Main St, Austin, TX",
+      {
+        "county_fips": "48453"
+      },
+      {
+        "city": "AUSTIN",
+        "state": "TX",
+        "zip": null,
+        "county": "48453"
+      }
+    ]
+  ],
+  "address_where_issues": [
+    [
+      {
+        "state": "Texsa"
+      },
+      [
+        {
+          "path": "state",
+          "message": "expected a US state's two-letter code or full name"
+        }
+      ]
+    ],
+    [
+      {
+        "postal_code": "7700"
+      },
+      [
+        {
+          "path": "postal_code",
+          "message": "expected a 5-digit ZIP code or ZIP+4"
+        }
+      ]
+    ],
+    [
+      {
+        "county_fips": "201"
+      },
+      [
+        {
+          "path": "county_fips",
+          "message": "a 3-digit county FIPS code needs state"
+        }
+      ]
+    ],
+    [
+      {
+        "county_fips": "4820"
+      },
+      [
+        {
+          "path": "county_fips",
+          "message": "expected a 5-digit county FIPS code (state and county), or 3 digits with state"
+        }
+      ]
+    ],
+    [
+      {
+        "state": "NY",
+        "county_fips": "48201"
+      },
+      [
+        {
+          "path": "county_fips",
+          "message": "48201 is not in NY"
+        }
+      ]
+    ],
+    [
+      {
+        "county_fips": "99001"
+      },
+      [
+        {
+          "path": "county_fips",
+          "message": "99001 is in no US state"
+        }
+      ]
+    ],
+    [
+      {
+        "state": "D.C."
+      },
+      []
+    ],
+    [
+      {
+        "state": "tx",
+        "postal_code": "77002-1234",
+        "county_fips": "48201"
+      },
+      []
+    ]
+  ],
+  "address_queries_with_place": [
+    [
+      "6700 Bissonnet Street Houston TX 77074",
+      "6700 BISSONNET ST, HOUSTON TX 77074"
+    ],
+    [
+      "8687 N Central Expressway Dallas TX 75225",
+      "8687 N CENTRAL EXPY, DALLAS TX 75225"
+    ],
+    ["500 E 4TH ST AUSTIN TX 78701", "500 E 4TH ST, AUSTIN TX 78701"],
+    [
+      "1100 15th St NW Washington DC 20005",
+      "1100 15TH ST NW, WASHINGTON DC 20005"
+    ],
+    ["220 36th St Brooklyn", "220 36th St Brooklyn"],
+    ["1600 Smith St, Houston, TX", "1600 Smith St, Houston, TX"],
+    ["Main St Houston TX", "Main St Houston TX"],
+    ["1801 California Denver CO 80202", "1801 California Denver CO 80202"],
+    ["100 Park Ave S New York NY 10003", "100 PARK AVE S, NEW YORK NY 10003"],
+    ["12 St Johns Pl Brooklyn NY 11201", "12 St Johns Pl Brooklyn NY 11201"],
+    ["233 S Wacker Dr Chicago IL", "233 S WACKER DR, CHICAGO IL"]
   ]
 }

@@ -67,9 +67,17 @@ reg.ingest_parcels([
     ParcelRecord("999", "0004-000-0002", "F1", account="A31", situs_address="14 Tower Court, Example City TX 77999",
                  owner_name="Tower Unit Holdings LLC", land_area_sf=0, improvement_area_sf=-10,
                  market_value=400000, tax_year=2026),
-    # A numbered street written with its ordinal here and bare in the second state below (address search's retry).
+    # A numbered street written with its ordinal here and bare in the second state below (address search's spellings).
     ParcelRecord("999", "0005-000-0001", "F1", account="A40", situs_address="8 W 9th Street, Example City TX 77999",
                  market_value=600000, tax_year=2026),
+    # A lot whose address is a house-number range (address search finds a number inside it on the same side).
+    ParcelRecord("999", "0006-000-0001", "F1", account="A50", situs_address="338-350 Fifth Avenue, Example City TX 77999",
+                 improvement_area_sf=2000000, year_built=1931, market_value=900000000, tax_year=2026),
+    # Two accounts at one address, one with no improvement on the roll: address search lists the improved one first.
+    ParcelRecord("999", "0007-000-0001", "F1", account="A60", situs_address="500 Market Street, Example City TX 77999",
+                 land_area_sf=20000, market_value=300000, tax_year=2026),
+    ParcelRecord("999", "0007-000-0002", "F1", account="A61", situs_address="500 Market Street, Example City TX 77999",
+                 improvement_area_sf=45000, year_built=2004, market_value=7000000, tax_year=2026),
 ], s26, state_fips="48", account_system="test-account", full_roll=True)
 # A second state (Maryland, an invented county 998) whose street lines repeat the Texas ones, for the place an
 # address search names after its street line: state, city and ZIP code.
