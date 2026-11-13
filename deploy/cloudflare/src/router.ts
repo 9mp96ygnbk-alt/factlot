@@ -1996,8 +1996,10 @@ async function route(
       else {
         outcome.set(m, "charged");
         counted.charged.push(m);
-        if (guard)
-          marks.set(m.key, { counted: true, counted_note: guard.note });
+        marks.set(m.key, {
+          counted: true,
+          counted_note: guard?.note ?? NOT_GIVEN_BACK,
+        });
       }
     });
     // Give back first, then say so: an answer says counted: false only when its lookup was given
@@ -2245,7 +2247,8 @@ function noResults(a: Record<string, unknown>): boolean {
 /**
  * Whether a registry answer found nothing: an empty `results` list (registry_search_address,
  * registry_search_entities, registry_owned_by) or `urn: null` (registry_resolve_parcel,
- * registry_resolve_external). A NotFound from registry_get is an error answer, never charged.
+ * registry_resolve_external). A NotFound of registry_get or registry_tx_equity_candidates is
+ * judged on its error (notFoundInside).
  */
 export function foundNothing(tool: string, answer: unknown): boolean {
   const test = FOUND_NOTHING.get(tool);
@@ -2255,6 +2258,27 @@ export function foundNothing(tool: string, answer: unknown): boolean {
     answer !== null &&
     !Array.isArray(answer) &&
     test(answer as Record<string, unknown>)
+  );
+}
+
+/**
+ * Single tools whose NotFound (a tool error, REST 404) is an answer that found nothing when its
+ * `coverage` is inside loaded coverage: a URN or parcel the registry does not hold where it holds
+ * the county. Outside loaded coverage it stays a free miss.
+ */
+const NOT_FOUND_EMPTY: ReadonlySet<string> = new Set([
+  "registry_get",
+  "registry_tx_equity_candidates",
+]);
+
+function notFoundInside(tool: string, error: unknown): boolean {
+  if (!NOT_FOUND_EMPTY.has(tool)) return false;
+  const e = error as { error?: unknown; coverage?: unknown } | null;
+  return (
+    e?.error === "NotFound" &&
+    typeof e.coverage === "object" &&
+    e.coverage !== null &&
+    isChargedAnswer({ results: [], coverage: e.coverage })
   );
 }
 
@@ -2425,6 +2449,14 @@ async function restCharge(
       free: Math.max(0, granted - charged.length - empty.length),
     };
   };
+  if (res.status === 404 && NOT_FOUND_EMPTY.has(tool)) {
+    const text = await res.text();
+    const copy = new Response(text, res);
+    const c = NONE();
+    if (notFoundInside(tool, parseArgs(text)))
+      c.empty.push({ tool, args, key: "r" });
+    return outcome(copy, c);
+  }
   if (res.status !== 200) return outcome(res);
   const text = await res.text();
   const copy = new Response(text, res);
@@ -2511,8 +2543,24 @@ async function mcpCharges(
           result?: { isError?: boolean; content?: { text?: unknown }[] };
         }
       | undefined;
-    if (!m || m.error !== undefined || !m.result || m.result.isError === true)
+    if (!m || m.error !== undefined || !m.result) continue;
+    if (m.result.isError === true) {
+      // A NotFound of registry_get or registry_tx_equity_candidates inside loaded coverage found
+      // nothing; any other tool error is free.
+      let error: unknown;
+      try {
+        error = JSON.parse(String(m.result.content?.[0]?.text));
+      } catch {
+        error = undefined;
+      }
+      if (notFoundInside(call.params.name, error))
+        c.empty.push({
+          tool: call.params.name,
+          args: call.params.arguments,
+          key: mcpKey(call.id),
+        });
       continue;
+    }
     const tool = call.params.name;
     const args = call.params.arguments;
     let answer: unknown;

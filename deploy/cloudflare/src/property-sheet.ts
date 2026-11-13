@@ -253,7 +253,8 @@ export async function lookupForSheet(
     result?.structuredContent ??
     (typeof text === "string" ? parse(text) : undefined);
   if (result?.isError) {
-    // A tool error is never charged.
+    // A tool error is not charged, except a NotFound inside loaded coverage past the hourly limit
+    // on answers that find nothing (the router decides, and the body says so in `counted`).
     const body = (
       typeof answer === "object" && answer !== null ? answer : {}
     ) as Json;

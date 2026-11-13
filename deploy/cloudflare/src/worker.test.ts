@@ -5144,7 +5144,7 @@ describe("registry answers that find nothing are not counted", () => {
     assert.equal(await c.used(), 1);
   });
 
-  it("when the guard cannot be asked, an answer that finds nothing stays counted, unmarked", async () => {
+  it("when the guard cannot be asked, an answer that finds nothing is counted and says so", async () => {
     const { e, api } = setup();
     const meter = e.METER;
     e.METER = {
@@ -5160,8 +5160,88 @@ describe("registry answers that find nothing are not counted", () => {
       r = await call(e, api, "/v1/registry/search_address", { body: {} });
     });
     assert.match(logs, /empty-answer guard failed/);
-    assert.deepEqual(await body(r!), EMPTY.registry_search_address);
+    const b = await body(r!);
+    assert.equal(b.counted, true);
+    assert.match(String(b.counted_note), /could not be given back/);
+    assert.deepEqual(b.results, []);
     assert.equal(await c.used(), 1);
+  });
+
+  it("a registry_get or registry_tx_equity_candidates NotFound inside loaded coverage found nothing: free within the guard, counted past it; outside coverage it stays free", async () => {
+    const notFound = (coverage: Record<string, unknown>) => ({
+      error: "NotFound",
+      message: "no registry record",
+      issues: [],
+      coverage,
+    });
+    const inside = notFound({ county_loaded: true, state_loaded: true });
+    const outside = notFound({ county_loaded: false });
+    /** The inner handler: REST answers 404 with the error; MCP a tool error with it as text. */
+    const missApi = (err: unknown) => ({
+      fetch: async (r: Request) => {
+        const path = new URL(r.url).pathname;
+        const text = await r.text();
+        const json = (b: unknown, status = 200) =>
+          new Response(JSON.stringify(b), {
+            status,
+            headers: { "content-type": "application/json" },
+          });
+        if (path !== "/mcp") return json(err, 404);
+        const m = JSON.parse(text) as { id: number };
+        return json({
+          jsonrpc: "2.0",
+          id: m.id,
+          result: {
+            isError: true,
+            content: [{ type: "text", text: JSON.stringify(err, null, 2) }],
+          },
+        });
+      },
+    });
+    for (const [tool, path] of [
+      ["registry_get", "/v1/registry/get"],
+      ["registry_tx_equity_candidates", "/v1/registry/tx_equity_candidates"],
+    ] as const) {
+      const { e } = setup();
+      const c = await caller(e, "anonymous");
+      const rest = await call(e, missApi(inside), path, {
+        body: { urn: "fl:parcel:us-48201:9" },
+      });
+      assert.equal(rest.status, 404, tool);
+      const b = await body(rest);
+      assert.equal(b.error, "NotFound");
+      assert.equal(b.counted, false, `${tool}: REST, not counted`);
+      assert.equal(await c.used(), 0);
+      const viaMcp = await call(e, missApi(inside), "/mcp", {
+        body: mcpCall(tool, 1),
+      });
+      const m = (await viaMcp.json()) as {
+        result: { isError: boolean; content: { text: string }[] };
+      };
+      assert.equal(m.result.isError, true);
+      assert.equal(
+        (JSON.parse(m.result.content[0]!.text) as { counted?: boolean })
+          .counted,
+        false,
+        `${tool}: MCP, not counted`,
+      );
+      assert.equal(await c.used(), 0);
+      // Outside loaded coverage: free, with no limit and no marker, as before.
+      const miss = await call(e, missApi(outside), path, { body: {} });
+      assert.equal((await body(miss)).counted, undefined);
+      assert.equal(await c.used(), 0);
+      // Past the guard: counted, and the error says so.
+      await e.METER.consume(await addressSubject(IP, T0), {
+        kind: "hour",
+        counter: "empty",
+        limit: EMPTY_ANSWERS_PER_HOUR.anonymous,
+        n: EMPTY_ANSWERS_PER_HOUR.anonymous,
+      });
+      const over = await call(e, missApi(inside), path, { body: {} });
+      assert.equal(over.status, 404);
+      assert.equal((await body(over)).counted, true, `${tool}: past the guard`);
+      assert.equal(await c.used(), 1);
+    }
   });
 
   it("usage counters keep answers that found nothing apart, by outcome, with no query text", async () => {
