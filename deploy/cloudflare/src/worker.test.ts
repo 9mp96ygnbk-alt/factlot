@@ -76,6 +76,7 @@ import {
 } from "./lifecycle-copy.ts";
 import {
   MARK_TTL_DAYS,
+  MAX_DUE_RETRIES,
   SWEEP_BATCH,
   addressHash,
   deliverPromo,
@@ -9353,14 +9354,16 @@ describe("lifecycle emails", () => {
       assert.equal(errors, 1, "the bad record was counted, not fatal");
       const to = new Set(optionalMails(mail).map((m) => m.to));
       assert.equal(to.size, 4, "every other record was reached across runs");
-      assert.equal(due().length, 5, "handled items are deleted");
+      // Handled items are deleted; the bad one is put back for the next hour.
+      assert.equal(due().length, 6);
+      assert.equal(due().filter((d) => d.endsWith(":r1")).length, 1);
       // A record whose address was stopped is deleted when its item comes up.
       e.KEYS.data.set(`lcstop:${names[0]!.split(":")[2]}`, "t");
       // Past the time-based window: the remaining items go unsent, with no meter read.
       usageCalls = 0;
       e.clock.t += 40 * DAY;
       const old = await lifecycleSweep(e, e.clock.t, 10);
-      assert.equal(old.checked, 5);
+      assert.equal(old.checked, 6);
       assert.equal(old.removed, 1);
       assert.equal(usageCalls, 0);
       assert.ok(!e.KEYS.data.has(names[0]!));
@@ -9818,6 +9821,157 @@ describe("lifecycle emails", () => {
       });
       await post("known2@example.com");
       assert.equal(lcKeys(e, "lcstop").length, 1);
+    });
+  });
+
+  describe("third review", () => {
+    const stopPost = (e: E, email: string, origin = "https://factlot.com") =>
+      new Request("https://factlot.com/account/stop", {
+        method: "POST",
+        body: `email=${encodeURIComponent(email)}`,
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin,
+          "cf-connecting-ip": IP,
+        },
+      });
+
+    it("1: the stop form answers before any lookup of the address, and the stop still happens", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "timed@example.com", true);
+      const get = e.KEYS.get.bind(e.KEYS);
+      let open = () => {};
+      const gate = new Promise<void>((r) => (open = r));
+      let looked = false;
+      e.KEYS.get = async (k: string) => {
+        if (/^(lc:|lcstop:|freeemail:)/.test(k)) {
+          looked = true;
+          await gate;
+        }
+        return get(k);
+      };
+      const deferred: Promise<unknown>[] = [];
+      const res = await handle(
+        stopPost(e, "timed@example.com"),
+        e,
+        innerApi().api,
+        {
+          now: () => e.clock.t,
+          waitUntil: (p) => deferred.push(p),
+        },
+      );
+      assert.equal(res.status, 200);
+      assert.equal(
+        lcKeys(e, "lcstop").length,
+        0,
+        "nothing done before the answer",
+      );
+      assert.equal(deferred.length > 0, true);
+      open();
+      await Promise.all(deferred);
+      assert.ok(looked);
+      assert.equal(lcKeys(e, "lcstop").length, 1);
+      assert.equal(lcKeys(e).length, 0);
+    });
+
+    it("5: the stop form refuses Origin null", async () => {
+      const { e } = setup();
+      assert.equal(
+        (await run(e, stopPost(e, "x@example.com", "null"))).status,
+        403,
+      );
+    });
+
+    const consented = async (email: string) => {
+      const { e, mail } = setup();
+      await mint(e, mail, email, true);
+      const [name] = lcKeys(e);
+      return { e, mail, h: name!.split(":")[2]! };
+    };
+    const a2Sent = (mail: ReturnType<typeof fakeEmail>) =>
+      optionalMails(mail).filter((m) =>
+        /has not made a lookup yet/.test(m.text),
+      ).length;
+
+    it("2: when the day's slot is taken, A2 goes out the next UTC day", async () => {
+      const { e, mail, h } = await consented("cap@example.com");
+      e.clock.t += 2 * DAY + 2 * 3_600_000;
+      // Another optional note takes today's slot first.
+      assert.equal(
+        await deliverPromo(e, "free", h, "A1", e.clock.t, (_r, ctx) => ({
+          subject: "x",
+          text: `x ${ctx.stopUrl}`,
+          html: "x",
+        })),
+        "sent",
+      );
+      const r = await lifecycleSweep(e, e.clock.t);
+      assert.equal(r.retried, 1);
+      assert.equal(a2Sent(mail), 0);
+      e.clock.t = (Math.floor(e.clock.t / DAY) + 1) * DAY + 3_600_000;
+      await lifecycleSweep(e, e.clock.t);
+      assert.equal(a2Sent(mail), 1);
+    });
+
+    it("2: a missing postal address or a thrown call does not lose the item", async () => {
+      const { e, mail } = await consented("later@example.com");
+      e.clock.t += 2 * DAY + 2 * 3_600_000;
+      e.POSTAL_ADDRESS = undefined;
+      await lifecycleSweep(e, e.clock.t);
+      assert.equal(a2Sent(mail), 0);
+      e.POSTAL_ADDRESS = ADDRESS;
+      const usage = e.METER.usage.bind(e.METER);
+      let fail = true;
+      e.METER.usage = async (subject, days) => {
+        if (fail) {
+          fail = false;
+          throw new Error("do down");
+        }
+        return usage(subject, days);
+      };
+      e.clock.t += 2 * 3_600_000;
+      const thrown = await lifecycleSweep(e, e.clock.t);
+      assert.equal(thrown.errors, 1);
+      assert.equal(a2Sent(mail), 0);
+      e.clock.t += 2 * 3_600_000;
+      await lifecycleSweep(e, e.clock.t);
+      assert.equal(a2Sent(mail), 1);
+    });
+
+    it("2: an item that keeps failing is put back a bounded number of times", async () => {
+      const { e } = await consented("never@example.com");
+      e.POSTAL_ADDRESS = undefined;
+      e.clock.t += 2 * DAY + 2 * 3_600_000;
+      let retried = 0;
+      for (let i = 0; i < MAX_DUE_RETRIES + 5; i++) {
+        retried += (await lifecycleSweep(e, e.clock.t)).retried ?? 0;
+        e.clock.t += 2 * 3_600_000;
+      }
+      assert.equal(retried, MAX_DUE_RETRIES);
+      assert.ok(
+        !lcKeys(e, "lcdue").some(
+          (d) => d.endsWith(":A2") || /:A2:r\d+$/.test(d),
+        ),
+      );
+    });
+
+    it("3: a paid record moved to another subscription drops the old pointer", async () => {
+      const { e } = setup();
+      const h = await addressHash(e, "mover@example.com");
+      const consent = (subscription: string) =>
+        recordConsent(e, {
+          kind: "paid",
+          h,
+          to: "mover@example.com",
+          subject: `sub:${subscription}`,
+          subscription,
+          plan: "pro",
+          now: e.clock.t,
+        });
+      await consent("sub_a");
+      assert.equal(await consent("sub_b"), "refreshed");
+      assert.equal(e.KEYS.data.get("lcsub:sub_b"), h);
+      assert.equal(e.KEYS.data.has("lcsub:sub_a"), false);
     });
   });
 });

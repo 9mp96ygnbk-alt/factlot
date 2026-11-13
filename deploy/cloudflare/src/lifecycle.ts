@@ -383,6 +383,13 @@ export async function recordConsent(
   }
   if (c.kind === "paid" && rec.subscription)
     await env.KEYS.put(subKey(rec.subscription), c.h);
+  // The record moved to another subscription: the old pointer goes with what it pointed to.
+  if (
+    existing?.subscription &&
+    existing.subscription !== rec.subscription &&
+    (await env.KEYS.get(subKey(existing.subscription))) === c.h
+  )
+    await env.KEYS.delete(subKey(existing.subscription));
   // A stop that landed while this ran must win: look again and take the record back out.
   if (await isSuppressed(env, c.h)) {
     await dropRecord(env, c.kind, c.h, rec);
@@ -625,6 +632,8 @@ export interface SweepResult {
   errors: number;
   /** Everything due by now was handled (the next item, if any, is not due yet). */
   complete: boolean;
+  /** Items put back for a later hour or day. */
+  retried?: number;
 }
 
 /**
@@ -632,20 +641,32 @@ export interface SweepResult {
  * external services per invocation (the paid plan's 10,000 subrequests is the larger limit), so
  * the worst case must stay under 1,000 counting every KV, Durable Object and send operation. One
  * paid item, at most: stop marker 1, record 1, liveness 6 (the subscription's key list and up to
- * 5 keys), marks 1, meter usage 1, then the send gate (stop 1, marks 1, two claims 2, the second
- * stop check 1, the send 1 and its header-fallback resend 1, mark read and write 2), then the due
- * item's delete 1 = 21; a stopped or ended record instead costs at most the record's clean-up
- * (about 8). 40 x 21 + 1 for the list = 841, under 1,000 with margin. A free item costs fewer.
- * With the hourly cron that is 960 items a day, and an item is handled once and deleted.
+ * 5 keys), marks 1, meter usage 1, then the send gate (stop 1, record 1, marks 1, two claims 2,
+ * the second stop check 1, the send 1 and its header-fallback resend 1, mark read and write 2),
+ * then the due item's delete 1 = 22; an item put back for later (the day's slot taken, sending
+ * not ready, an error) sends nothing and costs fewer, its put included; a stopped or ended record
+ * costs about 10. 40 x 22 + 1 for the list = 881, under 1,000 with margin. A free item costs
+ * fewer. With the hourly cron that is 960 items a day.
  */
 export const SWEEP_BATCH = 40;
+
+/** Times one due item may be put back for later before it is dropped. */
+export const MAX_DUE_RETRIES = 5;
+
+/** What became of one due item: handled (deleted), or to be tried again. */
+type DueOutcome =
+  { done: true } | { done: false; retryAt: number; since?: number };
 
 /**
  * Handle the time-based messages that are due: list the `lcdue:` index in date order (oldest
  * first), and for each item due by now remove the record if the address was stopped or the key
- * or plan has ended, send the message if it still applies, and delete the item. Items past
+ * or plan has ended, send the message if it still applies, and delete the item. An item that
+ * could not be sent yet is put back: for the next UTC day when the day's one optional message was
+ * taken ("cap"), for the next hour when sending is not ready (no postal address or email binding)
+ * or a call threw; at most MAX_DUE_RETRIES times (counted in the key's `:r<n>` suffix), and only
+ * while the record is inside DUE_UNTIL_DAYS. Every other outcome deletes it. Items past
  * DUE_UNTIL_DAYS are deleted unsent. A run stops at the first item not yet due; the next run picks
- * up what this one did not reach. One bad item cannot stop the run (it is counted and deleted).
+ * up what this one did not reach. One bad item cannot stop the run.
  */
 export async function lifecycleSweep(
   env: Env,
@@ -667,9 +688,10 @@ export async function lifecycleSweep(
   const nowHour = dueHour(now - 3_599_999);
   let reachedFuture = false;
   for (const { name } of batch.keys) {
-    const m = /^lcdue:(\d{10}):(free|paid):([0-9a-f]{64}):(A2|A4|B1|B2)$/.exec(
-      name,
-    );
+    const m =
+      /^lcdue:(\d{10}):(free|paid):([0-9a-f]{64}):(A2|A4|B1|B2)(?::r(\d+))?$/.exec(
+        name,
+      );
     if (!m) {
       await env.KEYS.delete(name);
       continue;
@@ -679,10 +701,31 @@ export async function lifecycleSweep(
       break;
     }
     result.checked++;
+    const kind = m[2] as Kind;
+    const h = m[3]!;
+    const id = m[4] as MessageId;
+    let outcome: DueOutcome;
     try {
-      await sweepOne(env, m[2] as Kind, m[3]!, m[4] as MessageId, now, result);
+      outcome = await sweepOne(env, kind, h, id, now, result);
     } catch {
       result.errors++;
+      outcome = { done: false, retryAt: now + 3_600_000 };
+    }
+    const tries = Number(m[5] ?? 0);
+    if (
+      !outcome.done &&
+      tries < MAX_DUE_RETRIES &&
+      (outcome.since === undefined ||
+        outcome.retryAt - outcome.since <= DUE_UNTIL_DAYS * DAY_MS)
+    ) {
+      const until =
+        (outcome.since ?? now) + (DUE_UNTIL_DAYS + 2) * DAY_MS - now;
+      await env.KEYS.put(
+        `${dueKey(outcome.retryAt, kind, h, id)}:r${tries + 1}`,
+        "",
+        { expirationTtl: Math.max(60, Math.ceil(until / 1000)) },
+      ).catch(() => undefined);
+      result.retried = (result.retried ?? 0) + 1;
     }
     await env.KEYS.delete(name).catch(() => undefined);
   }
@@ -697,24 +740,27 @@ async function sweepOne(
   id: MessageId,
   now: number,
   result: SweepResult,
-): Promise<void> {
+): Promise<DueOutcome> {
+  const done: DueOutcome = { done: true };
   const drop = async (rec?: LifecycleRecord) => {
-    if (!(await env.KEYS.get(recordKey(kind, h)))) return;
+    if (!(await env.KEYS.get(recordKey(kind, h)))) return done;
     await dropRecord(env, kind, h, rec);
     result.removed++;
+    return done;
   };
   if (await isSuppressed(env, h)) return drop();
   const rec = await readRecord(env, kind, h);
-  if (!rec) return;
+  if (!rec) return done;
   if (!(await recordIsLive(env, rec))) return drop(rec);
-  const ageDays = (now - Date.parse(rec.since)) / DAY_MS;
+  const since = Date.parse(rec.since);
+  const ageDays = (now - since) / DAY_MS;
   // Past DUE_UNTIL_DAYS nothing time-based is sent: the item is just deleted.
-  if (!(ageDays >= 1) || ageDays > DUE_UNTIL_DAYS) return;
+  if (!(ageDays >= 1) || ageDays > DUE_UNTIL_DAYS) return done;
   const marks = await readMarks(env, kind, h);
   // The meter's window runs back from today: far enough to cover everything since the start.
   const window = Math.min(DUE_UNTIL_DAYS, Math.ceil(ageDays) + 1);
   const usage = await env.METER.usage(rec.subject, window);
-  if (dueMessage(kind, marks, ageDays, usage.total > 0) !== id) return;
+  if (dueMessage(kind, marks, ageDays, usage.total > 0) !== id) return done;
   const plan = rec.plan && isPlanId(rec.plan) ? PLANS[rec.plan] : PLANS.pro;
   const r = await deliverPromo(env, kind, h, id, now, (_rec, ctx) => {
     if (id === "A2") return unusedFreeMessage(ctx);
@@ -723,6 +769,16 @@ async function sweepOne(
     return paidWeekMessage(ctx, plan, usageFacts(usage));
   });
   if (r === "sent") result.sent[id] = (result.sent[id] ?? 0) + 1;
+  // The day's one optional message was taken: the next UTC day. Not ready: the next hour.
+  if (r === "cap")
+    return {
+      done: false,
+      retryAt: (Math.floor(now / DAY_MS) + 1) * DAY_MS,
+      since,
+    };
+  if (r === "not-ready")
+    return { done: false, retryAt: now + 3_600_000, since };
+  return done;
 }
 
 /** Whether the key or plan a record is about still exists and works. */
@@ -823,8 +879,9 @@ export async function lifecycleRoute(
         status: 405,
         headers: { allow: "GET, HEAD, POST" },
       });
+    // Like the consent form: any Origin but this page's own, "null" included, is refused.
     const origin = request.headers.get("origin");
-    if (origin && origin !== "null" && origin !== url.origin)
+    if (origin && origin !== url.origin)
       return stopFormPage(403, "This form only works on its own page.");
     const body = new URLSearchParams(opts.body ?? "");
     const email = (body.get("email") ?? "").trim();
@@ -835,7 +892,14 @@ export async function lifecycleRoute(
         503,
         "This is being set up; write to the contact address on this page.",
       );
-    await stopByForm(env, await addressHash(env, email), now);
+    // The lookups and the stop run after the answer, so neither the page nor its timing says
+    // whether the address has a consent record or a free key.
+    const work = (async () =>
+      stopByForm(env, await addressHash(env, email), now))().catch(
+      () => undefined,
+    );
+    if (opts.defer) opts.defer(work);
+    else void work;
     // The same answer for every address: it tells nobody whether it was getting the emails.
     return messagePage(
       200,
