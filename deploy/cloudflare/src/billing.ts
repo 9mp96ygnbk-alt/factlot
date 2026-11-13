@@ -48,6 +48,7 @@ import {
   isPlanId,
   planForLookupKey,
   priceText,
+  renewalText,
   watchEnabled,
   type PlanId,
 } from "./plans.ts";
@@ -231,7 +232,7 @@ export async function startCheckout(
     // Needs a terms of service URL in the Stripe dashboard (Settings > Business > Public details).
     "consent_collection[terms_of_service]": "required",
     "custom_text[terms_of_service_acceptance][message]": `I agree to the [FactLot Terms of Service](${site}/terms).`,
-    "custom_text[submit][message]": `${interval === "year" ? `$${PRO_YEARLY.cents / 100} a year` : priceText(PLANS[plan])}, renews ${interval === "year" ? "yearly" : "monthly"} until cancelled. Cancel any time at ${siteHost(d.env)}/account.`,
+    "custom_text[submit][message]": `${renewalText(PLANS[plan], interval)}. Cancel any time at ${siteHost(d.env)}/account.`,
     "metadata[factlot_plan]": plan,
     "metadata[factlot_interval]": interval === "year" ? "year" : undefined,
     "metadata[factlot_claim]": extras.claimId,
@@ -283,6 +284,32 @@ export function planFromSubscription(
     return price.metadata.factlot_plan;
   const meta = (sub.metadata ?? {}) as Record<string, unknown>;
   return isPlanId(meta.factlot_plan) ? meta.factlot_plan : undefined;
+}
+
+/**
+ * The billing interval of a subscription: yearly when its price is the Pro yearly price (by lookup
+ * key) or recurs yearly, else monthly; undefined when the subscription names no price.
+ */
+export function intervalFromSubscription(
+  sub: Record<string, unknown>,
+): BillingInterval | undefined {
+  const price = (
+    sub.items as
+      | {
+          data?: {
+            price?: {
+              lookup_key?: unknown;
+              recurring?: { interval?: unknown };
+            };
+          }[];
+        }
+      | undefined
+  )?.data?.[0]?.price;
+  if (!price) return undefined;
+  return price.lookup_key === PRO_YEARLY.lookupKey ||
+    price.recurring?.interval === "year"
+    ? "year"
+    : "month";
 }
 
 export function subscriptionState(
@@ -503,9 +530,20 @@ export async function redeemSession(
     { expirationTtl: INACTIVE_RETENTION_SECONDS },
   );
   const email = buyerEmail(session);
+  // The interval the buyer chose: the subscription's price when Stripe expanded it, else what
+  // checkout recorded in the session's metadata.
+  const interval: BillingInterval =
+    (subObject && intervalFromSubscription(subObject)) ??
+    (meta.factlot_interval === "year" ? "year" : "month");
   if (email)
     d.defer(
-      sendWelcomeEmail(d.env, email, PLANS[plan], returnLink(d.env, back)),
+      sendWelcomeEmail(
+        d.env,
+        email,
+        PLANS[plan],
+        returnLink(d.env, back),
+        interval,
+      ),
     );
   countEvent(d.env, "checkout_complete", [plan, by]);
   return { ok: true, key, plan };

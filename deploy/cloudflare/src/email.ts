@@ -8,7 +8,7 @@
  */
 import { CONTACT } from "./contact.ts";
 import { escapeHtml } from "./html.ts";
-import { priceText, type Plan } from "./plans.ts";
+import { renewalText, type BillingInterval, type Plan } from "./plans.ts";
 import type { EmailMessageBuilder, Env } from "./types.ts";
 
 /** Sender on the onboarded factlot.com domain; replies go to the support inbox. */
@@ -104,11 +104,12 @@ export function welcomeMessage(
   site: string,
   api: string,
   back?: { href: string; label: string },
+  interval: BillingInterval = "month",
 ): { subject: string; text: string; html: string } {
   return {
     subject: `Welcome to ${plan.name}`,
     ...body([
-      `Thank you for subscribing to ${plan.name} (${priceText(plan)}, renews monthly until cancelled).`,
+      `Thank you for subscribing to ${plan.name} (${renewalText(plan, interval)}).`,
       "Your API key was shown once on the page after checkout (or collected by your agent). This email does not contain it: FactLot keeps only a hash.",
       `Set up in three steps:\n1. Store the key in a password manager or your agent's secret store.\n2. Connect: MCP server ${api}/mcp with the header "Authorization: Bearer <your key>". Snippets for Claude, ChatGPT, Cursor, VS Code, Python and curl: ${api}/v1/onboarding?plan=${plan.id}\n3. Test: open ${api}/v1/account with the same header; it shows your plan and usage.`,
       `Get back into your account, manage billing or cancel: ${site}/account\nLost the key? On that page, enter this email address and we send a sign-in link.`,
@@ -123,13 +124,14 @@ export async function sendWelcomeEmail(
   to: string,
   plan: Plan,
   back?: { href: string; label: string },
+  interval: BillingInterval = "month",
 ): Promise<boolean> {
   if (!env.EMAIL) return false;
   const site = (env.SITE_URL ?? "https://factlot.com").replace(/\/$/, "");
   const api = (env.API_URL ?? "https://api.factlot.com").replace(/\/$/, "");
   return sendEmail(env, "welcome", {
     to,
-    ...welcomeMessage(plan, site, api, back),
+    ...welcomeMessage(plan, site, api, back, interval),
   });
 }
 

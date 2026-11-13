@@ -143,6 +143,20 @@ export function priceText(plan: Plan): string {
   return `$${(plan.monthlyCents / 100).toLocaleString("en-US")} a month`;
 }
 
+/**
+ * What a subscription costs and how it renews: "$49 a month, renews monthly until cancelled", or
+ * for Pro billed yearly "$490 a year, renews yearly until cancelled" (yearly is Pro only; any
+ * other plan is monthly).
+ */
+export function renewalText(
+  plan: Plan,
+  interval: BillingInterval = "month",
+): string {
+  return interval === "year" && plan.id === PRO_YEARLY.plan
+    ? `$${(PRO_YEARLY.cents / 100).toLocaleString("en-US")} a year, renews yearly until cancelled`
+    : `${priceText(plan)}, renews monthly until cancelled`;
+}
+
 /** Public plan list for agents and the site (no Stripe IDs). */
 export function publicPlans(
   checkoutBase: string,

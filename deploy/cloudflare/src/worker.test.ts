@@ -24,6 +24,7 @@ import {
   RECHECK_BACKOFF_MS,
   RECHECK_MS,
   billingDeps,
+  intervalFromSubscription,
   createCheckout,
   ensurePrice,
   handleWebhook,
@@ -70,6 +71,7 @@ import {
   optionalMessages,
   encodeQuery,
   freeWeekMessage,
+  limitReachedMessage,
   paidConsentText,
   paidWeekMessage,
   unusedPaidMessage,
@@ -94,6 +96,7 @@ import {
   REPORTS_PER_MONTH,
   planForLookupKey,
   priceText,
+  renewalText,
 } from "./plans.ts";
 import { createRecoveryToken } from "./recovery.ts";
 import {
@@ -4264,6 +4267,94 @@ describe("welcome email", () => {
       "no recovery token in the welcome email",
     );
     assert.ok(!m.text.includes(key) && !(m.html ?? "").includes(key));
+  });
+
+  it("states the price and renewal of the interval bought: monthly, or Pro yearly", async () => {
+    const welcome = async (session: Record<string, unknown>) => {
+      const s = fakeStripe({
+        [`GET /checkout/sessions/${SESSION}`]: () => [200, session],
+      });
+      const mail = fakeEmail();
+      const e = env({ STRIPE_SECRET_KEY: "sk_test_x", EMAIL: mail.binding });
+      await run(
+        e,
+        new Request(
+          `https://factlot.com/billing/success?session_id=${SESSION}`,
+        ),
+        s.fetchImpl,
+      );
+      assert.equal(mail.sent.length, 1);
+      return mail.sent[0]!.text;
+    };
+    const monthly = await welcome(paid);
+    assert.match(
+      monthly,
+      /Thank you for subscribing to FactLot Pro \(\$49 a month, renews monthly until cancelled\)\./,
+    );
+    // Yearly, as checkout records it in the session's metadata.
+    const yearly = await welcome({
+      ...paid,
+      metadata: { factlot_plan: "pro", factlot_interval: "year" },
+    });
+    assert.match(
+      yearly,
+      /Thank you for subscribing to FactLot Pro \(\$490 a year, renews yearly until cancelled\)\./,
+    );
+    assert.doesNotMatch(yearly, /renews monthly|\$49 a month/);
+    // Yearly, as the subscription's price says (expanded by Stripe), whatever the metadata says.
+    const byPrice = await welcome({
+      ...paid,
+      subscription: {
+        id: "sub_1",
+        status: "active",
+        items: {
+          data: [
+            {
+              price: {
+                lookup_key: "factlot_pro_yearly_v1",
+                recurring: { interval: "year" },
+              },
+            },
+          ],
+        },
+      },
+    });
+    assert.match(byPrice, /\$490 a year, renews yearly until cancelled/);
+    // Team is monthly only.
+    const team = await welcome({
+      ...paid,
+      metadata: { factlot_plan: "team" },
+    });
+    assert.match(team, /\$599 a month, renews monthly until cancelled/);
+  });
+
+  it("renewalText and intervalFromSubscription", () => {
+    assert.equal(
+      renewalText(PLANS.pro),
+      "$49 a month, renews monthly until cancelled",
+    );
+    assert.equal(
+      renewalText(PLANS.pro, "year"),
+      "$490 a year, renews yearly until cancelled",
+    );
+    assert.equal(
+      renewalText(PLANS.team, "year"),
+      "$599 a month, renews monthly until cancelled",
+      "yearly is Pro only",
+    );
+    assert.equal(intervalFromSubscription({}), undefined);
+    assert.equal(
+      intervalFromSubscription({
+        items: { data: [{ price: { lookup_key: "factlot_pro_monthly_v1" } }] },
+      }),
+      "month",
+    );
+    assert.equal(
+      intervalFromSubscription({
+        items: { data: [{ price: { recurring: { interval: "year" } } }] },
+      }),
+      "year",
+    );
   });
 
   it("is skipped without the binding, and a failed send never fails the page", async () => {
@@ -11303,6 +11394,18 @@ describe("lifecycle emails", () => {
         both.text,
         /current roll year[\s\S]*Another answer showed 3 of that owner's 4 parcels/,
       );
+      // The Pro offer states both prices with how each renews, never "monthly" alone.
+      for (const m of [
+        years,
+        limitReachedMessage(ctx, {
+          limit: 25,
+          resetsAt: "2026-11-08T00:00:00.000Z",
+        }),
+      ])
+        assert.match(
+          m.text,
+          /\$49 a month, renews monthly until cancelled, or \$490 a year, renews yearly until cancelled/,
+        );
       const b1 = unusedPaidMessage({ ...ctx, audience: "paid" }, PLANS.pro);
       assert.doesNotMatch(b1.text, /reached your assistant|usually means/);
       assert.match(b1.text, /has not recorded a registry lookup from it yet/);

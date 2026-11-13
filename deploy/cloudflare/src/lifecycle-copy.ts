@@ -14,7 +14,7 @@
  * paid plan.
  */
 import { body } from "./email.ts";
-import { PLANS, priceText, type Plan } from "./plans.ts";
+import { PLANS, priceText, renewalText, type Plan } from "./plans.ts";
 import { hmacSha256Hex } from "./stripe.ts";
 
 /** The feature is dark unless LIFECYCLE_EMAILS_ENABLED is exactly "true". */
@@ -205,6 +205,9 @@ export function backLink(
 }
 
 /** A checkout link that returns to what the person was looking at. */
+/** Pro's price and renewal, both intervals: the promotions link the monthly checkout and the pricing page lists yearly. */
+const PRO_TERMS = `${renewalText(PLANS.pro, "month")}, or ${renewalText(PLANS.pro, "year")}`;
+
 export function checkoutLink(
   site: string,
   plan: "pro" | "team",
@@ -282,7 +285,7 @@ export function withheldMessage(c: PromoContext, f: WithheldFacts): Built {
   const back: Back | undefined = f.urn ? { urn: f.urn } : undefined;
   return promo(c, "What your last FactLot lookup left out", [
     sentences.join(" "),
-    `The rest comes with ${PLANS.pro.name} (${priceText(PLANS.pro)}, renews monthly until cancelled) or ${PLANS.team.name}. What each plan includes: ${c.site}/pricing/`,
+    `The rest comes with ${PLANS.pro.name} (${PRO_TERMS}) or ${PLANS.team.name}. What each plan includes: ${c.site}/pricing/`,
     back
       ? `Start ${PLANS.pro.name} and come back to this parcel afterwards: ${checkoutLink(c.site, "pro", back)}`
       : `Start ${PLANS.pro.name}: ${checkoutLink(c.site, "pro")}`,
@@ -305,7 +308,7 @@ export function limitReachedMessage(
 ): Built {
   return promo(c, "Your free key reached today's lookups", [
     `Your free key used its ${n(f.limit)} registry lookups for today. They reset at ${f.resetsAt} (00:00 UTC). Calculators, IDs, document and rules tools are not counted and still work.`,
-    `${PLANS.pro.name} includes ${n(PLANS.pro.registryLookupsPerMonth)} registry lookups a month (${priceText(PLANS.pro)}, renews monthly until cancelled): ${checkoutLink(c.site, "pro")}\nWhat each plan includes: ${c.site}/pricing/`,
+    `${PLANS.pro.name} includes ${n(PLANS.pro.registryLookupsPerMonth)} registry lookups a month (${PRO_TERMS}): ${checkoutLink(c.site, "pro")}\nWhat each plan includes: ${c.site}/pricing/`,
   ]);
 }
 
