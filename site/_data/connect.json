@@ -16,7 +16,7 @@
     "key": "Pro or Team key in the header Authorization: Bearer <key>.",
     "oauth": "Clients that cannot send a header connect to the sign-in URL (OAuth 2.1, dynamic client registration) and paste a key once or continue on the free tier."
   },
-  "verification_note": "Steps follow each vendor's documentation as read on 2026-11-12, except where a path says otherwise. No path has been exercised from the vendor's own console or app; the connectors guide in the repository lists what has been tested.",
+  "verification_note": "Steps follow each vendor's documentation as read on 2026-11-12, except where a path says otherwise. One path has been exercised from the vendor's own app, the claude.ai custom connector on 2026-11-12; no other path has been. The connectors guide in the repository lists what has been tested.",
   "surfaces": [
     {
       "id": "claude",
@@ -42,7 +42,7 @@
           "guide": "connectors/claude/README.md",
           "verification": {
             "docs": "Steps follow the vendor's documentation as read on 2026-11-12.",
-            "exercised": "Not exercised from the vendor's own console or app."
+            "exercised": "Exercised from claude.ai on 2026-11-12 on the free tier: added by the sign-in URL, sign-in and client identity detected, the tools listed, and one registry answer returned. The paid path (a key on the consent page) was not tried."
           }
         },
         {
@@ -401,16 +401,16 @@
         {
           "id": "bedrock-agents",
           "name": "Bedrock Agents: action group",
-          "you_get": "The 30 most-used tools as an action group with a Lambda executor.",
+          "you_get": "11 operations by default (Bedrock's quota of APIs per agent), as an action group with a Lambda executor.",
           "transport": "openapi",
-          "url": "https://api.factlot.com/openapi-3.0.json?operations=all",
+          "url": "https://api.factlot.com/openapi-3.0.json?profile=bedrock",
           "auth": {
             "free": "No key; the Lambda runs the tools in process.",
             "key": null,
             "oauth": null
           },
           "steps": [
-            "Create an action group whose API schema is the OpenAPI document (?operations=all for every tool).",
+            "Create an action group whose API schema is the Bedrock profile of the OpenAPI document (OpenAPI 3.0.0, no enum, 11 operations; add &operations=all for every tool).",
             "Deploy connectors/amazon/bedrock-agent-lambda/handler.py with the factlot package beside it as the executor."
           ],
           "snippet": {
