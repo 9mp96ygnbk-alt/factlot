@@ -816,27 +816,361 @@ export function addressWordsWithoutOrdinals(words: string[]): string[] | null {
   return changed ? out : null;
 }
 
+// --- the place an address query names after its street line ---------------------------------------
+
+const STATE_NAMES: Record<string, string> = {
+  ALABAMA: "AL",
+  ALASKA: "AK",
+  ARIZONA: "AZ",
+  ARKANSAS: "AR",
+  CALIFORNIA: "CA",
+  COLORADO: "CO",
+  CONNECTICUT: "CT",
+  DELAWARE: "DE",
+  "DISTRICT OF COLUMBIA": "DC",
+  FLORIDA: "FL",
+  GEORGIA: "GA",
+  HAWAII: "HI",
+  IDAHO: "ID",
+  ILLINOIS: "IL",
+  INDIANA: "IN",
+  IOWA: "IA",
+  KANSAS: "KS",
+  KENTUCKY: "KY",
+  LOUISIANA: "LA",
+  MAINE: "ME",
+  MARYLAND: "MD",
+  MASSACHUSETTS: "MA",
+  MICHIGAN: "MI",
+  MINNESOTA: "MN",
+  MISSISSIPPI: "MS",
+  MISSOURI: "MO",
+  MONTANA: "MT",
+  NEBRASKA: "NE",
+  NEVADA: "NV",
+  "NEW HAMPSHIRE": "NH",
+  "NEW JERSEY": "NJ",
+  "NEW MEXICO": "NM",
+  "NEW YORK": "NY",
+  "NORTH CAROLINA": "NC",
+  "NORTH DAKOTA": "ND",
+  OHIO: "OH",
+  OKLAHOMA: "OK",
+  OREGON: "OR",
+  PENNSYLVANIA: "PA",
+  "PUERTO RICO": "PR",
+  "RHODE ISLAND": "RI",
+  "SOUTH CAROLINA": "SC",
+  "SOUTH DAKOTA": "SD",
+  TENNESSEE: "TN",
+  TEXAS: "TX",
+  UTAH: "UT",
+  VERMONT: "VT",
+  VIRGINIA: "VA",
+  WASHINGTON: "WA",
+  "WEST VIRGINIA": "WV",
+  WISCONSIN: "WI",
+  WYOMING: "WY",
+};
+
+/**
+ * The state of each 3-digit ZIP code prefix, as [first prefix, last prefix, state] ranges (USPS prefix
+ * assignments; military, Guam and Virgin Islands prefixes have no state here). `ZIP_PREFIX_STATES` in Python.
+ */
+const ZIP_PREFIX_STATES: [number, number, string][] = [
+  [5, 5, "NY"],
+  [6, 7, "PR"],
+  [9, 9, "PR"],
+  [10, 27, "MA"],
+  [28, 29, "RI"],
+  [30, 38, "NH"],
+  [39, 49, "ME"],
+  [50, 54, "VT"],
+  [55, 55, "MA"],
+  [56, 59, "VT"],
+  [60, 69, "CT"],
+  [70, 89, "NJ"],
+  [100, 149, "NY"],
+  [150, 196, "PA"],
+  [197, 199, "DE"],
+  [200, 200, "DC"],
+  [201, 201, "VA"],
+  [202, 205, "DC"],
+  [206, 219, "MD"],
+  [220, 246, "VA"],
+  [247, 268, "WV"],
+  [270, 289, "NC"],
+  [290, 299, "SC"],
+  [300, 319, "GA"],
+  [320, 339, "FL"],
+  [341, 349, "FL"],
+  [350, 369, "AL"],
+  [370, 385, "TN"],
+  [386, 397, "MS"],
+  [398, 399, "GA"],
+  [400, 427, "KY"],
+  [430, 459, "OH"],
+  [460, 479, "IN"],
+  [480, 499, "MI"],
+  [500, 528, "IA"],
+  [530, 549, "WI"],
+  [550, 567, "MN"],
+  [569, 569, "DC"],
+  [570, 577, "SD"],
+  [580, 588, "ND"],
+  [590, 599, "MT"],
+  [600, 629, "IL"],
+  [630, 658, "MO"],
+  [660, 679, "KS"],
+  [680, 693, "NE"],
+  [700, 714, "LA"],
+  [716, 729, "AR"],
+  [730, 731, "OK"],
+  [733, 733, "TX"],
+  [734, 749, "OK"],
+  [750, 799, "TX"],
+  [800, 816, "CO"],
+  [820, 831, "WY"],
+  [832, 838, "ID"],
+  [840, 847, "UT"],
+  [850, 865, "AZ"],
+  [870, 884, "NM"],
+  [885, 885, "TX"],
+  [889, 898, "NV"],
+  [900, 961, "CA"],
+  [967, 968, "HI"],
+  [970, 979, "OR"],
+  [980, 994, "WA"],
+  [995, 999, "AK"],
+];
+
+/** The state a 5-digit ZIP code is in, by its first three digits, or null (`zip_state` in Python). */
+export function zipState(zip: string): string | null {
+  if (!/^[0-9]{5}$/.test(zip)) return null;
+  const p = Number(zip.slice(0, 3));
+  return ZIP_PREFIX_STATES.find(([lo, hi]) => p >= lo && p <= hi)?.[2] ?? null;
+}
+
+/** Words that start a unit or mailbox, never a city ("Suite 400", "Apt B"). */
+const NOT_A_CITY: ReadonlySet<string> = new Set([
+  "APT",
+  "BLDG",
+  "BOX",
+  "BUILDING",
+  "DEPT",
+  "FL",
+  "FLOOR",
+  "LOT",
+  "NO",
+  "PO",
+  "RM",
+  "ROOM",
+  "SPACE",
+  "SPC",
+  "STE",
+  "SUITE",
+  "UNIT",
+]);
+const COUNTRY: ReadonlySet<string> = new Set([
+  "US",
+  "USA",
+  "UNITED STATES",
+  "UNITED STATES OF AMERICA",
+]);
+
+export interface AddressPlace {
+  /** City words, upper case, one space apart ("LOS ANGELES"), or null. */
+  city: string | null;
+  /** Two-letter state: the one the query names, else the state of its ZIP code; or null. */
+  state: string | null;
+  /** 5-digit ZIP code, or null. */
+  zip: string | null;
+  /** The state was read from the ZIP code, not named. */
+  state_from_zip: boolean;
+}
+
+/**
+ * The place a `registry_search_address` query names after its street line (`address_place` in Python): the
+ * part after the first comma, read from its end. A 5-digit ZIP code (or ZIP+4), then a two-letter state or
+ * a state's full name, then the city: the words left before them in the same comma part, or the comma part
+ * before. A city is letters only and does not start with a unit word ("Suite"); "Washington" with nothing
+ * before it is read as the city, not the state, and two letters after a unit word ("Unit CO") make the tail
+ * unreadable. A state the query does not name is the state of its ZIP code. What cannot be read this way is
+ * ignored, and a query without a comma names no place.
+ */
+export function addressPlace(query: string): AddressPlace {
+  const none: AddressPlace = {
+    city: null,
+    state: null,
+    zip: null,
+    state_from_zip: false,
+  };
+  const comma = query.indexOf(",");
+  if (comma < 0) return none;
+  const parts = query
+    .slice(comma + 1)
+    .split(",")
+    .map((p) =>
+      p
+        .toUpperCase()
+        .split(/[^A-Z0-9]+/)
+        .filter((w) => w !== ""),
+    )
+    .filter((p) => p.length > 0);
+  if (parts.length && COUNTRY.has(parts[parts.length - 1]!.join(" ")))
+    parts.pop();
+  if (!parts.length) return none;
+  const words = (): string[] => parts[parts.length - 1]!;
+  const drop = (n: number) => {
+    words().splice(words().length - n, n);
+    if (!words().length) parts.pop();
+  };
+  let zip: string | null = null;
+  let w = words();
+  const n = w.length;
+  if (n >= 2 && /^[0-9]{5}$/.test(w[n - 2]!) && /^[0-9]{4}$/.test(w[n - 1]!)) {
+    zip = w[n - 2]!;
+    drop(2);
+  } else if (/^[0-9]{5}$/.test(w[n - 1]!)) {
+    zip = w[n - 1]!;
+    drop(1);
+  }
+  let state: string | null = null;
+  if (parts.length) {
+    w = words();
+    const last = w[w.length - 1]!;
+    // Not "Unit CO" or "Ste OK": a unit's letter.
+    if (last.length === 2 && STATES.has(last)) {
+      if (w.length >= 2 && NOT_A_CITY.has(w[w.length - 2]!)) return none;
+      state = last;
+      drop(1);
+    } else
+      for (let k = Math.min(3, w.length); k >= 1; k--) {
+        const name = w.slice(w.length - k).join(" ");
+        if (!Object.hasOwn(STATE_NAMES, name)) continue;
+        // "Washington" alone is the city (DC) more often than the state.
+        if (
+          name === "WASHINGTON" &&
+          zip === null &&
+          parts.length === 1 &&
+          w.length === 1
+        )
+          break;
+        state = STATE_NAMES[name]!;
+        drop(k);
+        break;
+      }
+  }
+  let city: string | null = null;
+  if (parts.length) {
+    const c = words();
+    if (
+      c.length <= 5 &&
+      c.every((x) => /^[A-Z]+$/.test(x)) &&
+      !NOT_A_CITY.has(c[0]!)
+    )
+      city = c.join(" ");
+  }
+  const fromZip = state === null && zip !== null && zipState(zip) !== null;
+  return {
+    city,
+    state: state ?? (zip === null ? null : zipState(zip)),
+    zip,
+    state_from_zip: fromZip,
+  };
+}
+
+/**
+ * Whether a parcel's label (its situs address) is in `city` (upper case words): after the street line, with the
+ * ZIP code and state dropped from the end, the last comma part is the city ("1 MARKET ST, SAN FRANCISCO, CA",
+ * "633 W 5TH ST, LOS ANGELES CA 90071"); a label without a comma ends with the city, a state and a ZIP code
+ * ("633 3RD ST NW WASHINGTON DC 20001").
+ */
+function labelInCity(label: unknown, city: string): boolean {
+  if (typeof label !== "string") return false;
+  const split = (t: string) => t.split(/[^A-Z0-9]+/).filter((x) => x !== "");
+  const s = label.toUpperCase();
+  const comma = s.indexOf(",");
+  const parts = (comma >= 0 ? s.slice(comma + 1).split(",") : [s])
+    .map(split)
+    .filter((p) => p.length > 0);
+  const last = () => parts[parts.length - 1];
+  while (last() && /^[0-9]+$/.test(last()![last()!.length - 1]!)) {
+    last()!.pop();
+    if (!last()!.length) parts.pop();
+  }
+  const hadState = !!last() && STATES.has(last()![last()!.length - 1]!);
+  if (hadState) {
+    last()!.pop();
+    if (!last()!.length) parts.pop();
+  }
+  const w = last() ?? [];
+  if (comma >= 0) return w.join(" ") === city;
+  // No comma: the words before the state end with the city.
+  const c = city.split(" ");
+  return (
+    hadState && w.length > c.length && w.slice(-c.length).join(" ") === city
+  );
+}
+
+/**
+ * Where a match goes in the answer to a query naming `place` (`address_place_rank` in Python): -1 when the
+ * place names a state the match is not in (from its URN, `fl:parcel:us-<state FIPS>…`), else 0 when its label
+ * has the place's ZIP code, 1 when its label is in the place's city, 2 otherwise.
+ */
+export function addressPlaceRank(
+  place: AddressPlace,
+  urn: string,
+  label: unknown,
+): number {
+  if (place.state !== null) {
+    const m = /^fl:[a-z]+:us-([0-9]{2})/.exec(urn);
+    if (!m || statePostal(m[1]!) !== place.state) return -1;
+  }
+  if (place.zip !== null && situsZip5(label) === place.zip) return 0;
+  if (place.city !== null && labelInCity(label, place.city)) return 1;
+  return 2;
+}
+
+/** The rank of the first group a place can fill (stop scanning once it holds `limit` matches). */
+export function addressPlaceTop(place: AddressPlace): number {
+  return place.zip !== null ? 0 : place.city !== null ? 1 : 2;
+}
+
+/**
+ * A street-type word alone ("Loop") is matched among its first ADDRESS_ONE_WORD_CANDIDATES matches only
+ * (after those whose address is that word exactly) when the query names a place: the hosted index keeps no more.
+ */
+export const ADDRESS_ONE_WORD_CANDIDATES = 100;
+
 export function registrySearchAddress(address: string, limit = 20): Row[] {
   const d = open();
   const { mode } = addressQuery(address);
   if (mode === null) return [];
   const line = address.split(",")[0] ?? "";
+  const place = addressPlace(address);
   // Each key version the file may hold: the words of the street line under that version's rules.
   const runs = addressSearchKeys(d, line).map((k) => k.split(" "));
-  const found = searchAddressRuns(d, mode, runs, limit);
+  const found = searchAddressRuns(d, mode, runs, limit, place);
   if (found.length) return found;
   // Nothing matched: once more with ordinal endings dropped, for rolls that write numbered streets bare.
   const bare = runs
     .map(addressWordsWithoutOrdinals)
     .filter((w): w is string[] => w !== null);
-  return bare.length ? searchAddressRuns(d, mode, bare, limit) : found;
+  return bare.length ? searchAddressRuns(d, mode, bare, limit, place) : found;
 }
 
+/**
+ * The matches of `runs` in today's order (exact address first, then label, then URN); with a place, those in
+ * its state only, grouped by `addressPlaceRank` (same ZIP code, then same city, then the rest), in that order
+ * within each group, before the limit is applied.
+ */
 function searchAddressRuns(
   d: Database,
   mode: "house_number" | "street",
   runs: string[][],
   limit: number,
+  place: AddressPlace,
 ): Row[] {
   const where: string[] = [];
   const params: string[] = [];
@@ -857,13 +1191,26 @@ function searchAddressRuns(
   }
   const keys = runs.map((w) => w.join(" "));
   const exact = keys.map(() => "a.key = ?").join(" OR ");
-  return d
-    .prepare(
-      "SELECT s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn " +
-        `WHERE ${where.join(" OR ")} GROUP BY s.urn ORDER BY MAX(${exact}) DESC, s.label, s.urn LIMIT ?`,
-    )
-    .all(...params, ...keys, limit)
-    .map((r) => ({ ...r }));
+  const sql =
+    `SELECT s.urn, s.label, MAX(${exact}) AS x FROM address_index a JOIN subjects s ON s.urn = a.urn ` +
+    `WHERE ${where.join(" OR ")} GROUP BY s.urn ORDER BY x DESC, s.label, s.urn`;
+  const top = addressPlaceTop(place);
+  if (top === 2 && place.state === null)
+    return d
+      .prepare(`${sql} LIMIT ?`)
+      .all(...keys, ...params, limit)
+      .map((r) => ({ urn: r.urn, label: r.label }));
+  const groups: Row[][] = [[], [], []];
+  let others = 0;
+  const oneWord = mode === "street" && runs.every((w) => w.length === 1);
+  for (const r of d.prepare(sql).all(...keys, ...params)) {
+    if (oneWord && !r.x && others++ === ADDRESS_ONE_WORD_CANDIDATES) break;
+    const rank = addressPlaceRank(place, String(r.urn), r.label);
+    if (rank < 0) continue;
+    groups[rank]!.push({ urn: r.urn, label: r.label });
+    if (groups[top]!.length >= limit) break;
+  }
+  return groups.flat().slice(0, limit);
 }
 
 /** A source snapshot (`fl:document:sha256-…`) the registry cites, or null (`Registry.snapshot` in Python). */
@@ -1359,17 +1706,44 @@ export function queryState(query: string): string | null {
   return st && STATES.has(st) ? st : null;
 }
 
-/** Pure: the `coverage` object of a miss, from a coverage summary. */
+/** The counties of one state a coverage summary holds, as `countiesSummary` words them. */
+function stateCountiesSummary(cov: RegistryCoverage, st: string): string {
+  const counties = cov.counties.filter((c) => c.state === st);
+  if (counties.length <= LIST_CAP)
+    return counties
+      .map((c) =>
+        countyLabel(c.state_fips, c.county_fips, `, ${c.parcels} parcels`),
+      )
+      .join("; ");
+  return `${counties.length} counties (${counties.reduce((a, c) => a + c.parcels, 0)} parcels)`;
+}
+
+/**
+ * Pure: the `coverage` object of a miss, from a coverage summary. A query with a comma is read by
+ * `addressPlace` (its state, or its ZIP code's); one without, by `queryState`.
+ */
 export function addressMiss(cov: RegistryCoverage, query: string): Row {
-  const st = queryState(query);
+  const place = query.includes(",") ? addressPlace(query) : null;
+  const st = place ? place.state : queryState(query);
   const states = cov.totals.states;
   const loaded = st ? states.includes(st) : null;
+  const q = addressQuery(query);
+  const oneWord = q.mode === "street" && q.tokens.length === 1;
+  const named = place?.state_from_zip
+    ? `ZIP code ${place.zip} is in ${st}, which`
+    : st;
   const message =
     st && !loaded
-      ? `no parcel matched: ${st} is not loaded in this registry; loaded: ${countiesSummary(cov)}`
+      ? `no parcel matched: ${named} is not loaded in this registry; loaded: ${countiesSummary(cov)}`
       : addressQuery(query).mode === null
         ? `no parcel matched: address search matches whole words of the street address, so give a house number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part of a word alone matches nothing. Loaded: ${countiesSummary(cov)}`
-        : `no parcel matched in this registry (loaded: ${countiesSummary(cov)}); it holds commercial, industrial and multifamily parcels only, searched by situs address: try the house number and street name alone`;
+        : place && st
+          ? `no parcel matched in ${st}: matches are kept to the state the query names (or its ZIP code's state), and of ${st} this registry holds ${stateCountiesSummary(cov, st)}; ${
+              oneWord
+                ? `a street type alone is matched among its first ${ADDRESS_ONE_WORD_CANDIDATES} addresses only, so give the street name with it ("Main St")`
+                : "it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel is not found"
+            }`
+          : `no parcel matched in this registry (loaded: ${countiesSummary(cov)}); it holds commercial, industrial and multifamily parcels only, searched by situs address: try the house number and street name alone`;
   return { state: st, state_loaded: loaded, loaded_states: states, message };
 }
 

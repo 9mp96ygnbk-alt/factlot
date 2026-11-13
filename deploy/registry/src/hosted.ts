@@ -6,6 +6,7 @@
  */
 import { countyName } from "../../../packages/tools/src/county_names.ts";
 import {
+  addressMiss,
   entitiesMiss,
   entityMiss,
   parcelMiss,
@@ -89,6 +90,16 @@ function partialOf(
     : undefined;
 }
 
+/** ". Of Suffolk County, MA, only the City of Boston is loaded: …": what a county loaded in part lacks. */
+function partialTail(
+  cov: RegistryCoverage,
+  fips: string,
+  p: PartialCounty,
+): string {
+  const label = countyText(cov, fips).replace(/ \([^)]*\)$/, "");
+  return `. Of ${label}, only ${p.area} is loaded: ${p.rest}`;
+}
+
 /** A loaded-county miss message, said of the part of the county that is loaded. */
 function partialMessage(
   cov: RegistryCoverage,
@@ -96,15 +107,12 @@ function partialMessage(
   p: PartialCounty,
   message: string,
 ): string {
-  const label = countyText(cov, fips).replace(/ \([^)]*\)$/, "");
   const said = message.replace(
     /^(.*?) is loaded in this registry \(/,
     (_m, head: string) =>
       `${head} is loaded in this registry for ${p.area} only (`,
   );
-  return said === message
-    ? message
-    : `${said}. Of ${label}, only ${p.area} is loaded: ${p.rest}`;
+  return said === message ? message : `${said}${partialTail(cov, fips, p)}`;
 }
 
 /** "Tarrant County, TX (48439)". */
@@ -144,6 +152,30 @@ export function hostedParcelMiss(
   if (p && out.county_loaded === true) {
     out.county_area = p.area;
     out.message = partialMessage(cov, fips, p, String(out.message));
+  }
+  return out;
+}
+
+/**
+ * registry_search_address's miss for the hosted registry: a query naming a loaded state with a county loaded in part
+ * ("500 Broadway, Chelsea, MA") also says which part of that county is loaded.
+ */
+export function hostedAddressMiss(
+  scope: HostedScope,
+  cov: RegistryCoverage,
+  query: string,
+): Row {
+  const out = addressMiss(cov, query);
+  if (out.state_loaded !== true || !query.includes(",")) return out;
+  for (const c of cov.counties) {
+    const fips = `${c.state_fips}${c.county_fips}`;
+    const p = partialOf(scope, fips);
+    if (
+      p &&
+      c.state === out.state &&
+      String(out.message).startsWith("no parcel matched in ")
+    )
+      out.message = `${String(out.message)}${partialTail(cov, fips, p)}`;
   }
   return out;
 }
@@ -301,6 +333,8 @@ export function hostedOutcome<T extends Outcome>(
       String(args.state_fips ?? "48"),
       String(args.county_fips),
     );
+  else if (tool === "registry_search_address" && r.coverage !== undefined)
+    r.coverage = hostedAddressMiss(scope, cov, String(args.query));
   else if (tool === "registry_search_entities" && r.coverage !== undefined)
     r.coverage = hostedEntitiesMiss(scope, cov);
   else if (tool === "registry_owned_by" && r.coverage !== undefined) {

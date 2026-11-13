@@ -388,6 +388,109 @@
     }
   },
   {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Dr, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Dr, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Dr, Shoreville"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Dr, 77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Tower Ct, Shoreville, MD 21998"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Tower Ct, Shoreville, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Tower Ct, Bayside, Maryland"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, Suite 400"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, Austin, CA"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "200 River Rd, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "200 River Rd, 21999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "200 River Rd, 85122"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "8 W 9th St"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "8 W 9th St, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "8 W 9th St, Example City, TX"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Dr, Shoreville, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "Tower Ct, Shoreville, MD",
+      "limit": 1
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"

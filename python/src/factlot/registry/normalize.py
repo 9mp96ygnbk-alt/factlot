@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from difflib import SequenceMatcher
+from typing import Any
 
 from ..ids import address_tokens
 
@@ -1040,3 +1041,177 @@ def entity_standing(status: str | None) -> str | None:
     if _ENDED.search(s):
         return "ended"
     return "live" if _LIVE.search(s) else None
+
+
+# --- the place an address query names after its street line ---------------------------------------
+# (``addressPlace`` and friends in packages/tools/src/registry.ts; the shared fixture test holds them alike)
+
+STATE_NAMES = {
+    "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR", "CALIFORNIA": "CA", "COLORADO": "CO",
+    "CONNECTICUT": "CT", "DELAWARE": "DE", "DISTRICT OF COLUMBIA": "DC", "FLORIDA": "FL", "GEORGIA": "GA",
+    "HAWAII": "HI", "IDAHO": "ID", "ILLINOIS": "IL", "INDIANA": "IN", "IOWA": "IA", "KANSAS": "KS",
+    "KENTUCKY": "KY", "LOUISIANA": "LA", "MAINE": "ME", "MARYLAND": "MD", "MASSACHUSETTS": "MA", "MICHIGAN": "MI",
+    "MINNESOTA": "MN", "MISSISSIPPI": "MS", "MISSOURI": "MO", "MONTANA": "MT", "NEBRASKA": "NE", "NEVADA": "NV",
+    "NEW HAMPSHIRE": "NH", "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC",
+    "NORTH DAKOTA": "ND", "OHIO": "OH", "OKLAHOMA": "OK", "OREGON": "OR", "PENNSYLVANIA": "PA", "PUERTO RICO": "PR",
+    "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", "TENNESSEE": "TN", "TEXAS": "TX",
+    "UTAH": "UT", "VERMONT": "VT", "VIRGINIA": "VA", "WASHINGTON": "WA", "WEST VIRGINIA": "WV", "WISCONSIN": "WI",
+    "WYOMING": "WY",
+}
+
+# The state of each 3-digit ZIP code prefix, as (first prefix, last prefix, state) ranges (USPS prefix assignments;
+# military, Guam and Virgin Islands prefixes have no state here).
+ZIP_PREFIX_STATES = (
+    (5, 5, "NY"), (6, 7, "PR"), (9, 9, "PR"), (10, 27, "MA"), (28, 29, "RI"), (30, 38, "NH"), (39, 49, "ME"),
+    (50, 54, "VT"), (55, 55, "MA"), (56, 59, "VT"), (60, 69, "CT"), (70, 89, "NJ"), (100, 149, "NY"),
+    (150, 196, "PA"), (197, 199, "DE"), (200, 200, "DC"), (201, 201, "VA"), (202, 205, "DC"), (206, 219, "MD"),
+    (220, 246, "VA"), (247, 268, "WV"), (270, 289, "NC"), (290, 299, "SC"), (300, 319, "GA"), (320, 339, "FL"),
+    (341, 349, "FL"), (350, 369, "AL"), (370, 385, "TN"), (386, 397, "MS"), (398, 399, "GA"), (400, 427, "KY"),
+    (430, 459, "OH"), (460, 479, "IN"), (480, 499, "MI"), (500, 528, "IA"), (530, 549, "WI"), (550, 567, "MN"),
+    (569, 569, "DC"), (570, 577, "SD"), (580, 588, "ND"), (590, 599, "MT"), (600, 629, "IL"), (630, 658, "MO"),
+    (660, 679, "KS"), (680, 693, "NE"), (700, 714, "LA"), (716, 729, "AR"), (730, 731, "OK"), (733, 733, "TX"),
+    (734, 749, "OK"), (750, 799, "TX"), (800, 816, "CO"), (820, 831, "WY"), (832, 838, "ID"), (840, 847, "UT"),
+    (850, 865, "AZ"), (870, 884, "NM"), (885, 885, "TX"), (889, 898, "NV"), (900, 961, "CA"), (967, 968, "HI"),
+    (970, 979, "OR"), (980, 994, "WA"), (995, 999, "AK"),
+)
+_NOT_A_CITY = frozenset("APT BLDG BOX BUILDING DEPT FL FLOOR LOT NO PO RM ROOM SPACE SPC STE SUITE UNIT".split())
+_COUNTRY = frozenset({"US", "USA", "UNITED STATES", "UNITED STATES OF AMERICA"})
+_POSTAL = frozenset(s.upper() for s in STATE_BY_FIPS.values())
+_WORDS = re.compile(r"[^A-Z0-9]+")
+# A street-type word alone ("Loop") is matched among this many matches only (after those whose address is that word
+# exactly) when the query names a place: the hosted index keeps no more (ADDRESS_ONE_WORD_CANDIDATES in TS).
+ADDRESS_ONE_WORD_CANDIDATES = 100
+
+
+def zip_state(zip5: str) -> str | None:
+    """The state a 5-digit ZIP code is in, by its first three digits, or None (``zipState`` in TS)."""
+    if not re.fullmatch(r"[0-9]{5}", zip5):
+        return None
+    p = int(zip5[:3])
+    return next((st for lo, hi, st in ZIP_PREFIX_STATES if lo <= p <= hi), None)
+
+
+def _words(text: str) -> list[str]:
+    return [w for w in _WORDS.split(text.upper()) if w]
+
+
+def address_place(query: str) -> dict[str, Any]:
+    """The place an address query names after its street line (``addressPlace`` in TS):
+    ``{"city", "state", "zip", "state_from_zip"}``.
+
+    The part after the first comma, read from its end: a 5-digit ZIP code (or ZIP+4), then a two-letter state or a
+    state's full name, then the city: the words left before them in the same comma part, or the comma part before.
+    A city is letters only and does not start with a unit word ("Suite"); "Washington" with nothing before it is read
+    as the city, not the state, and two letters after a unit word ("Unit CO") make the tail unreadable. A state the
+    query does not name is the state of its ZIP code. What cannot be read this way is ignored, and a query without a
+    comma names no place.
+    """
+    none = {"city": None, "state": None, "zip": None, "state_from_zip": False}
+    if "," not in query:
+        return none
+    parts = [w for w in (_words(p) for p in query.split(",")[1:]) if w]
+    if parts and " ".join(parts[-1]) in _COUNTRY:
+        parts.pop()
+    if not parts:
+        return none
+
+    def drop(n: int) -> None:
+        del parts[-1][len(parts[-1]) - n:]
+        if not parts[-1]:
+            parts.pop()
+
+    zip5 = None
+    w = parts[-1]
+    if len(w) >= 2 and re.fullmatch(r"[0-9]{5}", w[-2]) and re.fullmatch(r"[0-9]{4}", w[-1]):
+        zip5 = w[-2]
+        drop(2)
+    elif re.fullmatch(r"[0-9]{5}", w[-1]):
+        zip5 = w[-1]
+        drop(1)
+    state = None
+    if parts:
+        w = parts[-1]
+        # Not "Unit CO" or "Ste OK": a unit's letter.
+        if len(w[-1]) == 2 and w[-1] in _POSTAL:
+            if len(w) >= 2 and w[-2] in _NOT_A_CITY:
+                return none
+            state = w[-1]
+            drop(1)
+        else:
+            for k in range(min(3, len(w)), 0, -1):
+                name = " ".join(w[len(w) - k:])
+                if name not in STATE_NAMES:
+                    continue
+                # "Washington" alone is the city (DC) more often than the state.
+                if name == "WASHINGTON" and zip5 is None and len(parts) == 1 and len(w) == 1:
+                    break
+                state = STATE_NAMES[name]
+                drop(k)
+                break
+    city = None
+    if parts:
+        c = parts[-1]
+        if len(c) <= 5 and all(re.fullmatch(r"[A-Z]+", x) for x in c) and c[0] not in _NOT_A_CITY:
+            city = " ".join(c)
+    from_zip = state is None and zip5 is not None and zip_state(zip5) is not None
+    return {"city": city, "state": state if state is not None else (zip_state(zip5) if zip5 else None),
+            "zip": zip5, "state_from_zip": from_zip}
+
+
+_LABEL_ZIP_AFTER_COMMA = re.compile(r"(?:^|[^0-9A-Z_])([0-9]{5})(?:[- ]?[0-9]{1,4})?\s*$")
+_LABEL_STATE_ZIP_TAIL = re.compile(r"\s[A-Z]{2}\s+([0-9]{5})(?:[- ]?[0-9]{1,4})?\s*$")
+
+
+def _label_zip5(label: Any) -> str | None:
+    """The 5-digit ZIP code of a situs label (``situs_zip5`` in tx_equity, ``situsZip5`` in TS)."""
+    if not isinstance(label, str):
+        return None
+    s = label.upper().strip()
+    m = _LABEL_ZIP_AFTER_COMMA.search(s.split(",", 1)[1]) if "," in s else _LABEL_STATE_ZIP_TAIL.search(s)
+    return m.group(1) if m else None
+
+
+def _label_in_city(label: Any, city: str) -> bool:
+    """Whether a situs label is in ``city`` (``labelInCity`` in TS): after the street line, with the ZIP code and
+    state dropped from the end, the last comma part is the city; a label without a comma ends with the city, a
+    state and a ZIP code."""
+    if not isinstance(label, str):
+        return False
+    s = label.upper()
+    parts = [w for w in (_words(p) for p in (s.split(",")[1:] if "," in s else [s])) if w]
+    while parts and parts[-1][-1].isdigit():
+        parts[-1].pop()
+        if not parts[-1]:
+            parts.pop()
+    had_state = bool(parts) and parts[-1][-1] in _POSTAL
+    if had_state:
+        parts[-1].pop()
+        if not parts[-1]:
+            parts.pop()
+    w = parts[-1] if parts else []
+    if "," in s:
+        return " ".join(w) == city
+    # No comma ("633 3RD ST NW WASHINGTON DC 20001"): the words before the state end with the city.
+    c = city.split(" ")
+    return had_state and len(w) > len(c) and " ".join(w[-len(c):]) == city
+
+
+def address_place_rank(place: dict[str, Any], urn: str, label: Any) -> int:
+    """Where a match goes in the answer to a query naming ``place`` (``addressPlaceRank`` in TS): -1 when the place
+    names a state the match is not in (from its URN), else 0 when its label has the place's ZIP code, 1 when its
+    label is in the place's city, 2 otherwise."""
+    if place["state"] is not None:
+        m = re.match(r"fl:[a-z]+:us-([0-9]{2})", urn)
+        st = STATE_BY_FIPS.get(m.group(1)) if m else None
+        if st is None or st.upper() != place["state"]:
+            return -1
+    if place["zip"] is not None and _label_zip5(label) == place["zip"]:
+        return 0
+    if place["city"] is not None and _label_in_city(label, place["city"]):
+        return 1
+    return 2
+
+
+def address_place_top(place: dict[str, Any]) -> int:
+    """The rank of the first group a place can fill (``addressPlaceTop`` in TS)."""
+    return 0 if place["zip"] is not None else 1 if place["city"] is not None else 2

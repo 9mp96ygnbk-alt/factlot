@@ -67,7 +67,28 @@ reg.ingest_parcels([
     ParcelRecord("999", "0004-000-0002", "F1", account="A31", situs_address="14 Tower Court, Example City TX 77999",
                  owner_name="Tower Unit Holdings LLC", land_area_sf=0, improvement_area_sf=-10,
                  market_value=400000, tax_year=2026),
+    # A numbered street written with its ordinal here and bare in the second state below (address search's retry).
+    ParcelRecord("999", "0005-000-0001", "F1", account="A40", situs_address="8 W 9th Street, Example City TX 77999",
+                 market_value=600000, tax_year=2026),
 ], s26, state_fips="48", account_system="test-account", full_roll=True)
+# A second state (Maryland, an invented county 998) whose street lines repeat the Texas ones, for the place an
+# address search names after its street line: state, city and ZIP code.
+reg.add_source(Source("test-roll-md", "Example Shore County Assessor (synthetic)", "Assessment roll",
+                      "https://example.invalid/md-roll", "24", county_fips="998", license="Synthetic test data",
+                      ai_use="permitted", redistribution="permitted", terms_reviewed="2026-11-02"))
+md = snap("test-roll-md", "md-roll-2026.txt", "synthetic second-state roll 2026", "2026-07-01")
+reg.ingest_parcels([
+    ParcelRecord("998", "20-0001", "F1", account="M1", situs_address="100 Main Street, Shoreville MD 21999",
+                 owner_name="Shoreline Example Partners LLC", market_value=2000000, tax_year=2026),
+    ParcelRecord("998", "20-0002", "F1", account="M2", situs_address="300 Harbor Drive, Shoreville MD 21999",
+                 market_value=1500000, tax_year=2026),
+    ParcelRecord("998", "20-0003", "F1", account="M3", situs_address="12 Tower Court, Bayside MD 21998",
+                 owner_name="Bayside Example Holdings LLC", market_value=700000, tax_year=2026),
+    ParcelRecord("998", "20-0004", "F1", account="M4", situs_address="14 Tower Court, Shoreville MD 21999",
+                 market_value=800000, tax_year=2026),
+    ParcelRecord("998", "20-0005", "F1", account="M5", situs_address="8 W 9 Street, Shoreville MD 21999",
+                 market_value=900000, tax_year=2026),
+], md, state_fips="24", account_system="test-md-account", full_roll=True)
 # Enrichment sources add facts to parcels the roll holds: zoning (one value per predicate) and sales
 # (a predicate that holds many facts, returned newest first).
 reg.add_source(Source("test-zoning", "Example City Planning (synthetic)", "Zoning", "https://example.invalid/zoning", "48",

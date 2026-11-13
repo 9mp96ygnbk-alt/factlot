@@ -14,6 +14,8 @@ import { countyName } from "./county_names.ts";
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_WITHHELD_COUNTIES,
+  addressPlace,
+  addressPlaceRank,
   addressQuery,
   addressWordsWithoutOrdinals,
   configureRegistry,
@@ -24,6 +26,7 @@ import {
   normalizeName,
   runTool,
   withTxEquityCalcArgs,
+  zipState,
 } from "./index.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
@@ -178,8 +181,71 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
     assert.deepEqual(at({ query: "Main" }).results, []);
     assert.match(at({ query: "Main" }).coverage?.message ?? "", /whole words/);
     assert.deepEqual(at({ query: "100 Mai" }).results, []);
-    assert.equal(at({ query: "Main St" }).results?.length, 1);
-    assert.equal(at({ query: "100 Main" }).results?.length, 1);
+    // The street line alone matches in both states of the fixture (Texas and Maryland).
+    assert.equal(at({ query: "Main St" }).results?.length, 2);
+    assert.equal(at({ query: "100 Main" }).results?.length, 2);
+    // The place after the street line: its state only; its ZIP code, then its city, then the rest of the state.
+    const urns = (args: Record<string, unknown>) =>
+      (at(args) as { results?: { urn: string }[] }).results?.map((r) => r.urn);
+    const md = (n: number) => `fl:parcel:us-24998:20-000${n}`;
+    const harborTx = [1002, 1001, 1003, 1000].map(
+      (n) => `fl:parcel:us-48999:0002-000-${n}`,
+    ); // by label
+    assert.deepEqual(
+      urns({ query: "300 Harbor Dr, Example City, TX" }),
+      harborTx,
+    );
+    assert.deepEqual(urns({ query: "300 Harbor Dr, MD" }), [md(2)]);
+    assert.deepEqual(urns({ query: "300 Harbor Dr, 77999" }), harborTx);
+    assert.deepEqual(urns({ query: "300 Harbor Dr, Shoreville" }), [
+      md(2),
+      ...harborTx,
+    ]);
+    assert.deepEqual(urns({ query: "Tower Ct, Shoreville, MD" }), [
+      md(4),
+      md(3),
+    ]);
+    assert.deepEqual(urns({ query: "Tower Ct, Shoreville, MD", limit: 1 }), [
+      md(4),
+    ]);
+    assert.deepEqual(urns({ query: "Tower Ct, Shoreville, MD 21998" }), [
+      md(3),
+      md(4),
+    ]);
+    assert.deepEqual(urns({ query: "Tower Ct, Bayside, Maryland" }), [
+      md(3),
+      md(4),
+    ]);
+    // A tail that reads as no place is ignored.
+    assert.deepEqual(urns({ query: "100 Main St, Suite 400" }), [
+      "fl:parcel:us-48999:0001-000-0001",
+      md(1),
+    ]);
+    // Matched only in another state: a miss that says what the named state holds.
+    const river = at({ query: "200 River Rd, MD" }) as {
+      results: unknown[];
+      coverage: { state: string; state_loaded: boolean; message: string };
+    };
+    assert.deepEqual(river.results, []);
+    assert.equal(river.coverage.state, "MD");
+    assert.equal(river.coverage.state_loaded, true);
+    assert.equal(
+      river.coverage.message,
+      "no parcel matched in MD: matches are kept to the state the query names (or its ZIP code's state), and of MD this registry holds county 24998 (MD, 5 parcels); it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel is not found",
+    );
+    assert.match(
+      String(at({ query: "200 River Rd, 85122" }).coverage?.message),
+      /^no parcel matched: ZIP code 85122 is in AZ, which is not loaded in this registry/,
+    );
+    assert.match(
+      String(at({ query: "100 Main St, Austin, CA" }).coverage?.message),
+      /^no parcel matched: CA is not loaded in this registry/,
+    );
+    // The ordinal retry keeps to the place: "8 W 9th St" matches as written in Texas only.
+    const nine = "fl:parcel:us-48999:0005-000-0001";
+    assert.deepEqual(urns({ query: "8 W 9th St" }), [nine]);
+    assert.deepEqual(urns({ query: "8 W 9th St, Example City, TX" }), [nine]);
+    assert.deepEqual(urns({ query: "8 W 9th St, MD" }), [md(5)]);
     // Recorded deeds, mortgages and satisfactions are many-valued too, newest first; an energy report is single-valued.
     const dates = (predicate: string) =>
       parcel.facts
@@ -468,6 +534,8 @@ test("name and address normalization match the Python vectors", () => {
     addresses: [string, string][];
     legacy_addresses: [string, string][];
     address_queries: [string, { mode: string | null; tokens: string[] }][];
+    address_places: [string, Record<string, unknown>][];
+    address_place_ranks: [string, string, string, number][];
   };
   for (const [input, expected] of v.names)
     assert.equal(normalizeName(input), expected, input);
@@ -477,6 +545,18 @@ test("name and address normalization match the Python vectors", () => {
     assert.equal(legacyNormalizeAddress(input), expected, input);
   for (const [input, expected] of v.address_queries)
     assert.deepEqual(addressQuery(input), expected, input);
+  for (const [input, expected] of v.address_places)
+    assert.deepEqual(addressPlace(input), expected, input);
+  for (const [query, urn, label, rank] of v.address_place_ranks)
+    assert.equal(
+      addressPlaceRank(addressPlace(query), urn, label),
+      rank,
+      `${query} / ${label}`,
+    );
+  assert.equal(zipState("02150"), "MA");
+  assert.equal(zipState("73301"), "TX");
+  assert.equal(zipState("20500"), "DC");
+  assert.equal(zipState("09012"), null, "a military ZIP code has no state");
 });
 
 test("county names come from the Census table in spec/registry/county-names.tsv", () => {

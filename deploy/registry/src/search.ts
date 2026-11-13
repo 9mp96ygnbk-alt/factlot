@@ -4,12 +4,16 @@
  *
  * Address: SQLite LIKE (ASCII case-folding) on whole words of the address key. With a house number, a key whose
  * first word is that number and that holds every other word; otherwise the words in a row, which always include a
- * street type. One row per URN; exact key matches first, then label, then URN; at most `limit`.
+ * street type. One row per URN; exact key matches first, then label, then URN; at most `limit`. A query naming a
+ * place after its street line (addressPlace) keeps the matches in its state only, those with its ZIP code first,
+ * then those in its city, then the rest, each group in that order, before the limit.
  *
  * Every row a query can match is in one list the query names: "F:<first word>" (house number), "U:<street type>"
  * (a one-word street query), "B:<word> <street type>" or "A:<street type> <word>" (the word pair around a street
- * type in the query). Lists are sorted by label then URN, so a scan stops once it has `limit` URNs; "E:<key>"
- * gives the URNs whose key equals the query's key exactly, which go first.
+ * type in the query). Lists are sorted by label then URN, so a scan stops once it has `limit` URNs (with a place,
+ * `limit` URNs in its first group); "E:<key>" gives the URNs whose key equals the query's key exactly, which go
+ * first. A "U:" list keeps only its first MAX_LIMIT URNs besides the exact ones, so the SDK places a one-word query
+ * among those (ADDRESS_ONE_WORD_CANDIDATES).
  *
  * Entities: SQLite LIKE '%key%' on name keys, DISTINCT URN in scan (rowid) order, then exact key first, then label,
  * ties in scan order (of each entity's first matching row). Rows are found through posting lists of the 1- to
@@ -18,10 +22,14 @@
  */
 import {
   ADDRESS_STREET_TYPES,
+  addressPlace,
+  addressPlaceRank,
+  addressPlaceTop,
   addressQuery,
   addressSearchKeysFor,
   addressWordsWithoutOrdinals,
   nameSearchKeyFor,
+  type AddressPlace,
 } from "../../../packages/tools/src/registry.ts";
 
 import {
@@ -99,40 +107,57 @@ export async function searchAddress(
   const { mode } = addressQuery(query);
   if (mode === null) return [];
   const line = query.split(",")[0] ?? "";
+  const place = addressPlace(query);
   const keys = addressSearchKeysFor(m.versions.address_key_version, line);
   if (keys.length !== 1)
     throw new Error("the pack holds version 1 address keys");
   const words = keys[0]!.split(" ");
-  const found = await searchAddressWords(pack, m, mode, words, limit);
+  const found = await searchAddressWords(pack, m, mode, words, limit, place);
   if (found.length) return found;
   // Nothing matched: once more with ordinal endings dropped (registrySearchAddress in the SDK).
   const bare = addressWordsWithoutOrdinals(words);
-  return bare ? searchAddressWords(pack, m, mode, bare, limit) : found;
+  return bare ? searchAddressWords(pack, m, mode, bare, limit, place) : found;
 }
 
+/**
+ * The matches in list order (exact key first, then label, then URN), grouped by addressPlaceRank: with a place,
+ * only those in its state, and those with its ZIP code, then those in its city, then the rest. The scan stops
+ * once the first group the place can fill holds `limit` matches; otherwise it reads the whole list.
+ */
 async function searchAddressWords(
   pack: Pack,
   m: Manifest,
   mode: "house_number" | "street",
   words: string[],
   limit: number,
+  place: AddressPlace,
 ): Promise<Match[]> {
   const fullKey = words.join(" ");
   const listKey = addressListKey(mode, words);
   if (listKey === null) return [];
   const exact = (await dictionary<ExactList>(pack, m, `E:${fullKey}`)) ?? [];
   const exactUrns = new Set(exact.map(([urn]) => urn));
-  const out: Match[] = exact.map(([urn, label]) => ({ urn, label }));
-  const list = await dictionary<AddressList>(pack, m, listKey);
-  if (list && out.length < limit) {
+  const top = addressPlaceTop(place);
+  const groups: Match[][] = [[], [], []];
+  // True once the first group the place can fill is full: no later match can come before it.
+  const put = (urn: string, label: string | null): boolean => {
+    const rank = addressPlaceRank(place, urn, label);
+    if (rank >= 0) groups[rank]!.push({ urn, label });
+    return groups[top]!.length >= limit;
+  };
+  let full = false;
+  for (const [urn, label] of exact) if ((full = put(urn, label))) break;
+  const list = full
+    ? undefined
+    : await dictionary<AddressList>(pack, m, listKey);
+  if (list) {
     let last: string | undefined;
     const take = (rows: AddressRow[]): boolean => {
       for (const [urn, label, key] of rows) {
         if (urn === last || exactUrns.has(urn)) continue;
         if (!addressRowMatches(mode, words, key)) continue;
         last = urn;
-        out.push({ urn, label });
-        if (out.length >= limit) return true;
+        if (put(urn, label)) return true;
       }
       return false;
     };
@@ -146,7 +171,7 @@ async function searchAddressWords(
       ))
         if (take(rows)) break;
   }
-  return out.slice(0, limit);
+  return groups.flat().slice(0, limit);
 }
 
 /** [key, urn, label] in the file's scan order. */

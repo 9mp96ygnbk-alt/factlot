@@ -312,6 +312,23 @@ function searchCalls(): Call[] {
     "Dr Example City",
     "100 100",
     "9 nw industrial way",
+    // The place after the street line (the fixture's second state is Maryland, county 24998).
+    "300 Harbor Dr, Shoreville",
+    "300 Harbor Dr, MD",
+    "300 Harbor Dr, 77999",
+    "Tower Ct, Shoreville, MD 21998",
+    "Tower Ct, Bayside, Maryland",
+    "Dr, Shoreville, MD",
+    "St, MD",
+    "Ct, Example City, TX 77999",
+    "8 W 9th St, MD",
+    "200 River Rd, MD",
+    "200 River Rd, 21999",
+    "100 Main St, Suite 400",
+    "100 Main St, New York, NY",
+    "Alpha Plz, Chelsea, MA 02150",
+    "1 Alpha Plz, Boston, MA",
+    "1 Alpha Plaza, Example City, TX 77001",
   ]);
   for (const r of rows("SELECT key FROM address_index")) {
     const key = String(r.key);
@@ -461,7 +478,7 @@ test("HTTP: /run, /health and nothing else", async () => {
   };
   assert.equal(h.ok, true);
   assert.deepEqual(h.pack.regions, ["fixture"]);
-  assert.equal(h.pack.counts.parcels, 25);
+  assert.equal(h.pack.counts.parcels, 31);
   for (const path of ["/", "/manifest.json", "/g/0/0.json", "/run/x"])
     assert.equal((await req(path)).status, 404, path);
   assert.equal((await req("/run")).status, 405);
@@ -790,6 +807,48 @@ test("numbered streets written without the ordinal are found by a query that has
   assert.deepEqual(await found("136 W 43rd St"), []);
 });
 
+test("a street-type word alone with a place is placed among the matches the pack keeps, like runTool", async () => {
+  // 110 parcels on a Texas loop whose labels sort before the Maryland one ("8 W 9 Street"): the pack's "U:LOOP" list keeps the
+  // first 100 URNs, so "Loop, MD" finds nothing there, and the SDK places the query among the same 100.
+  const x = join(dir, "one-word.db");
+  copyFileSync(fixture, x);
+  const d = new DatabaseSync(x);
+  const values: string[] = [];
+  for (let i = 0; i < 110; i++) {
+    const urn = `fl:parcel:us-48999:loop-${String(i).padStart(3, "0")}`;
+    d.exec(
+      `INSERT INTO subjects VALUES ('${urn}', 'parcel', 'loop${i}', '0${String(i).padStart(3, "0")} A Loop, Example City TX 77999')`,
+    );
+    values.push(
+      `('0${String(i).padStart(3, "0")} A LOOP EXAMPLE CITY TX 77999', '${urn}')`,
+    );
+  }
+  values.push("('7 B LOOP SHOREVILLE MD 21999', 'fl:parcel:us-24998:20-0005')");
+  d.exec(`INSERT INTO address_index VALUES ${values.join(", ")}`);
+  d.close();
+  const pack = join(dir, "pack-one-word");
+  buildPack([{ name: "x", path: x }], pack);
+  const list: Call[] = [];
+  for (const query of [
+    "Loop",
+    "Loop, MD",
+    "Loop, TX",
+    "Loop, Shoreville",
+    "B Loop, MD",
+  ])
+    for (const limit of [1, 20, 100])
+      list.push({ tool: "registry_search_address", args: { query, limit } });
+  assert.deepEqual(await compare(pack, x, list), []);
+  const found = async (query: string) =>
+    (
+      JSON.parse(
+        await worker(fileAssets(pack), "registry_search_address", { query }),
+      ) as { result: { results: { urn: string }[] } }
+    ).result.results.map((r) => r.urn);
+  assert.deepEqual(await found("Loop, MD"), []);
+  assert.deepEqual(await found("B Loop, MD"), ["fl:parcel:us-24998:20-0005"]);
+});
+
 test("every pack withholds Tarrant, even when --exclude-county is left out", async () => {
   const x = join(dir, "tarrant-default.db");
   copyFileSync(fixture, x);
@@ -993,6 +1052,24 @@ test("regions outside Texas: entity registry served in part, crosswalk systems, 
   assert.match(String(missCov.message), /Chelsea, Revere and Winthrop/);
   const got = await call("registry_get", { urn: "fl:parcel:us-25025:0000" });
   assert.match(String(got.error!.message), /for the City of Boston only/);
+  // An address search naming Massachusetts keeps to it, and its miss says which part of the state is loaded.
+  const chelsea = await call("registry_search_address", {
+    query: "300 Harbor Dr, Chelsea, MA 02150",
+  });
+  assert.deepEqual(chelsea.result!.results, []);
+  const chelseaCov = chelsea.result!.coverage as Row;
+  assert.equal(chelseaCov.state, "MA");
+  assert.equal(chelseaCov.state_loaded, true);
+  assert.match(
+    String(chelseaCov.message),
+    /^no parcel matched in MA: .* of MA this registry holds Suffolk County, MA \(25025, \d+ parcels\);.*\. Of Suffolk County, MA, only the City of Boston is loaded: Chelsea, Revere and Winthrop/,
+  );
+  const inNy = await call("registry_search_address", {
+    query: "300 Harbor Dr, New York, NY",
+  });
+  assert.ok((inNy.result!.results as Row[]).length > 0);
+  for (const r of inNy.result!.results as Row[])
+    assert.match(String(r.urn), /^fl:parcel:us-36061:/);
   const cov = await call("registry_coverage", {});
   const hosted = cov.result!.hosted as { partial_counties: Row[] };
   assert.equal(hosted.partial_counties[0]!.region, "us-25025");

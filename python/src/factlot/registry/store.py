@@ -23,9 +23,13 @@ from . import buildings as _buildings
 from . import coverage as _coverage
 from .normalize import (
     ADDRESS_KEY_VERSION,
+    ADDRESS_ONE_WORD_CANDIDATES,
     NAME_KEY_VERSION,
     NAME_OVERLAP_WEIGHT,
     NAME_RATIO_WEIGHT,
+    address_place,
+    address_place_rank,
+    address_place_top,
     address_query,
     address_state,
     address_words_without_ordinals,
@@ -1539,15 +1543,20 @@ class Registry:
         mode = address_query(address)["mode"]
         if mode is None:
             return []
+        place = address_place(address)
         runs = [k.split(" ") for k in self._address_search_keys(address.split(",")[0])]
-        found = self._search_address_runs(mode, runs, limit)
+        found = self._search_address_runs(mode, runs, limit, place)
         if found:
             return found
         # Nothing matched: once more with ordinal endings dropped, for rolls that write numbered streets bare.
         bare = [w for w in map(address_words_without_ordinals, runs) if w is not None]
-        return self._search_address_runs(mode, bare, limit) if bare else found
+        return self._search_address_runs(mode, bare, limit, place) if bare else found
 
-    def _search_address_runs(self, mode: str, runs: list[list[str]], limit: int) -> list[dict[str, Any]]:
+    def _search_address_runs(self, mode: str, runs: list[list[str]], limit: int,
+                             place: dict[str, Any]) -> list[dict[str, Any]]:
+        """The matches in today's order (exact address first, then label, then URN); with a place (``address_place``),
+        those in its state only, grouped by ``address_place_rank`` (same ZIP code, then same city, then the rest), in
+        that order within each group, before the limit is applied."""
         where, params = [], []
         for words in runs:
             if mode == "street":
@@ -1559,11 +1568,27 @@ class Registry:
                 params += [f"{words[0]} %", *(f"% {w} %" for w in words[1:])]
         keys = [" ".join(w) for w in runs]
         exact = " OR ".join("a.key = ?" for _ in keys)
-        rows = self.db.execute(
-            "SELECT s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn "
-            f"WHERE {' OR '.join(where)} GROUP BY s.urn ORDER BY MAX({exact}) DESC, s.label, s.urn LIMIT ?",
-            (*params, *keys, limit)).fetchall()
-        return [dict(r) for r in rows]
+        sql = (f"SELECT s.urn, s.label, MAX({exact}) AS x FROM address_index a JOIN subjects s ON s.urn = a.urn "
+               f"WHERE {' OR '.join(where)} GROUP BY s.urn ORDER BY x DESC, s.label, s.urn")
+        top = address_place_top(place)
+        if top == 2 and place["state"] is None:
+            rows = self.db.execute(f"{sql} LIMIT ?", (*keys, *params, limit)).fetchall()
+            return [{"urn": r["urn"], "label": r["label"]} for r in rows]
+        groups: list[list[dict[str, Any]]] = [[], [], []]
+        others = 0
+        one_word = mode == "street" and all(len(w) == 1 for w in runs)
+        for r in self.db.execute(sql, (*keys, *params)):
+            if one_word and not r["x"]:
+                if others == ADDRESS_ONE_WORD_CANDIDATES:
+                    break
+                others += 1
+            rank = address_place_rank(place, r["urn"], r["label"])
+            if rank < 0:
+                continue
+            groups[rank].append({"urn": r["urn"], "label": r["label"]})
+            if len(groups[top]) >= limit:
+                break
+        return [m for g in groups for m in g][:limit]
 
     def parcels_owned_by(self, entity_urn: str) -> list[dict[str, Any]]:
         rows = self.db.execute(

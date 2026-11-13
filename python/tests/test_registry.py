@@ -12,11 +12,14 @@ from pathlib import Path
 import factlot
 from factlot.registry.county_names import county_name
 from factlot.registry.normalize import (
+    address_place,
+    address_place_rank,
     address_query,
     address_words_without_ordinals,
     legacy_address_key,
     legacy_name_key,
     scrub_mailing_address,
+    zip_state,
 )
 from factlot.registry import (
     EntityRecord,
@@ -88,6 +91,14 @@ class Normalization(unittest.TestCase):
             self.assertEqual(legacy_address_key(raw), expected, raw)
         for raw, expected in vectors["address_queries"]:
             self.assertEqual(address_query(raw), expected, raw)
+        for raw, expected in vectors["address_places"]:
+            self.assertEqual(address_place(raw), expected, raw)
+        for query, urn, label, rank in vectors["address_place_ranks"]:
+            self.assertEqual(address_place_rank(address_place(query), urn, label), rank, f"{query} / {label}")
+        self.assertEqual(zip_state("02150"), "MA")
+        self.assertEqual(zip_state("73301"), "TX")
+        self.assertEqual(zip_state("20500"), "DC")
+        self.assertIsNone(zip_state("09012"), "a military ZIP code has no state")
 
     def test_county_names_match_the_census_table(self):
         tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "county-names.tsv"

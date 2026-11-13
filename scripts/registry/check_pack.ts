@@ -437,9 +437,14 @@ async function run(
   )) {
     const t = String(r.key).split(" ");
     const ti = t.findIndex((x) => ADDRESS_STREET_TYPES.has(x));
+    const line = t.slice(0, Math.max(2, ti + 1)).join(" ");
     const qs = [
       t.join(" "),
-      `${t.slice(0, Math.max(2, ti + 1)).join(" ")}, Somewhere, MD`,
+      // A place after the street line: a state and a city no parcel has, and the ZIP code the key ends with.
+      `${line}, Somewhere, MD`,
+      ...(/^[0-9]{5}$/.test(t[t.length - 1]!)
+        ? [`${line}, ${t[t.length - 1]}`]
+        : []),
       t.slice(0, 2).join(" ").toLowerCase(),
       `${t[0]} ${t[t.length - 1]}`,
     ];
@@ -467,6 +472,12 @@ async function run(
     "1 MD",
     "Way",
     "N Charles St",
+    "1 Main St, Springfield, MA",
+    "Main St, Hartford, CT",
+    "Main St, Somewhere, MD",
+    "500 Broadway, Chelsea, MA 02150",
+    "633 W 5th St, Los Angeles, CA",
+    "Ave, Los Angeles, CA",
   ])
     calls.push({
       tool: "registry_search_address",

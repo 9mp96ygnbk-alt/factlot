@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words).",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code; the state of a ZIP code the query names without a state). 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state).",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -140,6 +140,367 @@
         "mode": "street",
         "tokens": ["HWY", "290"]
       }
+    ]
+  ],
+  "address_places": [
+    [
+      "500 Broadway, Chelsea, MA 02150",
+      {
+        "city": "CHELSEA",
+        "state": "MA",
+        "zip": "02150",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 State St, Hartford, CT",
+      {
+        "city": "HARTFORD",
+        "state": "CT",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "633 W 5th St, Los Angeles, CA",
+      {
+        "city": "LOS ANGELES",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "136 W 42nd St, New York, NY",
+      {
+        "city": "NEW YORK",
+        "state": "NY",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Beacon St, Boston, MA",
+      {
+        "city": "BOSTON",
+        "state": "MA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "500 W 5th St, Austin, TX",
+      {
+        "city": "AUSTIN",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1701 Wynkoop St, Denver, CO",
+      {
+        "city": "DENVER",
+        "state": "CO",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Market St, San Francisco, CA",
+      {
+        "city": "SAN FRANCISCO",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "100 Main Street, Suite 400",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Nowhere Rd, Casa Grande, AZ 85122",
+      {
+        "city": "CASA GRANDE",
+        "state": "AZ",
+        "zip": "85122",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "Tower Ct, Example City, TX",
+      {
+        "city": "EXAMPLE CITY",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1600 Pennsylvania Ave NW, Washington",
+      {
+        "city": "WASHINGTON",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1600 Pennsylvania Ave NW, Washington, DC 20500",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": "20500",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Seattle, Washington",
+      {
+        "city": "SEATTLE",
+        "state": "WA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, New York",
+      {
+        "city": null,
+        "state": "NY",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Austin TX 78701-1234",
+      {
+        "city": "AUSTIN",
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Ste 200, Austin, Texas, USA",
+      {
+        "city": "AUSTIN",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, 78701",
+      {
+        "city": null,
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "1 Main St, 09012",
+      {
+        "city": null,
+        "state": null,
+        "zip": "09012",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Apt B",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, district of columbia",
+      {
+        "city": null,
+        "state": "DC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, ,",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "300 Harbor Dr, Shoreville",
+      {
+        "city": "SHOREVILLE",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Austin, TX, 78701",
+      {
+        "city": "AUSTIN",
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, St. Louis, MO",
+      {
+        "city": "ST LOUIS",
+        "state": "MO",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Winston-Salem NC",
+      {
+        "city": "WINSTON SALEM",
+        "state": "NC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Unit CO",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "5 Elm St, Ste OK, Tulsa, OK",
+      {
+        "city": "TULSA",
+        "state": "OK",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ]
+  ],
+  "address_place_ranks": [
+    [
+      "500 Broadway, Chelsea, MA 02150",
+      "fl:parcel:us-24039:1",
+      "500 BROADWAY AVE, CRISFIELD MD 21817",
+      -1
+    ],
+    [
+      "500 Broadway, Chelsea, MA 02150",
+      "fl:parcel:us-25025:1",
+      "500 BROADWAY, CHELSEA MA 02150",
+      0
+    ],
+    [
+      "633 W 5th St, Los Angeles, CA",
+      "fl:parcel:us-06037:1",
+      "633 W 5TH ST, LONG BEACH CA 90802",
+      2
+    ],
+    [
+      "633 W 5th St, Los Angeles, CA",
+      "fl:parcel:us-06037:2",
+      "633 W 5TH ST, LOS ANGELES CA 90071",
+      1
+    ],
+    [
+      "633 W 5th St, Los Angeles, CA 90071",
+      "fl:parcel:us-06037:2",
+      "633 W 5TH ST, LOS ANGELES CA 90071",
+      0
+    ],
+    [
+      "633 3rd St NW, Washington, DC",
+      "fl:parcel:us-11001:1",
+      "633 3RD ST NW WASHINGTON DC 20001-2604",
+      1
+    ],
+    [
+      "633 3rd St NW, Washington, DC 20001",
+      "fl:parcel:us-11001:1",
+      "633 3RD ST NW WASHINGTON DC 20001-2604",
+      0
+    ],
+    [
+      "633 9th St, Santa Monica, CA",
+      "fl:parcel:us-06037:1",
+      "633 9TH ST, SANTA MONICA 90402",
+      1
+    ],
+    [
+      "633 Hope St, Stamford, CT 06901",
+      "fl:parcel:us-09001:1",
+      "633 HOPE STREET, Stamford CT",
+      1
+    ],
+    [
+      "633 Hope St, York, NY",
+      "fl:parcel:us-36061:1",
+      "633 HOPE ST, NEW YORK NY 10017",
+      2
+    ],
+    [
+      "100 Main St, Shoreville",
+      "fl:parcel:us-48999:1",
+      "100 Main Street, Suite 400",
+      2
+    ],
+    [
+      "100 Main St, Shoreville",
+      "fl:building:us-24998:21999:100-main-st",
+      "100 MAIN ST, SHOREVILLE MD 21999",
+      1
+    ],
+    [
+      "100 Main St, 21999",
+      "fl:parcel:us-48999:1",
+      "100 Main Street, Suite 400",
+      -1
+    ],
+    [
+      "1 Market St, San Francisco, CA",
+      "fl:parcel:us-06075:1",
+      "1 MARKET ST, SAN FRANCISCO, CA",
+      1
+    ],
+    [
+      "100 Main St, Austin, TX",
+      "fl:parcel:us-48453:1",
+      "100 MAIN ST, SUITE 400, AUSTIN, TX, 78701",
+      1
+    ],
+    [
+      "100 Main St, Austin, TX",
+      "fl:parcel:us-48453:1",
+      "100 MAIN ST, SUITE 400",
+      2
     ]
   ]
 }

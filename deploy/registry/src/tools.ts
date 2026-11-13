@@ -10,7 +10,6 @@ import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
   TX_EQUITY_WHICH_PARCEL,
-  addressMiss,
   externalMiss,
   parcelUrnForRule,
   texasOnly,
@@ -20,6 +19,7 @@ import {
 import { equityFromPack } from "./equity.ts";
 import { MAX_LIMIT, getResult } from "./format.ts";
 import {
+  hostedAddressMiss,
   hostedEntitiesMiss,
   hostedEntityMiss,
   hostedParcelMiss,
@@ -158,7 +158,7 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
       const results = await searchAddress(pack, query, limitOf(i));
       return results.length
         ? { results }
-        : { results, coverage: addressMiss(cov, query) };
+        : { results, coverage: hostedAddressMiss(m, cov, query) };
     }
     case "registry_search_entities": {
       const results = await searchEntities(pack, str(i, "query"), limitOf(i));

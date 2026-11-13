@@ -17,7 +17,7 @@ import sqlite3
 from typing import Any
 
 from .county_names import county_name
-from .normalize import STATE_BY_FIPS, STATES, address_query
+from .normalize import ADDRESS_ONE_WORD_CANDIDATES, STATE_BY_FIPS, STATES, address_place, address_query
 
 SCOPE = ("Commercial, industrial and multifamily parcels only (no single-family homes), each fact cited "
          "to its source file; owners of record are kept only for organisations, never natural persons.")
@@ -198,16 +198,39 @@ def query_state(query: str) -> str | None:
     return st if st and st.lower() in STATES else None
 
 
+def _state_counties_summary(cov: dict[str, Any], st: str) -> str:
+    """The counties of one state, as ``_counties_summary`` words them (``stateCountiesSummary`` in TS)."""
+    counties = [c for c in cov["counties"] if c["state"] == st]
+    if len(counties) <= _LIST_CAP:
+        return "; ".join(county_label(c["state_fips"], c["county_fips"], f", {c['parcels']} parcels")
+                         for c in counties)
+    return f"{len(counties)} counties ({sum(c['parcels'] for c in counties)} parcels)"
+
+
 def address_miss(cov: dict[str, Any], query: str) -> dict[str, Any]:
-    st = query_state(query)
+    """A query with a comma is read by ``address_place`` (its state, or its ZIP code's); one without, by
+    ``query_state``."""
+    place = address_place(query) if "," in query else None
+    st = place["state"] if place else query_state(query)
     states = cov["totals"]["states"]
     loaded = st in states if st else None
+    named = f"ZIP code {place['zip']} is in {st}, which" if place and place["state_from_zip"] else st
     if st and not loaded:
-        message = f"no parcel matched: {st} is not loaded in this registry; loaded: {_counties_summary(cov)}"
+        message = f"no parcel matched: {named} is not loaded in this registry; loaded: {_counties_summary(cov)}"
     elif address_query(query)["mode"] is None:
         message = ("no parcel matched: address search matches whole words of the street address, so give a house "
                    'number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part '
                    f"of a word alone matches nothing. Loaded: {_counties_summary(cov)}")
+    elif place and st:
+        q = address_query(query)
+        if q["mode"] == "street" and len(q["tokens"]) == 1:
+            why = (f"a street type alone is matched among its first {ADDRESS_ONE_WORD_CANDIDATES} addresses only, so "
+                   'give the street name with it ("Main St")')
+        else:
+            why = ("it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel "
+                   "is not found")
+        message = (f"no parcel matched in {st}: matches are kept to the state the query names (or its ZIP code's "
+                   f"state), and of {st} this registry holds {_state_counties_summary(cov, st)}; {why}")
     else:
         message = (f"no parcel matched in this registry (loaded: {_counties_summary(cov)}); it holds commercial, "
                    "industrial and multifamily parcels only, searched by situs address: try the house number "
