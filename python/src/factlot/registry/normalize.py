@@ -1426,14 +1426,16 @@ def address_forms(runs: list[list[str]]) -> dict[str, list[list[str]]]:
 def address_row_tier(mode: str, forms: dict[str, list[list[str]]], urn: str, label: Any,
                      key: str) -> tuple[int, bool] | None:
     """How one index row matches a search (``addressRowTier`` in TS): (0, exact) as written, (1, exact) another
-    spelling or a house-number range, else None."""
+    spelling, (2, False) inside a house-number range only, else None."""
     for w in forms["first"]:
         if address_key_matches(mode, w, key):
             return 0, any(" ".join(x) == key for x in forms["first"])
-    hit = any(address_key_matches(mode, w, key) for w in forms["other"])
-    if not hit and mode == "house_number":
-        hit = any(address_range_matches(w, urn, label, key) for w in forms["first"] + forms["other"])
-    return (1, any(" ".join(x) == key for x in forms["other"])) if hit else None
+    if any(address_key_matches(mode, w, key) for w in forms["other"]):
+        return 1, any(" ".join(x) == key for x in forms["other"])
+    if mode == "house_number" and any(address_range_matches(w, urn, label, key)
+                                      for w in forms["first"] + forms["other"]):
+        return 2, False
+    return None
 
 
 def address_street_words(words: list[str]) -> list[str] | None:
@@ -1585,8 +1587,8 @@ def _code_points(s: str) -> tuple:
 
 
 def address_match_key(m: dict[str, Any]) -> tuple:
-    """The order of an address search's matches (``addressMatchCompare`` in TS): place group, the words as written
-    first, exact address first, the label naming the query's unit first, then label (null first), then URN."""
+    """The order of an address search's matches (``addressMatchCompare`` in TS): place group, the words as written,
+    then other spellings, then house-number ranges, exact address first, the label naming the query's unit first, then label (null first), then URN."""
     label = m["label"]
     return (m["rank"], m["tier"], not m["exact"], not m["unit"], label is not None,
             _code_points(label) if label is not None else (), _code_points(m["urn"]))

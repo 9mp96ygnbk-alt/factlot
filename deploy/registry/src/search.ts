@@ -5,7 +5,7 @@
  * Address: SQLite LIKE (ASCII case-folding) on whole words of the address key, for each spelling of the street line
  * (addressSearchForms), and with a house number each parcel whose house-number range holds it (addressRangeMatches).
  * One row per URN, in place group (addressPlaceRank: in the named state and county only; same ZIP code, then same
- * city, then the rest), the words as written before other spellings and ranges, exact key first, then label, then
+ * city, then the rest), the words as written, then other spellings, then ranges, exact key first, then label, then
  * URN; parcels sharing a label ordered by their cards (addressCardCompare); at most `limit`.
  *
  * Every row a query can match is in a list the query names: "F:<first word>" (house number), "U:<street type>"
@@ -217,7 +217,7 @@ async function addressMatches(
   const top = addressPlaceTop(place);
   let full = 0; // matches of the words as written in the top group
   const put = (urn: string, label: string | null, key: string | null) => {
-    const t: [0 | 1, boolean] | null =
+    const t: [0 | 1 | 2, boolean] | null =
       key === null ? [0, true] : addressRowTier(mode, forms, urn, label, key);
     if (!t) return false;
     const rank = addressPlaceRank(place, urn, label);

@@ -1131,8 +1131,8 @@ export function addressForms(runs: string[][]): AddressForms {
 
 /**
  * How one index row matches a search (`address_row_tier` in Python): [0, exact] when it matches the words as
- * written, [1, exact] when it matches only another spelling or falls inside a house-number range, else null.
- * Exact: the row's key is one of that tier's spellings exactly.
+ * written, [1, exact] when it matches only another spelling, [2, false] when it only falls inside a house-number
+ * range, else null. Exact: the row's key is one of that tier's spellings exactly.
  */
 export function addressRowTier(
   mode: "house_number" | "street",
@@ -1140,16 +1140,20 @@ export function addressRowTier(
   urn: string,
   label: unknown,
   key: string,
-): [0 | 1, boolean] | null {
+): [0 | 1 | 2, boolean] | null {
   for (const w of forms.first)
     if (addressKeyMatches(mode, w, key))
       return [0, forms.first.some((x) => x.join(" ") === key)];
-  let hit = forms.other.some((w) => addressKeyMatches(mode, w, key));
-  if (!hit && mode === "house_number")
-    hit = [...forms.first, ...forms.other].some((w) =>
+  if (forms.other.some((w) => addressKeyMatches(mode, w, key)))
+    return [1, forms.other.some((x) => x.join(" ") === key)];
+  if (
+    mode === "house_number" &&
+    [...forms.first, ...forms.other].some((w) =>
       addressRangeMatches(w, urn, label, key),
-    );
-  return hit ? [1, forms.other.some((x) => x.join(" ") === key)] : null;
+    )
+  )
+    return [2, false];
+  return null;
 }
 
 /**
@@ -1696,8 +1700,8 @@ export interface AddressMatch {
   label: string | null;
   /** addressPlaceRank: 0 same ZIP code, 1 same city, 2 the rest. */
   rank: number;
-  /** 0: the words as written; 1: another spelling, or a number inside the parcel's house-number range. */
-  tier: 0 | 1;
+  /** 0: the words as written; 1: another spelling; 2: a number inside the parcel's house-number range. */
+  tier: 0 | 1 | 2;
   /** The parcel's address key is one of its tier's spellings exactly. */
   exact: boolean;
   /** The parcel's label names the unit the query names ("#310", "Unit 4B"). */
@@ -1713,7 +1717,7 @@ function labelCompare(a: string | null, b: string | null): number {
 
 /**
  * The order of an address search's matches (`address_match_key` in Python): place group (same ZIP code, then same
- * city, then the rest), the words as written before other spellings and ranges, exact address first, those whose
+ * city, then the rest), the words as written, then other spellings, then house-number ranges, exact address first, those whose
  * label names the unit the query names first (a unit never filters), then label, then URN.
  */
 export function addressMatchCompare(a: AddressMatch, b: AddressMatch): number {
