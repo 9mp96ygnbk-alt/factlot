@@ -9,6 +9,8 @@ import { describe, it } from "node:test";
 
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  ANONYMOUS_REQUESTS_PER_MINUTE,
+  FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
   MODEL_TOOLS,
   PAID_ONLY,
   PLANS,
@@ -1221,8 +1223,17 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
       PAID_ONLY.find((f) => f.id === "model_tools")!.tools,
       MODEL_TOOLS,
     );
+    assert.deepEqual(
+      PAID_ONLY.find((f) => f.id === "account_tools")!.tools,
+      [
+        ...read("deploy/cloudflare/src/account-tools.ts").matchAll(
+          /name: "(account_[a-z_]+)"/g,
+        ),
+      ].map((m) => m[1]),
+    );
+    // Hosted-only tools are not in the catalog; every other entry names catalog tools.
     for (const f of PAID_ONLY) {
-      if (f.id === "model_tools") continue;
+      if (f.id === "model_tools" || f.id === "account_tools") continue;
       for (const name of f.tools) {
         const t = catalogTools.find((x) => x.name === name);
         assert.ok(t, `${name} is in the catalog`);
@@ -1238,6 +1249,25 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
     assert.match(gating, /\.as_of != null/);
     assert.match(gating, /\.tax_year != null/);
     assert.match(gating, /FREE_PORTFOLIO_PARCELS = 3/);
+    assert.match(gating, /RECORDED_TOOL = "registry_recorded_facts"/);
+    assert.match(gating, /export function limitSales/);
+    assert.match(gating, /export function limitEntityPortfolio/);
+  });
+  it("the free-key figures the documents type match plans.ts", () => {
+    for (const f of ["README.md", "docs/getting-started.md"]) {
+      const t = flat(f);
+      assert.ok(
+        t.includes(
+          `share ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day`,
+        ),
+        f,
+      );
+    }
+    assert.ok(
+      read("llms.txt").includes(
+        `share ${ANONYMOUS_REQUESTS_PER_MINUTE}/min and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups/day`,
+      ),
+    );
   });
   it("README, the docs and llms.txt state the same two sentences (run scripts/site/gen-plans.ts)", () => {
     for (const f of PLAN_FILES) {
@@ -1319,7 +1349,16 @@ describe("hand-typed counts", () => {
   });
   it("the docs state the catalog's tool counts", () => {
     const rest = catalogNames.length;
-    const mcp = rest + 4; // search, fetch, schema_get, report_create
+    // The MCP server adds three discovery tools to the catalog, and the hosted one report_create;
+    // none of the four is in tools.json, so the count is built here and the four are checked.
+    const mcpSrc = read("packages/mcp/src/index.ts");
+    for (const t of ["search", "fetch", "schema_get"])
+      assert.ok(mcpSrc.includes(`handlers.set("${t}"`), t);
+    assert.match(
+      read("deploy/cloudflare/src/reports.ts"),
+      /REPORT_TOOL_NAME = "report_create"/,
+    );
+    const mcp = rest + 4;
     const core = rest - registry;
     const gs = flat("docs/getting-started.md");
     assert.ok(gs.includes(`(${core} tools)`), "getting-started core count");
@@ -1343,6 +1382,54 @@ describe("hand-typed counts", () => {
       ),
     );
   });
+  it("README lists every catalog tool", () => {
+    const readme = read("README.md");
+    for (const n of catalogNames)
+      assert.ok(readme.includes(`\`${n}\``), `README lists ${n}`);
+  });
+  it(
+    "the install pages name every tool the next local release adds",
+    {
+      skip: (() => {
+        try {
+          execFileSync(
+            "git",
+            ["rev-parse", "--verify", "-q", `v${version}^{commit}`],
+            {
+              cwd: root,
+              stdio: "pipe",
+            },
+          );
+          return false;
+        } catch {
+          return `tag v${version} not fetched`;
+        }
+      })(),
+    },
+    () => {
+      const old = JSON.parse(
+        execFileSync("git", ["show", `v${version}:spec/schemas/tools.json`], {
+          cwd: root,
+          encoding: "utf8",
+        }),
+      ) as { tools: { name: string }[] };
+      const before = new Set(old.tools.map((t) => t.name));
+      const added = catalogNames.filter((n) => !before.has(n));
+      for (const f of [
+        "README.md",
+        "docs/getting-started.md",
+        "llms-install.md",
+        "site/index.html",
+        "site/_content/mcp.html",
+        "scripts/site/connect.mjs",
+      ])
+        for (const n of added)
+          assert.ok(
+            read(f).includes(n),
+            `${f} names ${n}, new since v${version}`,
+          );
+    },
+  );
   it("the MCP page, README, llms.txt and the agent guide list every fixed resource", () => {
     const src = read("packages/mcp/src/resources.ts");
     const fixed = [

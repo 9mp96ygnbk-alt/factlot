@@ -28,7 +28,11 @@ import {
   type CounterStore,
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
-import { GATING_PRICING_URL, REPORTS_PER_MONTH } from "./plans.ts";
+import {
+  FREE_KEY_NOTE,
+  GATING_PRICING_URL,
+  REPORTS_PER_MONTH,
+} from "./plans.ts";
 import { renderPropertyPage } from "./property-pages.ts";
 import { lookupForSheet, type SheetLookupOutcome } from "./property-sheet.ts";
 import { REPORT_TTL_SECONDS, runReport } from "./reports.ts";
@@ -895,6 +899,27 @@ describe("free-key reports count against the address's month too", () => {
       for (let i = 0; i < 3; i++) if ((await make(t, key)) === 201) made++;
     }
     assert.equal(made, 3);
+  });
+
+  it("FREE_KEY_NOTE says what the meters do: a free key's reports count per email address and against the keyless month of its IP address", async () => {
+    const n = REPORTS_PER_MONTH.anonymous;
+    assert.ok(FREE_KEY_NOTE.includes(`${n} a month per email address`));
+    assert.ok(
+      FREE_KEY_NOTE.includes(
+        `the same ${n} a month per IP address that calls without a key share`,
+      ),
+    );
+    // Per IP address: keyless reports use up the month a free key from that address draws on.
+    const t = env();
+    const key = await freeKey(t.e, "note");
+    for (let i = 0; i < n; i++) assert.equal(await make(t, undefined), 201);
+    assert.equal(await make(t, key), 429, "the free key shares the IP month");
+    // Per email address: the key's own month follows it to another IP address.
+    const u = env();
+    const k2 = await freeKey(u.e, "note2");
+    for (let i = 0; i < n; i++)
+      assert.equal(await make(u, k2, `203.0.113.${100 + i}`), 201);
+    assert.equal(await make(u, k2, "203.0.113.200"), 429, "per email address");
   });
 
   it("keyless and free-key reports from one address share the one month", async () => {

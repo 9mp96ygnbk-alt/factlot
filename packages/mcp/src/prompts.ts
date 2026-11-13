@@ -179,7 +179,7 @@ function coverageFirst(ctx: ResourceContext): string {
 }
 
 function lookups(data: ResourceData): string {
-  return `Each answered registry_* call except registry_coverage is one registry lookup (without a key, ${data.plans.free.registry_lookups_per_day} a day per address on the hosted API); a search inside loaded coverage counts even when it finds nothing; input errors and misses outside loaded coverage are free.`;
+  return `Each answered registry_* call except registry_coverage is one registry lookup (without a key, ${data.plans.free.registry_lookups_per_day} a day per address on the hosted API); a call inside loaded coverage that finds nothing still counts; input errors and misses outside loaded coverage are free.`;
 }
 
 function paidPlans(data: ResourceData): string {

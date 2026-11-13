@@ -135,9 +135,15 @@
           https://github.com/9mp96ygnbk-alt/factlot/releases/download/v{{VERSION}}/factlot-mcp-standalone-{{VERSION}}.tgz</code
         >
         (Node.js 22.6 or newer; the local server makes no network calls). This
-        is release v{{VERSION}}; the hosted server runs newer code, with MCP
-        resources, prompts and tools the local server gains in its next release.
-        More options:
+        is release v{{VERSION}}. Its next release brings what the hosted server
+        already runs: the tools <code>registry_lookup_batch</code> and
+        <code>registry_recorded_facts</code>, new inputs on existing tools
+        (address search by <code>city</code>, <code>state</code>,
+        <code>postal_code</code> and <code>county_fips</code>,
+        <code>registry_coverage</code> <code>fields</code>, equity-candidate
+        narrowing, <code>as_of</code> on the Texas deadline rule), and MCP
+        resources and prompts. <code>report_create</code>, the account tools and
+        the model-backed tools are hosted only. More options:
         <a
           href="https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/getting-started.md"
           >getting started</a
@@ -292,8 +298,10 @@
     An optional
     <a href="https://factlot.com/account#free-key">free key by email</a> is sent
     as <code>Authorization: Bearer &lt;key&gt;</code> like a paid key, but it is
-    a free caller: the same limits and the same Free plan rules, counted per key
-    instead of per IP address, and no paid tools.
+    a free caller: the Free plan rules and no paid tools. Its requests and
+    registry lookups count per key, with all the free keys used from one IP
+    address sharing one minute limit and daily cap; its reports still count per
+    IP address too.
   </li>
   <li>
     Registry lookups are on every plan, metered by plan: 25 a day per IP address

@@ -36,12 +36,11 @@ Related: [service status](https://factlot.com/status/), [service levels](sla.md)
   customer and subscription IDs, and dates. Never a key. Free key records: a SHA-256 hash of the
   key, a hash of the email address made with a secret only FactLot holds (never the address), and
   dates; and short-lived records of the emailed links, held under a hash of each link's random ID.
-  Daily usage totals: counts by route group, tool, state or county and kind of caller, with
+  Daily usage totals: counts by route group, tool, state and kind of caller, with
   distinct-caller estimates built from values that are already hashes; no IP address, address
   searched, parcel, key or email. Also the report files built with `report_create`, for 24 hours.
 - **Cloudflare Durable Objects.** Per-minute rate limits, registry lookup quotas and monthly report
-  counters, including a free key's own counters: counters for the current window only, keyed by key
-  ID or by a hash of the IP address.
+  counters, including a free key's own counters: counters for the current window only, keyed by key ID, by a hash of the IP address, or (a free key's report counter) by part of the email-address hash.
 - **Cloudflare Analytics Engine.** Usage records for capacity planning: time, key ID ("free-key" for
   a free key), plan, path, method and status, and event totals. No IP address. Kept 90 days.
 
@@ -114,8 +113,7 @@ names the provider and says how long it may keep what it receives. Lease extract
   created. Only its SHA-256 hash is stored, so FactLot cannot show a key again; a lost key is
   replaced, not recovered.
 - A free key is `fl_free_` followed by 32 random bytes, shown once and stored only as its SHA-256
-  hash, the same way. It is a free caller: it has the Free plan's limits on its own meter and opens
-  nothing a paid key does. You can delete it yourself; the
+  hash, the same way. It is a free caller and opens nothing a paid key does: its requests and registry lookups count on its own meter, with all the free keys used from one IP address together held to one shared minute limit and daily lookup cap, and its reports count per email address and per IP address. You can delete it yourself; the
   [privacy notice](https://factlot.com/privacy) says what is deleted with it.
 - The "key ID" in usage records and responses is the first 16 characters of that hash. It identifies a
   key without revealing it.

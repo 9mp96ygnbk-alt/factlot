@@ -107,8 +107,7 @@ export function connectBody(raw, version) {
 </p>
 <p>
   The local server (the standalone package and the Claude Desktop extension) is release
-  v${esc(version)}. The hosted server runs newer code: it offers MCP resources and prompts, and
-  tools, that the local server gains in its next release.
+  v${esc(version)}. Its next release brings what the hosted server already runs: the tools <code>registry_lookup_batch</code> and <code>registry_recorded_facts</code>, new inputs on existing tools (address search by <code>city</code>, <code>state</code>, <code>postal_code</code> and <code>county_fips</code>, <code>registry_coverage</code> <code>fields</code>, equity-candidate narrowing, <code>as_of</code> on the Texas deadline rule), and MCP resources and prompts. <code>report_create</code>, the account tools and the model-backed tools are hosted only.
 </p>
 <h2 id="keys">Keys and sign-in</h2>
 <ul class="plain">

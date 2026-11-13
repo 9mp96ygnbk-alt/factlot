@@ -65,16 +65,17 @@
     email address made with a secret only FactLot holds (never the address), and
     dates; and short-lived records of the emailed links, held under a hash of
     each link's random ID. Daily usage totals: counts by route group, tool,
-    state or county and kind of caller, with distinct-caller estimates built
-    from values that are already hashes; no IP address, address searched,
-    parcel, key or email. Also the report files built with
-    <code>report_create</code>, for 24 hours.
+    state and kind of caller, with distinct-caller estimates built from values
+    that are already hashes; no IP address, address searched, parcel, key or
+    email. Also the report files built with <code>report_create</code>, for 24
+    hours.
   </li>
   <li>
     <strong>Cloudflare Durable Objects.</strong> Per-minute rate limits,
     registry lookup quotas and monthly report counters, including a free key's
-    own counters: counters for the current window only, keyed by key ID or by a
-    hash of the IP address.
+    own counters: counters for the current window only, keyed by key ID, by a
+    hash of the IP address, or (a free key's report counter) by part of the
+    email-address hash.
   </li>
   <li>
     <strong>Cloudflare Analytics Engine.</strong> Usage records for capacity
@@ -197,9 +198,11 @@
   </li>
   <li>
     A free key is <code>fl_free_</code> followed by 32 random bytes, shown once
-    and stored only as its SHA-256 hash, the same way. It is a free caller: it
-    has the Free plan's limits on its own meter and opens nothing a paid key
-    does. You can delete it yourself; the
+    and stored only as its SHA-256 hash, the same way. It is a free caller and
+    opens nothing a paid key does: its requests and registry lookups count on
+    its own meter, with all the free keys used from one IP address together held
+    to one shared minute limit and daily lookup cap, and its reports count per
+    email address and per IP address. You can delete it yourself; the
     <a href="/privacy">privacy notice</a> says what is deleted with it.
   </li>
   <li>

@@ -99,7 +99,7 @@ export function isMeteredRegistryTool(
 /** How registry lookups are counted, one sentence each (in /v1/plans). */
 export const QUOTA_RULES = {
   counted:
-    "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+    "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners or search results, and a call inside loaded coverage that finds nothing still counts. Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
   batch:
     "A registry batch tool needs one lookup per subject or item left in the allowance to run (a batch larger than what remains is refused whole). registry_tx_equity_candidates_batch counts one lookup per answered subject, and subjects with an error are given back. registry_lookup_batch counts each item as the single call that identifies its parcel would count (registry_resolve_parcel for an account or a URN, registry_search_address for an address): a miss inside loaded coverage counts, a URN not in the registry included; an item with an error and a miss outside loaded coverage are given back. One MCP request may make at most 500 registry service calls (a registry_lookup_batch item counts 2, a registry_tx_equity_candidates_batch subject 1); a batch call past that is refused whole and counts nothing.",
   free: `Without a key, ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.`,
@@ -199,8 +199,9 @@ export interface PaidOnlyFeature {
 }
 
 /**
- * Everything on the hosted API that needs a Pro or Team key, stated once: the five registry rules
- * gating.ts applies while GATING_ENABLED is on, and the model-backed tools. /v1/plans serves it in
+ * Everything on the hosted API that needs a Pro or Team key, stated once: the registry rules
+ * gating.ts applies while GATING_ENABLED is on, the model-backed tools and the account tools. Watch
+ * lists (WATCH_LISTS_ENABLED, off) are not listed while they are off. /v1/plans serves it in
  * its gating block, the site's pricing, home and MCP pages are built from it (scripts/site/gen-plans.ts
  * writes site/_data/plans.json), and site.test.ts fails when README.md, llms.txt or the docs that
  * describe the plans leave a tool or argument out.
@@ -208,13 +209,13 @@ export interface PaidOnlyFeature {
 export const PAID_ONLY: readonly PaidOnlyFeature[] = [
   {
     id: "history",
-    what: "value history before the current roll year (registry_get, and the subject of registry_tx_equity_candidates)",
-    free: "the current roll year only, and the answer says what was left out",
+    what: "value history before the current roll year and superseded facts (registry_get, and the subject of registry_tx_equity_candidates)",
+    free: "the current roll year and the current facts, and the answer says what was left out",
     tools: ["registry_get", "registry_tx_equity_candidates"],
   },
   {
     id: "dated_get",
-    what: "registry_get with as_of (a record as it stood on an earlier date)",
+    what: "registry_get with as_of (a record on an earlier date)",
     free: "the current record, without as_of",
     tools: ["registry_get"],
     arg: "as_of",
@@ -227,10 +228,16 @@ export const PAID_ONLY: readonly PaidOnlyFeature[] = [
     arg: "tax_year",
   },
   {
+    id: "recorded",
+    what: "a parcel's recorded sales, deeds and mortgages beyond the newest sale or deed (registry_get), and registry_recorded_facts",
+    free: "the newest sale or deed, with the count and years of the rest",
+    tools: ["registry_get", "registry_recorded_facts"],
+  },
+  {
     id: "portfolio",
-    what: "an owner's parcels beyond the first three (registry_owned_by)",
+    what: "an owner's parcels beyond the first three (registry_owned_by, and registry_get on an entity)",
     free: "the first three parcels, and the number left out",
-    tools: ["registry_owned_by"],
+    tools: ["registry_owned_by", "registry_get"],
   },
   {
     id: "batch",
@@ -243,6 +250,12 @@ export const PAID_ONLY: readonly PaidOnlyFeature[] = [
     what: `the model-backed tools ${MODEL_TOOLS.join(" and ")}`,
     free: "not included",
     tools: MODEL_TOOLS,
+  },
+  {
+    id: "account_tools",
+    what: "the account tools account_status and account_usage",
+    free: "not included",
+    tools: ["account_status", "account_usage"],
   },
 ];
 
@@ -398,4 +411,4 @@ export function watchPlansInfo() {
 }
 
 /** What the optional free key gives (in /v1/plans when FREE_KEY_ENABLED is on, and on the site). */
-export const FREE_KEY_NOTE = `An optional free key (emailed link, shown once, one active key per address) gives the same free limits on your own meter instead of one shared per IP address: ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per key, ${REPORTS_PER_MONTH.anonymous} reports a month. The free keys used from one IP address together share at most ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day.`;
+export const FREE_KEY_NOTE = `An optional free key (emailed link, shown once, one active key per address) counts requests and registry lookups on its own meter instead of one shared per IP address: ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per key, with all the free keys used from one IP address together held to ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups a day. Reports stay counted per IP address as well: ${REPORTS_PER_MONTH.anonymous} a month per email address, and the same ${REPORTS_PER_MONTH.anonymous} a month per IP address that calls without a key share.`;

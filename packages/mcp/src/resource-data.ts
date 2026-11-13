@@ -4899,12 +4899,12 @@ export const RESOURCE_DATA: ResourceData = {
       dated_get: "Pro and Team",
       paid_only: [
         {
-          what: "value history before the current roll year (registry_get, and the subject of registry_tx_equity_candidates)",
-          free: "the current roll year only, and the answer says what was left out",
+          what: "value history before the current roll year and superseded facts (registry_get, and the subject of registry_tx_equity_candidates)",
+          free: "the current roll year and the current facts, and the answer says what was left out",
           tools: ["registry_get", "registry_tx_equity_candidates"],
         },
         {
-          what: "registry_get with as_of (a record as it stood on an earlier date)",
+          what: "registry_get with as_of (a record on an earlier date)",
           free: "the current record, without as_of",
           tools: ["registry_get"],
           arg: "as_of",
@@ -4916,9 +4916,14 @@ export const RESOURCE_DATA: ResourceData = {
           arg: "tax_year",
         },
         {
-          what: "an owner's parcels beyond the first three (registry_owned_by)",
+          what: "a parcel's recorded sales, deeds and mortgages beyond the newest sale or deed (registry_get), and registry_recorded_facts",
+          free: "the newest sale or deed, with the count and years of the rest",
+          tools: ["registry_get", "registry_recorded_facts"],
+        },
+        {
+          what: "an owner's parcels beyond the first three (registry_owned_by, and registry_get on an entity)",
           free: "the first three parcels, and the number left out",
-          tools: ["registry_owned_by"],
+          tools: ["registry_owned_by", "registry_get"],
         },
         {
           what: "the registry batch tools registry_lookup_batch and registry_tx_equity_candidates_batch",
@@ -4933,11 +4938,16 @@ export const RESOURCE_DATA: ResourceData = {
           free: "not included",
           tools: ["doc_extract_lease", "report_narrative"],
         },
+        {
+          what: "the account tools account_status and account_usage",
+          free: "not included",
+          tools: ["account_status", "account_usage"],
+        },
       ],
     },
     quota_rules: {
       counted:
-        "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+        "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners or search results, and a call inside loaded coverage that finds nothing still counts. Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
       batch:
         "A registry batch tool needs one lookup per subject or item left in the allowance to run (a batch larger than what remains is refused whole). registry_tx_equity_candidates_batch counts one lookup per answered subject, and subjects with an error are given back. registry_lookup_batch counts each item as the single call that identifies its parcel would count (registry_resolve_parcel for an account or a URN, registry_search_address for an address): a miss inside loaded coverage counts, a URN not in the registry included; an item with an error and a miss outside loaded coverage are given back. One MCP request may make at most 500 registry service calls (a registry_lookup_batch item counts 2, a registry_tx_equity_candidates_batch subject 1); a batch call past that is refused whole and counts nothing.",
       free: "Without a key, 25 lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.",

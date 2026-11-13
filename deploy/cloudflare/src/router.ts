@@ -781,7 +781,7 @@ export function quotaError(
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
   const free =
-    "Only answered lookups count (a search inside loaded coverage that finds nothing is answered): coverage checks, misses outside loaded coverage and input errors are free.";
+    "Only answered lookups count, and a call inside loaded coverage that finds nothing still counts: coverage checks, misses outside loaded coverage and input errors are free.";
   const short = q.remaining > 0 && needed > q.remaining;
   const left = q.remaining.toLocaleString("en-US");
   const shortfall = (whose: string) =>
