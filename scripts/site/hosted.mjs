@@ -71,7 +71,7 @@ const NYC = {
 };
 
 const TX_NOTE =
-  "Denton and Williamson from 2027 preliminary rolls as of 2026-11-07; several counties hold more than one roll year (Brazos 2016 to 2026, Nueces 2021 to 2026, Galveston 2023 to 2026, Kaufman 2024 to 2026, Jefferson and Guadalupe 2025 to 2026); Midland has no values because its publisher's file has none";
+  "Denton and Williamson from 2027 preliminary rolls as of 2026-11-07; Midland has no values because its publisher's file has none";
 
 /**
  * The places the hosted registry is described by, in the order the pages list them. A place takes the hosted
