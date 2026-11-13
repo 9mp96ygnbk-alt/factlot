@@ -682,8 +682,9 @@ export async function lifecycleSweep(
     errors: 0,
     complete: true,
   };
-  if (!lifecycleEnabled(env) || !env.KEYS.list) return result;
-  const batch = await env.KEYS.list({
+  if (!lifecycleEnabled(env)) return result;
+  // The KV binding lists keys; this is not probed (never decide what a binding is by its shape).
+  const batch = await env.KEYS.list!({
     prefix: DUE_PREFIX,
     limit: Math.min(batchSize, SWEEP_BATCH),
   });

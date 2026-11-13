@@ -3,6 +3,19 @@
 Operator notes for the hosted FactLot Worker. Configuration is in [`wrangler.jsonc`](wrangler.jsonc);
 secrets are set with `npx wrangler@4 secret put <NAME>` and are never in the repository.
 
+## Runtime check (workerd)
+
+`npm run test:workerd` (part of `npm run check` and CI) bundles both Workers as `wrangler deploy`
+does (`--dry-run`, no account), checks their compressed size, starts them together in workerd
+with the API Worker's `REGISTRY` binding pointed at the registry Worker and a pack built from the
+fixture registry, and calls the registry routes, the API's REST, MCP, assets, a property page, a
+key-authenticated batch through the binding, the scheduled handler (feature variables unset and
+set), and the registry on its object-storage backend. Run it before every deploy of either Worker.
+The unit tests use file-backed fakes and cannot see what only the runtime refuses: a named export
+of an entry module that is not a handler, or a binding whose shape differs from the fake. So never
+decide what a binding is by probing its properties (`"x" in env.BINDING`, `typeof
+env.BINDING.method`); choose explicitly.
+
 ## Usage counters
 
 How the hosted service is used, without recording who used it. Off unless the variable

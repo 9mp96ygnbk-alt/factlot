@@ -24,7 +24,8 @@
     "test": "node --experimental-strip-types --conditions=factlot-source --import ./scripts/test/workers-stub.mjs --test \"packages/*/src/**/*.test.ts\" \"deploy/cloudflare/src/**/*.test.ts\" \"deploy/registry/src/**/*.test.ts\" \"scripts/site/*.test.ts\" \"scripts/ops/*.test.ts\" \"scripts/conformance/*.test.ts\"",
     "test:e2e": "node --experimental-strip-types --test-reporter=spec scripts/e2e/run.ts",
     "build": "npm run build --workspaces",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build && npm run test:workerd",
+    "test:workerd": "node --experimental-strip-types --conditions=factlot-source scripts/workerd/run.ts",
     "schemas": "node --experimental-strip-types --conditions=factlot-source scripts/gen-schemas.ts && prettier --write spec/schemas >/dev/null && rm -rf python/src/factlot/schemas && cp -r spec/schemas python/src/factlot/schemas",
     "schemas:check": "npm run schemas && git diff --exit-code spec/schemas python/src/factlot/schemas",
     "test:python": "cd python && PYTHONPATH=src python3 -m unittest discover -s tests",
@@ -52,7 +53,8 @@
     "prettier": "^3.9.10",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.72.1",
-    "unpdf": "1.9.1"
+    "unpdf": "1.9.1",
+    "wrangler": "4.161.0"
   },
   "overrides": {
     "tmp": "^0.2.6",

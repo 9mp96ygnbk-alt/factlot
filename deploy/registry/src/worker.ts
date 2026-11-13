@@ -24,7 +24,7 @@ import {
   bucketText,
   type R2BucketLike,
 } from "./r2_pack.ts";
-import { Pack, type AssetFetcher } from "./store.ts";
+import { Pack, assetsSource, type AssetFetcher } from "./store.ts";
 import { runRegistryTool } from "./tools.ts";
 
 export interface Env {
@@ -42,7 +42,9 @@ export interface Env {
 
 const MAX_BODY = 64 * 1024;
 /** URNs one /get-many call may read. */
-export const GET_MANY_MAX = 50;
+// Module-local: workerd accepts only handlers (functions, classes, handler objects) as named exports of the
+// entry module, and refuses to start on any other value.
+const GET_MANY_MAX = 50;
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -101,7 +103,7 @@ async function packFor(env: Env): Promise<Pack> {
       "PACK_BACKEND is assets but the Worker has no ASSETS binding",
     );
   if (pack?.assets !== env.ASSETS)
-    pack = { assets: env.ASSETS, pack: new Pack(env.ASSETS) };
+    pack = { assets: env.ASSETS, pack: new Pack(assetsSource(env.ASSETS)) };
   return pack.pack;
 }
 
