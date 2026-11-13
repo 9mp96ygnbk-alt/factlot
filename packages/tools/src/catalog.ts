@@ -38,6 +38,11 @@ import {
 import { DocPredicatesInput, docPredicates } from "./predicates.ts";
 import { SpreadStatementInput, spreadStatement } from "./statements.ts";
 import { UseConflictInput, checkUseConflict } from "./uses.ts";
+import {
+  LOOKUP_BATCH_MAX_ITEMS,
+  lookupBatchSync,
+  type LookupItem,
+} from "./lookup_batch.ts";
 
 import {
   RegistryUnavailableError,
@@ -1074,6 +1079,98 @@ const registryTools: ToolSpec[] = [
       };
     },
   },
+  {
+    name: "registry_lookup_batch",
+    title: "Look up many parcels (batch)",
+    description:
+      "Up to 50 parcels in any loaded state in one call (a loan tape, a broker's list, a client's accounts), each item naming one parcel by exactly one of: urn (a FactLot parcel URN); apn with state_fips and county_fips (3 digits), or with a 5-digit county_fips alone (as registry_resolve_parcel takes them); or address with the optional place fields registry_search_address takes (state, city, postal_code, county_fips). ref, your own row id, is echoed back. Each item is answered as the single tools answer it: registry_get for a URN, registry_resolve_parcel for an account, registry_search_address (20 results) for an address, then registry_get on the URN found. results lists one entry per item in input order (index, ref, by: urn, account or address, status): found gives parcel, a compact row: urn, label, record_status, account, property_category, use_code, improvement_area_sf, year_built, value (the newest roll year's entry of registry_get's value_history: tax_year, market and appraised value, as_of, value types, file and each value's citation), owner_of_record (the owner of record fact exactly as registry_get gives it, with the entity linked to it, or null; organisations only, natural persons are never stored), citations (each field's fact id, document id, locator and as-of date), sources (each cited document with its title, URI, read date, licence, ai_use and redistribution: relay them) and warnings; an address item also gives match (exact, and how many parcels the search returned). not_found gives message and coverage exactly as the single tool's miss gives them (the reason: county or state not loaded, street or house number not held); a URN not in the registry also carries registry_get's NotFound as error. ambiguous (an address only): the search returned more than one parcel and not exactly one of them has the address exactly; exact means the label's street line, normalized as the address index normalizes it ('Street' = 'St'), is the query's and the label names the same unit as the query, or neither names one; candidates lists up to 5 of the search's result cards (the exact ones first; never an owner), with matches and a message. error gives the item's own error (an input error, a malformed or non-parcel URN), so one bad item does not fail the others. summary counts items, found, not_found, ambiguous and errors. On the hosted API this batch tool needs a Pro or Team key, and each item counts as the one call that identifies its parcel would count on its own (registry_get, registry_resolve_parcel or registry_search_address): a found or ambiguous item and a miss inside loaded coverage count one registry lookup, a miss outside loaded coverage, a URN not in the registry and an item with an error count none; the call needs one lookup per item left in the allowance to run. Facts as the sources publish them: not an appraisal, a valuation opinion or advice." +
+      REGISTRY_NOTE,
+    input: z.object({
+      items: z
+        .array(
+          z.object({
+            ref: z
+              .string()
+              .min(1)
+              .max(200)
+              .optional()
+              .describe(
+                "Your own id for this row (a loan number, a client account), echoed back with its answer.",
+              ),
+            urn: z
+              .string()
+              .max(500)
+              .optional()
+              .describe(
+                "FactLot parcel URN, e.g. fl:parcel:us-48201:0011440000001.",
+              ),
+            apn: z
+              .string()
+              .max(200)
+              .optional()
+              .describe(
+                "Parcel or account number as the county prints it (see registry_resolve_parcel), with state_fips and county_fips.",
+              ),
+            state_fips: z
+              .string()
+              .max(16)
+              .optional()
+              .describe('With apn: 2-digit state FIPS, e.g. "48".'),
+            county_fips: z
+              .string()
+              .max(16)
+              .optional()
+              .describe(
+                'With apn: 3-digit county FIPS with state_fips, or 5 digits alone ("48201"). With address: keeps the search to that county (5 digits, or 3 with state).',
+              ),
+            address: z
+              .string()
+              .max(500)
+              .optional()
+              .describe(
+                "Street address, e.g. '1200 Main St, Houston, TX 77002', searched as registry_search_address searches it.",
+              ),
+            state: z
+              .string()
+              .max(40)
+              .optional()
+              .describe(
+                "With address: state, two letters or full name; keeps the search to that state.",
+              ),
+            city: z
+              .string()
+              .max(100)
+              .optional()
+              .describe(
+                "With address: city; orders the matches, never filters.",
+              ),
+            postal_code: z
+              .string()
+              .max(10)
+              .optional()
+              .describe(
+                "With address: ZIP code; orders the matches, never filters.",
+              ),
+          }),
+        )
+        .min(1)
+        .max(LOOKUP_BATCH_MAX_ITEMS)
+        .describe(
+          "The parcels (1–50), each by exactly one of urn, apn (with its county) or address.",
+        ),
+    }),
+    path: "/v1/registry/lookup/batch",
+    requires: "registry",
+    run: (i: never) => {
+      const outcome = lookupBatchSync(
+        (i as { items: LookupItem[] }).items,
+        (tool, input) => runTool(tool, input),
+      );
+      if (outcome.ok) return outcome.result;
+      // No registry is no answer for any item: the whole call fails, as the single tools do.
+      throw new RegistryUnavailableError(outcome.error.message);
+    },
+  },
 ];
 
 /** Every FactLot tool, in a stable order. */
@@ -1200,6 +1297,20 @@ function checkInput(name: string, args: unknown): Checked {
     };
   }
   return { tool, data: parsed.data, args };
+}
+
+/**
+ * A tool's input after runTool's checks and schema defaults, or the outcome refusing it. Lets a
+ * runner that answers a batch with single-tool calls elsewhere (the hosted registry service)
+ * check each single call exactly as runTool would.
+ */
+export function checkToolInput(
+  name: string,
+  args: unknown,
+): { ok: true; input: unknown } | (ToolOutcome & { ok: false }) {
+  const c = checkInput(name, args);
+  if ("error" in c) return c.error as ToolOutcome & { ok: false };
+  return { ok: true, input: inputFor(c) };
 }
 
 /** A thrown domain error as an outcome; anything else is a bug and is rethrown. */

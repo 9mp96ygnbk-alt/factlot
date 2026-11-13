@@ -799,6 +799,250 @@ def _recorded_facts(args: dict[str, Any]) -> dict[str, Any]:
     return recorded_page(urn, predicate, totals, offsets, slices, limit)
 
 
+# registry_lookup_batch (lookup_batch.ts in @factlot/tools): each item is answered by the single registry tools,
+# registry_get for a URN, registry_resolve_parcel for an account, registry_search_address for an address, then
+# registry_get on the URN found, and read into a compact row.
+LOOKUP_BATCH_SEARCH_LIMIT = 20
+LOOKUP_BATCH_CANDIDATES = 5
+LOOKUP_BATCH_NOTICE = (
+    "Each row is the parcel's current facts as its sources publish them, each cited: not an appraisal, a valuation "
+    "opinion or advice. Owners of record are organisations as the source names them; natural persons are not stored. "
+    "Relay each source's rights (ai_use, redistribution) with its facts.")
+LOOKUP_WHICH_PARCEL = ("give exactly one of urn, apn (with state_fips and county_fips, or a 5-digit county_fips) "
+                       "or address")
+_LOOKUP_MODES = {"urn": [], "apn": ["state_fips", "county_fips"],
+                 "address": ["state", "city", "postal_code", "county_fips"]}
+_LOOKUP_BY = {"urn": "urn", "apn": "account", "address": "address"}
+_LOOKUP_FIELDS = ["urn", "apn", "address", "state_fips", "county_fips", "state", "city", "postal_code"]
+_LOOKUP_ROW_FACTS = [("account", "parcel.apn"), ("property_category", "parcel.state_property_category"),
+                     ("use_code", "parcel.local_use_code"), ("improvement_area_sf", "parcel.improvement_area_sf"),
+                     ("year_built", "parcel.year_built"), ("owner_of_record", "ownership.owner_of_record")]
+
+
+def _lookup_input_error(issues: list[dict[str, str]]) -> dict[str, Any]:
+    return {"error": "InputError",
+            "message": "invalid input: " + "; ".join(f"{i['path'] or '(root)'}: {i['message']}" for i in issues),
+            "issues": issues}
+
+
+def _is_error(outcome: Any) -> bool:
+    return isinstance(outcome, dict) and isinstance(outcome.get("error"), str) and "issues" in outcome
+
+
+def lookup_exact(query: str, label: Any) -> bool:
+    """Whether a search result has the item's address exactly (``lookupExact`` in TS)."""
+    from .registry.normalize import address_query_with_place, address_unit, normalize_address
+
+    if not isinstance(label, str):
+        return False
+    line = lambda a: normalize_address(a.split(",")[0])  # noqa: E731
+    return line(address_query_with_place(query)) == line(label) and address_unit(query) == address_unit(label)
+
+
+def _lookup_text(v: Any) -> str | None:
+    if isinstance(v, str) and v != "":
+        return v
+    if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) != float("inf"):
+        return num_str(v)
+    return None
+
+
+def _lookup_finite(v: Any) -> Any:
+    ok = isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) != float("inf")
+    return v if ok else None
+
+
+def lookup_row(record: dict[str, Any]) -> dict[str, Any]:
+    """The compact row of a parcel from registry_get's answer (``lookupRow`` in TS)."""
+    facts = record.get("facts") if isinstance(record.get("facts"), list) else []
+
+    def first(p: str) -> dict[str, Any] | None:
+        return next((f for f in facts if f.get("predicate") == p), None)
+
+    def src(f: dict[str, Any]) -> dict[str, Any]:
+        return ((f.get("provenance") or {}).get("sources") or [{}])[0]
+
+    citations: dict[str, Any] = {}
+    docs: list[Any] = []
+    for field, p in _LOOKUP_ROW_FACTS:
+        f = first(p)
+        if f is None:
+            continue
+        s = src(f)
+        c = {"fact_id": f.get("id"), "document_id": s.get("document_id"), "locator": s.get("section"),
+             "as_of": f.get("as_of")}
+        citations[field] = c
+        if c["document_id"] is not None and c["document_id"] not in docs:
+            docs.append(c["document_id"])
+    history = record.get("value_history") if isinstance(record.get("value_history"), list) else []
+    value = history[0] if history else None
+    for c in ((value or {}).get("citations") or {}).values():
+        if c and c.get("document_id") is not None and c["document_id"] not in docs:
+            docs.append(c["document_id"])
+
+    def source(doc: Any) -> dict[str, Any]:
+        f = next((x for x in facts if src(x).get("document_id") == doc), None)
+        if f is None:
+            return {"document_id": doc}
+        s, rights = src(f), f.get("rights") or {}
+        out = {"document_id": doc, "title": s.get("title"), "uri": s.get("uri"), "retrieved_at": s.get("retrieved_at"),
+               "as_of": f.get("as_of"), "license": rights.get("license"), "ai_use": rights.get("ai_use"),
+               "redistribution": rights.get("redistribution")}
+        if "attribution" in rights:
+            out["attribution"] = rights["attribution"]
+        return out
+
+    owner = first("ownership.owner_of_record")
+    rels = record.get("relationships") if isinstance(record.get("relationships"), list) else []
+    link = next((r for r in rels if r.get("type") == "owns" and r.get("to_urn") == record.get("urn")), None)
+
+    def fact_value(p: str) -> Any:
+        f = first(p)
+        return None if f is None else f.get("value")
+
+    return {
+        "urn": record.get("urn"),
+        "label": record.get("label"),
+        "record_status": record.get("status"),
+        "account": _lookup_text(fact_value("parcel.apn")),
+        "property_category": _lookup_text(fact_value("parcel.state_property_category")),
+        "use_code": _lookup_text(fact_value("parcel.local_use_code")),
+        "improvement_area_sf": _lookup_finite(fact_value("parcel.improvement_area_sf")),
+        "year_built": _lookup_finite(fact_value("parcel.year_built")),
+        "value": value,
+        "owner_of_record": None if owner is None else {
+            "name": owner.get("value"),
+            "entity_urn": link["from_urn"] if link and isinstance(link.get("from_urn"), str) else None,
+        },
+        "citations": citations,
+        "sources": [source(d) for d in docs],
+        "warnings": record.get("warnings") if isinstance(record.get("warnings"), list) else [],
+    }
+
+
+class _LookupUnavailable(Exception):
+    def __init__(self, outcome: dict[str, Any]) -> None:
+        super().__init__(outcome["message"])
+        self.outcome = outcome
+
+
+def _lookup_call(tool: str, args: dict[str, Any]) -> dict[str, Any]:
+    out = run_tool(tool, args)
+    if _is_error(out) and out["error"] == "RegistryUnavailable":
+        raise _LookupUnavailable(out)
+    return out
+
+
+def _lookup_item(item: dict[str, Any], index: int) -> dict[str, Any]:
+    """One item of registry_lookup_batch (``lookupItem`` in TS)."""
+    head: dict[str, Any] = {"index": index}
+    if "ref" in item:
+        head["ref"] = item["ref"]
+    modes = [m for m in _LOOKUP_MODES if m in item]
+    if len(modes) != 1:
+        return {**head, "status": "error", "error": _lookup_input_error([{"path": "", "message": LOOKUP_WHICH_PARCEL}])}
+    mode = modes[0]
+    head["by"] = _LOOKUP_BY[mode]
+    allowed = {mode, *_LOOKUP_MODES[mode]}
+    stray = [k for k in _LOOKUP_FIELDS if k in item and k not in allowed]
+    if stray:
+        takes = ", ".join(_LOOKUP_MODES[mode]) if _LOOKUP_MODES[mode] else "nothing else"
+        return {**head, "status": "error", "error": _lookup_input_error(
+            [{"path": k, "message": f"not used with {mode}; {mode} takes {takes}"} for k in stray])}
+
+    def fail(error: dict[str, Any]) -> dict[str, Any]:
+        return {**head, "status": "error", "error": error}
+
+    def miss(coverage: Any, error: dict[str, Any] | None = None) -> dict[str, Any]:
+        message = (coverage or {}).get("message") if isinstance(coverage, dict) else None
+        out = {**head, "status": "not_found",
+               "message": str(message if message is not None else (error or {}).get("message", "")),
+               "coverage": coverage}
+        if error is not None:
+            out["error"] = error
+        return out
+
+    match = None
+    if mode == "urn":
+        urn = item["urn"]
+        try:
+            kind, _ = parse(urn)
+            if kind != "parcel":
+                raise FactLotIdError(f'"{urn}" is a {kind} URN; registry_lookup_batch needs a parcel URN')
+        except FactLotIdError as e:
+            return fail({"error": "FactLotIdError", "message": str(e), "issues": []})
+    elif mode == "apn":
+        county = item.get("county_fips")
+        if county is None:
+            return fail(_lookup_input_error([{"path": "county_fips", "message": (
+                "required with apn: a 3-digit county_fips with state_fips, or a 5-digit county_fips")}]))
+        if "state_fips" in item:
+            args = {"state_fips": item["state_fips"], "county_fips": county, "apn": item["apn"]}
+        elif isinstance(county, str) and re.fullmatch(r"[0-9]{5}", county):
+            args = {"state_fips": county[:2], "county_fips": county[2:], "apn": item["apn"]}
+        else:
+            return fail(_lookup_input_error([{"path": "state_fips", "message": (
+                "required with a 3-digit county_fips; or give a 5-digit county_fips alone")}]))
+        out = _lookup_call("registry_resolve_parcel", args)
+        if _is_error(out):
+            return fail(out)
+        if not isinstance(out.get("urn"), str):
+            return miss(out.get("coverage"))
+        urn = out["urn"]
+    else:
+        args = {"address": item["address"], **{k: item[k] for k in _LOOKUP_MODES["address"] if k in item},
+                "limit": LOOKUP_BATCH_SEARCH_LIMIT}
+        out = _lookup_call("registry_search_address", args)
+        if _is_error(out):
+            return fail(out)
+        results = out.get("results") if isinstance(out.get("results"), list) else []
+        if not results:
+            return miss(out.get("coverage"))
+        query = item["address"]
+        exact = [r for r in results if lookup_exact(query, r.get("label"))]
+        if len(results) > 1 and len(exact) != 1:
+            rest = [r for r in results if not any(r is e for e in exact)]
+            more = " or more" if len(results) >= LOOKUP_BATCH_SEARCH_LIMIT else ""
+            message = (
+                f"{len(exact)} parcels have this address exactly (separate accounts at one address); send the urn, "
+                "or the apn with its county, of the one you mean" if len(exact) > 1 else
+                f"{len(results)}{more} parcels match this address and none has it exactly; send the urn, or the apn "
+                "with its county, of the one you mean, or a fuller address")
+            return {**head, "status": "ambiguous", "matches": len(results),
+                    "candidates": (exact + rest)[:LOOKUP_BATCH_CANDIDATES], "message": message}
+        chosen = exact[0] if exact else results[0]
+        urn = str(chosen["urn"])
+        match = {"exact": len(exact) == 1, "matches": len(results)}
+
+    got = _lookup_call("registry_get", {"urn": urn})
+    if _is_error(got):
+        if got["error"] == "NotFound":
+            return miss(got.get("coverage"), {"error": "NotFound", "message": got["message"], "issues": got["issues"]})
+        return fail(got)
+    out = {**head, "status": "found", "parcel": lookup_row(got)}
+    if match is not None:
+        out["match"] = match
+    return out
+
+
+def _lookup_batch(args: dict[str, Any]) -> dict[str, Any]:
+    invalid = input_schema_issues(_input_schemas()["registry_lookup_batch"], args)[:20]
+    if invalid:
+        raise _MultiInputError(invalid)
+    try:
+        entries = [_lookup_item(item, k) for k, item in enumerate(args["items"])]
+    except _LookupUnavailable as e:
+        # No registry is no answer for any item: the whole call fails, as the single tools do.
+        raise _RegistryUnavailable(e.outcome["message"]) from None
+    count = lambda s: sum(1 for e in entries if e["status"] == s)  # noqa: E731
+    return {
+        "results": entries,
+        "summary": {"items": len(entries), "found": count("found"), "not_found": count("not_found"),
+                    "ambiguous": count("ambiguous"), "errors": count("error")},
+        "notice": LOOKUP_BATCH_NOTICE,
+    }
+
+
 _REGISTRY_TOOLS = {
     "registry_get": _registry_get,
     "registry_resolve_parcel": _resolve_parcel,
@@ -810,6 +1054,7 @@ _REGISTRY_TOOLS = {
     "registry_coverage": _registry_coverage,
     "registry_tx_equity_candidates": _tx_equity_candidates,
     "registry_tx_equity_candidates_batch": _tx_equity_candidates_batch,
+    "registry_lookup_batch": _lookup_batch,
 }
 
 _OTHER_TOOLS = {

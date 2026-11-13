@@ -614,6 +614,26 @@
       "expect_error": "InputError"
     },
     {
+      "tool": "registry_lookup_batch",
+      "arguments": {
+        "items": [{ "ref": "a", "urn": "fl:parcel:us-48201:1" }]
+      },
+      "expect_error": "RegistryUnavailable"
+    },
+    {
+      "tool": "registry_lookup_batch",
+      "arguments": { "items": [] },
+      "expect_error": "InputError"
+    },
+    {
+      "tool": "registry_lookup_batch",
+      "arguments": {
+        "items": [{ "urn": "fl:parcel:us-48201:1", "owner": "x" }]
+      },
+      "expect_error": "InputError",
+      "expect_message_contains": ["items.0.owner"]
+    },
+    {
       "tool": "calc_cam_reconciliation",
       "arguments": {
         "year": 2026,

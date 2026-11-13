@@ -358,7 +358,7 @@ reg.get(reg.resolve_external("tx-harris-cad-account", "0011440000001"))
 
 When a registry is available (a registry file configured with `FACTLOT_REGISTRY_DB`, or
 `configureRegistry()` / `configure_registry()`, or the hosted API's registry service), the catalog
-gains eight tools. They are served over MCP and REST, and in both SDKs:
+gains ten tools. They are served over MCP and REST, and in both SDKs:
 
 - `registry_get`
 - `registry_resolve_parcel`
@@ -368,6 +368,14 @@ gains eight tools. They are served over MCP and REST, and in both SDKs:
 - `registry_owned_by`
 - `registry_coverage`
 - `registry_tx_equity_candidates`
+- `registry_tx_equity_candidates_batch`
+- `registry_lookup_batch`: up to 50 parcels in one call, each by URN, account number with its
+  county, or address, answered by the single tools above (`registry_get`, `registry_resolve_parcel`,
+  `registry_search_address`) and returned in input order as a compact cited row (`found`), the
+  single tool's miss with its `coverage` (`not_found`), up to five candidate cards for an address
+  that matched more than one parcel with not exactly one exact match (`ambiguous`), or the item's own
+  error. Exact means the label's street line, normalized as the address index is, is the query's,
+  and the label names the same unit as the query or neither names one.
 
 Without a registry, the MCP server does not list them, REST returns 503, and the SDKs return
 `RegistryUnavailable`.

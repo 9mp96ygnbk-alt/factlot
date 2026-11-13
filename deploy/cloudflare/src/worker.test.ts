@@ -93,12 +93,18 @@ import {
 import { createRecoveryToken } from "./recovery.ts";
 import {
   BATCH_CONCURRENCY,
+  LOOKUP_BATCH_TOOL,
   REGISTRY_RUN_URL,
   NARROWING_UNAVAILABLE,
   TX_EQUITY_BATCH_TOOL,
   registryRunner,
 } from "./registry.ts";
-import { handle } from "./router.ts";
+import {
+  handle,
+  isChargedAnswer,
+  lookupItemAnswer,
+  lookupsReserved,
+} from "./router.ts";
 import {
   STRIPE_API_VERSION,
   StripeError,
@@ -10601,5 +10607,548 @@ describe("lifecycle emails", () => {
       assert.equal(e.KEYS.data.get("lcsub:sub_b"), h);
       assert.equal(e.KEYS.data.has("lcsub:sub_a"), false);
     });
+  });
+});
+
+describe("registry_lookup_batch: single calls fanned out, metered per item", () => {
+  const BATCH = LOOKUP_BATCH_TOOL;
+  const PATH = "/v1/registry/lookup/batch";
+  const SINGLES = new Set([
+    "registry_get",
+    "registry_resolve_parcel",
+    "registry_search_address",
+  ]);
+  const specDir = fileURLToPath(
+    new URL("../../../spec/registry/", import.meta.url),
+  );
+  let fixture: string | undefined;
+  const fixtureDb = () =>
+    (fixture ??= (() => {
+      const db = join(mkdtempSync(join(tmpdir(), "factlot-lookup-")), "f.db");
+      execFileSync("python3", [join(specDir, "build_fixture.py"), db]);
+      return db;
+    })());
+
+  /** A fake REGISTRY binding answering each single call from the fixture with the SDK. */
+  function registryService(
+    opts: {
+      delay?: (k: number) => number;
+      answer?: (tool: string, input: unknown) => unknown;
+    } = {},
+  ) {
+    const calls: { tool: string; input: Record<string, unknown> }[] = [];
+    const stats = { inFlight: 0, maxInFlight: 0 };
+    const binding = {
+      async fetch(r: Request) {
+        assert.equal(r.url, REGISTRY_RUN_URL);
+        const { tool, input } = (await r.json()) as {
+          tool: string;
+          input: Record<string, unknown>;
+        };
+        const k = calls.push({ tool, input }) - 1;
+        stats.inFlight++;
+        stats.maxInFlight = Math.max(stats.maxInFlight, stats.inFlight);
+        try {
+          await new Promise((res) => setTimeout(res, opts.delay?.(k) ?? 0));
+          const a = opts.answer
+            ? opts.answer(tool, input)
+            : runTool(tool, input);
+          return a instanceof Response ? a : new Response(JSON.stringify(a));
+        } finally {
+          stats.inFlight--;
+        }
+      },
+    };
+    return { calls, stats, binding };
+  }
+
+  async function withRunner<T>(
+    binding: { fetch(r: Request): Promise<Response> },
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    configureRegistry(fixtureDb());
+    configureRegistryRunner(registryRunner(binding));
+    try {
+      return await fn();
+    } finally {
+      configureRegistryRunner(undefined);
+      configureRegistry(undefined);
+    }
+  }
+
+  async function realInnerApi() {
+    const handler = createHandler({
+      maxBodyBytes: 1024 * 1024,
+      trustProxy: true,
+      logSink: () => {},
+    });
+    const server = createServer((req, res) => void handler(req, res));
+    await new Promise<void>((res) => server.listen(0, "127.0.0.1", res));
+    const { port } = server.address() as AddressInfo;
+    return {
+      close: () => server.close(),
+      api: {
+        fetch: async (r: Request) => {
+          const u = new URL(r.url);
+          const headers = new Headers(r.headers);
+          headers.delete("host");
+          headers.delete("content-length");
+          return fetch(`http://127.0.0.1:${port}${u.pathname}${u.search}`, {
+            method: r.method,
+            headers,
+            body:
+              r.method === "GET" || r.method === "HEAD"
+                ? undefined
+                : await r.text(),
+          });
+        },
+      },
+    };
+  }
+
+  const used = (e: ReturnType<typeof env>) =>
+    e.limiter.object("meter:sub:sub_1").store.counts.get("month:2026-11") ?? 0;
+  const remaining = (r: Response) =>
+    r.headers.get("x-factlot-registry-quota-remaining");
+
+  const vectors = JSON.parse(
+    readFileSync(join(specDir, "calls_lookup_batch.json"), "utf8"),
+  ) as { tool: string; arguments: { items: Record<string, unknown>[] } }[];
+
+  /**
+   * The single call an item stands for, as a caller would make it on its own, or undefined for an
+   * item the batch refuses before any call (no single call to compare).
+   */
+  function singleCall(
+    item: Record<string, unknown>,
+  ): { tool: string; args: Record<string, unknown> } | undefined {
+    const modes = ["urn", "apn", "address"].filter(
+      (k) => item[k] !== undefined,
+    );
+    if (modes.length !== 1) return undefined;
+    // A URN of another kind (an entity, a building) is not a parcel: the batch refuses it.
+    if (item.urn !== undefined)
+      return Object.keys(item).some((k) => k !== "urn" && k !== "ref") ||
+        /^fl:(?!parcel:)[a-z]+:/.test(String(item.urn))
+        ? undefined
+        : { tool: "registry_get", args: { urn: item.urn } };
+    if (item.apn !== undefined) {
+      const c = item.county_fips as string | undefined;
+      if (c === undefined) return undefined;
+      if (item.state_fips !== undefined)
+        return {
+          tool: "registry_resolve_parcel",
+          args: { state_fips: item.state_fips, county_fips: c, apn: item.apn },
+        };
+      return /^[0-9]{5}$/.test(c)
+        ? {
+            tool: "registry_resolve_parcel",
+            args: {
+              state_fips: c.slice(0, 2),
+              county_fips: c.slice(2),
+              apn: item.apn,
+            },
+          }
+        : undefined;
+    }
+    if (item.state_fips !== undefined) return undefined;
+    const { ref: _ref, ...rest } = item;
+    void _ref;
+    return { tool: "registry_search_address", args: { ...rest, limit: 20 } };
+  }
+
+  /** What the single call would be charged on its own: a tool error is free, else isChargedAnswer. */
+  function singleCharge(item: Record<string, unknown>): number {
+    const c = singleCall(item);
+    if (!c) return 0;
+    const o = runTool(c.tool, c.args);
+    return o.ok && isChargedAnswer(o.result) ? 1 : 0;
+  }
+
+  it("answers every shared vector exactly as the SDK's batch, with single calls only", async () => {
+    for (const v of vectors) {
+      const label = JSON.stringify(v.arguments).slice(0, 120);
+      configureRegistry(fixtureDb());
+      const sdk = runTool(v.tool, v.arguments);
+      configureRegistry(undefined);
+      const service = registryService({ delay: (k) => Math.max(0, 12 - k) });
+      const hosted = await withRunner(service.binding, () =>
+        runToolAsync(v.tool, v.arguments),
+      );
+      assert.equal(JSON.stringify(hosted), JSON.stringify(sdk), label);
+      if (!sdk.ok) {
+        assert.equal(service.calls.length, 0, label);
+        continue;
+      }
+      assert.ok(
+        service.calls.every((c) => SINGLES.has(c.tool)),
+        label,
+      );
+      assert.ok(service.calls.length <= 2 * v.arguments.items.length, label);
+      assert.ok(service.stats.maxInFlight <= BATCH_CONCURRENCY, label);
+    }
+  });
+
+  it("checks each single call as runTool does before sending it", async () => {
+    const service = registryService();
+    const out = await withRunner(service.binding, () =>
+      runToolAsync(BATCH, {
+        items: [
+          { address: "100 Main St", state: "Texsa" },
+          { urn: "fl:parcel:bad" },
+          { apn: "1", county_fips: "999" },
+        ],
+      }),
+    );
+    assert.ok(out.ok);
+    assert.equal(service.calls.length, 0, "no item reached the service");
+    const r = out.result as { results: { error: { error: string } }[] };
+    assert.deepEqual(
+      r.results.map((x) => x.error.error),
+      ["InputError", "FactLotIdError", "InputError"],
+    );
+  });
+
+  it("keeps input order with at most 4 items in flight", async () => {
+    const service = registryService({ delay: (k) => (k % 3) * 4 });
+    const items = Array.from({ length: 12 }, (_, i) => ({
+      ref: `r${i}`,
+      urn: `fl:parcel:us-48997:${1000001 + i}`,
+    }));
+    const out = await withRunner(service.binding, () =>
+      runToolAsync(BATCH, { items }),
+    );
+    assert.ok(out.ok);
+    assert.equal(service.stats.maxInFlight, BATCH_CONCURRENCY);
+    const r = out.result as { results: { ref: string; index: number }[] };
+    assert.deepEqual(
+      r.results.map((x) => [x.index, x.ref]),
+      items.map((x, i) => [i, x.ref]),
+    );
+  });
+
+  it("an item the registry cannot answer fails the whole call; no further items are sent", async () => {
+    const items = Array.from({ length: 12 }, (_, i) => ({
+      urn: `fl:parcel:us-48997:${1000001 + i}`,
+    }));
+    const unavailable = {
+      ok: false,
+      error: {
+        error: "RegistryUnavailable",
+        message: "the hosted registry cannot answer this item",
+        issues: [],
+      },
+    };
+    const one = registryService({
+      answer: (tool, input) =>
+        (input as { urn?: string }).urn === items[1]!.urn
+          ? unavailable
+          : runTool(tool, input),
+    });
+    assert.deepEqual(
+      await withRunner(one.binding, () => runToolAsync(BATCH, { items })),
+      unavailable,
+    );
+    assert.ok(one.calls.length < items.length);
+    const down = registryService({
+      answer: (tool, input) =>
+        (input as { urn?: string }).urn === items[2]!.urn
+          ? new Response("no", { status: 503 })
+          : runTool(tool, input),
+    });
+    const out = await withRunner(down.binding, () =>
+      runToolAsync(BATCH, { items }),
+    );
+    assert.equal(!out.ok && out.error.error, "RegistryUnavailable");
+    assert.ok(down.calls.length < items.length);
+  });
+
+  it("each item is charged exactly what its single call is charged under isChargedAnswer", async () => {
+    configureRegistry(fixtureDb());
+    try {
+      for (const v of vectors) {
+        const out = runTool(v.tool, v.arguments);
+        if (!out.ok) continue;
+        const entries = (out.result as { results: Record<string, unknown>[] })
+          .results;
+        v.arguments.items.forEach((item, k) => {
+          const e = entries[k]!;
+          const batch =
+            "error" in e ? 0 : isChargedAnswer(lookupItemAnswer(e)) ? 1 : 0;
+          assert.equal(
+            batch,
+            singleCharge(item),
+            `${JSON.stringify(item)} → ${String(e.status)}`,
+          );
+        });
+      }
+    } finally {
+      configureRegistry(undefined);
+    }
+    // Both kinds of miss are in the vectors: inside loaded coverage (charged) and outside (free).
+    assert.equal(
+      isChargedAnswer(
+        lookupItemAnswer({
+          status: "not_found",
+          coverage: { county_loaded: false },
+        }),
+      ),
+      false,
+    );
+    assert.equal(
+      isChargedAnswer(
+        lookupItemAnswer({
+          status: "not_found",
+          coverage: { county_loaded: true, state_loaded: true },
+        }),
+      ),
+      true,
+    );
+  });
+
+  it("reserves one lookup per item; an invalid list reserves one (an input error, given back)", () => {
+    const items = (n: number) =>
+      Array.from({ length: n }, () => ({ urn: "fl:parcel:us-48997:1000001" }));
+    assert.equal(lookupsReserved(BATCH, { items: items(3) }), 3);
+    assert.equal(lookupsReserved(BATCH, { items: items(50) }), 50);
+    assert.equal(lookupsReserved(BATCH, { items: [] }), 1);
+    assert.equal(lookupsReserved(BATCH, { items: items(51) }), 1);
+  });
+
+  it("through the router, REST and MCP: the month is charged the sum of the items' single-call charges", async () => {
+    const items = [
+      ...vectors[0]!.arguments.items,
+      ...vectors[1]!.arguments.items,
+    ];
+    assert.ok(items.length <= 50);
+    configureRegistry(fixtureDb());
+    const expected = items.reduce((n, i) => n + singleCharge(i), 0);
+    configureRegistry(undefined);
+    assert.ok(expected > 0 && expected < items.length, `${expected}`);
+    const inner = await realInnerApi();
+    const service = registryService();
+    try {
+      await withRunner(service.binding, async () => {
+        const e = env();
+        const { key } = await issue(e);
+        const res = await call(e, inner.api, PATH, { key, body: { items } });
+        assert.equal(res.status, 200);
+        assert.equal(used(e), expected);
+        assert.equal(remaining(res), String(5000 - expected));
+        const mcp = await call(e, inner.api, "/mcp", {
+          key,
+          body: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: BATCH, arguments: { items } },
+          },
+        });
+        assert.equal(mcp.status, 200);
+        const m = (await mcp.json()) as { result: { isError?: boolean } };
+        assert.notEqual(m.result.isError, true);
+        assert.equal(used(e), 2 * expected);
+      });
+    } finally {
+      inner.close();
+    }
+  });
+
+  it("through the router: a service failure answers RegistryUnavailable and charges nothing", async () => {
+    const inner = await realInnerApi();
+    const service = registryService({
+      answer: () => new Response("no", { status: 503 }),
+    });
+    try {
+      await withRunner(service.binding, async () => {
+        const e = env();
+        const { key } = await issue(e);
+        const body = {
+          items: [
+            { urn: "fl:parcel:us-48997:1000001" },
+            { address: "500 Market St" },
+          ],
+        };
+        const res = await call(e, inner.api, PATH, { key, body });
+        assert.equal(res.status, 503);
+        assert.equal(used(e), 0);
+        assert.equal(remaining(res), "5000");
+        const mcp = await call(e, inner.api, "/mcp", {
+          key,
+          body: {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: BATCH, arguments: body },
+          },
+        });
+        const m = (await mcp.json()) as { result: { isError?: boolean } };
+        assert.equal(m.result.isError, true);
+        assert.equal(used(e), 0);
+      });
+    } finally {
+      inner.close();
+    }
+  });
+
+  /** An inner handler answering the batch path (REST and MCP) with `answer(items)`. */
+  function fakeApi(
+    e: ReturnType<typeof env>,
+    answer: (items: unknown[]) => unknown,
+  ) {
+    const seen: { held: number }[] = [];
+    const reply = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
+    const api = {
+      fetch: async (r: Request) => {
+        const path = new URL(r.url).pathname;
+        const body = JSON.parse(await r.text()) as {
+          id?: number;
+          items?: unknown[];
+          params?: { arguments?: { items?: unknown[] } };
+        };
+        seen.push({ held: used(e) });
+        if (path === "/mcp")
+          return reply({
+            jsonrpc: "2.0",
+            id: body.id,
+            result: {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(
+                    answer(body.params?.arguments?.items ?? []),
+                  ),
+                },
+              ],
+            },
+          });
+        return reply(answer(body.items ?? []));
+      },
+    };
+    return { api, seen };
+  }
+  const found = (urn: string) => ({
+    status: "found",
+    parcel: { urn },
+  });
+
+  it("never charges more than was reserved, and gives back no more than it took", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    // An answer with more entries than items: only one per item can be charged.
+    const { api, seen } = fakeApi(e, () => ({
+      results: Array.from({ length: 7 }, (_, i) =>
+        found(`fl:parcel:us-48997:${i}`),
+      ),
+    }));
+    const two = { items: [{ urn: "a" }, { urn: "b" }] };
+    const res = await call(e, api, PATH, { key, body: two });
+    assert.equal(res.status, 200);
+    assert.equal(seen[0]!.held, 2, "both items were reserved before the call");
+    assert.equal(used(e), 2);
+    assert.equal(remaining(res), "4998");
+    // Every entry an error, a miss outside coverage or a URN miss: all given back, never more.
+    const e2 = env();
+    const k2 = await issue(e2);
+    const free = fakeApi(e2, () => ({
+      results: [
+        { status: "error", error: { error: "InputError" } },
+        {
+          status: "not_found",
+          coverage: { county_loaded: false, state_loaded: false },
+        },
+        {
+          status: "not_found",
+          coverage: { county_loaded: true, state_loaded: true },
+          error: { error: "NotFound" },
+        },
+      ],
+    }));
+    const three = { items: [{ urn: "a" }, { urn: "b" }, { urn: "c" }] };
+    const r2 = await call(e2, free.api, PATH, { key: k2.key, body: three });
+    assert.equal(free.seen[0]!.held, 3);
+    assert.equal(used(e2), 0);
+    assert.equal(remaining(r2), "5000");
+    // Fewer entries than items (an answer cut short): only the entries there are can be charged.
+    const e3 = env();
+    const k3 = await issue(e3);
+    const short = fakeApi(e3, () => ({
+      results: [found("fl:parcel:us-48997:1")],
+    }));
+    await call(e3, short.api, "/mcp", {
+      key: k3.key,
+      body: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: BATCH, arguments: three },
+      },
+    });
+    assert.equal(short.seen[0]!.held, 3);
+    assert.equal(used(e3), 1);
+  });
+
+  it("over the cap: fewer lookups left than items refuses the whole call; free tier the same", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    e.limiter.object("meter:sub:sub_1").store.setCount("month:2026-11", 4_998);
+    const { api, seen } = fakeApi(e, () => ({ results: [] }));
+    const five = {
+      items: Array.from({ length: 5 }, (_, i) => ({ urn: `u${i}` })),
+    };
+    const res = await call(e, api, PATH, { key, body: five });
+    assert.equal(res.status, 429);
+    assert.equal(seen.length, 0, "nothing ran");
+    assert.equal(used(e), 4_998, "the 2 granted were given back");
+    const err = (await res.json()) as { needed: number; available: number };
+    assert.deepEqual([err.needed, err.available], [5, 2]);
+
+    const anon = env();
+    const free = fakeApi(anon, () => ({ results: [] }));
+    const r2 = await call(anon, free.api, PATH, {
+      body: {
+        items: Array.from({ length: 26 }, (_, i) => ({ urn: `u${i}` })),
+      },
+    });
+    assert.equal(r2.status, 429);
+    assert.equal(free.seen.length, 0);
+    assert.equal(remaining(r2), "25");
+  });
+
+  it("under paid gating a free caller gets PlanRequired, unmetered, on REST and MCP; Pro runs", async () => {
+    const e = env({ GATING_ENABLED: "true" });
+    const { api, seen } = fakeApi(e, (items) => ({
+      results: items.map(() => found("fl:parcel:us-48997:1")),
+    }));
+    const body = { items: [{ urn: "a" }] };
+    const res = await call(e, api, PATH, { body });
+    assert.equal(res.status, 403);
+    assert.equal(
+      ((await res.json()) as { error: string }).error,
+      "PlanRequired",
+    );
+    const mcp = await call(e, api, "/mcp", {
+      body: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: BATCH, arguments: body },
+      },
+    });
+    const m = (await mcp.json()) as {
+      result: { isError?: boolean; structuredContent: { error: string } };
+    };
+    assert.equal(m.result.isError, true);
+    assert.equal(m.result.structuredContent.error, "PlanRequired");
+    assert.equal(seen.length, 0, "nothing was forwarded");
+    const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
+    assert.equal(q.used, 0);
+    const { key } = await issue(e);
+    const pro = await call(e, api, PATH, { key, body });
+    assert.equal(pro.status, 200);
+    assert.equal(used(e), 1);
   });
 });

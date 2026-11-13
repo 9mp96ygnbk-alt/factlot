@@ -710,6 +710,22 @@ async function main(): Promise<void> {
         batchMiss = { args: c.arguments, json };
       continue;
     }
+    if (
+      hostedRegistry &&
+      tool === "registry_lookup_batch" &&
+      c.expect_error === "RegistryUnavailable"
+    ) {
+      // The lookup batch never fails as a whole for a miss either: the item is not_found, with
+      // the single tool's coverage.
+      ok(
+        status === 200 &&
+          at(json, "results.0.status") === "not_found" &&
+          typeof at(json, "results.0.coverage") === "object" &&
+          at(json, "summary.not_found") === 1,
+        `${label}: want 200 with results.0.status not_found, got ${status} ${JSON.stringify(json).slice(0, 160)}`,
+      );
+      continue;
+    }
     if (c.expect_error) {
       // A registry vector that expects "no registry loaded" gets a NotFound with coverage from a
       // deployment that serves the registry.

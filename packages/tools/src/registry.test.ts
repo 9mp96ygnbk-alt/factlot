@@ -38,6 +38,7 @@ import {
   hostedWithheldCounties,
   legacyNormalizeAddress,
   legacyNormalizeName,
+  lookupExact,
   normalizeAddress,
   normalizeName,
   runTool,
@@ -46,8 +47,14 @@ import {
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
 // calls.json is what every surface answers (the registry Worker replays it too); calls_tx_batch.json
-// holds registry_tx_equity_candidates_batch, which the SDKs answer and the Worker does not yet.
-const calls = ["calls.json", "calls_tx_batch.json"].flatMap(
+// holds registry_tx_equity_candidates_batch, which the SDKs answer and the Worker does not yet;
+// calls_lookup_batch.json holds registry_lookup_batch, which the SDKs answer and the hosted API
+// answers by fanning out single calls.
+const calls = [
+  "calls.json",
+  "calls_tx_batch.json",
+  "calls_lookup_batch.json",
+].flatMap(
   (name) =>
     JSON.parse(readFileSync(join(spec, name), "utf8")) as {
       tool: string;
@@ -1263,4 +1270,110 @@ test("address search: a query without a comma keeps its unit, and a miss claims 
   } finally {
     configureRegistry(undefined);
   }
+});
+
+test("registry_lookup_batch: rows read from registry_get, misses as the single tools give them, exact addresses", () => {
+  const db = fixtureDb("lookup.db");
+  configureRegistry(db.path);
+  try {
+    const out = runTool("registry_lookup_batch", {
+      items: [
+        { ref: "a", urn: "fl:parcel:us-48999:0001-000-0001" },
+        { ref: "b", apn: "501-01-001", state_fips: "04", county_fips: "021" },
+        { ref: "c", address: "500 Market St", state: "TX" },
+        { ref: "d", address: "300 Harbor Drive, Example City TX 77999" },
+        { ref: "e", urn: "fl:parcel:us-48999:0009-000-0009" },
+      ],
+    });
+    assert.ok(out.ok);
+    const r = out.result as {
+      results: Record<string, unknown>[];
+      summary: unknown;
+      notice: string;
+    };
+    assert.deepEqual(r.summary, {
+      items: 5,
+      found: 2,
+      not_found: 2,
+      ambiguous: 1,
+      errors: 0,
+    });
+    assert.deepEqual(
+      r.results.map((e) => [e.index, e.ref, e.status]),
+      [
+        [0, "a", "found"],
+        [1, "b", "not_found"],
+        [2, "c", "ambiguous"],
+        [3, "d", "found"],
+        [4, "e", "not_found"],
+      ],
+    );
+    // The row is registry_get's record, read: the owner fact's value and its linked entity.
+    const get = runTool("registry_get", {
+      urn: "fl:parcel:us-48999:0001-000-0001",
+    });
+    assert.ok(get.ok);
+    const record = get.result as {
+      facts: { predicate: string; value: unknown }[];
+      value_history: unknown[];
+    };
+    const row = r.results[0]!.parcel as Record<string, unknown>;
+    assert.deepEqual(row.owner_of_record, {
+      name: record.facts.find(
+        (f) => f.predicate === "ownership.owner_of_record",
+      )!.value,
+      entity_urn: "fl:entity:us-tx:0801111111",
+    });
+    assert.deepEqual(row.value, record.value_history[0]);
+    assert.equal(row.account, "0001-000-0001");
+    for (const s of row.sources as Record<string, unknown>[])
+      assert.ok(s.document_id && "ai_use" in s && "redistribution" in s);
+    // A resolve miss: the single tool's coverage verbatim; a URN miss also carries the NotFound.
+    const resolve = runTool("registry_resolve_parcel", {
+      state_fips: "04",
+      county_fips: "021",
+      apn: "501-01-001",
+    });
+    assert.ok(resolve.ok);
+    assert.deepEqual(
+      r.results[1]!.coverage,
+      (resolve.result as { coverage: unknown }).coverage,
+    );
+    assert.ok(!("error" in r.results[1]!));
+    assert.equal((r.results[4]!.error as { error: string }).error, "NotFound");
+    // Two accounts at one address: ambiguous, never an owner in the cards.
+    const amb = r.results[2]!;
+    assert.equal((amb.candidates as unknown[]).length, 2);
+    assert.ok(!JSON.stringify(amb.candidates).includes("owner"));
+    assert.deepEqual(r.results[3]!.match, { exact: true, matches: 4 });
+    assert.equal(
+      (r.results[3]!.parcel as { urn: string }).urn,
+      "fl:parcel:us-48999:0002-000-1000",
+    );
+    assert.match(r.notice, /not an appraisal/);
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
+test("registry_lookup_batch: exact means the same street line and the same unit", () => {
+  assert.ok(lookupExact("100 Main St", "100 Main Street, Shoreville MD 21999"));
+  assert.ok(!lookupExact("100 Main St", "100 Main Street, Suite 400"));
+  assert.ok(lookupExact("100 Main St Suite 400", "100 Main Street, Suite 400"));
+  assert.ok(
+    lookupExact(
+      "300 Harbor Drive Unit 102",
+      "300 Harbor Dr Ste 102, Example City TX 77999-1234",
+    ),
+  );
+  assert.ok(
+    !lookupExact("350 Fifth Ave", "338-350 Fifth Avenue, Example City"),
+  );
+  assert.ok(
+    lookupExact(
+      "1200 Main St Houston TX 77002",
+      "1200 Main Street, Houston TX 77002",
+    ),
+  );
+  assert.ok(!lookupExact("500 Market St", null));
 });

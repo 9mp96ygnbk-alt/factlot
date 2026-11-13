@@ -87,6 +87,7 @@ coverage miss (not loaded, which is not the same as no such parcel).
 | An ID from the county's own system | `registry_resolve_external` (`nyc_bbl`, `la_ain`, `sf_parcel`, `boston_pid`, `denver_schednum`, `ct_cama_link`, `sdat_account`, `hcad_account`) |
 | A FactLot URN                      | `registry_get` (facts, values by tax year, owner of record where the file has one)                                                              |
 | An owner's name (a company)        | `registry_search_entities`, then `registry_owned_by`                                                                                            |
+| A list of parcels (up to 50)       | `registry_lookup_batch` (each by URN, account number with its county, or address; a cited row per parcel)                                       |
 
 Places differ in what their public file holds. Los Angeles County and San Francisco have no owner
 names, so a parcel there has no `ownership.owner_of_record` fact; ask the county Assessor for the
@@ -94,6 +95,19 @@ owner. The City of Boston is loaded without Chelsea, Revere or Winthrop, the res
 and its values are fiscal-year 2026 values as of 2025-01-01. Connecticut parcels carry the former
 county in their FIPS code. Natural persons' names are never returned; a parcel whose owner is a person
 shows no owner.
+
+**A list of parcels at once.** `registry_lookup_batch` takes up to 50 `items`, each naming one
+parcel by exactly one of `urn`, `apn` with `state_fips` and `county_fips` (or a 5-digit
+`county_fips` alone), or `address` with the place fields `registry_search_address` takes, plus your
+own `ref`. Each item is answered by the single tools (`registry_get`, `registry_resolve_parcel`,
+`registry_search_address`, then `registry_get` on the URN found), so a miss says what the single
+tool's miss says. Each entry of `results`, in input order, has a `status`: `found` with a compact
+`parcel` row (account, property category, use code, improvement area, year built, the current roll
+year's value with its citation, the owner of record as `registry_get` gives it, citations, sources
+and their rights), `not_found` with the miss's `coverage`, `ambiguous` (an address that matched more
+than one parcel, not exactly one of them with the address as written) with up to five candidate
+cards, or `error` with that item's own error. On the hosted API it is part of Pro and Team, and each
+item counts as its single call would on its own.
 
 ## MCP resources and prompts
 

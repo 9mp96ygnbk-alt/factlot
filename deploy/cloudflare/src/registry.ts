@@ -7,10 +7,18 @@
  * registry_tx_equity_candidates per subject (at most BATCH_CONCURRENCY at a time), assembled here
  * into the batch answer the catalog gives. One request for the whole batch would run every
  * subject inside one registry request and its CPU limit.
+ *
+ * registry_lookup_batch is answered the same way: each item's single-tool calls (registry_get,
+ * registry_resolve_parcel, registry_search_address; see @factlot/tools lookup_batch.ts) go to the
+ * service one by one, each first checked as runTool checks it, at most BATCH_CONCURRENCY items
+ * at a time. The registry Worker needs no route of its own for it.
  */
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
+  checkToolInput,
+  lookupBatchAsync,
+  type LookupItem,
   type RegistryRunner,
   type ToolOutcome,
 } from "@factlot/tools";
@@ -23,6 +31,8 @@ export const REGISTRY_RUN_URL = "https://registry.internal/run";
 /** The batch tool answered by fanning out, and the single-subject tool it calls. */
 export const TX_EQUITY_BATCH_TOOL = "registry_tx_equity_candidates_batch";
 const TX_EQUITY_TOOL = "registry_tx_equity_candidates";
+/** The batch of parcel lookups, answered by fanning out its items' single-tool calls. */
+export const LOOKUP_BATCH_TOOL = "registry_lookup_batch";
 
 /** Most single-subject calls of one batch in flight at once. */
 export const BATCH_CONCURRENCY = 4;
@@ -79,10 +89,22 @@ export function registryRunner(service: Fetcher): RegistryRunner {
       };
     return outcome;
   };
+  // A single call of a lookup batch item, checked as runTool checks it before it is sent.
+  const checked: Run = async (name, input) => {
+    const c = checkToolInput(name, input);
+    return c.ok ? guarded(name, c.input) : c;
+  };
   return (name, input) =>
     name === TX_EQUITY_BATCH_TOOL
       ? txEquityBatch(guarded, input)
-      : guarded(name, input);
+      : name === LOOKUP_BATCH_TOOL
+        ? lookupBatchAsync(
+            ((input as { items?: unknown } | null)?.items ??
+              []) as LookupItem[],
+            checked,
+            BATCH_CONCURRENCY,
+          )
+        : guarded(name, input);
 }
 
 /** The answer when the registry service does not apply the narrowing parameters it was sent. */

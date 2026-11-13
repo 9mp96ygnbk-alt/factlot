@@ -61,7 +61,7 @@ export const TX_PACKET_INSTRUCTIONS = [
 
 /** Rules that hold for every tool. */
 export const GENERAL_INSTRUCTIONS =
-  "Results are facts and arithmetic, not appraisal, legal or tax advice. Relay every warning and each source's rights (ai_use, redistribution) to the person. Registry lookups and reports are metered (account_usage shows use, with a key); input errors are free. On the hosted API, a call without a Pro or Team key gets the current roll year only in registry_get's value_history and history, and registry_tx_equity_candidates_batch needs such a key; the answer says so and links https://factlot.com/pricing/.";
+  "Results are facts and arithmetic, not appraisal, legal or tax advice. Relay every warning and each source's rights (ai_use, redistribution) to the person. Registry lookups and reports are metered (account_usage shows use, with a key); input errors are free. On the hosted API, a call without a Pro or Team key gets the current roll year only in registry_get's value_history and history, and the registry batch tools (registry_lookup_batch, registry_tx_equity_candidates_batch) need such a key; the answer says so and links https://factlot.com/pricing/.";
 
 /** What the server offers besides tools. */
 export const RESOURCES_INSTRUCTIONS =

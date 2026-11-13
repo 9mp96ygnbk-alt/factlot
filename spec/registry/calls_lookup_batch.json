@@ -1,0 +1,349 @@
+[
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
+      "items": [
+        {
+          "ref": "loan-1",
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "ref": "loan-2",
+          "apn": "0001-000-0002",
+          "county_fips": "48999"
+        },
+        {
+          "ref": "loan-3",
+          "apn": "0001-000-0001",
+          "state_fips": "48",
+          "county_fips": "999"
+        },
+        {
+          "ref": "loan-4",
+          "address": "300 Harbor Drive, Example City TX 77999"
+        },
+        {
+          "ref": "loan-5",
+          "address": "500 Market St"
+        },
+        {
+          "ref": "loan-6",
+          "address": "350 Fifth Ave, Example City, TX"
+        },
+        {
+          "ref": "loan-7",
+          "urn": "fl:parcel:us-48999:0009-000-0009"
+        },
+        {
+          "ref": "loan-8",
+          "apn": "501-01-001",
+          "state_fips": "04",
+          "county_fips": "021"
+        },
+        {
+          "ref": "loan-9",
+          "address": "1 Nowhere Rd, Casa Grande, AZ 85122"
+        },
+        {
+          "ref": "loan-10",
+          "urn": "fl:parcel:us-48439:00001234"
+        },
+        {
+          "ref": "loan-11",
+          "apn": "0009",
+          "state_fips": "48",
+          "county_fips": "999"
+        },
+        {
+          "ref": "loan-12",
+          "address": "9 Harbor Dr",
+          "postal_code": "77999"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
+      "items": [
+        {
+          "urn": "fl:entity:us-tx:0801111111"
+        },
+        {
+          "urn": "fl:parcel:bad"
+        },
+        {
+          "urn": "nonsense"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001",
+          "apn": "0001-000-0001"
+        },
+        {},
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001",
+          "city": "Example City"
+        },
+        {
+          "apn": "0001-000-0001"
+        },
+        {
+          "apn": "0001-000-0001",
+          "county_fips": "999"
+        },
+        {
+          "address": "100 Main St",
+          "state": "Texsa"
+        },
+        {
+          "address": "100 Main St",
+          "state_fips": "48"
+        },
+        {
+          "ref": "ok",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "ref": "person-owner",
+          "urn": "fl:parcel:us-48997:1000014"
+        },
+        {
+          "ref": "withheld-owner",
+          "urn": "fl:parcel:us-48997:1000015"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
+      "items": [
+        {
+          "address": "100 Main St"
+        },
+        {
+          "address": "100 Main St",
+          "state": "TX"
+        },
+        {
+          "address": "500 Market Street",
+          "city": "Example City",
+          "state": "TX"
+        },
+        {
+          "address": "500 Market St",
+          "county_fips": "48999"
+        },
+        {
+          "address": "300 Harbor Dr #103, Example City TX 77999"
+        },
+        {
+          "address": "300 Harbor Drive Unit 102"
+        },
+        {
+          "address": "700 Bayou Drive # 102 Example City TX 77999"
+        },
+        {
+          "address": "Tower Ct, Example City, TX"
+        },
+        {
+          "address": "Alpha Plaza"
+        },
+        {
+          "address": "8 W 9th St"
+        },
+        {
+          "address": "Example City"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
+      "items": []
+    }
+  },
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
+      "items": [
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        },
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
+      "items": [
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001",
+          "owner": "x"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "registry_lookup_batch",
+    "arguments": {
+      "items": [
+        {
+          "urn": "fl:parcel:us-48999:0001-000-0001"
+        }
+      ],
+      "limit": 5
+    }
+  }
+]

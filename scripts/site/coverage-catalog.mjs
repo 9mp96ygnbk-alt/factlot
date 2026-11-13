@@ -111,6 +111,7 @@ const REGISTRY_TOOLS = [
   "registry_resolve_parcel",
   "registry_resolve_external",
   "registry_search_address",
+  "registry_lookup_batch",
 ];
 const ENTITY_TOOLS = ["registry_search_entities", "registry_owned_by"];
 const TX_TOOLS = [

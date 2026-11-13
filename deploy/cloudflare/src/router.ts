@@ -14,12 +14,16 @@
  *
  * Registry lookups (answered calls of registry_* tools; registry_coverage, input errors, misses
  * outside loaded coverage and unanswered calls are given back; a batch tool reserves one per
- * subject and keeps one per answered subject) are metered on top: per
+ * subject or item and keeps what its answered subjects or items cost) are metered on top: per
  * address per UTC day without a key, per subscription per calendar month with one. A request
  * over the cap gets 429 RegistryQuotaExceeded (REST) or the same error as an MCP tool result
  * with isError; other tools keep working.
  */
-import { TX_EQUITY_BATCH_MAX_SUBJECTS, tools } from "@factlot/tools";
+import {
+  LOOKUP_BATCH_MAX_ITEMS,
+  TX_EQUITY_BATCH_MAX_SUBJECTS,
+  tools,
+} from "@factlot/tools";
 
 import {
   CONTACT,
@@ -530,7 +534,8 @@ function callsRegistry(item: unknown): boolean {
 
 /**
  * Registry tools that answer many subjects in one call, by the input field that lists them: a
- * call reserves one lookup per subject before it runs and keeps one per answered subject.
+ * call reserves one lookup per subject (or item) before it runs and keeps what its answered
+ * subjects cost (batchCharges).
  */
 const BATCH_REGISTRY_TOOLS: ReadonlyMap<
   string,
@@ -540,6 +545,7 @@ const BATCH_REGISTRY_TOOLS: ReadonlyMap<
     "registry_tx_equity_candidates_batch",
     { field: "subjects", max: TX_EQUITY_BATCH_MAX_SUBJECTS },
   ],
+  ["registry_lookup_batch", { field: "items", max: LOOKUP_BATCH_MAX_ITEMS }],
 ]);
 
 /** The subjects of a batch registry call, when its list is valid in length (else undefined). */
@@ -590,9 +596,45 @@ function admittedCalls(
 }
 
 /**
- * The charged part of a batch registry answer: one entry per answered subject (an entry of
- * `results` without an `error`), with that subject's own arguments. Texas batch subjects given by
- * county and APN are in state 48 (the tool's default), which names their region.
+ * What isChargedAnswer reads of the single call a registry_lookup_batch item stands for
+ * (registry_get, registry_resolve_parcel or registry_search_address): a miss is that call's
+ * answer with no results and the coverage it gave (the entry keeps it verbatim); a found or
+ * ambiguous item is a call that answered with a record, a URN or matches, and no coverage.
+ */
+export function lookupItemAnswer(entry: unknown): unknown {
+  const e = (entry ?? {}) as { status?: unknown; coverage?: unknown };
+  return e.status === "not_found"
+    ? { results: [], coverage: e.coverage }
+    : { results: [entry] };
+}
+
+/**
+ * The charged part of a registry_lookup_batch answer, entry by entry in input order (an entry
+ * per item): an entry whose single call answered an error (`error`: an input error, or
+ * registry_get's NotFound) is free, as that call is; any other entry costs what isChargedAnswer
+ * gives its single call (lookupItemAnswer). Each is counted with the parcel's URN when one was
+ * found, else the item as sent.
+ */
+function lookupCharges(
+  tool: string,
+  items: unknown[],
+  answer: unknown,
+): { tool: string; args: unknown }[] {
+  const results = (answer as { results?: unknown } | null)?.results;
+  if (!Array.isArray(results)) return [];
+  return results.slice(0, items.length).flatMap((r, k) => {
+    if (typeof r !== "object" || r === null || "error" in r) return [];
+    if (!isChargedAnswer(lookupItemAnswer(r))) return [];
+    const urn = (r as { parcel?: { urn?: unknown } }).parcel?.urn;
+    return [{ tool, args: typeof urn === "string" ? { urn } : items[k] }];
+  });
+}
+
+/**
+ * The charged part of a batch registry answer. registry_lookup_batch: lookupCharges. The Texas
+ * batch: one entry per answered subject (an entry of `results` without an `error`), with that
+ * subject's own arguments; subjects given by county and APN are in state 48 (the tool's
+ * default), which names their region.
  */
 function batchCharges(
   tool: string,
@@ -600,6 +642,8 @@ function batchCharges(
   answer: unknown,
 ): { tool: string; args: unknown }[] {
   const subjects = batchSubjects(tool, args) ?? [];
+  if (tool === "registry_lookup_batch")
+    return lookupCharges(tool, subjects, answer);
   const byId = new Map(
     subjects.map((s) => [(s as { id?: unknown } | null)?.id, s]),
   );

@@ -88,8 +88,8 @@
     </tr>
     <tr>
       <th scope="row">
-        Batch lookup of many parcels
-        (<code>registry_tx_equity_candidates_batch</code>)
+        Batch lookup of many parcels (<code>registry_lookup_batch</code>,
+        <code>registry_tx_equity_candidates_batch</code>)
       </th>
       <td>Not included; one parcel per call</td>
       <td>Included, up to 50 parcels per call</td>
@@ -172,11 +172,17 @@
   </li>
   <li>
     <strong>Batch lookup for many parcels at once.</strong>
-    <code>registry_tx_equity_candidates_batch</code> takes up to 50 parcels in
-    one call. Without a Pro or Team key it answers PlanRequired and counts
-    nothing; you can call <code>registry_tx_equity_candidates</code> once per
-    parcel within the free daily lookups. With a key, each answered parcel
-    counts as one registry lookup.
+    <code>registry_lookup_batch</code> takes up to 50 parcels in any loaded
+    state in one call, each by URN, account number or address, and returns a
+    cited row per parcel: account, category, use code, area, year built,
+    current-year value and owner of record.
+    <code>registry_tx_equity_candidates_batch</code> takes up to 50 Texas
+    parcels for unequal-appraisal candidates. Without a Pro or Team key they
+    answer PlanRequired and count nothing; you can call the single-parcel tools
+    (<code>registry_get</code>, <code>registry_resolve_parcel</code>,
+    <code>registry_search_address</code>,
+    <code>registry_tx_equity_candidates</code>) once per parcel within the free
+    daily lookups. With a key, each parcel counts as its single call would.
   </li>
 </ul>
 <h2 id="stays-free">What stays free</h2>
@@ -282,10 +288,16 @@
     loaded) and calls the registry could not answer.
   </li>
   <li>
+    A registry batch tool needs one lookup per subject or item left in the
+    allowance to run (a batch larger than what remains is refused whole).
     <code>registry_tx_equity_candidates_batch</code> counts one lookup per
-    answered subject: it needs one lookup per subject left in the allowance to
-    run (a batch larger than what remains is refused whole), and subjects with
-    an error are given back. It is part of Pro and Team.
+    answered subject, and subjects with an error are given back.
+    <code>registry_lookup_batch</code> counts each item as the single call that
+    identifies its parcel would count (<code>registry_get</code>,
+    <code>registry_resolve_parcel</code> or
+    <code>registry_search_address</code>): an item with an error, a URN not in
+    the registry and a miss outside loaded coverage are given back. Both are
+    part of Pro and Team.
   </li>
   <li>
     Without a key, 25 lookups a day per IP address (stored only as a hash; IPv6

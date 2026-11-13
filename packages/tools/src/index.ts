@@ -40,3 +40,14 @@ export type {
   ChartTotal,
   UseCategory,
 } from "./vocabularies.ts";
+export {
+  LOOKUP_BATCH_CANDIDATES,
+  LOOKUP_BATCH_MAX_ITEMS,
+  LOOKUP_BATCH_NOTICE,
+  LOOKUP_BATCH_SEARCH_LIMIT,
+  LOOKUP_WHICH_PARCEL,
+  lookupBatchAsync,
+  lookupExact,
+  lookupRow,
+} from "./lookup_batch.ts";
+export type { LookupCall, LookupItem } from "./lookup_batch.ts";
