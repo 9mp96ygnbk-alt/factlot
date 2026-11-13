@@ -13,6 +13,7 @@ import factlot
 from factlot.registry.county_names import county_name
 from factlot.registry.normalize import (
     address_card,
+    address_card_key,
     address_place,
     address_place_with,
     address_query_with_place,
@@ -112,6 +113,8 @@ class Normalization(unittest.TestCase):
             self.assertEqual(address_range_matches(query.split(" "), urn, label, key), hit, f"{query} / {label}")
         for query, street in vectors["address_street_words"]:
             self.assertEqual(address_street_words(address_query(query)["tokens"]), street, query)
+        for rows, order in vectors["address_card_orders"]:
+            self.assertEqual([u for u, _ in sorted(rows, key=lambda r: address_card_key(r[0], r[1]))], order)
         for label, facts, card in vectors["address_cards"]:
             self.assertEqual(address_card(label, facts), card, str(label))
         for query, where, place in vectors["address_place_with"]:

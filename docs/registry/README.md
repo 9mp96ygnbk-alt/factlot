@@ -410,8 +410,9 @@ the city (a bare unit number) stay in the street line, the street line as asked 
 exact address, and a unit is read from the whole query as asked ("BLDG #M UNIT 4" is "M 4"). In each place group, matches of the
 words as written come first, then the other spellings, then ranges; then an exact address, then the
 parcel whose label names the unit the query names ("#310"; a unit never filters), then by label.
-Parcels sharing one label come largest improvement area first, and those the roll records as land
-only last; of a label shared by more than twice the limit, the first by URN are ordered, so a search
+Parcels sharing one label come largest improvement area first (one the roll gives no improvement
+area after those it gives one), those the roll records as land only last, and otherwise in URN order
+(`address_card_orders` pins it); of a label shared by more than twice the limit, the first by URN are ordered, so a search
 reads at most twice its limit of records. `address_ranges`, `address_range_matches`, `address_units` and
 `address_queries_with_place` pin these rules in both languages.
 

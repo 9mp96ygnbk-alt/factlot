@@ -17,11 +17,13 @@ import {
   RECORDED_PREDICATES,
   registryFacts,
   registryGet,
+  type AddressCard,
 } from "./registry.ts";
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_WITHHELD_COUNTIES,
   addressCard,
+  addressCardCompare,
   addressPlace,
   addressPlaceRank,
   addressPlaceWith,
@@ -639,6 +641,7 @@ test("name and address normalization match the Python vectors", () => {
     ][];
     address_range_matches: [string, string, string, string, boolean][];
     address_street_words: [string, string[] | null][];
+    address_card_orders: [[string, Record<string, unknown>][], string[]][];
     address_cards: [
       string | null,
       { predicate: string; value: unknown }[],
@@ -691,6 +694,18 @@ test("name and address normalization match the Python vectors", () => {
       addressStreetWords(addressQuery(query).tokens),
       street,
       query,
+    );
+  for (const [rows, order] of v.address_card_orders)
+    assert.deepEqual(
+      [...rows]
+        .sort((a, b) =>
+          addressCardCompare(
+            { urn: a[0], card: a[1] as unknown as AddressCard },
+            { urn: b[0], card: b[1] as unknown as AddressCard },
+          ),
+        )
+        .map((r) => r[0]),
+      order,
     );
   for (const [label, facts, card] of v.address_cards)
     assert.deepEqual(addressCard(label, facts), card, String(label));

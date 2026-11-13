@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code), read conservatively: only a state named after a city filters; a ZIP code and a city only order; unit, floor and box text and a bare two-letter or full state name name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state). 'address_search_forms': the spellings a street line is searched by (as written first). 'address_ranges' and 'address_range_matches': a lot's house-number range [low, high, one side] and whether a query's number falls in it. 'address_street_words': the street a miss reads for its nearest house numbers. 'address_cards': what a search result carries from its label and current facts. 'address_place_with' and 'address_where_issues': the call's place parameters. 'address_queries_with_place': a query without a comma whose street line ends in a place, with the comma put in. 'address_units': the unit a label or query names, which puts the parcel naming it first.",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code), read conservatively: only a state named after a city filters; a ZIP code and a city only order; unit, floor and box text and a bare two-letter or full state name name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state). 'address_search_forms': the spellings a street line is searched by (as written first). 'address_ranges' and 'address_range_matches': a lot's house-number range [low, high, one side] and whether a query's number falls in it. 'address_street_words': the street a miss reads for its nearest house numbers. 'address_cards': what a search result carries from its label and current facts. 'address_place_with' and 'address_where_issues': the call's place parameters. 'address_queries_with_place': a query without a comma whose street line ends in a place, with the comma put in. 'address_units': the unit a label or query names, which puts the parcel naming it first. 'address_card_orders': the order of parcels sharing one label: largest improvement area first, none after, land only last, then URN.",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -2036,5 +2036,141 @@
     ["2112 F ST NW # 802-B WASHINGTON DC 20037-2715", "802-B"],
     ["100 MAIN ST UNIT NO, X", "X"],
     ["13740 RESEARCH BLVD, BLDG #M UNIT 4 (1st FL), AUSTIN TX 78750", "M 4"]
+  ],
+  "address_card_orders": [
+    [
+      [
+        [
+          "fl:parcel:us-24510:0304110671-001",
+          {
+            "account": "0304110671 001",
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": null,
+            "land_only": null,
+            "unit": null
+          }
+        ],
+        [
+          "fl:parcel:us-24510:0304110671-001a",
+          {
+            "account": "0304110671 001A",
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": 686947,
+            "land_only": false,
+            "unit": null
+          }
+        ]
+      ],
+      [
+        "fl:parcel:us-24510:0304110671-001a",
+        "fl:parcel:us-24510:0304110671-001"
+      ]
+    ],
+    [
+      [
+        [
+          "fl:parcel:us-48999:b",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": null,
+            "land_only": null,
+            "unit": null
+          }
+        ],
+        [
+          "fl:parcel:us-48999:a",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": null,
+            "land_only": null,
+            "unit": null
+          }
+        ],
+        [
+          "fl:parcel:us-48999:a1",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": null,
+            "land_only": null,
+            "unit": null
+          }
+        ]
+      ],
+      ["fl:parcel:us-48999:a", "fl:parcel:us-48999:a1", "fl:parcel:us-48999:b"]
+    ],
+    [
+      [
+        [
+          "fl:parcel:us-48999:z",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": 100,
+            "land_only": false,
+            "unit": null
+          }
+        ],
+        [
+          "fl:parcel:us-48999:y",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": 100,
+            "land_only": false,
+            "unit": null
+          }
+        ],
+        [
+          "fl:parcel:us-48999:x",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": 0,
+            "land_only": true,
+            "unit": null
+          }
+        ],
+        [
+          "fl:parcel:us-48999:w",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": null,
+            "land_only": null,
+            "unit": null
+          }
+        ],
+        [
+          "fl:parcel:us-48999:v",
+          {
+            "account": null,
+            "property_category": null,
+            "use_code": null,
+            "improvement_area_sf": 900,
+            "land_only": false,
+            "unit": null
+          }
+        ]
+      ],
+      [
+        "fl:parcel:us-48999:v",
+        "fl:parcel:us-48999:y",
+        "fl:parcel:us-48999:z",
+        "fl:parcel:us-48999:w",
+        "fl:parcel:us-48999:x"
+      ]
+    ]
   ]
 }
