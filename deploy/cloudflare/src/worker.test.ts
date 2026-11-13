@@ -5244,6 +5244,92 @@ describe("registry answers that find nothing are not counted", () => {
     }
   });
 
+  it("a NotFound for a record kind the registry never holds (no loaded flag) stays free and unmarked, within and past the hourly limit", async () => {
+    // What recordMiss gives a document URN, or a building URN that is not three parts.
+    const kinds = [
+      {
+        urn: "fl:document:sha256-0000",
+        coverage: {
+          message:
+            "the registry holds parcels, entities and buildings; it has no document records",
+        },
+      },
+      {
+        urn: "fl:building:us-48201",
+        coverage: { message: "malformed building URN" },
+      },
+    ];
+    for (const k of kinds) {
+      const err = {
+        error: "NotFound",
+        message: `no registry record for ${k.urn}`,
+        issues: [],
+        coverage: k.coverage,
+      };
+      const api = {
+        fetch: async (r: Request) => {
+          const path = new URL(r.url).pathname;
+          const text = await r.text();
+          const json = (b: unknown, status = 200) =>
+            new Response(JSON.stringify(b), {
+              status,
+              headers: { "content-type": "application/json" },
+            });
+          if (path !== "/mcp") return json(err, 404);
+          const m = JSON.parse(text) as { id: number };
+          return json({
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              isError: true,
+              content: [{ type: "text", text: JSON.stringify(err) }],
+            },
+          });
+        },
+      };
+      const { e } = setup();
+      const c = await caller(e, "anonymous");
+      const tally = async () =>
+        (
+          await e.METER.quota(
+            await addressSubject(IP, T0),
+            "hour",
+            EMPTY_ANSWERS_PER_HOUR.anonymous,
+            "empty",
+          )
+        ).used;
+      const check = async (label: string) => {
+        const rest = await call(e, api, "/v1/registry/get", {
+          body: { urn: k.urn },
+        });
+        assert.equal(rest.status, 404);
+        assert.equal((await body(rest)).counted, undefined, `${label} REST`);
+        const viaMcp = await call(e, api, "/mcp", {
+          body: mcpCall("registry_get", 1),
+        });
+        const m = (await viaMcp.json()) as {
+          result: { content: { text: string }[] };
+        };
+        assert.equal(
+          (JSON.parse(m.result.content[0]!.text) as { counted?: boolean })
+            .counted,
+          undefined,
+          `${label} MCP`,
+        );
+        assert.equal(await c.used(), 0, `${label}: nothing counted`);
+      };
+      await check(`${k.urn} within the limit`);
+      assert.equal(await tally(), 0, "the hourly limit is not used");
+      await e.METER.consume(await addressSubject(IP, T0), {
+        kind: "hour",
+        counter: "empty",
+        limit: EMPTY_ANSWERS_PER_HOUR.anonymous,
+        n: EMPTY_ANSWERS_PER_HOUR.anonymous,
+      });
+      await check(`${k.urn} past the limit`);
+    }
+  });
+
   it("usage counters keep answers that found nothing apart, by outcome, with no query text", async () => {
     resetUsageForTests({ waitUntil: () => {}, sleep: async () => {} });
     const { e, api } = setup();

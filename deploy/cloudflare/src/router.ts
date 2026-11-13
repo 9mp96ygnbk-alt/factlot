@@ -2263,8 +2263,9 @@ export function foundNothing(tool: string, answer: unknown): boolean {
 
 /**
  * Single tools whose NotFound (a tool error, REST 404) is an answer that found nothing when its
- * `coverage` is inside loaded coverage: a URN or parcel the registry does not hold where it holds
- * the county. Outside loaded coverage it stays a free miss.
+ * `coverage` says the county, entity registry or ID system is loaded (county_loaded, loaded or
+ * system_loaded true): a URN or parcel the registry does not hold where it holds the county. Any
+ * other NotFound stays a free miss.
  */
 const NOT_FOUND_EMPTY: ReadonlySet<string> = new Set([
   "registry_get",
@@ -2274,11 +2275,16 @@ const NOT_FOUND_EMPTY: ReadonlySet<string> = new Set([
 function notFoundInside(tool: string, error: unknown): boolean {
   if (!NOT_FOUND_EMPTY.has(tool)) return false;
   const e = error as { error?: unknown; coverage?: unknown } | null;
+  if (e?.error !== "NotFound" || typeof e.coverage !== "object" || !e.coverage)
+    return false;
+  const c = e.coverage as Record<string, unknown>;
+  // A positive flag only: a miss for a record kind the registry never holds (a document URN, a
+  // malformed building URN) carries a message and no flag, and stays a free miss.
   return (
-    e?.error === "NotFound" &&
-    typeof e.coverage === "object" &&
-    e.coverage !== null &&
-    isChargedAnswer({ results: [], coverage: e.coverage })
+    (c.county_loaded === true ||
+      c.loaded === true ||
+      c.system_loaded === true) &&
+    isChargedAnswer({ results: [], coverage: c })
   );
 }
 
