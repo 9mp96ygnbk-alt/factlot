@@ -35,3 +35,14 @@ export function texasMap(
   counties: unknown[],
   current?: string,
 ): string;
+export function exampleFacts(e: unknown): {
+  predicate: string;
+  label: string;
+  value: string;
+  as_of: string;
+  source: number;
+  locator: string;
+}[];
+export function exampleSources(
+  e: unknown,
+): { n: number; title: string; retrieved: string }[];

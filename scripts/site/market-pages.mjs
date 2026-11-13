@@ -302,7 +302,7 @@ ${rows.join("\n")}
 </dl>
 <div class="factcard-foot">
 <ol>
-<li>${esc(src.publisher)}: ${esc(src.title)}</li>
+<li data-n="1">${esc(src.publisher)}: ${esc(src.title)}</li>
 </ol>
 </div>
 </div>`;

@@ -22,7 +22,21 @@ import { connectBody, connectData, connectFigure } from "./connect.mjs";
 import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import { marketBody, marketCard, hostedMarkets } from "./market-pages.mjs";
 import * as shell from "./shell.mjs";
-import { countyReadouts, hubReadouts, texasMap } from "./texas-pages.mjs";
+import {
+  coveragePreview,
+  factCard,
+  flowTall,
+  flowWide,
+  platSvg,
+} from "./home.mjs";
+import {
+  countyReadouts,
+  exampleBody,
+  exampleFacts,
+  exampleSources,
+  hubReadouts,
+  texasMap,
+} from "./texas-pages.mjs";
 
 const root = new URL("../../", import.meta.url);
 const read = (rel: string) => readFileSync(new URL(rel, root), "utf8");
@@ -195,9 +209,18 @@ describe("drawn maps", () => {
         assert.ok(hostedFips.includes(fips), `${label} is not hosted`);
         assert.ok(svg.includes(`>${label}</text>`), label);
       }
-      // Alaska and Hawaii sit under the south-west on the national map: an inset leaves them out.
-      assert.ok(!svg.includes(geo.states["02"]!.d));
-      assert.ok(!svg.includes(geo.states["15"]!.d));
+      // Standing alone, an inset draws the states it names: every state with a hosted county in view.
+      for (const f of new Set(
+        hostedFips
+          .filter((c) => within(c, inset.view))
+          .map((c) => c.slice(0, 2)),
+      ))
+        assert.ok(
+          inset.states.includes(f),
+          `${inset.id} leaves out state ${f}`,
+        );
+      for (const f of inset.states)
+        assert.ok(svg.includes(geo.states[f]!.d), f);
       const refs = insetSvg(geo, inset, all, { refs: true });
       assert.ok(
         !/ d="M\d+\.\d/.test(refs.replace(/<clipPath[\s\S]*?<\/clipPath>/, "")),
@@ -316,6 +339,125 @@ describe("page figures say only what the page says", () => {
       !/<input[^>]*\bchecked\b/.test(body),
       "no tab is chosen until the reader chooses",
     );
+  });
+});
+
+describe("the home page's figures", () => {
+  interface Example {
+    county: string;
+    urn: string;
+    label: string;
+    documents: Record<string, { title: string; retrieved_at: string }>;
+  }
+  const examples = json<{ examples: Example[] }>(
+    "site/_data/texas-examples.json",
+  ).examples;
+  const harris = examples.find((e) => e.county === "harris")!;
+  const county = texas.find((c) => c.slug === "harris")!;
+  const page = words(
+    exampleBody(county, harris, read("site/_content/texas-example.html")),
+  );
+
+  it("the fact card shows only values, records and sources the worked example's page shows", () => {
+    const card = factCard(harris, "/texas/harris/example/");
+    const rows = exampleFacts(harris);
+    const shown = rows.filter((r) => card.includes(`<dt>${r.label}</dt>`));
+    assert.equal(shown.length, 4);
+    for (const r of shown) {
+      assert.ok(
+        card.includes(
+          `<dd class="src"><span class="cite"><b>${r.source}</b> ${r.locator}</span></dd>`,
+        ),
+        r.predicate,
+      );
+      assert.ok(page.includes(words(r.value)), r.value);
+      assert.ok(page.includes(r.locator), r.locator);
+    }
+    for (const token of words(card).match(/\$[\d,]+|\b\d[\d,]{3,}\b/g) ?? [])
+      assert.ok(page.includes(token), `${token} is not on the example's page`);
+    assert.ok(card.includes(`>${harris.label}</h2>`));
+    assert.ok(card.includes(harris.urn));
+    for (const s of exampleSources(harris))
+      assert.ok(
+        card.includes(
+          `<li data-n="${s.n}">${s.title}, retrieved ${s.retrieved}</li>`,
+        ),
+      );
+    assert.ok(card.includes('href="/texas/harris/example/"'));
+    assert.ok(!/opinion|advice|recommend/i.test(words(card)));
+  });
+
+  it("the diagram repeats the card's first value and its record, and nothing the example does not hold", () => {
+    const market = exampleFacts(harris).find(
+      (r) => r.predicate === "parcel.market_value",
+    )!;
+    for (const svg of [flowWide(harris), flowTall(harris)]) {
+      assert.ok(svg.includes(`>${market.value}</text>`));
+      assert.ok(svg.includes(`>[${market.source}] ${market.locator}</text>`));
+      assert.ok(svg.includes(harris.urn));
+      for (const token of words(svg).match(/\$[\d,]+|\b\d{4}-\d\d-\d\d\b/g) ??
+        [])
+        assert.ok(
+          page.includes(token),
+          `${token} is not on the example's page`,
+        );
+      assert.ok(!/<script|href=|style=/.test(svg));
+    }
+  });
+
+  it("the plat is a drawing with no text, and the coverage preview draws every hosted county once", () => {
+    assert.ok(!/<text|<title|\d{5,}/.test(platSvg()));
+    const preview = coveragePreview(
+      geo,
+      hosted.counties.map((c) => ({ fips: c.fips, title: c.fips })),
+    );
+    assert.equal(
+      preview.split('class="cty cov-hosted"').length - 1,
+      hosted.counties.length,
+    );
+    assert.ok(preview.includes('src="/coverage/map-mini.svg"'));
+    assert.ok(preview.length < 26_000, `${preview.length} bytes`);
+  });
+});
+
+describe("the brand images", () => {
+  it("were drawn from the worked example as it stands (scripts/site/brand-images.py redraws them)", () => {
+    const drawn = json<Record<string, string | number>>(
+      "docs/assets/drawn-from.json",
+    );
+    const e = json<{
+      examples: {
+        county: string;
+        urn: string;
+        label: string;
+        parcel_facts: {
+          predicate: string;
+          value: unknown;
+          as_of: string;
+          locator: string;
+        }[];
+      }[];
+    }>("site/_data/texas-examples.json").examples.find(
+      (x) => x.county === drawn.example,
+    )!;
+    const fact = (p: string) => e.parcel_facts.find((f) => f.predicate === p)!;
+    assert.deepEqual(drawn, {
+      example: e.county,
+      urn: e.urn,
+      label: e.label,
+      market_value: fact("parcel.market_value").value,
+      year_built: fact("parcel.year_built").value,
+      as_of: fact("parcel.market_value").as_of,
+      locator: fact("parcel.market_value").locator,
+    });
+    for (const f of ["readme-hero-light.svg", "readme-hero-dark.svg"]) {
+      const svg = read(`docs/assets/${f}`);
+      assert.ok(svg.length < 60_000, `${f}: ${svg.length} bytes`);
+      assert.ok(
+        !/<script|<text|<image|https?:\/\/(?!www\.w3\.org)/.test(svg),
+        f,
+      );
+    }
   });
 });
 

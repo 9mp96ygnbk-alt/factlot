@@ -2,6 +2,7 @@ export interface Inset {
   id: string;
   name: string;
   view: [number, number, number, number];
+  states: string[];
   labels: [string, string, string][];
 }
 export interface InsetCounty {

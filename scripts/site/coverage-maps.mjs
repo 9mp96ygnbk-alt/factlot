@@ -47,16 +47,18 @@ const meets = (b, [x, y, w, h]) =>
 
 /**
  * The insets: a name, the part of the national map shown (x, y, width, height in the geometry's
- * 975 by 610 units) and the labels, each a place the pages already name, set beside the county
- * `at` (5-digit FIPS) on the side given.
+ * 975 by 610 units), the states drawn when the inset stands alone (those with a hosted county,
+ * and the ones between them), and the labels, each a place the pages already name, set beside
+ * the county `at` (5-digit FIPS) on the side given.
  */
 export const INSETS = [
   {
     id: "texas",
     name: "Texas",
     view: [246, 343, 348, 261],
+    states: ["48"],
     labels: [
-      ["48201", "Harris", "w"],
+      ["48201", "Harris", "s"],
       ["48113", "Dallas", "e"],
       ["48453", "Travis", "w"],
       ["48061", "Cameron", "w"],
@@ -71,6 +73,7 @@ export const INSETS = [
     id: "northeast",
     name: "Maryland to Boston",
     view: [748, 148, 200, 150],
+    states: ["24", "11", "36", "09", "25", "34", "42", "10", "44"],
     labels: [
       ["11001", "District of Columbia", "w"],
       ["24031", "Maryland", "n"],
@@ -83,6 +86,7 @@ export const INSETS = [
     id: "west",
     name: "Utah, Denver and California",
     view: [5, 150, 400, 300],
+    states: ["49", "08", "06", "32", "04"],
     labels: [
       ["49023", "Juab", "w"],
       ["49043", "Summit", "e"],
@@ -120,10 +124,7 @@ export function insetSvg(
   const clipped = apart.length ? ` clip-path="url(#${id}-c)"` : "";
   const land = refs
     ? `${clip}<use class="nation" href="#cov-nation"${clipped}/>`
-    : `<path class="land" d="${Object.entries(geo.states)
-        .filter(([f, s]) => !OFF_MAP.includes(f) && meets(box(s.d), inset.view))
-        .map(([, s]) => s.d)
-        .join("")}"/>`;
+    : `<path class="land" d="${inset.states.map((f) => geo.states[f].d).join("")}"/>`;
   const mesh = refs
     ? `<use class="cmesh" href="#cov-cmesh"${clipped}/>\n<use class="smesh" href="#cov-smesh"${clipped}/>\n`
     : "";

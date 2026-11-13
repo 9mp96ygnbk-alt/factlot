@@ -810,6 +810,12 @@ ul.principles li {
   border-bottom: 0;
 }
 
+@media (max-width: 30rem) {
+  .spec > div {
+    grid-template-columns: 4.75rem minmax(0, 1fr);
+  }
+}
+
 .spec dt {
   color: var(--muted);
   font-family: var(--mono);
@@ -1740,23 +1746,25 @@ h3 > .cite {
   margin: 0 0 0.5rem;
   padding: 0;
   list-style: none;
-  counter-reset: src;
 }
 
 .factcard-foot li {
   position: relative;
   margin: 0 0 0.3rem;
   padding-left: 1.9rem;
-  counter-increment: src;
 }
 
 .factcard-foot li::before {
-  content: "[" counter(src) "]";
+  content: "[" attr(data-n) "]";
   position: absolute;
   left: 0;
   font-family: var(--mono);
   font-weight: 600;
   color: var(--cited);
+}
+
+.factcard-foot > :last-child {
+  margin-bottom: 0;
 }
 
 .factcard-foot p {
@@ -2018,6 +2026,10 @@ h3 > .cite {
 
 .diagram .sm {
   font-size: 9.5px;
+}
+
+.diagram .sm2 {
+  font-size: 14px;
 }
 
 .diagram .t-v {

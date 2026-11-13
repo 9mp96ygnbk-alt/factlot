@@ -180,6 +180,33 @@ function factValue(f) {
   return esc(f.value);
 }
 
+/**
+ * A worked example's cited roll facts as its page lists them: the label, the value as printed,
+ * the date, the number of the source in the page's list and the record locator.
+ */
+export function exampleFacts(e) {
+  const docNo = new Map(Object.keys(e.documents).map((id, i) => [id, i + 1]));
+  return e.parcel_facts
+    .filter((f) => f.predicate in FACT_LABEL)
+    .map((f) => ({
+      predicate: f.predicate,
+      label: FACT_LABEL[f.predicate],
+      value: factValue(f),
+      as_of: f.as_of,
+      source: docNo.get(f.document_id),
+      locator: f.locator,
+    }));
+}
+
+/** A worked example's sources in the order its page numbers them: title and the day retrieved. */
+export function exampleSources(e) {
+  return Object.values(e.documents).map((d, i) => ({
+    n: i + 1,
+    title: d.title,
+    retrieved: d.retrieved_at.slice(0, 10),
+  }));
+}
+
 export function exampleBody(c, e, template) {
   const docs = Object.entries(e.documents);
   const docNo = new Map(docs.map(([id], i) => [id, i + 1]));
