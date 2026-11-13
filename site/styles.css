@@ -770,6 +770,10 @@ ul.principles li {
   margin: 1.75rem 0 0;
 }
 
+.doc-head:not(.has-figure) .stats {
+  margin-bottom: 2rem;
+}
+
 @media (min-width: 60rem) {
   .doc-head.has-figure {
     grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
@@ -856,10 +860,10 @@ ul.principles li {
   background: var(--surface);
 }
 
-/* The connect page's figure: every surface, wired to the one endpoint. */
+/* The connect page's figure: every surface on a rail that runs to the one endpoint. */
 .hub {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 3.5rem max-content;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
   padding: 1rem 1.1rem;
   border: 1px solid var(--ink);
@@ -870,47 +874,55 @@ ul.principles li {
 }
 
 .hub ul {
-  max-width: 13rem;
+  max-width: none;
   margin: 0;
-  padding: 0;
+  padding: 0.15rem 1.4rem 0.15rem 0;
+  border-right: 1.5px solid var(--cited);
   list-style: none;
 }
 
 .hub li {
-  display: flex;
-  align-items: center;
-  height: 1.875rem;
+  position: relative;
   margin: 0;
-  overflow: hidden;
+  padding: 0.3rem 0;
   font-weight: 500;
-  line-height: 1.15;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
-.hub svg {
-  width: 100%;
-  height: 100%;
-}
-
-.hub .wire {
-  fill: none;
-  stroke: var(--cited);
-  stroke-width: 1.25;
-  vector-effect: non-scaling-stroke;
-}
-
-.hub .pin {
-  fill: var(--cited);
-}
-
-.hub .node {
-  fill: var(--accent);
+.hub li::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -1.4rem;
+  width: 0.9rem;
+  border-top: 1.5px solid var(--cited);
 }
 
 .hub p {
+  position: relative;
   max-width: none;
   margin: 0;
+  padding-left: 1.6rem;
+}
+
+.hub p::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1.1rem;
+  border-top: 1.5px solid var(--cited);
+}
+
+.hub p::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - 0.3rem);
+  left: 0.85rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 .hub code {
@@ -920,19 +932,34 @@ ul.principles li {
   white-space: nowrap;
 }
 
+/* On a phone the rail runs down the left and ends at the endpoint below. */
 @media (max-width: 30rem) {
   .hub {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.75rem;
   }
 
-  .hub svg {
-    display: none;
+  .hub ul {
+    padding: 0 0 0.4rem 1.4rem;
+    border-right: 0;
+    border-left: 1.5px solid var(--cited);
+  }
+
+  .hub li::after {
+    right: auto;
+    left: -1.4rem;
   }
 
   .hub p {
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--line);
+    padding: 0.5rem 0 0 1.4rem;
+    border-left: 1.5px solid var(--cited);
+  }
+
+  .hub p::before {
+    top: calc(50% + 0.25rem);
+  }
+
+  .hub p::after {
+    top: calc(50% - 0.05rem);
   }
 }
 
@@ -1169,8 +1196,9 @@ h3 > .cite {
 
 @media (max-width: 40rem) {
   .tablewrap tbody th[scope="row"] {
+    min-width: 6rem;
     max-width: 10.5rem;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 }
 
@@ -3462,6 +3490,44 @@ details.client ol {
   padding-left: 1.25rem;
 }
 
+/* This month's use, as readouts. */
+.usage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem;
+  max-width: none;
+  margin: 1.5rem 0;
+}
+
+.usage > div {
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line-2);
+  border-top: 2px solid var(--ink);
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
+}
+
+.usage dt {
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usage dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage progress {
+  margin-bottom: 0.35rem;
+}
+
 dl.facts {
   display: grid;
   grid-template-columns: minmax(8.5rem, max-content) 1fr;
@@ -3524,8 +3590,27 @@ button.link {
 
 progress {
   width: 100%;
-  height: 0.7rem;
+  height: 0.6rem;
+  border: 0;
+  border-radius: 2px;
+  background: var(--paper-2);
   accent-color: var(--accent);
+  appearance: none;
+}
+
+progress::-webkit-progress-bar {
+  border-radius: 2px;
+  background: var(--paper-2);
+}
+
+progress::-webkit-progress-value {
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+progress::-moz-progress-bar {
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 .out {
@@ -3535,7 +3620,13 @@ progress {
 .spark {
   display: block;
   width: 100%;
-  height: 56px;
+  max-width: var(--measure);
+  height: 72px;
+  padding: 0.5rem 0.5rem 0;
+  border: 1px solid var(--line-2);
+  border-bottom: 2px solid var(--ink);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--surface);
   color: var(--accent);
 }
 

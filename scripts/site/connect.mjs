@@ -112,29 +112,16 @@ ${s.paths.map(pathHtml).join("\n")}
 
 /**
  * The drawing beside the page's title: every surface the page lists, each joined to the one
- * endpoint. Names and the URL come from the same data as the page.
+ * endpoint. Names and the URL come from the same data as the page. The lines are drawn by the
+ * stylesheet on the list itself, so a long name wraps and every name shows in full.
  */
 export function connectFigure(raw, version) {
   const d = connectData(raw, version);
-  const n = d.surfaces.length;
-  const row = 30;
-  const h = n * row + 8;
-  const mid = h / 2;
-  const lines = d.surfaces
-    .map((s, i) => {
-      const y = 4 + i * row + row / 2;
-      return `<path class="wire" d="M150 ${y}C196 ${y} 186 ${mid} 232 ${mid}"/><circle class="pin" cx="150" cy="${y}" r="3"/>`;
-    })
-    .join("\n");
-  return `<div class="hub" role="img" aria-label="${esc(d.surfaces.map((s) => s.name).join(", "))}: each connects to ${esc(d.mcp_url)}">
-<ul>
+  return `<div class="hub">
+<ul aria-label="Surfaces">
 ${d.surfaces.map((s) => `<li>${esc(s.name)}</li>`).join("\n")}
 </ul>
-<svg viewBox="150 0 90 ${h}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-${lines}
-<circle class="node" cx="232" cy="${mid}" r="5"/>
-</svg>
-<p><code>${esc(d.mcp_url)}</code></p>
+<p><span class="visually-hidden">each connects to </span><code>${esc(d.mcp_url)}</code></p>
 </div>`;
 }
 

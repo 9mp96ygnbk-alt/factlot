@@ -1109,13 +1109,24 @@ ${Object.keys(byState)
 
 {
   const trustCrumb = (slug, name) => [[`/${slug}/`, name]];
-  const trustPage = (slug, title, description, h1, fragment, vars = {}) =>
+  // `head`: a page's own figures beside or under its title ({ lead, figure }), from the same
+  // values its text is filled with; a page with nothing to count has none.
+  const trustPage = (
+    slug,
+    title,
+    description,
+    h1,
+    fragment,
+    vars = {},
+    head = {},
+  ) =>
     addPage(
       {
         urlPath: `/${slug}/`,
         title: `${title} | FactLot`,
         description,
         h1,
+        ...head,
         crumbs: trustCrumb(slug, title),
         body: fill(read(`site/_content/${fragment}`), {
           VERSION,
@@ -1132,6 +1143,17 @@ ${Object.keys(byState)
     "How FactLot's hosted service is checked, the live health endpoint, the incident history and how to report a problem. No uptime percentage is shown because none is measured.",
     "Service status",
     "status.html",
+    {},
+    {
+      // The check the page gives: the health endpoint and its answer for this version.
+      figure: spec([
+        ["Check", "<code>curl -s https://api.factlot.com/health</code>"],
+        [
+          "Answer",
+          `<code>${esc(JSON.stringify({ ok: true, version: VERSION }))}</code>`,
+        ],
+      ]),
+    },
   );
   trustPage(
     "security",
@@ -1214,6 +1236,14 @@ ${Object.keys(byState)
         )
         .join(", "),
     },
+    {
+      // The sizes the page says are counted at build, as it counts them.
+      lead: `<dl class="stats">
+<div><dt>Shared test cases</dt><dd>${vectorCases}</dd></div>
+<div><dt>Vector files</dt><dd>${vectorFiles}</dd></div>
+<div><dt>Calculators</dt><dd>${calcTools.length}</dd></div>
+</dl>`,
+    },
   );
 }
 
@@ -1231,6 +1261,24 @@ fs.cpSync(path.join(root, "site"), out, {
     );
   },
 });
+// The hand-written pages name the shell where it goes; the same header, footer and head links as
+// every generated page are put there. Nothing else in them is touched.
+for (const [file, urlPath] of [
+  ["privacy.html", "/privacy"],
+  ["terms.html", "/terms"],
+  ["404.html", ""],
+]) {
+  const at = path.join(out, file);
+  fs.writeFileSync(
+    at,
+    fill(fs.readFileSync(at, "utf8"), {
+      HEAD_LINKS: headLinks(),
+      SITE_HEADER: siteHeader({ current: urlPath }),
+      SITE_FOOTER: siteFooter({ stories: stories.length > 0 }),
+    }),
+  );
+}
+
 // The stylesheet is served without its comments and indentation: every rule and value as written,
 // each on one line. A line that ends a selector, a rule or a declaration joins the next directly;
 // any other (a value that runs over several lines) keeps a space.

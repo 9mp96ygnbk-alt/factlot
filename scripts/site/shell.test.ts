@@ -2,6 +2,7 @@
 // loaded from another origin, and no figure that says more than the data it is drawn from.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -40,6 +41,9 @@ import {
 
 const root = new URL("../../", import.meta.url);
 const read = (rel: string) => readFileSync(new URL(rel, root), "utf8");
+const version = (
+  JSON.parse(read("packages/mcp/package.json")) as { version: string }
+).version;
 const json = <T>(rel: string) => JSON.parse(read(rel)) as T;
 const words = (html: string) =>
   html
@@ -305,7 +309,7 @@ describe("page figures say only what the page says", () => {
     }
   });
 
-  it("the connect drawing names every surface and the one endpoint", () => {
+  it("the connect drawing names every surface in full and the one endpoint", () => {
     const raw = json<unknown>("site/_data/connect.json");
     const data = connectData(raw, "0.0.0");
     const fig = connectFigure(raw, "0.0.0");
@@ -314,8 +318,10 @@ describe("page figures say only what the page says", () => {
         fig.includes(`<li>${s.name.replaceAll("&", "&amp;")}</li>`),
         s.name,
       );
+    assert.equal(fig.split("<li>").length - 1, data.surfaces.length);
     assert.ok(fig.includes(`<code>${data.mcp_url}</code>`));
-    assert.equal(fig.split('class="wire"').length - 1, data.surfaces.length);
+    // Drawn by the stylesheet on the list, so a name is never cut to fit a fixed row.
+    assert.ok(!/<svg|style=/.test(fig));
   });
 
   it("the connect tabs are radio inputs, one per path, and each path keeps its address", () => {
@@ -461,6 +467,19 @@ describe("the brand images", () => {
   });
 });
 
+// The legal text as it stood when the pages took the shared shell. A change to the words of either
+// page changes its hash: update it in the same commit as the change, on purpose.
+const LEGAL_TEXT = {
+  "privacy.html":
+    "1e8c5bcab2be948db8ea7a065b85a3648fcb0949c8638ad84590db7dd5574a0a",
+  "terms.html":
+    "69dc7f239adb8cc551578ce895d20fc2b188f49a0f25c07c7be426a9813b92e1",
+};
+const mainOf = (html: string) =>
+  /<main\b[^>]*>([\s\S]*?)<\/main>/.exec(html)![1]!;
+const textOf = (html: string) => mainOf(html).replace(/<[^>]*>/g, "");
+const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
+
 describe("the built site", () => {
   it(
     "gives every page the shell, the font preload and a table box, and writes the map file",
@@ -511,6 +530,62 @@ describe("the built site", () => {
       assert.equal(squeeze(served), squeeze(read("site/styles.css")));
       assert.ok(served.length <= 60_000, `${served.length} bytes of CSS`);
       assert.ok(!served.includes("/*"));
+      // The Worker serves this folder: wrangler's assets directory is the build's default output.
+      assert.match(
+        read("deploy/cloudflare/wrangler.jsonc"),
+        /"assets": \{\s*"directory": "\.\/public",/,
+      );
+      assert.match(
+        read("scripts/site/build.mjs"),
+        /process\.argv\[2\] \?\? path\.join\(root, "deploy\/cloudflare\/public"\)/,
+      );
+      // The hand-written pages: the shell around them, and not a byte of their own text changed.
+      for (const [file, hash] of Object.entries(LEGAL_TEXT)) {
+        const source = read(`site/${file}`);
+        const built = readFileSync(`${out}/${file}`, "utf8");
+        assert.equal(sha256(textOf(source)), hash, `${file}: the text changed`);
+        assert.equal(mainOf(built), mainOf(source), `${file}: main differs`);
+        assert.ok(
+          built.includes(
+            shell.siteHeader({ current: `/${file.replace(".html", "")}` }),
+          ),
+        );
+        assert.ok(built.includes(shell.siteFooter()), file);
+        assert.ok(built.includes(shell.headLinks()), file);
+        assert.doesNotMatch(built, /\{\{[A-Z_]+\}\}/);
+      }
+      const missing = readFileSync(`${out}/404.html`, "utf8");
+      assert.ok(missing.includes(shell.siteHeader()));
+      assert.ok(missing.includes(shell.siteFooter()));
+      assert.equal(mainOf(missing), mainOf(read("site/404.html")));
+      // Trust pages: figures only where the page counts something.
+      const status = readFileSync(`${out}/status/index.html`, "utf8");
+      const answer = `{&quot;ok&quot;:true,&quot;version&quot;:&quot;${version}&quot;}`;
+      assert.ok(status.includes(`<dd><code>${answer}</code></dd>`));
+      assert.ok(
+        status
+          .split('<div class="doc-body">')[1]!
+          .includes(`{"ok":true,"version":"${version}"}`),
+        "the status page's own text gives the same answer",
+      );
+      const assurance = readFileSync(`${out}/assurance/index.html`, "utf8");
+      const [head, body] = assurance.split('<div class="doc-body">') as [
+        string,
+        string,
+      ];
+      for (const n of head.match(/<dd>(\d+)<\/dd>/g) ?? [])
+        assert.ok(
+          words(body).includes(n.replace(/<\/?dd>/g, "")),
+          `assurance: ${n} is not in the page's text`,
+        );
+      assert.equal((head.match(/<dd>\d+<\/dd>/g) ?? []).length, 3);
+      for (const slug of ["security", "sla"])
+        assert.ok(
+          !readFileSync(`${out}/${slug}/index.html`, "utf8").includes(
+            "doc-figure",
+          ),
+          slug,
+        );
       const coverage = readFileSync(`${out}/coverage/index.html`, "utf8");
       assert.equal(coverage.split('class="covsvg inset"').length - 1, 3);
       const texasHub = readFileSync(`${out}/texas/index.html`, "utf8");
