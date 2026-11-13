@@ -30,6 +30,8 @@ jobs:
       - run: npm run build
       - name: Build factlot.com (checks numbers, links, and that nothing loads from another origin)
         run: npm run build:site -- "$RUNNER_TEMP/site"
+      - name: Both Workers start and answer in workerd (local, no account, no network)
+        run: npm run test:workerd
 
   python-and-differential:
     runs-on: ubuntu-latest
