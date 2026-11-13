@@ -2167,7 +2167,7 @@ test("parcels sharing one label: a search reads at most twice its limit of recor
   const pack = join(dir, "pack-one-label");
   buildPack([{ name: "x", path: x }], pack);
   for (const limit of [1, 5, 20]) {
-    const p = new Pack(fileAssets(pack));
+    const p = new Pack(assetsSource(fileAssets(pack)));
     const entry = p.entry.bind(p);
     let records = 0;
     p.entry = (urn: string) => {
