@@ -477,7 +477,7 @@ export function createHandler(opts: FactLotServerOptions = {}) {
         send(res, 200, {
           name: "FactLot",
           description:
-            "The open fact layer for commercial real estate AI agents.",
+            "An open fact layer for commercial real estate AI agents.",
           version: CATALOG_VERSION,
           mcp: `${base}/mcp`,
           openapi: `${base}/openapi.json`,

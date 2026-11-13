@@ -1,7 +1,7 @@
 {
   "name": "factlot",
   "private": true,
-  "description": "FactLot: the open fact layer for commercial real estate AI agents.",
+  "description": "FactLot: an open fact layer for commercial real estate AI agents.",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {

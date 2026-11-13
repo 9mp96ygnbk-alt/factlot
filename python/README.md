@@ -1,6 +1,6 @@
 # factlot (Python)
 
-The open fact layer for commercial real estate AI agents. This is a pure-Python, dependency-free
+An open fact layer for commercial real estate AI agents. This is a pure-Python, dependency-free
 port of [`@factlot/calc`](../packages/calc) and [`@factlot/id`](../packages/id). It is held to the
 same [conformance vectors](../spec) as the TypeScript packages. Requires Python 3.10 or newer.
 

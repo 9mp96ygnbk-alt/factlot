@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "factlot"
 version = "0.5.0"
-description = "The open fact layer for commercial real estate AI agents: deterministic calculators, FactLot IDs, and fact validation."
+description = "An open fact layer for commercial real estate AI agents: deterministic calculators, FactLot IDs, and fact validation."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]

@@ -1,4 +1,4 @@
-"""FactLot: the open fact layer for commercial real estate AI agents.
+"""FactLot: an open fact layer for commercial real estate AI agents.
 
 - ``factlot.calc``   deterministic, traceable CRE calculators
 - ``factlot.ids``    FactLot ID: canonical IDs for parcels, entities, spaces, documents

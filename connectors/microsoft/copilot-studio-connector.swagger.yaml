@@ -2,7 +2,7 @@ swagger: "2.0"
 info:
   title: FactLot
   description: >-
-    The open fact layer for commercial real estate AI agents. Deterministic CRE calculators
+    An open fact layer for commercial real estate AI agents. Deterministic CRE calculators
     (rent schedules, NER, proposal comparison, CAM reconciliation, percentage rent, loan sizing,
     WALT, NPV, IRR) with audit trails, canonical FactLot IDs, and cited-fact validation, served
     over the Model Context Protocol.

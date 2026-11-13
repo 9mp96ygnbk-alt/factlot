@@ -1,6 +1,6 @@
 # Contributing to FactLot
 
-Thanks for helping build the open fact layer for commercial real estate.
+Thanks for helping build an open fact layer for commercial real estate.
 
 ## Ground rules
 

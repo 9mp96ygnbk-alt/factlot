@@ -1,6 +1,6 @@
 # FactLot
 
-**The open fact layer for commercial real estate AI agents.** Deterministic CRE math with an
+**An open fact layer for commercial real estate AI agents.** Deterministic CRE math with an
 audit trail, canonical property IDs, and public-record facts that cite the document they came
 from. Free to use hosted, free to run yourself, open source.
 

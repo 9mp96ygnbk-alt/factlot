@@ -2,7 +2,7 @@
 
 An MCP server exposing FactLot calculators, IDs, and fact validation to any MCP-capable agent. It runs locally over stdio, needs no API key, and makes no network calls.
 
-Part of [FactLot](https://github.com/9mp96ygnbk-alt/factlot): the open fact layer for commercial real estate AI agents.
+Part of [FactLot](https://github.com/9mp96ygnbk-alt/factlot): an open fact layer for commercial real estate AI agents.
 
 ## Run it
 
