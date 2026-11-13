@@ -3,7 +3,7 @@
 // when one of them drifts from the package version, the tool catalog or site/_data/hosted.json.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { describe, it } from "node:test";
 
@@ -179,27 +179,33 @@ describe("coverage catalog (/coverage.json)", () => {
     for (const k of Object.keys(ID_EXAMPLES)) assert.ok(known.includes(k), k);
   });
 
-  it("is served from the site build, and llms.txt, the coverage page and the OpenAPI description link it", () => {
-    const out = mkdtempSync(`${tmpdir()}/factlot-cov-`);
-    execFileSync("node", ["scripts/site/build.mjs", out], {
-      cwd: rootPath,
-      stdio: "pipe",
-    });
-    const built = JSON.parse(readFileSync(`${out}/coverage.json`, "utf8"));
-    assert.equal(built.catalog_url, CATALOG_URL);
-    assert.deepEqual(built, JSON.parse(JSON.stringify(cat)));
-    assert.ok(read("llms.txt").includes(CATALOG_URL));
-    assert.ok(
-      readFileSync(`${out}/coverage/index.html`, "utf8").includes(
-        'href="/coverage.json"',
-      ),
-    );
-    for (const f of [
-      "spec/schemas/openapi-3.1.json",
-      "spec/schemas/openapi-3.0.json",
-    ])
-      assert.ok(json(f).info.description.includes(CATALOG_URL), f);
-  });
+  // The site build imports the built tools package, as the other site-build tests do: skipped
+  // when it is not built (CI runs the tests before the build, and builds the site after it).
+  it(
+    "is served from the site build, and llms.txt, the coverage page and the OpenAPI description link it",
+    { skip: !existsSync(new URL("packages/tools/dist/index.js", root)) },
+    () => {
+      const out = mkdtempSync(`${tmpdir()}/factlot-cov-`);
+      execFileSync("node", ["scripts/site/build.mjs", out], {
+        cwd: rootPath,
+        stdio: "pipe",
+      });
+      const built = JSON.parse(readFileSync(`${out}/coverage.json`, "utf8"));
+      assert.equal(built.catalog_url, CATALOG_URL);
+      assert.deepEqual(built, JSON.parse(JSON.stringify(cat)));
+      assert.ok(read("llms.txt").includes(CATALOG_URL));
+      assert.ok(
+        readFileSync(`${out}/coverage/index.html`, "utf8").includes(
+          'href="/coverage.json"',
+        ),
+      );
+      for (const f of [
+        "spec/schemas/openapi-3.1.json",
+        "spec/schemas/openapi-3.0.json",
+      ])
+        assert.ok(json(f).info.description.includes(CATALOG_URL), f);
+    },
+  );
 });
 
 describe("llms.txt", () => {
