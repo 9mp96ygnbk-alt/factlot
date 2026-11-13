@@ -173,6 +173,7 @@ async function main(): Promise<void> {
     say("both Workers started");
     await registryChecks(harness);
     await apiChecks(harness);
+    await internalRequestChecks(harness);
     await scheduledChecks(harness, apiPath);
     await objectStoreChecks(harness, registryPath, registryOut, pack);
     const errors = harness
@@ -474,6 +475,114 @@ async function apiChecks(harness: Harness): Promise<void> {
     batch.status === 200 && bb.summary?.subjects === 2,
     "api batch candidates with a key (fan-out through REGISTRY)",
     bb,
+  );
+}
+
+// --- B2: requests the API Worker builds for its inner handler, and registry_lookup_batch ----------
+//
+// The inner handler (node:http in workerd) answers an empty 400 to a request without a Host header,
+// so every request this Worker builds for it must carry one. The account page reads the hosted
+// regions through the inner handler (hostedRegions); its section is there only when that read works.
+
+async function internalRequestChecks(harness: Harness): Promise<void> {
+  const api = harness.getWorker("factlot-api");
+  const send = (url: string, init: RequestInit = {}) =>
+    api.fetch(url, {
+      ...init,
+      headers: {
+        ...(init.headers as Record<string, string> | undefined),
+        "cf-connecting-ip": "203.0.113.8",
+      },
+    } as Parameters<typeof api.fetch>[1]);
+  const key = `fl_live_${randomBytes(32).toString("base64url")}`;
+  const hash = createHash("sha256").update(key).digest("hex");
+  const env = (await api.getEnv()) as {
+    KEYS: { put(k: string, v: string): Promise<void> };
+  };
+  await env.KEYS.put(
+    `key:${hash}`,
+    JSON.stringify({
+      plan: "pro",
+      status: "active",
+      customer: "cus_workerd_internal",
+      subscription: "sub_workerd_internal",
+      stripe_status: "active",
+      created: new Date().toISOString(),
+      checked_at: Date.now(),
+    }),
+  );
+  await env.KEYS.put("sub:sub_workerd_internal", JSON.stringify([hash]));
+
+  // The account page with a key: the hosted regions (from the fixture pack) are listed.
+  const page = await send("https://factlot.com/account", {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      origin: "https://factlot.com",
+    },
+    body: new URLSearchParams({ key, action: "view" }).toString(),
+  });
+  const html = await page.text();
+  const section = /id="h-regions"[\s\S]*?<\/section>/.exec(html)?.[0] ?? "";
+  expect(
+    page.status === 200 && section.includes("TX") && section.includes("MD"),
+    "account page lists the hosted regions (hostedRegions through the inner handler)",
+    `${page.status} ${section.slice(0, 300) || html.slice(0, 300)}`,
+  );
+  const failed = harness
+    .getLogs()
+    .filter((l) => /hosted regions unavailable/.test(JSON.stringify(l)));
+  expect(
+    failed.length === 0,
+    "no 'hosted regions unavailable' log line",
+    failed.slice(0, 2),
+  );
+
+  // registry_lookup_batch with a key: one URN, one account, one address, through REGISTRY.
+  const lookup = (headers: Record<string, string>) =>
+    send("https://api.factlot.com/v1/registry/lookup/batch", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify({
+        items: [
+          { ref: "u", urn: "fl:parcel:us-48999:0001-000-0001" },
+          { ref: "a", apn: "0001-000-0001", county_fips: "48999" },
+          { ref: "s", address: "300 Harbor Drive, Example City TX 77999" },
+        ],
+      }),
+    });
+  const usage = async () => {
+    const r = await send("https://api.factlot.com/v1/account/usage", {
+      headers: { authorization: `Bearer ${key}` },
+    });
+    return (await asJson(r)) as { month?: { used?: number } };
+  };
+  const before = (await usage()).month?.used ?? -1;
+  const res = await lookup({ authorization: `Bearer ${key}` });
+  const body = (await asJson(res)) as {
+    results?: { ref?: string; status?: string; parcel?: { urn?: string } }[];
+    summary?: { found?: number };
+  };
+  expect(
+    res.status === 200 &&
+      body.results?.map((r) => `${r.ref}:${r.status}`).join(",") ===
+        "u:found,a:found,s:found" &&
+      body.results?.[2]?.parcel?.urn === "fl:parcel:us-48999:0002-000-1000",
+    "api registry_lookup_batch with a key (URN, account, address through REGISTRY)",
+    body,
+  );
+  const after = (await usage()).month?.used ?? -1;
+  expect(
+    before >= 0 && after - before === 3,
+    "registry_lookup_batch charged one lookup per found item",
+    { before, after },
+  );
+  const free = await lookup({});
+  const fb = (await asJson(free)) as { error?: string };
+  expect(
+    free.status === 403 && fb.error === "PlanRequired",
+    "registry_lookup_batch without a key answers PlanRequired",
+    { status: free.status, body: fb },
   );
 }
 

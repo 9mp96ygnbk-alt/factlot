@@ -4,6 +4,7 @@
  * the REST twin `GET /v1/account/usage`, the region a registry call is about, and the hosted
  * coverage summary the account page shows.
  */
+import { innerRequest } from "./internal.ts";
 import { accountSummary } from "./billing.ts";
 import { meterSubject, type KeyRecord } from "./keys.ts";
 import { PLANS } from "./plans.ts";
@@ -142,7 +143,9 @@ let coverageCache: { at: number; regions: HostedRegion[] } | undefined;
 
 /**
  * The hosted registry's coverage by state, from registry_coverage on the inner handler (cached
- * ten minutes per isolate). Empty when the registry does not answer.
+ * ten minutes per isolate). Empty when the registry does not answer, so the pages that show it
+ * still render; that failure is logged ("hosted regions unavailable", with the status) and not
+ * cached.
  */
 export async function hostedRegions(
   api: Fetcher,
@@ -153,13 +156,21 @@ export async function hostedRegions(
     return coverageCache.regions;
   try {
     const res = await api.fetch(
-      new Request(`${apiBase}/v1/registry/coverage`, {
+      innerRequest(`${apiBase}/v1/registry/coverage`, {
         method: "POST",
         body: "{}",
         headers: { "content-type": "application/json" },
       }),
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(
+        JSON.stringify({
+          msg: "hosted regions unavailable",
+          status: res.status,
+        }),
+      );
+      return [];
+    }
     const body = (await res.json()) as {
       counties?: {
         state?: unknown;
@@ -189,6 +200,9 @@ export async function hostedRegions(
     coverageCache = { at: now, regions };
     return regions;
   } catch {
+    console.error(
+      JSON.stringify({ msg: "hosted regions unavailable", status: null }),
+    );
     return [];
   }
 }
