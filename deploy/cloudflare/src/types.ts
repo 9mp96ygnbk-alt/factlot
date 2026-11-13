@@ -144,6 +144,19 @@ export interface SendEmail {
   send(message: EmailMessageBuilder): Promise<{ messageId: string }>;
 }
 
+/**
+ * Watch-list storage (watch-store.ts): operations on one subscription's object or on the index,
+ * inside the LIMITER Durable Object class.
+ */
+export interface WatchService {
+  sub<T>(
+    subscription: string,
+    op: string,
+    args?: Record<string, unknown>,
+  ): Promise<T>;
+  index<T>(op: string, args?: Record<string, unknown>): Promise<T>;
+}
+
 export interface Env {
   /** API-key records, Stripe checkout sessions already redeemed, cached price IDs. */
   KEYS: KV;
@@ -207,4 +220,8 @@ export interface Env {
    * Without it no optional note is sent.
    */
   POSTAL_ADDRESS?: string;
+  /** "true" turns watch lists on (watch.ts). Unset or anything else: off, tools unlisted, routes 404, no checks. */
+  WATCH_LISTS_ENABLED?: string;
+  /** Watch-list storage (set by worker.ts over the LIMITER namespace). */
+  WATCH?: WatchService;
 }

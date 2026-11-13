@@ -27,7 +27,9 @@ export async function sendEmail(
     | "signin"
     | "freekey"
     | "freekeydelete"
-    | "lifecycle",
+    | "lifecycle"
+    | "watch"
+    | "watchconfirm",
   message: Omit<EmailMessageBuilder, "from" | "replyTo">,
 ): Promise<boolean> {
   if (!env.EMAIL) return false;
@@ -183,6 +185,58 @@ export function freeKeyDeleteMessage(
       "This is a transactional message: someone (we hope you) asked to delete the free FactLot API key for this email address. We will not add you to any mailing list.",
       `Open this link and press the button to delete the key and the records kept for this address. Nothing is deleted until you press it:\n${url}`,
       `The link works once and expires in ${minutes} minutes. If you did not ask for it, ignore this email: nothing changes. This email does not contain a key.`,
+      `Questions: reply to this email or write to ${CONTACT}.`,
+    ]),
+  };
+}
+
+/**
+ * One registry update's watch-list alert: what changed, a link per subject, the one-click stop
+ * link, and the operator's postal address line.
+ */
+export function watchDigestMessage(o: {
+  /** The registry update (pack built_at, ISO). */
+  builtAt: string;
+  items: { urn: string; label: string | null; summary: string }[];
+  /** Changes not listed (over the email's limit). */
+  more: number;
+  account: string;
+  stop: string;
+  postal?: string;
+}): { subject: string; text: string; html: string } {
+  const n = o.items.length + o.more;
+  const day = o.builtAt.slice(0, 10);
+  return {
+    subject: `FactLot watch list: ${n} change${n === 1 ? "" : "s"} in the ${day} registry update`,
+    ...body([
+      `This is a transactional message: you turned on watch-list alerts for this address. The FactLot registry update of ${day} changed ${n === 1 ? "one thing" : `${n} things`} you watch.`,
+      ...o.items.map(
+        (i) => `${i.label ? `${i.label} (${i.urn})` : i.urn}: ${i.summary}`,
+      ),
+      ...(o.more > 0
+        ? [
+            `And ${o.more} more. Every change, with old and new values and citations: the watch_changes tool, or ${o.account}`,
+          ]
+        : [
+            `Old and new values with citations: the watch_changes tool, or ${o.account}`,
+          ]),
+      `Stop these emails (one click; your watch lists stay): ${o.stop}`,
+      `FactLot, ${CONTACT}${o.postal ? `, ${o.postal}` : ""}`,
+    ]),
+  };
+}
+
+/** The one message a new watch-list alert address gets before it is confirmed. */
+export function watchConfirmMessage(
+  url: string,
+  hours: number,
+): { subject: string; text: string; html: string } {
+  return {
+    subject: "Confirm FactLot watch-list alerts",
+    ...body([
+      "This is a transactional message: someone (we hope you) asked FactLot to send watch-list alerts for a FactLot subscription to this address. Nothing will be sent to it unless you confirm.",
+      `Open this link and press the button to confirm:\n${url}`,
+      `The link works once and expires in ${hours} hours. If you did not ask for it, ignore this email: this address gets nothing more.`,
       `Questions: reply to this email or write to ${CONTACT}.`,
     ]),
   };

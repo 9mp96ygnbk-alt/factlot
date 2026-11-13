@@ -48,6 +48,7 @@ import {
   isPlanId,
   planForLookupKey,
   priceText,
+  watchEnabled,
   type PlanId,
 } from "./plans.ts";
 import { StripeError, stripeClient, verifyStripeSignature } from "./stripe.ts";
@@ -67,6 +68,7 @@ import { messagePage, onboardingPage } from "./pages.ts";
 import { propertyPath } from "../../registry/src/page-rules.ts";
 import { claimUrl, newClaim, storeClaim } from "./claim.ts";
 import { countEvent } from "./usage.ts";
+import { forgetWatch } from "./watch-forget.ts";
 
 /** How long a key's subscription status is trusted before it is re-checked with Stripe. */
 export const RECHECK_MS = 6 * 60 * 60 * 1000;
@@ -796,6 +798,10 @@ export async function handleWebhook(
           revoked++;
         }
       }
+      // Watch lists of a cancelled subscription are deleted (watch-forget.ts). A failure
+      // answers 503, so Stripe sends the event again. Nothing is called while watch lists are off.
+      if (watchEnabled(env) && stripeStatusIsTerminal(state.stripe_status))
+        await forgetWatch(env, sub);
       if (created)
         await kv.put(`subevt:${sub}`, String(created), {
           expirationTtl: INACTIVE_RETENTION_SECONDS,

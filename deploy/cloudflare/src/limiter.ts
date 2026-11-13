@@ -39,6 +39,7 @@ import type {
   RateLimit,
   UsageSummary,
 } from "./types.ts";
+import { watchObjectFetch } from "./watch-store.ts";
 
 export interface DurableObjectStubLike {
   fetch(input: string, init?: RequestInit): Promise<Response>;
@@ -50,7 +51,7 @@ export interface DurableObjectNamespaceLike {
 interface SqlStorageLike {
   exec(
     query: string,
-    ...bindings: (string | number)[]
+    ...bindings: (string | number | null)[]
   ): { toArray(): Record<string, unknown>[] };
 }
 export interface DurableObjectStateLike {
@@ -570,6 +571,15 @@ export class RateLimiterObject {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    // Watch-list objects (watch-store.ts): their own tables, never an alarm.
+    if (url.pathname === "/watch")
+      return watchObjectFetch(
+        {
+          sql: this.state.storage.sql,
+          deleteAll: () => this.state.storage.deleteAll(),
+        },
+        request,
+      );
     if (url.pathname === "/hit") {
       const b = (await request.json()) as {
         perMinute: number | null;

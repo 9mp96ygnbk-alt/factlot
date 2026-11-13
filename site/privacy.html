@@ -302,6 +302,21 @@
               Cloudflare's logs may hold it.
             </li>
           </ul>
+          <h3>Watch lists</h3>
+          <p>
+            If a Pro or Team subscription uses watch lists, we store its lists,
+            the registry identifiers on them and, for each record, a summary of
+            its registry data used to detect changes (values, owner of record,
+            the dates and amounts of recorded documents, and hashes; no party
+            names from recorded documents). If you turn on alert emails, we
+            store the address you give for them, send it one confirmation email,
+            and once it is confirmed use it only to send those alerts: one
+            transactional email through Cloudflare Email Sending after each
+            registry update that changed something you watch, each with a link
+            that stops them with one click. Stopping the alerts deletes the
+            address, removing a record or a list deletes its data, and
+            cancelling the subscription deletes all of it.
+          </p>
           <h3>Billing</h3>
           <p>
             Stripe runs checkout and billing and collects what it needs to take
@@ -384,6 +399,11 @@
             <li>
               <strong>To send the optional emails you ticked the box for</strong
               >: your consent.
+            </li>
+            <li>
+              <strong>To send watch-list alerts you turned on</strong>, and the
+              one email that confirms the address: needed to perform our
+              agreement with you.
             </li>
             <li>
               <strong>To plan capacity</strong>: counting requests by tool path,
@@ -486,6 +506,13 @@
                 <td>
                   Up to 90 days, or until the free key is deleted, whichever is
                   first
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Watch lists and alert address</th>
+                <td>
+                  Until you remove them, stop the alerts or the subscription is
+                  cancelled; detected changes at most 400 days
                 </td>
               </tr>
               <tr>
@@ -702,7 +729,9 @@
               12 November 2026 (third update): described the optional emails you
               can ask for with a separate, unticked box (what is sent and how
               often, what is stored for your consent and for stopping them, and
-              how to stop them), and the checkout return link.
+              how to stop them), and the checkout return link; and watch lists
+              for Pro and Team (what is stored to detect changes, the alert
+              address and its confirmation email, and when each is deleted).
             </li>
             <li>
               12 November 2026 (second update): described the daily totals of
