@@ -7,6 +7,14 @@
 export const REPO = "https://github.com/9mp96ygnbk-alt/factlot";
 export const CONTACT = "contact@factlot.com";
 
+/**
+ * A source's title as a page prints it. Some publishers' titles, as recorded, end with the file
+ * name twice ("... export (Real_acct_owner.zip) (Real_acct_owner.zip)"); a parenthesised name that
+ * directly repeats is printed once. Nothing else changes.
+ */
+export const sourceTitle = (title) =>
+  String(title).replace(/(\(([^()]+)\))(?:\s*\(\2\))+/g, "$1");
+
 /** The site navigation, in order. The last entry is drawn as the button. */
 export const NAV = [
   ["/calculators/", "Calculators"],

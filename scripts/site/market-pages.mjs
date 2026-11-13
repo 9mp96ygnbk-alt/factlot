@@ -6,6 +6,7 @@
 // these same functions, so a page cannot say a number the data does not hold. A place the hosted pack does not
 // serve gets no page.
 
+import { sourceTitle } from "./shell.mjs";
 import { esc, longDate } from "./texas-pages.mjs";
 
 const int = new Intl.NumberFormat("en-US");
@@ -209,7 +210,10 @@ export function marketBody(m, d, hosted, template, fieldsText) {
       table(`Source ${s.source_id}`, [
         ["Source ID", `<code>${esc(s.source_id)}</code>`],
         ["Publisher", esc(s.publisher)],
-        ["File", `${esc(s.title)}, <a href="${esc(s.url)}">${esc(s.url)}</a>`],
+        [
+          "File",
+          `${esc(sourceTitle(s.title))}, <a href="${esc(s.url)}">${esc(s.url)}</a>`,
+        ],
         ["Licence as recorded", esc(s.license)],
         ["AI use", esc(s.ai_use)],
         ["Redistribution", esc(s.redistribution)],
@@ -302,7 +306,7 @@ ${rows.join("\n")}
 </dl>
 <div class="factcard-foot">
 <ol>
-<li data-n="1">${esc(src.publisher)}: ${esc(src.title)}</li>
+<li data-n="1">${esc(src.publisher)}: ${esc(sourceTitle(src.title))}</li>
 </ol>
 </div>
 </div>`;

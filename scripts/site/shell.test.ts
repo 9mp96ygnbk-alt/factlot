@@ -413,6 +413,77 @@ describe("the home page's figures", () => {
     }
   });
 
+  it("no card's source line repeats a parenthesised file name, though a recorded title may", () => {
+    const twice = /(\(([^()]+)\))\s*\(\2\)/;
+    const recorded = examples.flatMap((e) =>
+      Object.values(e.documents).map((d) => d.title),
+    );
+    assert.ok(
+      recorded.some((t) => twice.test(t)),
+      "no recorded title repeats its file name any more: this rule can go",
+    );
+    for (const e of examples) {
+      const card = factCard(e, `/texas/${e.county}/example/`);
+      assert.doesNotMatch(card, twice, e.county);
+      for (const s of exampleSources(e)) assert.doesNotMatch(s.title, twice);
+    }
+    const markets = json<{ markets: { slug: string }[] }>(
+      "site/_data/markets.json",
+    ).markets;
+    for (const m of hostedMarkets(hosted))
+      assert.doesNotMatch(
+        marketCard(markets.find((x) => x.slug === m.slug)),
+        twice,
+        m.slug,
+      );
+    assert.equal(
+      shell.sourceTitle("A: roll export (a.zip) (a.zip)  (a.zip)"),
+      "A: roll export (a.zip)",
+    );
+    for (const same of [
+      "A: roll (fy<YY>_tc234.zip) (fy27_tc234.zip)",
+      "A: file (a.txt) (b.zip)",
+      "A (a.zip) and B (a.zip)",
+    ])
+      assert.equal(shell.sourceTitle(same), same);
+    // A property page prints the title once, under the source.
+    const urn = "fl:parcel:us-48201:x";
+    const doc = `fl:document:sha256-${"7".repeat(64)}`;
+    const property = renderPropertyPage({
+      site: "https://factlot.com",
+      rec: {
+        urn,
+        facts: [
+          {
+            id: "flf_1",
+            subject: urn,
+            predicate: "parcel.year_built",
+            value: 1983,
+            as_of: "2026-11-01",
+            provenance: {
+              sources: [
+                {
+                  document_id: doc,
+                  title: recorded.find((t) => twice.test(t))!,
+                  uri: "https://example.gov/data",
+                  retrieved_at: "2026-11-02T00:00:00+00:00",
+                  section: "real_acct.txt acct 1",
+                },
+              ],
+            },
+          },
+        ],
+      },
+      place: { region: "us-48201", name: "Harris County", state: "TX" },
+      entity: null,
+      otherCount: null,
+      links: [],
+      sourceOf: () => null,
+    });
+    assert.ok(property.includes("(Real_acct_owner.zip)"));
+    assert.doesNotMatch(property, twice);
+  });
+
   it("the plat is a drawing with no text, and the coverage preview draws every hosted county once", () => {
     assert.ok(!/<text|<title|\d{5,}/.test(platSvg()));
     const preview = coveragePreview(

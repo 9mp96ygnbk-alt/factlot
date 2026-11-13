@@ -61,6 +61,7 @@ import {
   headLinks,
   siteFooter,
   siteHeader,
+  sourceTitle,
 } from "../../../scripts/site/shell.mjs";
 
 /** The Worker variables this feature reads (kept out of types.ts so the shared Env stays as it is). */
@@ -705,7 +706,7 @@ export function renderPropertyPage(input: RenderInput): string {
       d = {
         n: docs.size + 1,
         document_id: documentId,
-        title: any?.title ?? documentId,
+        title: sourceTitle(any?.title ?? documentId),
         uri: safeHref(any?.uri),
         retrieved_at: any?.retrieved_at ?? "",
         rights: holder?.rights,

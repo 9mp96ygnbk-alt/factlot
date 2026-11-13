@@ -4,6 +4,7 @@
 // same functions, so a page cannot say a number the data files do not hold.
 
 import { INSETS, insetSvg } from "./coverage-maps.mjs";
+import { sourceTitle } from "./shell.mjs";
 
 export const esc = (s) =>
   String(s)
@@ -202,7 +203,7 @@ export function exampleFacts(e) {
 export function exampleSources(e) {
   return Object.values(e.documents).map((d, i) => ({
     n: i + 1,
-    title: d.title,
+    title: sourceTitle(d.title),
     retrieved: d.retrieved_at.slice(0, 10),
   }));
 }
@@ -221,7 +222,7 @@ ${facts.map((f) => `<tr><th scope="row"><code>${esc(f.predicate)}</code></th><td
 </tbody>
 </table>`;
   const sources = `<ol>
-${docs.map(([, d]) => `<li>${esc(d.title)}, <a href="${esc(d.uri)}">${esc(d.uri)}</a>, retrieved ${esc(d.retrieved_at.slice(0, 10))}. Licence as recorded: ${esc(d.license)}. AI use: ${esc(d.ai_use)}. Redistribution: ${esc(d.redistribution)}.</li>`).join("\n")}
+${docs.map(([, d]) => `<li>${esc(sourceTitle(d.title))}, <a href="${esc(d.uri)}">${esc(d.uri)}</a>, retrieved ${esc(d.retrieved_at.slice(0, 10))}. Licence as recorded: ${esc(d.license)}. AI use: ${esc(d.ai_use)}. Redistribution: ${esc(d.redistribution)}.</li>`).join("\n")}
 </ol>`;
   const r = e.selection_rule;
   const tierRows = r.tiers
