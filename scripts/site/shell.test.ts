@@ -16,6 +16,7 @@ import { describe, it } from "node:test";
 import { transformSync } from "esbuild";
 
 import { CONTACT, REPO } from "../../deploy/cloudflare/src/contact.ts";
+import { legacyRedirect } from "../../deploy/cloudflare/src/legacy-paths.ts";
 import { page } from "../../deploy/cloudflare/src/pages.ts";
 import {
   notFoundPage,
@@ -137,6 +138,22 @@ describe("the page shell", () => {
     for (const html of [property, missing]) {
       assert.ok(html.includes(shell.siteHeader()));
       assert.ok(html.includes(shell.siteFooter()));
+    }
+    // The footer names the operator and links the About page, on the site and from another host.
+    const operatorLine = (base: string) =>
+      `<p class="small">FactLot is run by ${shell.OPERATOR}. It is not a real estate brokerage and is not licensed to broker real estate. <a href="${base}/about/">About FactLot</a>.</p>`;
+    assert.ok(account.includes(operatorLine("https://factlot.com")));
+    assert.ok(
+      account.includes(
+        '<li><a href="https://factlot.com/about/">About</a></li>',
+      ),
+    );
+    for (const html of [property, missing]) {
+      assert.ok(html.includes(operatorLine("")));
+      assert.match(
+        html,
+        /<li><a href="\/about\/">About<\/a><\/li>\n<li><a href="\/privacy">Privacy<\/a><\/li>\n<li><a href="\/terms">Terms<\/a><\/li>/,
+      );
     }
     for (const html of [account, property, missing]) {
       assert.ok(html.includes(shell.MARK));
@@ -651,6 +668,82 @@ describe("the hand-written sources", () => {
     );
   });
 
+  it("the About page names the operator as the terms and the privacy notice do, and types no address", () => {
+    const about = read("site/_content/about.html");
+    const flat = (rel: string) => words(read(rel));
+    for (const rel of ["site/terms.html", "site/privacy.html"])
+      assert.ok(flat(rel).includes(shell.OPERATOR), rel);
+    assert.ok(about.includes("FactLot is run by {{OPERATOR}}."));
+    assert.equal(
+      shell.OPERATOR,
+      "Robert Stovall, a sole proprietor in Texas, USA, doing business as FactLot",
+    );
+    // The contact lines are the terms' own; the address is theirs, read at build.
+    const contact =
+      "Operator: Robert Stovall, doing business as FactLot, Texas, USA.";
+    assert.ok(words(about).includes(contact));
+    assert.ok(flat("site/terms.html").includes(contact));
+    assert.ok(about.includes("Postal address: {{POSTAL_ADDRESS}}."));
+    assert.doesNotMatch(about, /pending|PO Box|\d{5}/);
+    assert.ok(about.includes(`mailto:${CONTACT}`));
+    assert.equal(
+      about.split("mailto:").length - 1,
+      about.split(`mailto:${CONTACT}`).length - 1,
+    );
+    assert.ok(about.includes("<code>{{MCP_REGISTRY_NAME}}</code>"));
+    assert.ok(about.includes('<a href="{{REPO}}">'));
+  });
+
+  it("the About page says of names, protests and old addresses only what the site and the code say", () => {
+    const about = words(read("site/_content/about.html"));
+    // Names: the registry's scope as the terms, the privacy notice and the home page put it.
+    const scope = "to exclude natural persons' names";
+    assert.ok(about.includes(`the registry is built ${scope}`));
+    for (const rel of [
+      "site/terms.html",
+      "site/privacy.html",
+      "site/index.html",
+      "site/_content/security.html",
+    ])
+      assert.ok(words(read(rel)).includes(scope), rel);
+    assert.doesNotMatch(about, /not shown or stored/);
+    // Protests: nothing the Texas page's own sentence does not also say.
+    const texas = texasSoftwareSentence(read("site/_content/texas.html"));
+    assert.ok(
+      about.includes(
+        "FactLot is software: it is not a property tax consultant and does not prepare, file or advise on protests.",
+      ),
+    );
+    for (const part of [
+      "FactLot is software",
+      "is not a property tax consultant",
+      "does not prepare, file or advise on protests",
+    ])
+      assert.ok(texas.includes(part), part);
+    // Old addresses: they redirect to pages of this site, as the sentence says.
+    assert.ok(about.includes("now redirect to the nearest page on this site."));
+    assert.doesNotMatch(about, /redirect there/);
+    for (const old of [
+      "/buildings/",
+      "/buildings/houston/1000-louisiana-st",
+      "/markets/",
+      "/markets/houston",
+      "/markets/houston/zip/77002",
+      "/markets/san-antonio/zip/78205",
+      "/questions/",
+      "/questions/office-rent-houston-77002",
+    ]) {
+      const to = legacyRedirect(old);
+      assert.match(to ?? "", /^\/[a-z-]+\/(?:[a-z-]+\/)?$/, old);
+    }
+    // The pages it sends readers to exist as fragments of the trust package.
+    for (const f of ["assurance", "security", "status", "sla"])
+      assert.ok(existsSync(new URL(`site/_content/${f}.html`, root)), f);
+    const security = words(read("site/_content/security.html"));
+    assert.ok(security.includes("There is no SOC 2 report yet"));
+    assert.ok(security.includes("FactLot is run by one person"));
+  });
+
   it("the home page takes the Texas sentence from the Texas page and does not type it", () => {
     const texasPage = read("site/_content/texas.html");
     const sentence = texasSoftwareSentence(texasPage);
@@ -1027,6 +1120,84 @@ describe("the built site", () => {
           rows.some((r) => words(r).startsWith(label)),
           `the comparison has no row: ${label}`,
         );
+      // The About page: built, in the shell, with the operator, the address and the registry
+      // name of the pages and files it speaks of; in the sitemap; linked from every page's footer.
+      const about = readFileSync(`${out}/about/index.html`, "utf8");
+      const aboutText = words(about);
+      assert.ok(
+        aboutText.includes(
+          `FactLot is run by ${shell.OPERATOR}. It is run by one person.`,
+        ),
+      );
+      const postalOf = (file: string) => [
+        ...new Set(
+          [
+            ...words(readFileSync(`${out}/${file}`, "utf8")).matchAll(
+              /Postal address: ([^.]+)\./g,
+            ),
+          ].map((m) => m[1]),
+        ),
+      ];
+      const postal = postalOf("privacy.html");
+      assert.equal(postal.length, 1);
+      assert.match(postal[0]!, /^PO Box \d+, [A-Za-z ]+, [A-Z]{2} \d{5}$/);
+      assert.deepEqual(postalOf("terms.html"), postal);
+      assert.deepEqual(postalOf("about/index.html"), postal);
+      assert.ok(about.includes(`<dt>Postal address</dt><dd>${postal[0]}</dd>`));
+      const registryName = json<{ name: string }>("server.json").name;
+      assert.ok(about.includes(`<code>${registryName}</code>`));
+      assert.ok(read("site/index.html").includes(registryName));
+      assert.ok(about.includes(`<a href="${REPO}">`));
+      assert.doesNotMatch(about, /\{\{[A-Z_]+\}\}/);
+      // Its structured data states only what the page states.
+      const ld = [
+        ...about.matchAll(
+          /<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g,
+        ),
+      ]
+        .map((m) => JSON.parse(m[1]!) as Record<string, unknown>)
+        .find((o) => o["@type"] === "AboutPage")!;
+      const entity = ld.mainEntity as Record<string, unknown>;
+      assert.deepEqual(Object.keys(entity).sort(), [
+        "@type",
+        "address",
+        "email",
+        "name",
+        "sameAs",
+        "url",
+      ]);
+      assert.equal(entity.email, CONTACT);
+      assert.deepEqual(entity.sameAs, [REPO]);
+      const address = entity.address as Record<string, string>;
+      assert.equal(
+        `PO Box ${address.postOfficeBoxNumber}, ${address.addressLocality}, ${address.addressRegion} ${address.postalCode}`,
+        postal[0],
+      );
+      assert.equal(address.addressRegion, "TX");
+      assert.ok(aboutText.includes("Texas, USA"));
+      assert.equal(address.addressCountry, "US");
+      assert.ok(
+        readFileSync(`${out}/sitemap.xml`, "utf8").includes(
+          "<loc>https://factlot.com/about/</loc>",
+        ),
+      );
+      for (const f of [
+        ...generated,
+        `${out}/index.html`,
+        `${out}/privacy.html`,
+        `${out}/terms.html`,
+        `${out}/404.html`,
+      ]) {
+        const html = readFileSync(f, "utf8");
+        assert.ok(
+          html.includes('<li><a href="/about/">About</a></li>'),
+          f.slice(out.length),
+        );
+        assert.ok(
+          html.includes('<a href="/about/">About FactLot</a>'),
+          f.slice(out.length),
+        );
+      }
       const coverage = readFileSync(`${out}/coverage/index.html`, "utf8");
       assert.equal(coverage.split('class="covsvg inset"').length - 1, 3);
       const texasHub = readFileSync(`${out}/texas/index.html`, "utf8");

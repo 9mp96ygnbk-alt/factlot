@@ -365,6 +365,12 @@ async function apiChecks(harness: Harness): Promise<void> {
   );
   const css = await get("https://factlot.com/styles.css");
   expect(css.status === 200, "assets GET /styles.css", css.status);
+  const about = await get("https://factlot.com/about/");
+  expect(
+    about.status === 200 && (await about.text()).includes("About FactLot"),
+    "assets GET /about/",
+    about.status,
+  );
 
   // A key-authenticated batch call through the binding, with a test key seeded here.
   const key = `fl_live_${randomBytes(32).toString("base64url")}`;

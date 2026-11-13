@@ -1453,6 +1453,11 @@ h3 > .cite {
   max-width: none;
 }
 
+/* A link inside a sentence is underlined, so it does not rest on colour alone. */
+.foot-legal .small a {
+  text-decoration: underline;
+}
+
 @media (max-width: 30rem) {
   .foot-brand {
     grid-column: 1 / -1;

@@ -62,7 +62,13 @@ import {
   sourceNotices,
 } from "./market-pages.mjs";
 import { FIELDS_LEAD, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
-import { headLinks, siteFooter, siteHeader } from "./shell.mjs";
+import {
+  CONTACT,
+  OPERATOR,
+  headLinks,
+  siteFooter,
+  siteHeader,
+} from "./shell.mjs";
 import { published } from "./site-files.mjs";
 import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import {
@@ -1209,6 +1215,90 @@ ${Object.keys(byState)
       "scripts/site/fields.mjs",
       "site/_data/hosted.json",
       "scripts/site/market-pages.mjs",
+    ],
+  );
+}
+
+// --- /about/ ---------------------------------------------------------------------------------
+// Who runs FactLot and how to check it. The operator is named in the words of the terms and the
+// privacy notice, the postal address is read from those two pages (they must give the same one),
+// and the MCP Registry name is server.json's, so this page cannot say something they do not.
+
+{
+  const postalIn = (rel) => [
+    ...new Set(
+      [...text(read(rel)).matchAll(/Postal address: ([^.]+)\./g)].map(
+        (m) => m[1],
+      ),
+    ),
+  ];
+  const postal = postalIn("site/privacy.html");
+  if (
+    postal.length !== 1 ||
+    JSON.stringify(postalIn("site/terms.html")) !== JSON.stringify(postal)
+  )
+    throw new Error(
+      "about: the privacy notice and the terms do not give one postal address",
+    );
+  for (const rel of ["site/privacy.html", "site/terms.html"])
+    if (!text(read(rel)).includes(OPERATOR))
+      throw new Error(`about: ${rel} names the operator in other words`);
+  const box = /^PO Box (\d+), ([^,]+), ([A-Z]{2}) (\d{5})$/.exec(postal[0]);
+  if (!box) throw new Error(`about: cannot read the address ${postal[0]}`);
+  const registryName = readJson("server.json").name;
+  const description =
+    "Who runs FactLot (Robert Stovall, a sole proprietor in Texas, USA, doing business as FactLot), what it is not (not a brokerage, not licensed to broker real estate), how to check its numbers, corrections and contact.";
+  addPage(
+    {
+      urlPath: "/about/",
+      title: "About FactLot | FactLot",
+      description,
+      h1: "About FactLot",
+      crumbs: [["/about/", "About FactLot"]],
+      // The record: the contact section's own lines, and where the code and the listing are.
+      figure: spec([
+        ["Operator", "Robert Stovall, doing business as FactLot, Texas, USA"],
+        ["Email", `<a href="mailto:${CONTACT}">${CONTACT}</a>`],
+        ["Postal address", esc(postal[0])],
+        ["Code", `<a href="${REPO}">${esc(REPO.replace("https://", ""))}</a>`],
+        ["MCP Registry", `<code>${esc(registryName)}</code>`],
+      ]),
+      body: fill(read("site/_content/about.html"), {
+        OPERATOR: esc(OPERATOR),
+        POSTAL_ADDRESS: esc(postal[0]),
+        MCP_REGISTRY_NAME: esc(registryName),
+        REPO,
+      }),
+      jsonld: [
+        {
+          "@context": "https://schema.org",
+          "@type": "AboutPage",
+          name: "About FactLot",
+          url: `${SITE}/about/`,
+          description,
+          mainEntity: {
+            "@type": "Organization",
+            name: "FactLot",
+            url: `${SITE}/`,
+            email: CONTACT,
+            sameAs: [REPO],
+            address: {
+              "@type": "PostalAddress",
+              postOfficeBoxNumber: box[1],
+              addressLocality: box[2],
+              addressRegion: box[3],
+              postalCode: box[4],
+              addressCountry: "US",
+            },
+          },
+        },
+      ],
+    },
+    [
+      "site/_content/about.html",
+      "site/privacy.html",
+      "site/terms.html",
+      "server.json",
     ],
   );
 }

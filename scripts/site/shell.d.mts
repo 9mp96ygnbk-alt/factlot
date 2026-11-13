@@ -1,5 +1,6 @@
 export const REPO: string;
 export const CONTACT: string;
+export const OPERATOR: string;
 export const sourceTitle: (title: unknown) => string;
 export const NAV: [string, string][];
 export const TRUST: [string, string][];

@@ -7,6 +7,10 @@
 export const REPO = "https://github.com/9mp96ygnbk-alt/factlot";
 export const CONTACT = "contact@factlot.com";
 
+/** Who runs FactLot, in the words the terms and the privacy notice name the operator with. */
+export const OPERATOR =
+  "Robert Stovall, a sole proprietor in Texas, USA, doing business as FactLot";
+
 /**
  * A source's title as a page prints it. Some publishers' titles, as recorded, end with the file
  * name twice ("... export (Real_acct_owner.zip) (Real_acct_owner.zip)"); a parenthesised name that
@@ -133,7 +137,12 @@ ${column(
 )}
 ${column(
   "Trust",
-  [...TRUST, ["/privacy", "Privacy"], ["/terms", "Terms"]],
+  [
+    ...TRUST,
+    ["/about/", "About"],
+    ["/privacy", "Privacy"],
+    ["/terms", "Terms"],
+  ],
   base,
 )}
 ${column(
@@ -148,6 +157,7 @@ ${column(
 </div>
 <div class="foot-legal">
 <p><a href="${REPO}/blob/main/LICENSE">Apache-2.0 (platform) and MIT (schema and SDKs)</a></p>
+<p class="small">FactLot is run by ${OPERATOR}. It is not a real estate brokerage and is not licensed to broker real estate. <a href="${at(base, "/about/")}">About FactLot</a>.</p>
 <p class="small">"FactLot" and the FactLot logo are trademarks of their owner. The open-source licences cover the code, not the name.</p>
 </div>
 </div>
