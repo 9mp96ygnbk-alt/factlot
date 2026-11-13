@@ -1157,13 +1157,15 @@ export async function watchAccountSection(
   env: Env,
   key: string,
   caller: WatchCaller | undefined,
+  /** The request's clock, the same one the account page's actions use. */
+  deps: WatchDeps = {},
 ): Promise<string> {
   if (!watchEnabled(env) || !env.WATCH || !caller) return "";
   let l: Awaited<ReturnType<typeof listTool>>;
   let recent: { changes: StoredChange[] };
   try {
     [l, recent] = await Promise.all([
-      listTool(env, caller, { limit: 50 }),
+      listTool(env, caller, { limit: 50 }, deps),
       env.WATCH.sub<{ changes: StoredChange[] }>(
         caller.subscription,
         "recent",
