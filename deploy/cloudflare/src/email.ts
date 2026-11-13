@@ -31,12 +31,30 @@ export async function sendEmail(
   message: Omit<EmailMessageBuilder, "from" | "replyTo">,
 ): Promise<boolean> {
   if (!env.EMAIL) return false;
+  const send = (m: Omit<EmailMessageBuilder, "from" | "replyTo">) =>
+    env.EMAIL!.send({ ...m, from: EMAIL_FROM, replyTo: CONTACT });
   try {
-    await env.EMAIL.send({
-      ...message,
-      from: EMAIL_FROM,
-      replyTo: CONTACT,
-    });
+    try {
+      await send(message);
+    } catch (err) {
+      // Custom headers (List-Unsubscribe) are on Email Sending's allowlist, but a rejected header
+      // (E_HEADER_*) must not lose the message: send it once more without them.
+      const code = (err as { code?: unknown } | null)?.code;
+      if (
+        !message.headers ||
+        typeof code !== "string" ||
+        !code.startsWith("E_HEADER")
+      )
+        throw err;
+      console.error(
+        JSON.stringify({ msg: "email headers rejected", kind, code }),
+      );
+      const bare: Omit<EmailMessageBuilder, "from" | "replyTo"> = {
+        ...message,
+      };
+      delete bare.headers;
+      await send(bare);
+    }
     return true;
   } catch (err) {
     const code = (err as { code?: unknown } | null)?.code;
@@ -54,11 +72,19 @@ export async function sendEmail(
 
 /** Plain text and a minimal HTML twin, built from the same paragraphs. */
 export function body(paragraphs: string[]): { text: string; html: string } {
-  const link = (s: string) =>
-    escapeHtml(s).replace(
-      /(https:\/\/[^\s<]+[^\s<.,:;)])/g,
-      (u) => `<a href="${u}">${u}</a>`,
-    );
+  // Links are found in the raw text, then each piece is escaped: a trailing "." or "'" is kept
+  // out of the link, and an escaped entity is never cut in half.
+  const link = (s: string) => {
+    let out = "";
+    let last = 0;
+    for (const m of s.matchAll(/https:\/\/[^\s<>"]+/g)) {
+      const trail = /[.,:;)!?'"]+$/.exec(m[0])?.[0] ?? "";
+      const url = m[0].slice(0, m[0].length - trail.length);
+      out += `${escapeHtml(s.slice(last, m.index))}<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>${escapeHtml(trail)}`;
+      last = m.index + m[0].length;
+    }
+    return out + escapeHtml(s.slice(last));
+  };
   return {
     text: paragraphs.join("\n\n") + "\n",
     html: `<!doctype html><html><body style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.5;max-width:560px">${paragraphs
