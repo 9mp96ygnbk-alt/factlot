@@ -11474,18 +11474,20 @@ describe("lifecycle emails", () => {
         both.text,
         /current roll year[\s\S]*Another answer showed 3 of that owner's 4 parcels/,
       );
-      // The Pro offer states both prices with how each renews, never "monthly" alone.
+      // The Pro offer states how it renews; yearly too only where yearly checkout is open.
+      const limit = { limit: 25, resetsAt: "2026-11-08T00:00:00.000Z" };
       for (const m of [
-        years,
-        limitReachedMessage(ctx, {
-          limit: 25,
-          resetsAt: "2026-11-08T00:00:00.000Z",
-        }),
+        withheldMessage({ ...ctx, yearly: true }, { years: [2024] }),
+        limitReachedMessage({ ...ctx, yearly: true }, limit),
       ])
         assert.match(
           m.text,
           /\$49 a month, renews monthly until cancelled, or \$490 a year, renews yearly until cancelled/,
         );
+      for (const m of [years, limitReachedMessage(ctx, limit)]) {
+        assert.match(m.text, /\$49 a month, renews monthly until cancelled\)/);
+        assert.doesNotMatch(m.text, /\$490 a year/);
+      }
       const b1 = unusedPaidMessage({ ...ctx, audience: "paid" }, PLANS.pro);
       assert.doesNotMatch(b1.text, /reached your assistant|usually means/);
       assert.match(b1.text, /has not recorded a registry lookup from it yet/);

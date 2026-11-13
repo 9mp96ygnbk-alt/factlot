@@ -82,7 +82,7 @@ import {
   type KeyRecord,
 } from "./keys.ts";
 import { escapeHtml, page, messagePage } from "./pages.ts";
-import { PLANS, isPlanId, type PlanId } from "./plans.ts";
+import { PLANS, gatingEnabled, isPlanId, type PlanId } from "./plans.ts";
 import { EMAIL_RE } from "./recovery.ts";
 import { hmacSha256Hex } from "./stripe.ts";
 import type { Env, UsageSummary } from "./types.ts";
@@ -242,6 +242,7 @@ function promoContext(
     stopUrl: url,
     address,
     audience: kind,
+    yearly: gatingEnabled(env),
   }));
 }
 
