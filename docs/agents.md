@@ -266,7 +266,8 @@ calls below are in order; each result is reported as returned, with its warnings
    Without `tax_year` it compares in the newest tax year whose roll gives the subject a value; pass
    `tax_year` to pin one (on the hosted API naming a year needs a Pro or Team key and answers
    `PlanRequired` without one, uncounted). The subject and every candidate are read from that one
-   year's roll files; `selection.compared_files` names the files the compared values come from,
+   year's roll files; `selection.compared_files` lists the files the compared values are cited from (building classes
+   come from that year's buildings file, in `building_class_sources`),
    with each file's `as_of` and `before_certification_deadline` (true when the file is dated before
    July 25 of the tax year, the date Tax Code §26.01(a) sets for certifying the roll, so it can hold
    preliminary values; the file itself does not say which values are certified). A tax year whose
@@ -288,7 +289,8 @@ calls below are in order; each result is reported as returned, with its warnings
    roll's figures and one division, not an opinion of value), areas, year built, state property
    category code, `local_use_code`, `neighborhood_code`, `building_class` and the citation of the
    value; `selection.subject_summary` states the subject's category, class, use code and area in
-   words, and warnings note candidates whose class or use code differs from the subject's. Separate
+   words, and `selection.class_counts` and `selection.use_code_counts` count the candidates by building
+   class and by local use code, with the subject's own beside them. Separate
    land and improvement values are not in the registry and are not returned. The subject adds
    `value_history` (market and appraised value by tax year, each cited to that year's
    roll; on the hosted API a call without a Pro or Team key gets the current roll year only, with
