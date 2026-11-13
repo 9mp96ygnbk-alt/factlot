@@ -578,7 +578,7 @@ const LEGAL_TEXT = {
   "privacy.html":
     "9365c15794a1b7f680d36497bdc1b43647753637fd1f5f2275bcb036eb2dbf65",
   "terms.html":
-    "bee3fb3a3ff6ea1d280103c8268b892ded80438de5d738c2619f1d0cf4a10bee",
+    "0d01872ae9736587b88ee4decd6f99ab1889a36bf334fc22836920cf704421ec",
 };
 // The same pages' <main>, byte for byte: every tag, attribute and link target as well as the
 // words. Only the chrome outside <main> was meant to change when the pages took the shell.
@@ -586,7 +586,7 @@ const LEGAL_MAIN = {
   "privacy.html":
     "53baf5a18fd39802a8e81cc9dfe69a2e8989dda47bdc02e1ff017ab73c15726b",
   "terms.html":
-    "523d21563abed2b4ec59fe392e6233d8d14444bb720a339033f6de679788b83c",
+    "612781fd64675906ae2ad3fbf4e698cd20c57eeeb9981222b7801779ed815eb7",
 };
 const mainOf = (html: string) =>
   /<main\b[^>]*>([\s\S]*?)<\/main>/.exec(html)![1]!;
