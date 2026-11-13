@@ -317,6 +317,67 @@ async function apiChecks(harness: Harness): Promise<void> {
     `${page.status} ${(await page.text()).slice(0, 200)}`,
   );
 
+  // A lookup page: a search by web address, then the record it leads to, each counted on the
+  // day meter the keyless API uses (a search one lookup; a record one, unless the parcel has a
+  // public property page, which costs nothing).
+  const leftToday = async () => {
+    const r = await get("https://api.factlot.com/v1/registry/coverage", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    return Number(r.headers.get("x-factlot-registry-quota-remaining"));
+  };
+  const before = await leftToday();
+  const found = await get(
+    "https://factlot.com/lookup/?q=100+Main+Street&state=TX",
+    { redirect: "manual", headers: { accept: "text/html" } },
+  );
+  const to = found.headers.get("location") ?? "";
+  expect(
+    found.status === 303 &&
+      (to === "/lookup/us-48999/0001-000-0001" ||
+        to === "/property/us-48999/0001-000-0001") &&
+      found.headers.get("cache-control") === "no-store" &&
+      found.headers.get("referrer-policy") === "no-referrer",
+    "lookup page GET /lookup/?q= goes to the one match's record",
+    `${found.status} ${to}`,
+  );
+  const afterSearch = await leftToday();
+  expect(
+    before - afterSearch === 1,
+    "the search took one lookup from the day's allowance",
+    `${before} -> ${afterSearch}`,
+  );
+  const recordPage = await get(`https://factlot.com${to}`, {
+    headers: { accept: "text/html" },
+  });
+  const recordHtml = await recordPage.text();
+  expect(
+    recordPage.status === 200 &&
+      recordHtml.includes("fl:parcel:us-48999:0001-000-0001") &&
+      /<a class="cite" href="#source-\d+-\d+"/.test(recordHtml),
+    "the record page shows a cited fact",
+    `${recordPage.status} ${recordHtml.slice(0, 200)}`,
+  );
+  const afterRecord = await leftToday();
+  expect(
+    afterSearch - afterRecord === (to.startsWith("/lookup/") ? 1 : 0),
+    "the record took one lookup as a lookup page, none as a public page",
+    `${afterSearch} -> ${afterRecord} (${to})`,
+  );
+  const asJsonAnswer = await get(
+    "https://factlot.com/lookup/us-48999/0001-000-0001?format=json",
+  );
+  const j = (await asJson(asJsonAnswer)) as { urn?: unknown };
+  expect(
+    asJsonAnswer.status === 200 &&
+      j.urn === "fl:parcel:us-48999:0001-000-0001" &&
+      (await leftToday()) === afterRecord - 1,
+    "lookup page ?format=json is the API's record, one lookup",
+    j,
+  );
+
   // MCP initialize and tools/list.
   const mcp = (body: unknown, extra: Record<string, string> = {}) =>
     get("https://api.factlot.com/mcp", {
