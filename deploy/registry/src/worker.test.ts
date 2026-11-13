@@ -44,7 +44,7 @@ import {
   byArea,
   listCount,
   listNearest,
-  listRowsInArea,
+  listNarrowed,
   type EqRow,
   type EquityManifest,
   type PoolHeader,
@@ -718,24 +718,24 @@ test("candidate lists split into chunks count and order like the whole list", as
         want.slice(0, params.limit).map((m) => m.urn),
         JSON.stringify(params),
       );
-      // Narrowed by local use code: the rows read within the area band select what the SDK selects.
+      // Narrowed by local use code: only the rows that pass the whole rule come back to be decoded, and they are
+      // exactly the SDK's selection over the decoded pool.
       const narrowed = { ...params, local_use_codes: ["4600"] };
       const nRule = equityRule(subject.urn, s, narrowed)!;
-      const inArea: EqRow[] = await listRowsInArea(pack, list, nRule);
-      const band = inArea.map((r) => ({
-        urn: h.u + r[0],
-        row: decodeRow(h, docs, r),
-        docs: ["doc-0"],
-      }));
+      const { rows: kept, steps } = await listNarrowed(pack, h, list, nRule);
+      const sdk = selectEquityCandidates(subject.urn, s, pool, narrowed);
       assert.deepEqual(
-        selectEquityCandidates(subject.urn, s, band, narrowed).map(
-          (m) => m.urn,
-        ),
-        selectEquityCandidates(subject.urn, s, pool, narrowed).map(
-          (m) => m.urn,
-        ),
+        kept.map((r) => h.u + r[0]).sort(),
+        sdk.map((m) => m.urn).sort(),
         `narrowed ${JSON.stringify(params)}`,
       );
+      assert.equal(steps.at(-1), sdk.length);
+      const band = rowsOf.filter(
+        (r) => nRule.lo <= r[3] && r[3] <= nRule.hi,
+      ).length;
+      assert.ok(kept.length <= band);
+      if (band > 30)
+        assert.ok(kept.length < band, "fewer decoded than in the band");
     }
   }
 });

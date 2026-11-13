@@ -425,23 +425,45 @@ export async function listNearest(
   return best;
 }
 
-/** Every row of a list whose improvement area is within the rule's area band (any year built). */
-export async function listRowsInArea(
+/**
+ * The encoded rows of a list that pass the whole rule, narrowing included (the subject never), with how many each
+ * narrowing step left. Rows are tested as stored and never decoded here, and a chunk whose year counts leave no
+ * row within the year band is not read: a narrowed call decodes only the rows it may return.
+ */
+export async function listNarrowed(
   pack: Pack,
+  h: PoolHeader,
   list: SortedList,
   rule: EquityRule,
-): Promise<EqRow[]> {
-  const inArea = (r: EqRow) => rule.lo <= r[3] && r[3] <= rule.hi;
-  if ("r" in list) return list.r.filter(inArea);
-  if ("a" in list) throw new Error("a count-only list has no rows");
-  const out: EqRow[] = [];
-  for (let k = 0; k < list.rc.length; k++) {
-    const [lo, hi] = list.rc[k]!;
-    if (hi < rule.lo || lo > rule.hi) continue;
-    for (const r of await chunk<EqRow[]>(pack, `${list.f}/r${k}.json`))
-      if (inArea(r)) out.push(r);
-  }
-  return out;
+): Promise<{ rows: EqRow[]; steps: number[] }> {
+  const steps: number[] = [];
+  if (rule.buildingClass !== null) steps.push(0);
+  if (rule.useCodes !== null) steps.push(0);
+  const rows: EqRow[] = [];
+  const take = (r: EqRow) => {
+    if (h.u + r[0] === rule.urn || !inBand(rule, r[3], r[5])) return;
+    let k = 0;
+    if (rule.buildingClass !== null) {
+      if (r[7] !== rule.buildingClass) return;
+      steps[k++]! += 1;
+    }
+    if (rule.useCodes !== null) {
+      const code = r[12];
+      if (typeof code !== "string" || !rule.useCodes.includes(code)) return;
+      steps[k]! += 1;
+    }
+    rows.push(r);
+  };
+  if ("r" in list) list.r.forEach(take);
+  else if ("a" in list) throw new Error("a count-only list has no rows");
+  else
+    for (let k = 0; k < list.rc.length; k++) {
+      const [lo, hi, n, years] = list.rc[k]!;
+      if (hi < rule.lo || lo > rule.hi) continue;
+      if (years && countYears(rule, n, years) === 0) continue;
+      (await chunk<EqRow[]>(pack, `${list.f}/r${k}.json`)).forEach(take);
+    }
+  return { rows, steps };
 }
 
 /** registry_tx_equity_candidates for a subject the pack holds (its input already checked). */
@@ -481,10 +503,12 @@ export async function equityFromPack(
     pool !== null &&
     (rule.buildingClass !== null || rule.useCodes !== null)
   ) {
-    // Narrowed: every row within the area band, selected with the SDK's functions.
+    // Narrowed: the pool's rows that pass the whole rule, tested as stored; only those are decoded and selected
+    // with the SDK's functions. The area and year-band counts come from the list counts, as below.
     const h = await chunk<PoolHeader>(pack, `q/${pool}/h.json`);
     const inPool = stored![6];
-    const cands = (await listRowsInArea(pack, h.all, rule)).map((r) => ({
+    const { rows, steps } = await listNarrowed(pack, h, h.all, rule);
+    const cands = rows.map((r) => ({
       urn: h.u + r[0],
       row: decodeRow(h, m, r),
       docs: rowDocs(r).map((i) => m.docs[i]![0]),
@@ -493,8 +517,12 @@ export async function equityFromPack(
       selectEquityCandidates(urn, subject, cands, params),
       params,
     ));
-    funnel = equityFunnel(rule, cands);
-    funnel[0] = h.all.n - inPool;
+    funnel = [
+      h.all.n - inPool,
+      (await listCount(pack, h.all, { ...rule, year: null })) - inPool,
+      (await listCount(pack, h.all, rule)) - inPool,
+      ...steps,
+    ];
   } else if (rule && pool !== null) {
     const h = await chunk<PoolHeader>(pack, `q/${pool}/h.json`);
     const group = async (key: string): Promise<SortedList | undefined> => {
