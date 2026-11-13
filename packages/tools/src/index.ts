@@ -49,6 +49,7 @@ export {
   LOOKUP_UNAVAILABLE_ITEMS_MAX,
   LOOKUP_WHICH_PARCEL,
   lookupBatchAsync,
+  lookupItem,
   lookupItemStateFips,
   lookupPlace,
   lookupPlaceAgrees,

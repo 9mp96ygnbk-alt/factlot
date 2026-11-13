@@ -95,6 +95,8 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
+import { propertyPath } from "../../registry/src/page-rules.ts";
+
 import { legacyRedirect } from "./legacy-paths.ts";
 import {
   lifecycleEnabled,
@@ -102,7 +104,14 @@ import {
   onFreeKeyAnswer,
   onFreeKeyLimit,
 } from "./lifecycle.ts";
-import { propertyPagesRoute, type PagesEnv } from "./property-pages.ts";
+import { asLookupCaller, isLookupPath, lookupRoute } from "./lookup-pages.ts";
+import {
+  countyPlaces,
+  propertyPagesEnabled,
+  propertyPagesRoute,
+  sourceIds,
+  type PagesEnv,
+} from "./property-pages.ts";
 import { withRouteHint } from "./route-hint.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import {
@@ -1156,6 +1165,50 @@ async function route(
       defer: deferWith(opts),
       waitUntil: opts.waitUntil,
     }))!;
+
+  // Lookup pages (lookup-pages.ts): a search or a record at a web address, on the site host. Each
+  // is answered by this API's own registry call, sent back through this router as the caller
+  // (their address and Authorization header), so it is counted, given back, limited per minute
+  // and cut to the free view exactly as that call is: the pages have no meter of their own.
+  if (isLookupPath(path)) {
+    if (isApiHost(host))
+      return request.method === "GET" || request.method === "HEAD"
+        ? Response.redirect(`${site}${url.pathname}${url.search}`, 302)
+        : apiError(
+            405,
+            "MethodNotAllowed",
+            "GET this page",
+            `GET ${site}/lookup/`,
+            {},
+            { allow: "GET, HEAD" },
+          );
+    const registry = env.REGISTRY;
+    return lookupRoute(request, url, path, {
+      site,
+      freeKey: freeKeyEnabled(env),
+      callApi: (apiPath, input) =>
+        route(asLookupCaller(request, apiBase, apiPath, input), env, api, opts),
+      // A parcel's public property page, asked of the pages' own route (its limit, its cache,
+      // its rule for which sources may be republished): nothing here decides that again.
+      publicPage: async (urn) => {
+        const page = propertyPath(urn);
+        if (!page || !propertyPagesEnabled(env as PagesEnv)) return null;
+        const probe = await propertyPagesRoute(
+          new Request(`${site}${page}`, {
+            method: "HEAD",
+            headers: { "cf-connecting-ip": clientAddress(request) },
+          }),
+          env as PagesEnv,
+          page,
+          opts,
+        );
+        return probe?.status === 200 ? page : null;
+      },
+      places: async () =>
+        registry ? countyPlaces(registry, now()) : new Map(),
+      sourceIds: async (refs) => (registry ? sourceIds(registry, refs) : {}),
+    });
+  }
 
   // Public property pages and their sitemaps (property-pages.ts; off unless PROPERTY_PAGES_ENABLED).
   if (!isApiHost(host)) {

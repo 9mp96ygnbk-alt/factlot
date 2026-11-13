@@ -123,6 +123,7 @@ export function callerKind(
 const SITE_SECTIONS = new Set([
   "pricing",
   "try",
+  "lookup",
   "texas",
   "mcp",
   "coverage",
