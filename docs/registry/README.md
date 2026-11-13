@@ -359,28 +359,28 @@ conservatively from its end. A trailing country ("USA", "U.S.A.", "US", "United 
 dropped, and "D.C." is DC. A ZIP code is a 5-digit number (or ZIP+4) that ends the query and does
 not follow a unit, suite, box, room, building or number word ("Suite 12345" and "PO Box 12345" are
 not ZIP codes). A state (two letters, or the full name) counts only when it follows a city, in its
-comma part or the one before, or comes before the ZIP code, and never after a unit word or a floor
-ordinal: "Houston, TX" and "TX 77002" name Texas, but a bare ", NE", ", LA" or ", Indiana" and "12th
-Fl" name no state (a bare word may still order the matches as a city). When the ZIP code is in
-another state than the one named, the ZIP code wins ("Washington 20001" is Washington, DC). The
-city is the comma part left at the end: one to five words of letters, none a unit word. A query
-naming a ZIP code but no state is read as naming the ZIP code's state (by its first three digits).
-When the query names a state, only parcels in that state (from the parcel URN,
-`fl:parcel:us-<state FIPS><county FIPS>:…`) are returned, before the limit: first those whose
-situs address has the ZIP code, then those in the city, then the rest of the state, each group in
-the usual order (an exact address first, then by label). A city without a state orders the matches
-the same way without dropping any. A part that cannot be read, or a query without a comma, leaves
-the search as it was. When the street line matches only outside the named state, the answer is a
-miss whose `coverage` says what the registry holds in that state ("of MA this registry holds
+comma part or the one before, and never after a unit word or a floor ordinal: "Houston, TX" and
+"Waterbury CT 06702" name a state, but a bare ", NE", ", LA", ", TX 77002" or ", Indiana" and
+"12th Fl" do not. The city is the comma part left at the end: one to five words of letters, none
+a unit word ("Washington 20001" is the city Washington with no state).
+
+Only a named state filters: the answer keeps parcels in that state (from the parcel URN,
+`fl:parcel:us-<state FIPS><county FIPS>:…`), before the limit. The ZIP code and the city only
+order the matches: first those whose situs address has the ZIP code, then those in the city, then
+the rest, each group in the usual order (an exact address first, then by label). A ZIP code never
+implies or overrides a state, because published labels carry malformed ZIP codes (Connecticut ZIP
+codes without their leading zero, a few from another state's range), and a label pasted back as
+the query must still find its parcel. A part that cannot be read, or a query without a comma,
+leaves the search as it was. When the street line matches only outside the named state, the answer
+is a miss whose `coverage` says what the registry holds in that state ("of MA this registry holds
 Suffolk County, MA (25025, … parcels)"; the hosted registry adds "only the City of Boston is
 loaded"), or that the state is not loaded; the hosted registry answers a state it holds no parcel
 in without reading its address lists. The ordinal retry keeps to the same state. A street type
 alone ("Loop, Houston, TX") is placed among its first 100 matching addresses only, because the
-hosted index keeps no more for a one-word query. Same-city and same-ZIP ordering reads the parcel's
-label, so a label that leaves out the city, or a ZIP code a publisher cut short (some Connecticut
-labels drop the leading zero), puts that parcel with the rest of the state; this changes the order
-only, never which parcels are returned. `spec/registry/normalize.json` (`address_places`,
-`address_place_ranks`, `zip_states`) pins the reading and the order in both languages.
+hosted index keeps no more for a one-word query. Same-city and same-ZIP ordering reads the
+parcel's label, so a label that leaves out the city or carries a malformed ZIP code sorts with the
+rest; this changes the order only, never which parcels are returned. `spec/registry/normalize.json`
+(`address_places`, `address_place_ranks`) pins the reading and the order in both languages.
 
 **Source snapshots over MCP.** Every registry fact cites a `document_id` (`fl:document:sha256-…`),
 the content hash of the source file. With a registry loaded, the MCP `fetch` tool returns that
