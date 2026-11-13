@@ -1148,6 +1148,22 @@ h3 > .cite {
   vertical-align: 0.15em;
 }
 
+/* Under a source, each record cited from it; the one a chip led to is marked. */
+.record {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  scroll-margin-top: calc(var(--header-h) + 5rem);
+}
+
+.record:target {
+  outline: 2px solid var(--cited);
+  outline-offset: 3px;
+  border-radius: 2px;
+  background: var(--cited-bg);
+}
+
 @media (max-width: 40rem) {
   .sheet,
   .sheet tbody {

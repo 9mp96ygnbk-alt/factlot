@@ -11,7 +11,9 @@
  * A page shows what a keyless registry_get caller gets (value history cut to the current roll year, as
  * gating.ts's limitHistory does, and of the recorded sales and documents the newest sale or deed only, as its
  * limitSales does; that one is shown only when its own source allows republication, and is not part of the
- * page rule), the owner of record when the registry has one, the linked entity, and every
+ * page rule), the owner of record when the registry has one, the linked entity, of the entity's other
+ * parcels the ones a keyless registry_owned_by caller gets (the first three in the registry's order, as
+ * gating.ts's limitPortfolio cuts them, with the number of the rest), and every
  * fact's citation with its source's licence and attribution. Which parcels get a page is page-rules.ts (shared
  * with the registry's sitemap enumeration): every source behind a shown fact records `redistribution` as
  * `permitted` or `attribution_required`, or is listed in PROPERTY_PAGES_EXTRA_SOURCES. Withheld counties never
@@ -44,6 +46,7 @@ import { siteUrl } from "./billing.ts";
 import { CONTACT } from "./contact.ts";
 import {
   limitHistory,
+  limitPortfolio,
   limitSales,
   recordsInWords,
   type HistoryWithheld,
@@ -71,7 +74,7 @@ export type PagesEnv = Env & {
 /** Pages and sitemaps per minute per address. A crawler fetching one page a second stays well inside it. */
 export const PROPERTY_PAGES_PER_MINUTE = 120;
 /** Bumped when the page's HTML changes, so cached pages are not served across a renderer change. */
-export const PAGE_RENDER_VERSION = "3";
+export const PAGE_RENDER_VERSION = "4";
 export const SITEMAP_INDEX_PATH = "/sitemaps/properties.xml";
 const SITEMAP_CHILD = /^\/sitemaps\/properties\/([a-z0-9]+)-(\d{1,6})\.xml$/;
 /** Pages carry no script and no inline style: only the site's stylesheet and its fonts load. */
@@ -92,7 +95,6 @@ export const CACHE_MISS = "public, max-age=600, s-maxage=3600";
 /** How long one isolate trusts the pack version it read from the registry. */
 const PACK_VERSION_TTL_MS = 60_000;
 /** Other parcels of the same owner linked from a page. */
-const OTHER_LINKS = 3;
 
 const WITHHELD = hostedWithheldCounties();
 
@@ -479,7 +481,10 @@ async function pageResponse(
   const sale = factsOf(rec, TRANSFER_PREDICATES)[0];
   const saleRefs = sale ? factRefs(sale, urn) : [];
 
-  // The owner's registered entity and its other parcels (only what a free caller could read).
+  // The owner's registered entity and its other parcels: of the parcels, exactly the ones a free
+  // caller's registry_owned_by answer lists (the first three distinct parcels in the registry's
+  // order, by the same limitPortfolio the API applies), without this page's own parcel, and the
+  // number of the owner's other parcels, which that answer gives as its total.
   // None of it for an owner written like a person's estate or trust (ownerNamesAPerson).
   const ownerValue = factsOf(rec, ["ownership.owner_of_record"])[0]?.value;
   const entityUrn =
@@ -487,38 +492,42 @@ async function pageResponse(
       ? null
       : ownerEntity(rec);
   let entity: PageRecord | null = null;
-  let owned: string[] = [];
+  let otherCount = 0;
+  let free: string[] = [];
+  let beyondFree = 0;
   if (entityUrn) {
     const [e, o] = await Promise.all([
       run(registry, "registry_get", { urn: entityUrn }),
       run(registry, "registry_owned_by", { entity_urn: entityUrn }),
     ]);
     if (e.ok) entity = e.result as PageRecord;
-    if (o.ok)
-      owned = (
-        ((o.result as { results?: unknown[] })?.results ?? []) as {
-          urn?: unknown;
-        }[]
-      )
-        .map((r) => r?.urn)
-        .filter(
-          (u): u is string =>
-            typeof u === "string" &&
-            u.startsWith("fl:parcel:") &&
-            u !== urn &&
-            !withheldRegion(regionOf(u)),
-        );
-    // One row per link document can repeat a parcel; the page counts and links parcels.
-    owned = [...new Set(owned)];
+    if (o.ok) {
+      // One row per link document can repeat a parcel; the page counts and links parcels.
+      const parcelsOf = (answer: unknown): string[] => [
+        ...new Set(
+          (
+            ((answer as { results?: unknown[] } | null)?.results ?? []) as {
+              urn?: unknown;
+            }[]
+          )
+            .map((r) => r?.urn)
+            .filter(
+              (u): u is string =>
+                typeof u === "string" && u.startsWith("fl:parcel:"),
+            ),
+        ),
+      ];
+      const other = (u: string) => u !== urn && !withheldRegion(regionOf(u));
+      const all = parcelsOf(o.result);
+      const first = parcelsOf(limitPortfolio(o.result));
+      otherCount = all.filter(other).length;
+      free = first.filter(other);
+      beyondFree = all.filter((u) => other(u) && !first.includes(u)).length;
+    }
   }
-  const sameCounty = owned.filter((u) => regionOf(u) === region);
-  const candidates = [
-    ...sameCounty,
-    ...owned.filter((u) => regionOf(u) !== region),
-  ].slice(0, OTHER_LINKS);
   const others = (
     await Promise.all(
-      candidates.map((u) => run(registry, "registry_get", { urn: u })),
+      free.map((u) => run(registry, "registry_get", { urn: u })),
     )
   ).flatMap((o) => (o.ok ? [limitHistory(o.result) as PageRecord] : []));
 
@@ -538,7 +547,7 @@ async function pageResponse(
     .filter((r) => refsAllowed(parcelPageRefs(r), sourceOf, extra))
     .map((r) => ({
       path: propertyPath(r.urn)!,
-      label: situsAddress(r) ?? `Parcel ${apnOf(r) ?? r.urn}`,
+      label: headingAddress(situsAddress(r)) ?? `Parcel ${apnOf(r) ?? r.urn}`,
     }));
 
   const place = counties.get(region) ?? { name: region, state: "" };
@@ -547,8 +556,9 @@ async function pageResponse(
     rec,
     place: { region, ...place },
     entity: showEntity ? entity : null,
-    otherCount: showEntity ? owned.length : null,
+    otherCount: showEntity ? otherCount : null,
     links: showEntity ? links : [],
+    otherBeyondFree: showEntity ? beyondFree : 0,
     sourceOf: (doc) => sources[doc] ?? null,
     sale: sale && refsAllowed(saleRefs, sourceOf, extra) ? sale : null,
   });
@@ -616,6 +626,21 @@ function yearsInWords(years: number[]): string {
 }
 
 const e = (v: unknown): string => escapeHtml(String(v));
+
+/**
+ * A situs address as a heading: a nine-digit ZIP written without its dash after a state code
+ * ("DALLAS TX 752165628") reads as ZIP+4 ("DALLAS TX 75216-5628"). Nothing else changes, and the
+ * fact row shows the publisher's own text.
+ */
+export function headingAddress(address: string | null): string | null {
+  return address === null
+    ? null
+    : address.replace(/\b([A-Z]{2},? +\d{5})(\d{4})$/, "$1-$2");
+}
+
+/** The file a locator names first ("real_acct.txt acct 0011440000001" gives real_acct.txt), or "". */
+const locatorFile = (locator: string | undefined): string =>
+  /^[^\s/\\]+\.[A-Za-z][A-Za-z0-9]{1,4}(?=\s|$)/.exec(locator ?? "")?.[0] ?? "";
 const safeHref = (u: unknown): string | null =>
   typeof u === "string" && /^https?:\/\/[^\s"<>]+$/.test(u) ? u : null;
 
@@ -627,6 +652,8 @@ interface Doc {
   retrieved_at: string;
   rights: Fact["rights"];
   source_id: string | null;
+  /** The records cited from this document, each once, in the order the page cites them. */
+  records: string[];
 }
 
 export interface RenderInput {
@@ -638,7 +665,10 @@ export interface RenderInput {
   entity: PageRecord | null;
   /** Other hosted parcels of the same entity (null when no entity is shown). */
   otherCount: number | null;
+  /** Of them, the ones a free registry_owned_by answer lists that have a page. */
   links: { path: string; label: string }[];
+  /** Of them, how many lie beyond the first three a free answer lists. */
+  otherBeyondFree?: number;
   sourceOf: (documentId: string) => string | null;
   /** The newest recorded sale or deed of the free record, when its source allows republication. */
   sale?: Fact | null;
@@ -680,13 +710,18 @@ export function renderPropertyPage(input: RenderInput): string {
         retrieved_at: any?.retrieved_at ?? "",
         rights: holder?.rights,
         source_id: input.sourceOf(documentId),
+        records: [],
       };
       docs.set(documentId, d);
     }
-    const bits = [locator ? e(locator) : "", asOf ? `as of ${e(asOf)}` : ""]
-      .filter(Boolean)
-      .join(", ");
-    return `<a class="cite" href="#source-${d.n}"><b>${d.n}</b>${bits ? ` ${bits}` : ""}</a>`;
+    // The chip is short: the reference number, the file and the date. The whole record locator is
+    // its title, and stands once under the source, where the chip leads.
+    const when = asOf ? `as of ${asOf}` : "";
+    const full = [locator ?? "", when].filter(Boolean).join(", ");
+    if (!full) return `<a class="cite" href="#source-${d.n}"><b>${d.n}</b></a>`;
+    if (!d.records.includes(full)) d.records.push(full);
+    const short = [locatorFile(locator), when].filter(Boolean).join(", ");
+    return `<a class="cite" href="#source-${d.n}-${d.records.indexOf(full) + 1}" title="${e(full)}"><b>${d.n}</b>${short ? ` ${e(short)}` : ""}</a>`;
   };
   const factCite = (f: Fact): string =>
     (f.provenance?.sources ?? [])
@@ -694,7 +729,7 @@ export function renderPropertyPage(input: RenderInput): string {
       .join(" ");
 
   const one = (p: string) => factsOf(rec, [p])[0];
-  const address = situsAddress(rec);
+  const address = headingAddress(situsAddress(rec));
   const apn = one("parcel.apn");
   const placeText = [place.name, place.state].filter(Boolean).join(", ");
   const rows: string[] = [];
@@ -778,6 +813,8 @@ export function renderPropertyPage(input: RenderInput): string {
   const owner = one("ownership.owner_of_record");
   const ownerHtml: string[] = [];
   let entityShown = false;
+  let entityOthers = false;
+  const beyond = input.otherBeyondFree ?? 0;
   if (
     owner &&
     typeof owner.value === "string" &&
@@ -796,6 +833,7 @@ export function renderPropertyPage(input: RenderInput): string {
       );
     }
     if (input.otherCount !== null) {
+      entityOthers = true;
       const n = input.otherCount;
       const list = input.links.length
         ? `<ul class="plain">${input.links.map((l) => `<li><a href="${e(l.path)}">${e(l.label)}</a></li>`).join("")}</ul>`
@@ -869,6 +907,11 @@ export function renderPropertyPage(input: RenderInput): string {
           `<p>${e(records)}: each with its date, amount and parties as recorded and its citation, through <code>registry_get</code> on the hosted API.</p>`,
         ]
       : []),
+    ...(entityOthers && beyond > 0
+      ? [
+          `<p>${e(`${int.format(beyond)} more ${beyond === 1 ? "parcel" : "parcels"} of this owner`)}: the whole list, through <code>registry_owned_by</code> on the hosted API.</p>`,
+        ]
+      : []),
   ];
   const pro = proLines.length
     ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
@@ -892,6 +935,19 @@ ${proLines.join("\n")}
         ? d.title.slice(0, d.title.indexOf(": "))
         : "";
       const items = [
+        ...(d.records.length
+          ? [
+              [
+                d.records.length === 1 ? "Record cited" : "Records cited",
+                d.records
+                  .map(
+                    (r, i) =>
+                      `<span class="record" id="source-${d.n}-${i + 1}">${e(r)}</span>`,
+                  )
+                  .join(" "),
+              ],
+            ]
+          : []),
         [
           "Source",
           d.uri ? `<a href="${e(d.uri)}">${e(d.title)}</a>` : e(d.title),
