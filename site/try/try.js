@@ -506,6 +506,38 @@
       });
   }
 
+  // A link such as /try/?q=1000+Louisiana+St runs that lookup on load. The parameter is cut to
+  // a plain address (letters, digits and . , # ' & / - only) of at most 120 characters; without
+  // it, or with nothing left of it, no lookup runs.
+  var QUERY_MAX = 120;
+  function cleanQuery(raw) {
+    if (typeof raw !== "string") return "";
+    return raw
+      .slice(0, QUERY_MAX * 4)
+      .replace(/[^A-Za-z0-9 .,#'&/-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, QUERY_MAX)
+      .trim();
+  }
+  function queryParam(search, name) {
+    var parts = String(search || "")
+      .slice(0, 2000)
+      .replace(/^\?/, "")
+      .split("&");
+    for (var i = 0; i < parts.length; i++) {
+      var at = parts[i].indexOf("=");
+      if (at < 1 || parts[i].slice(0, at) !== name) continue;
+      try {
+        return decodeURIComponent(parts[i].slice(at + 1).replace(/\+/g, " "));
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  }
+  var fromLink = cleanQuery(queryParam(document.location.search, "q"));
+
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
     lookup(input.value);
@@ -519,4 +551,15 @@
       });
     },
   );
+  if (fromLink) {
+    // A URL with a query is a lookup, not a page to index (robots.txt says so too).
+    if (document.head) {
+      var meta = document.createElement("meta");
+      meta.setAttribute("name", "robots");
+      meta.setAttribute("content", "noindex");
+      document.head.appendChild(meta);
+    }
+    input.value = fromLink;
+    lookup(fromLink);
+  }
 })();

@@ -21,16 +21,40 @@ export function emailConfigured(env: Env): boolean {
 /** Send one message; false (and one log line without personal data) when it fails. */
 export async function sendEmail(
   env: Env,
-  kind: "welcome" | "recovery" | "signin" | "freekey" | "freekeydelete",
+  kind:
+    | "welcome"
+    | "recovery"
+    | "signin"
+    | "freekey"
+    | "freekeydelete"
+    | "lifecycle",
   message: Omit<EmailMessageBuilder, "from" | "replyTo">,
 ): Promise<boolean> {
   if (!env.EMAIL) return false;
+  const send = (m: Omit<EmailMessageBuilder, "from" | "replyTo">) =>
+    env.EMAIL!.send({ ...m, from: EMAIL_FROM, replyTo: CONTACT });
   try {
-    await env.EMAIL.send({
-      ...message,
-      from: EMAIL_FROM,
-      replyTo: CONTACT,
-    });
+    try {
+      await send(message);
+    } catch (err) {
+      // Custom headers (List-Unsubscribe) are on Email Sending's allowlist, but a rejected header
+      // (E_HEADER_*) must not lose the message: send it once more without them.
+      const code = (err as { code?: unknown } | null)?.code;
+      if (
+        !message.headers ||
+        typeof code !== "string" ||
+        !code.startsWith("E_HEADER")
+      )
+        throw err;
+      console.error(
+        JSON.stringify({ msg: "email headers rejected", kind, code }),
+      );
+      const bare: Omit<EmailMessageBuilder, "from" | "replyTo"> = {
+        ...message,
+      };
+      delete bare.headers;
+      await send(bare);
+    }
     return true;
   } catch (err) {
     const code = (err as { code?: unknown } | null)?.code;
@@ -47,12 +71,20 @@ export async function sendEmail(
 }
 
 /** Plain text and a minimal HTML twin, built from the same paragraphs. */
-function body(paragraphs: string[]): { text: string; html: string } {
-  const link = (s: string) =>
-    escapeHtml(s).replace(
-      /(https:\/\/[^\s<]+[^\s<.,:;)])/g,
-      (u) => `<a href="${u}">${u}</a>`,
-    );
+export function body(paragraphs: string[]): { text: string; html: string } {
+  // Links are found in the raw text, then each piece is escaped: a trailing "." or "'" is kept
+  // out of the link, and an escaped entity is never cut in half.
+  const link = (s: string) => {
+    let out = "";
+    let last = 0;
+    for (const m of s.matchAll(/https:\/\/[^\s<>"]+/g)) {
+      const trail = /[.,:;)!?'"]+$/.exec(m[0])?.[0] ?? "";
+      const url = m[0].slice(0, m[0].length - trail.length);
+      out += `${escapeHtml(s.slice(last, m.index))}<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>${escapeHtml(trail)}`;
+      last = m.index + m[0].length;
+    }
+    return out + escapeHtml(s.slice(last));
+  };
   return {
     text: paragraphs.join("\n\n") + "\n",
     html: `<!doctype html><html><body style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.5;max-width:560px">${paragraphs
@@ -65,6 +97,7 @@ export function welcomeMessage(
   plan: Plan,
   site: string,
   api: string,
+  back?: { href: string; label: string },
 ): { subject: string; text: string; html: string } {
   return {
     subject: `Welcome to ${plan.name}`,
@@ -73,6 +106,7 @@ export function welcomeMessage(
       "Your API key was shown once on the page after checkout (or collected by your agent). This email does not contain it: FactLot keeps only a hash.",
       `Set up in three steps:\n1. Store the key in a password manager or your agent's secret store.\n2. Connect: MCP server ${api}/mcp with the header "Authorization: Bearer <your key>". Snippets for Claude, ChatGPT, Cursor, VS Code, Python and curl: ${api}/v1/onboarding?plan=${plan.id}\n3. Test: open ${api}/v1/account with the same header; it shows your plan and usage.`,
       `Get back into your account, manage billing or cancel: ${site}/account\nLost the key? On that page, enter this email address and we send a sign-in link.`,
+      ...(back ? [`${back.label}: ${back.href}`] : []),
       `Questions: reply to this email or write to ${CONTACT}.`,
     ]),
   };
@@ -82,11 +116,15 @@ export async function sendWelcomeEmail(
   env: Env,
   to: string,
   plan: Plan,
+  back?: { href: string; label: string },
 ): Promise<boolean> {
   if (!env.EMAIL) return false;
   const site = (env.SITE_URL ?? "https://factlot.com").replace(/\/$/, "");
   const api = (env.API_URL ?? "https://api.factlot.com").replace(/\/$/, "");
-  return sendEmail(env, "welcome", { to, ...welcomeMessage(plan, site, api) });
+  return sendEmail(env, "welcome", {
+    to,
+    ...welcomeMessage(plan, site, api, back),
+  });
 }
 
 export function recoveryMessage(
@@ -110,13 +148,26 @@ export function recoveryMessage(
 export function freeKeyMessage(
   url: string,
   minutes: number,
+  /**
+   * Lifecycle emails (lifecycle.ts) when on: where to connect the key once you have it, and
+   * whether the request ticked the box for optional notes.
+   */
+  extra: { connectUrl?: string; optional?: boolean } = {},
 ): { subject: string; text: string; html: string } {
+  const connectUrl = extra.connectUrl;
   return {
     subject: "Your free FactLot API key",
     ...body([
-      "This is a transactional message: someone (we hope you) asked for a free FactLot API key with this email address. We will not add you to any mailing list.",
+      extra.optional
+        ? "This is a transactional message: someone (we hope you) asked for a free FactLot API key with this email address. The request also ticked the box for optional notes about the key; they start only once you open the link below, and each has a link that stops them."
+        : "This is a transactional message: someone (we hope you) asked for a free FactLot API key with this email address. We will not add you to any mailing list.",
       `Open this link and press the button to get the key. It is shown once:\n${url}`,
       `The link works once and expires in ${minutes} minutes. If you did not ask for it, ignore this email: nothing is created until the link is used. A new key replaces any earlier free key for this address.`,
+      ...(connectUrl
+        ? [
+            `Once you have the key, connect it to your assistant (Claude, ChatGPT, Cursor and others): ${connectUrl}`,
+          ]
+        : []),
       `Questions: reply to this email or write to ${CONTACT}.`,
     ]),
   };

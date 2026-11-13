@@ -15,6 +15,7 @@ import {
 import { CLAIM_POLL_MS } from "./claim.ts";
 import { ANONYMOUS_REQUESTS_PER_MINUTE } from "./plans.ts";
 import { registryRunner } from "./registry.ts";
+import { lifecycleSweep } from "./lifecycle.ts";
 import { handle } from "./router.ts";
 import type { Env, Fetcher } from "./types.ts";
 
@@ -34,6 +35,26 @@ const node = httpServerHandler({ port: PORT }) as {
 let boundRegistry: Fetcher | undefined;
 
 export default {
+  /** The lifecycle sweep (lifecycle.ts): runs only if a cron trigger is configured, and only when the feature is on. */
+  async scheduled(
+    _event: unknown,
+    raw: Omit<Env, "RL_ANON" | "RL_CLAIM" | "METER"> & {
+      LIMITER: DurableObjectNamespaceLike;
+    },
+    ctx: { waitUntil(p: Promise<unknown>): void },
+  ): Promise<void> {
+    const env: Env = {
+      ...raw,
+      RL_ANON: objectLimiter(
+        raw.LIMITER,
+        "anon",
+        ANONYMOUS_REQUESTS_PER_MINUTE,
+      ),
+      RL_CLAIM: objectLimiter(raw.LIMITER, "claim", 1, CLAIM_POLL_MS),
+      METER: objectMeter(raw.LIMITER),
+    };
+    ctx.waitUntil(lifecycleSweep(env).catch(() => undefined));
+  },
   async fetch(
     request: Request,
     raw: Omit<Env, "RL_ANON" | "RL_CLAIM" | "METER"> & {

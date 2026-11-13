@@ -60,16 +60,17 @@
             hold no IP address, no page a particular visitor opened and nothing
             that identifies or follows a visitor, and are deleted after 40 days.
             Its only scripts are two files under /try/. The first, on the Try a
-            lookup page (/try/), does nothing until you press the button, then
-            sends the address you typed to FactLot's hosted API (see below), and
-            stores nothing in your browser. The second, on the pricing, Try a
-            lookup and MCP server pages, asks the hosted API whether the free
-            key (see below) is offered and shows a link to it if so; it sends
-            nothing you typed and stores nothing in your browser. Cloudflare,
-            which hosts it, processes your IP address, browser user agent and
-            the page you ask for, to deliver the page and protect the site from
-            abuse. Cloudflare may keep request logs under its own privacy
-            policy; FactLot keeps no access log of its own.
+            lookup page (/try/), does nothing until you press the button or open
+            a link that carries an address (such as /try/?q=1200+Main+St, cut to
+            at most 120 plain characters), then sends that address to FactLot's
+            hosted API (see below), and stores nothing in your browser. The
+            second, on the pricing, Try a lookup and MCP server pages, asks the
+            hosted API whether the free key (see below) is offered and shows a
+            link to it if so; it sends nothing you typed and stores nothing in
+            your browser. Cloudflare, which hosts it, processes your IP address,
+            browser user agent and the page you ask for, to deliver the page and
+            protect the site from abuse. Cloudflare may keep request logs under
+            its own privacy policy; FactLot keeps no access log of its own.
           </p>
           <h3>The hosted API</h3>
           <ul class="plain">
@@ -149,30 +150,32 @@
               send one email to that address: a link that works once and expires
               after 30 minutes. It is a transactional message sent through
               Cloudflare Email Sending, and it contains the link and no key. We
-              send no marketing email, and nothing else to that address because
-              of this request except the deletion email described below if you
-              ask for it. The address is used in memory to send the email and to
-              make a hash of it; it is not written to storage, usage records or
-              logs. What we store instead is a hash of the address: SHA-256 of
-              the lower-case address together with a secret that only FactLot
-              holds. We treat that hash as personal information, because it is
-              the same every time the same address is used. Opening the link
-              only shows a button; pressing it creates the key, which is shown
-              once. We then store a record of the key (a SHA-256 hash of the
-              key, the address hash, the date it was created and, once the key
-              is replaced, the time it was revoked) and, for each address hash,
-              which key is its current one. One address has one active free key:
-              a new key replaces the earlier one, which stops working. A link
-              that is never used creates nothing and expires. Between asking and
-              opening the link we keep a record of the link (a hash of its
-              random ID, the address hash and its expiry) for 30 minutes, and a
-              marker of the address hash for 5 minutes, so that one address gets
-              at most one link email every 5 minutes. A marker that a link was
-              used, held under a hash of its random ID and not linked to the
-              address, is kept for 13 months so that the link cannot be used
-              twice. The link is a web address that you open, so Cloudflare's
-              request logs may hold it; it cannot be used a second time or after
-              it expires.
+              send no marketing email unless you tick the separate box for
+              optional emails described below, and nothing else to that address
+              because of this request except the deletion email described below
+              if you ask for it. The address is used in memory to send the email
+              and to make a hash of it; it is not written to storage, usage
+              records or logs, except as described for the optional emails below
+              if you tick that box. What we store instead is a hash of the
+              address: SHA-256 of the lower-case address together with a secret
+              that only FactLot holds. We treat that hash as personal
+              information, because it is the same every time the same address is
+              used. Opening the link only shows a button; pressing it creates
+              the key, which is shown once. We then store a record of the key (a
+              SHA-256 hash of the key, the address hash, the date it was created
+              and, once the key is replaced, the time it was revoked) and, for
+              each address hash, which key is its current one. One address has
+              one active free key: a new key replaces the earlier one, which
+              stops working. A link that is never used creates nothing and
+              expires. Between asking and opening the link we keep a record of
+              the link (a hash of its random ID, the address hash and its
+              expiry) for 30 minutes, and a marker of the address hash for 5
+              minutes, so that one address gets at most one link email every 5
+              minutes. A marker that a link was used, held under a hash of its
+              random ID and not linked to the address, is kept for 13 months so
+              that the link cannot be used twice. The link is a web address that
+              you open, so Cloudflare's request logs may hold it; it cannot be
+              used a second time or after it expires.
             </li>
             <li>
               <strong>Free key counters.</strong> A free key's requests are
@@ -226,11 +229,12 @@
               checkout completes: it names the plan and price, says the
               subscription renews monthly until cancelled, and gives setup steps
               and links to the account page and the API. We do not store that
-              address. A sign-in link, when you enter an address under "Lost
-              your key?" at factlot.com/account and Stripe has a customer with
-              that address who has a FactLot subscription: it names each plan
-              and has a link per subscription that works once, expires after 15
-              minutes and lets you issue a new key. A connect link, when an app
+              address unless you tick the box for optional emails described
+              below. A sign-in link, when you enter an address under "Lost your
+              key?" at factlot.com/account and Stripe has a customer with that
+              address who has a FactLot subscription: it names each plan and has
+              a link per subscription that works once, expires after 15 minutes
+              and lets you issue a new key. A connect link, when an app
               connecting to the hosted MCP server asks for one for an address
               with a subscription: it names the app and has a link per plan that
               works once and expires after 10 minutes. Nothing is sent when no
@@ -239,7 +243,63 @@
               SHA-256 hash of the lower-case address (no secret added) for 5
               minutes for the sign-in link and 2 minutes for the connect link,
               so that one address gets at most one such email in that time. We
-              send no marketing email.
+              send no marketing email except the optional emails described next,
+              and only if you ticked the box for them.
+            </li>
+            <li>
+              <strong>Optional emails (only if you tick the box).</strong> When
+              FactLot offers optional emails, the free key form and the page you
+              see after checkout each have a separate box, unticked, that says
+              what is sent (if you see no such box, they are not on offer and
+              none are sent): up to 4 optional notes about a free key (one when
+              a lookup leaves earlier roll years out, one if the key has not
+              been used after 2 days, one when the daily limit is reached, and a
+              summary after 7 days), or up to 2 about a plan (one if the key has
+              not been used 1 day after you buy, and one after 7 days). Each
+              note is sent at most once, never more than one a day, and carries
+              our postal address and a link that stops all of them with one
+              click, without signing in. While they are on offer you can also
+              stop them by entering your address at factlot.com/account/stop
+              (that page exists only then), and you can always stop them by
+              emailing contact@factlot.com. If you tick the box we record it
+              only when you press the button on the page that the link in the
+              free key email opens (so nobody can sign up another person's
+              address), or, for a plan, when you save your choice on the page
+              after checkout, using the address you gave Stripe. We then store,
+              with your key or subscription, your email address (we cannot send
+              without it), the time you ticked the box, a reference to your
+              key's usage tally or your subscription, and the time each note was
+              sent. That record, and the address in it, is deleted when you stop
+              the notes, when you delete your free key, and after the key or
+              plan has ended. When you stop, we keep one marker: the hash of
+              your address described above and the time you stopped, and nothing
+              else, so that you are never sent an optional note again, even if
+              you later ask for a new key or tick the box again. Deleting a key
+              does not delete that marker. The stop link holds the same hash of
+              your address, signed so it cannot be forged, and does not expire;
+              Cloudflare's request logs may hold it. While optional emails are
+              on, a free key's registry lookups are also tallied by day, by tool
+              and by state prefix under the key's ID, never the parcel or
+              address searched, so that the summary can state them; the tally is
+              deleted with the key and otherwise after 90 days. Between ticking
+              the box on the free key form and pressing that button, your
+              address is held in the 30-minute link record. To enforce "at most
+              once" and "at most one a day" we keep two markers in a Durable
+              Object, each named by a one-way hash of your address hash with the
+              message or the day; they hold nothing else, are kept for 395 days,
+              and are not deleted when you stop or delete your key. Optional
+              notes go through Cloudflare Email Sending. Their legal basis is
+              your consent, which you can withdraw at any time as described;
+              withdrawing does not affect notes already sent.
+            </li>
+            <li>
+              <strong>Checkout return link.</strong> When you start checkout
+              from a lookup or a property page, the address you searched (at
+              most 120 characters of letters, digits and simple punctuation) or
+              the parcel's ID can travel in the checkout's return web address,
+              so that the page after payment, and the welcome email, link back
+              to it. It holds no email address, key or name; Stripe's and
+              Cloudflare's logs may hold it.
             </li>
           </ul>
           <h3>Billing</h3>
@@ -322,6 +382,10 @@
               notices about your plan, these terms or a security problem.
             </li>
             <li>
+              <strong>To send the optional emails you ticked the box for</strong
+              >: your consent.
+            </li>
+            <li>
               <strong>To plan capacity</strong>: counting requests by tool path,
               plan and status, with no IP address.
             </li>
@@ -390,6 +454,38 @@
                 <td>
                   Until the minute, day or month they count (UTC) ends, or until
                   the free key is deleted
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Optional-email consent records</th>
+                <td>
+                  Until you stop the emails or delete your free key, or after
+                  the key or plan has ended (removed by a daily sweep)
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Which optional emails were sent</th>
+                <td>
+                  As long as the consent record, plus a failed-send marker
+                  without your address until the same events
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Optional-email stop markers</th>
+                <td>
+                  Kept until you ask us to remove them, so that you are not
+                  mailed again; they hold the address hash and the time
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Optional-email once-only and daily markers</th>
+                <td>395 days; not deleted by a stop or a key deletion</td>
+              </tr>
+              <tr>
+                <th scope="row">Free key lookup tally (optional emails on)</th>
+                <td>
+                  Up to 90 days, or until the free key is deleted, whichever is
+                  first
                 </td>
               </tr>
               <tr>
@@ -602,6 +698,12 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              12 November 2026 (third update): described the optional emails you
+              can ask for with a separate, unticked box (what is sent and how
+              often, what is stored for your consent and for stopping them, and
+              how to stop them), and the checkout return link.
+            </li>
             <li>
               12 November 2026 (second update): described the daily totals of
               page views and API calls by page group, tool and kind of caller,

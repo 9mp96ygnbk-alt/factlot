@@ -35,6 +35,13 @@
 import { CONTACT } from "./contact.ts";
 import { sendEmail, freeKeyMessage, freeKeyDeleteMessage } from "./email.ts";
 import { json, siteUrl } from "./billing.ts";
+import {
+  addressHash,
+  forgetFreeConsent,
+  isSuppressed,
+  lifecycleEnabled,
+  recordConsent,
+} from "./lifecycle.ts";
 import { bearer, hashKey, keyId, randomToken } from "./keys.ts";
 import {
   EMAIL_RE,
@@ -104,11 +111,8 @@ export function freeKeyState(env: Env) {
   return recoveryState(env);
 }
 
-async function emailHash(env: Env, email: string): Promise<string> {
-  return hashKey(
-    `factlot-freekey-email|${env.RECOVERY_SIGNING_SECRET ?? ""}|${email.trim().toLowerCase()}`,
-  );
-}
+/** The same salted hash lifecycle.ts keys its consent and stop records by. */
+const emailHash = addressHash;
 
 /** The key behind a bearer token, or undefined (unknown, malformed, revoked). */
 export async function resolveFreeKey(
@@ -132,6 +136,11 @@ interface LinkRecord {
   email_hash: string;
   expires_at: string;
   used_at?: string;
+  /**
+   * The address, only when the person ticked the optional-emails box (lifecycle.ts), so that
+   * redeeming the link can record the consent. Kept with the link for 30 minutes.
+   */
+  lc_to?: string;
 }
 
 interface LinkKind {
@@ -146,12 +155,14 @@ async function createLink(
   eh: string,
   now: number,
   kind: LinkKind = ISSUE,
+  lcTo?: string,
 ): Promise<string> {
   const secret = env.RECOVERY_SIGNING_SECRET!;
   const id = randomToken();
   const rec: LinkRecord = {
     email_hash: eh,
     expires_at: new Date(now + FREE_KEY_LINK_TTL_SECONDS * 1000).toISOString(),
+    ...(lcTo ? { lc_to: lcTo } : {}),
   };
   await env.KEYS.put(
     `${kind.prefix}:${await hashKey(id)}`,
@@ -192,18 +203,26 @@ async function sendLink(
   env: Env,
   email: string,
   now: () => number,
+  requested = false,
 ): Promise<void> {
   const kv: KV = env.KEYS;
   try {
     const eh = await emailHash(env, email);
     if (await kv.get(`freewait:${eh}`)) return;
+    // A stopped address is never signed up again, so the email does not promise notes.
+    const optionalEmails = requested && !(await isSuppressed(env, eh));
     await kv.put(`freewait:${eh}`, "1", {
       expirationTtl: FREE_KEY_RESEND_SECONDS,
     });
-    const url = `${siteUrl(env)}/account/free-key/${await createLink(env, eh, now())}`;
+    const url = `${siteUrl(env)}/account/free-key/${await createLink(env, eh, now(), ISSUE, optionalEmails ? email : undefined)}`;
     await sendEmail(env, "freekey", {
       to: email,
-      ...freeKeyMessage(url, FREE_KEY_LINK_TTL_SECONDS / 60),
+      ...freeKeyMessage(url, FREE_KEY_LINK_TTL_SECONDS / 60, {
+        connectUrl: lifecycleEnabled(env)
+          ? `${siteUrl(env)}/mcp-server/`
+          : undefined,
+        optional: optionalEmails,
+      }),
     });
   } catch {
     console.error(JSON.stringify({ msg: "free key email failed" }));
@@ -259,15 +278,22 @@ export async function freeKeyRequestRoute(
     );
   let email = "";
   let accepted = false;
+  let optional = false;
   try {
     if (asJson) {
-      const b = JSON.parse(body) as { email?: unknown; accept_terms?: unknown };
+      const b = JSON.parse(body) as {
+        email?: unknown;
+        accept_terms?: unknown;
+        lifecycle_emails?: unknown;
+      };
       email = typeof b.email === "string" ? b.email : "";
       accepted = b.accept_terms === true;
+      optional = b.lifecycle_emails === true;
     } else {
       const f = new URLSearchParams(body);
       email = f.get("email") ?? "";
       accepted = f.get("accept_terms") !== null;
+      optional = f.get("lifecycle_emails") !== null;
     }
   } catch {
     // falls through to the 400 below
@@ -282,7 +308,7 @@ export async function freeKeyRequestRoute(
       "Accept the terms and privacy policy (accept_terms: true) to get a free key.",
     );
   const defer = opts.defer ?? ((w) => void w.catch(() => {}));
-  defer(sendLink(env, email, now));
+  defer(sendLink(env, email, now, optional && lifecycleEnabled(env)));
   return withCors(
     asJson
       ? json(202, { sent_if_valid: true, message: FREE_KEY_SENT })
@@ -349,9 +375,12 @@ export async function freeKeyLinkRoute(
       ).catch(() => {});
     return linkProblem("used");
   }
+  // The address (kept in the link record only for the optional-emails consent) goes with use.
+  const spent: LinkRecord = { ...check.rec };
+  delete spent.lc_to;
   await env.KEYS.put(
     `freelink:${check.hash}`,
-    JSON.stringify({ ...check.rec, used_at: new Date(now()).toISOString() }),
+    JSON.stringify({ ...spent, used_at: new Date(now()).toISOString() }),
     { expirationTtl: FREE_KEY_LINK_TTL_SECONDS },
   );
   const key = FREE_KEY_PREFIX + randomToken();
@@ -377,6 +406,16 @@ export async function freeKeyLinkRoute(
   };
   await env.KEYS.put(`freekey:${hash}`, JSON.stringify(rec));
   await env.KEYS.put(`freeemail:${eh}`, hash);
+  // Optional emails (lifecycle.ts): record the consent of this request, or point an earlier
+  // consent at the new key. Never blocks the key, and a stopped address stays stopped.
+  await recordConsent(env, {
+    kind: "free",
+    h: eh,
+    to: check.rec.lc_to,
+    subject: `freekey:${keyId(hash)}`,
+    keyHash: hash,
+    now: now(),
+  }).catch(() => undefined);
   return freeKeyIssuedPage({
     key,
     replaced: prev !== null && prev !== hash,
@@ -417,6 +456,8 @@ async function deleteAddress(
   }
   await env.METER.forget(`freemail:${eh.slice(0, 32)}`);
   await env.KEYS.delete(`freeemail:${eh}`);
+  // The consent record (and the address in it) goes with the key; the stop marker stays.
+  if (lifecycleEnabled(env)) await forgetFreeConsent(env, eh);
 }
 
 /** The deletion email, run after the answer is sent; only for an address that has a key. */

@@ -88,9 +88,21 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
+import {
+  lifecycleEnabled,
+  lifecycleRoute,
+  onFreeKeyAnswer,
+  onFreeKeyLimit,
+} from "./lifecycle.ts";
 import { propertyPagesRoute } from "./property-pages.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
-import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
+import {
+  accountFormPage,
+  accountPage,
+  escapeHtml,
+  messagePage,
+  page,
+} from "./pages.ts";
 import {
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
   freeKeyEnabled,
@@ -850,6 +862,45 @@ async function route(
       path.startsWith("/account/free-key-delete/"))
   )
     return freeKeyRoute(request, env, url, path, opts, await addressKey());
+  // Dark unless LIFECYCLE_EMAILS_ENABLED is exactly "true": the paths then fall through to 404.
+  if (
+    lifecycleEnabled(env) &&
+    (path === "/account/stop" ||
+      path.startsWith("/account/stop/") ||
+      path === "/account/lifecycle")
+  ) {
+    // The two form posts are limited per address and their bodies capped, like the recovery form.
+    let body: string | undefined;
+    if (
+      request.method === "POST" &&
+      (path === "/account/stop" || path === "/account/lifecycle")
+    ) {
+      const address = await addressSubject(
+        clientAddress(request),
+        now(),
+        env.IP_HASH_SALT,
+      );
+      if (
+        !(await metered(env.RL_ANON.limit({ key: `lifecycle:${address}` })))
+          .success
+      )
+        return messagePage(
+          429,
+          "Optional emails",
+          "Too many tries from this address. Wait a minute.",
+        );
+      body = await readBody(request, 4 * 1024);
+      if (body === undefined)
+        return messagePage(413, "Optional emails", "The form is too large.");
+    }
+    const res = await lifecycleRoute(request, env, url, path, {
+      now,
+      body,
+      fetchImpl: opts.fetchImpl,
+      defer: deferWith(opts),
+    });
+    if (res) return res;
+  }
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
     return recoverRoute(request, env, url, path, opts);
   if (path === "/account") return accountRoute(request, env, url, api, opts);
@@ -1485,6 +1536,8 @@ async function route(
           : undefined,
       });
       countEvent(env, "quota_exhausted", [kind, paid ? "month" : "day"]);
+      if (freeKey && !addressCapped)
+        onFreeKeyLimit(env, freeKey, hit.quota, deferWith(opts), now());
       headers["retry-after"] = String(deniedError.retry_after_seconds);
     }
   }
@@ -1628,6 +1681,18 @@ async function route(
           })),
         ),
       );
+    // With lifecycle emails on, a free key's lookups are tallied like a plan's (by tool and
+    // region, no address or parcel) so the optional summary notes can state them.
+    if (freeKey && lifecycleEnabled(env) && counted.charged.length > 0)
+      deferWith(opts)(
+        env.METER.record(
+          freeKey.subject,
+          counted.charged.map((c) => ({
+            tool: c.tool,
+            region: regionOf(c.tool, c.args),
+          })),
+        ),
+      );
     if (unanswered > 0 && (await giveBack(unanswered, hit.quota.resets_at)))
       headers["x-factlot-registry-quota-remaining"] = String(
         Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
@@ -1649,6 +1714,16 @@ async function route(
       path === "/mcp" ? "mcp" : "rest",
       kind,
     );
+    if (freeKey)
+      await onFreeKeyAnswer(
+        env,
+        freeKey,
+        res,
+        path === "/mcp" ? "mcp" : "rest",
+        path === "/mcp" ? mcpBody : restText,
+        deferWith(opts),
+        now(),
+      );
   }
   if (accountCalls.length > 0 || reportCalls.length > 0 || listIds.length > 0) {
     let modelCalls = 0;
@@ -2181,7 +2256,9 @@ async function accountRoute(
 ): Promise<Response> {
   const now = opts.now ?? Date.now;
   const formPage = (status?: number, notice?: string) =>
-    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env));
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env), {
+      lifecycle: lifecycleEnabled(env),
+    });
   if (request.method === "GET" || request.method === "HEAD") return formPage();
   if (request.method !== "POST")
     return apiError(
@@ -2245,6 +2322,7 @@ async function accountRoute(
       regions,
       connections,
       api: apiBase,
+      lifecycle: lifecycleEnabled(env),
       ...o,
     });
   };
@@ -2358,6 +2436,7 @@ async function recoverRoute(
         "This form only works on its own page.",
         recoveryState(env),
         freeKeyEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
     const address = await addressSubject(
       clientAddress(request),
@@ -2372,6 +2451,7 @@ async function recoverRoute(
         "Too many tries from this address. Wait a minute.",
         recoveryState(env),
         freeKeyEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
     body = await readBody(request, 4 * 1024);
     if (body === undefined)
@@ -2380,6 +2460,7 @@ async function recoverRoute(
         "The form is too large.",
         recoveryState(env),
         freeKeyEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
   }
   if (token === undefined)
@@ -2435,7 +2516,9 @@ async function freeKeyRoute(
     );
   }
   const formPage = (status: number, notice: string) =>
-    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env));
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env), {
+      lifecycle: lifecycleEnabled(env),
+    });
   if (request.method === "POST" || request.method === "DELETE") {
     const origin = request.headers.get("origin");
     const jsonBody = (request.headers.get("content-type") ?? "").includes(
