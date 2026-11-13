@@ -3597,7 +3597,9 @@ describe("agent claim flow", () => {
     const s = stripe({
       session: {
         ...paid,
-        created: Math.floor(T0 / 1000) - 366 * 86_400,
+        // The success page reads the wall clock (successRoute takes no test clock), so the
+        // session is made old against both clocks.
+        created: Math.floor(Math.min(T0, Date.now()) / 1000) - 366 * 86_400,
       },
     });
     const e = env({ STRIPE_SECRET_KEY: "sk_live_x" });
