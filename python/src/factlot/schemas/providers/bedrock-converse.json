@@ -6370,7 +6370,12 @@
           "inputSchema": {
             "json": {
               "type": "object",
-              "properties": {}
+              "properties": {
+                "fields": {
+                  "description": "true: each county also carries fields, the share of its parcels with each fact group it holds and its roll years with their value types.",
+                  "type": "boolean"
+                }
+              }
             }
           }
         }

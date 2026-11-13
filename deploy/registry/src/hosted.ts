@@ -5,10 +5,7 @@
  * registry trimmed they return the SDK's answer unchanged.
  */
 import { countyName } from "../../../packages/tools/src/county_names.ts";
-import {
-  compactFields,
-  type CountyFields,
-} from "../../../packages/tools/src/fields.ts";
+import type { CountyFields } from "../../../packages/tools/src/fields.ts";
 import {
   entitiesMiss,
   entityMiss,
@@ -203,11 +200,14 @@ export function hostedRecordMiss(
   return out;
 }
 
-/** What a county's `fields` say, once per registry_coverage answer. */
+/** How to get each county's field availability: one sentence in every hosted registry_coverage answer of a pack that has it. */
 export const FIELDS_NOTE =
-  "Fields differ by county. Each county's fields.shares gives the share of its parcels with at least one fact of each group it holds (1: every parcel); a group not listed is held for none of its parcels. Groups: owner_of_record, owner_mailing_address, market_value, appraised_value, building_facts, neighborhood_and_class, zoning, recorded_sales, deeds_and_mortgages, energy_benchmarks, entity_links (an owner linked to a company registry). fields.roll_years lists the tax years held, newest first, with the value types of each, the newest file's as-of date, and preliminary: true where the roll is preliminary. Table: https://factlot.com/coverage/#fields.";
+  "Fields differ by county: with fields: true each county carries fields.shares (the share of its parcels with each fact group it holds; a group not listed is held for none) and fields.roll_years (the tax years held, with their value types, the newest file's as-of date and preliminary: true where the roll is preliminary); the same table is at https://factlot.com/coverage/#fields.";
 
-/** registry_coverage for the hosted registry: the SDK's answer, with what it withholds or serves in part. */
+/**
+ * registry_coverage for the hosted registry: the SDK's answer (with or without `fields`), with what it withholds or
+ * serves in part, and FIELDS_NOTE when the pack holds field availability.
+ */
 export function hostedCoverageResult(
   scope: HostedScope,
   cov: RegistryCoverage,
@@ -216,25 +216,21 @@ export function hostedCoverageResult(
   const withheld = Object.keys(scope.withheld ?? {}).sort();
   const trimmed = Object.keys(scope.entity_scope ?? {}).sort();
   const partial = Object.keys(scope.partial_counties ?? {}).sort();
-  const fields = scope.fields ?? {};
-  const hasFields = Object.keys(fields).length > 0;
+  const hasFields = Object.keys(scope.fields ?? {}).length > 0;
   if (!withheld.length && !trimmed.length && !partial.length && !hasFields)
     return result;
   const r = result as Row;
   return {
     ...r,
-    // A county loaded in part says which part, and each county which fact groups and roll years it holds.
-    ...((partial.length || hasFields) && Array.isArray(r.counties)
+    // A county loaded in part says which part, where the county is listed.
+    ...(partial.length && Array.isArray(r.counties)
       ? {
           counties: (r.counties as Row[]).map((c) => {
-            const fips = `${String(c.state_fips)}${String(c.county_fips)}`;
-            const p = partialOf(scope, fips);
-            const f = Object.hasOwn(fields, fips) ? fields[fips] : undefined;
-            return {
-              ...c,
-              ...(p ? { area: p.area } : {}),
-              ...(f ? { fields: compactFields(f) } : {}),
-            };
+            const p = partialOf(
+              scope,
+              `${String(c.state_fips)}${String(c.county_fips)}`,
+            );
+            return p ? { ...c, area: p.area } : c;
           }),
         }
       : {}),

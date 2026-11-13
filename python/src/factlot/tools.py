@@ -602,7 +602,7 @@ def _registry_coverage(args: dict[str, Any]) -> dict[str, Any]:
     from .registry import coverage
 
     reg = _registry()
-    return coverage.tool_result(reg.db, reg.coverage())
+    return coverage.tool_result(reg.db, reg.coverage(), fields=args.get("fields") is True)
 
 
 def _bounded(args: dict[str, Any], key: str, default: Any, lo: float, hi: float, *, integer: bool,

@@ -433,11 +433,13 @@ test("a pack of two files answers like one file holding both (coverage, misses, 
     ],
     pack,
   );
-  // Ownership links cross the split (an entity in one file owns parcels in the other), so records and ownership
-  // are compared on the single-file pack; here only what spans files: coverage, misses, resolves and searches.
+  // Ownership links cross the split (an entity in one file owns parcels in the other) and the split drops them, so
+  // records, ownership and the coverage answer with fields (whose entity_links counts them) are compared on the
+  // single-file pack; here only what spans files: coverage, misses, resolves and searches.
   const list = [...shared, ...getCalls(), ...searchCalls()].filter(
     (c) =>
       c.tool !== "registry_owned_by" &&
+      !(c.tool === "registry_coverage" && c.args.fields === true) &&
       !(
         c.tool === "registry_get" &&
         JSON.parse(JSON.stringify(runToolOn(fixture, c))).ok
