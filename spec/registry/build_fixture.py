@@ -158,6 +158,7 @@ reg.ingest_entities([
     EntityRecord("Harbor Office Condos LLC", "us-tx", "0805555555", status="ACTIVE"),
     EntityRecord("Quiet Holdings LLC", "us-tx", "0806666666", status="ACTIVE"),
     EntityRecord("Bayou Equity Holdings LLC", "us-tx", "0807777777", status="ACTIVE"),
+    EntityRecord("Example Office Partners LP", "us-tx", "0808888888", status="ACTIVE"),
 ], ent)
 # SEC filings (synthetic here): CMBS loan facts on building IDs, one fact per trust holding a note of the loan,
 # and a registrant's Exhibit 21 line naming a registered entity as its subsidiary.
@@ -202,7 +203,9 @@ reg.ingest_entity_parents([
 # 2027 preliminary roll (test-cad-997-2027) that changes values, codes, an area and a category, so a parcel holds
 # current facts from three years at once. Building classes come from a separate buildings file per year
 # (test-cad-997-buildings, test-cad-997-buildings-2027). Both value bases, neighborhood codes on some parcels, and
-# owners of record the tool must never return.
+# owners of record the tool must never return. Each year's roll keeps its owner facts and links current in its own
+# source; the record shows the newest owner and only that owner's link is current: 1000001 keeps one owner across
+# every year, 1000002 changes owner on the 2027 roll, and 1000010 is on the 2025 roll only.
 CAD997 = Source("test-cad-997", "Example Central Appraisal District (synthetic)", "Appraisal roll",
                 "https://example.invalid/cad-997", "48", county_fips="997", license="Synthetic test data",
                 ai_use="unknown", redistribution="attribution_required", attribution="Example Central Appraisal District")
@@ -267,7 +270,8 @@ roll_file("cad-997-2026.txt", "synthetic district 997 roll 2026", "2026-07-25", 
 roll_file("cad-997-2026-corrected.txt", "synthetic district 997 corrected roll 2026", "2026-10-15", roll_2026(9800000))
 roll_file("cad-997-2027-preliminary.txt", "synthetic district 997 preliminary roll 2027", "2027-04-15", [
     cad("1000001", "F1", 50000, 2005, "77001", 10500000, nbhd="N100", land=120000, tax_year=2027),
-    cad("1000002", "F1", 48000, 2000, "77002", 9500000, nbhd="N150", tax_year=2027),  # a new neighborhood
+    cad("1000002", "F1", 48000, 2000, "77002", 9500000, nbhd="N150", owner=PARTNERS,
+        tax_year=2027),  # a new neighborhood and a new owner
     cad("1000003", "F1", 70000, 2010, "77001", 12000000, appraised=False, nbhd="N100", owner=PARTNERS,
         tax_year=2027),  # enlarged: outside the 2027 area band
     cad("1000004", "F2", 40000, 1995, "77001", 7500000, owner=PARTNERS, tax_year=2027),  # reclassified

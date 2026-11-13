@@ -965,5 +965,51 @@
     "arguments": {
       "urn": "fl:parcel:us-48997:1000003"
     }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000002",
+      "as_of": "2026-12-31"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000002",
+      "as_of": "2026-08-01"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
+      "as_of": "2025-12-31"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:entity:us-tx:0807777777"
+    }
+  },
+  {
+    "tool": "registry_get",
+    "arguments": {
+      "urn": "fl:entity:us-tx:0807777777",
+      "as_of": "2026-08-01"
+    }
+  },
+  {
+    "tool": "registry_owned_by",
+    "arguments": {
+      "entity_urn": "fl:entity:us-tx:0807777777"
+    }
+  },
+  {
+    "tool": "registry_owned_by",
+    "arguments": {
+      "entity_urn": "fl:entity:us-tx:0808888888"
+    }
   }
 ]

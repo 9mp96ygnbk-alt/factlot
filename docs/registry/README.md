@@ -99,8 +99,15 @@ is what retires a sold parcel's old owner. Example: an LLC sells to an individua
 lists a person, whose name we never store, so the LLC's ownership fact and link become history
 instead of lingering as current.
 
+An `owns` link is current only when it was inferred from the owner-of-record fact the record shows:
+the newest current one (latest `as_of`, then lowest fact ID). A district loaded as one source per
+roll year keeps every year's owner fact current in its own source, so only the newest roll's owner
+is a current owner and the earlier years' links are owner history; a parcel therefore has at most
+one current owner, and appears once in that owner's `registry_owned_by`.
+
 `registry_get` with `as_of` (YYYY-MM-DD) applies the same rule to the snapshots dated on or before
-that date: the facts and ownership links current then, and the status then (`not_yet_recorded`
+that date: the facts and ownership links current then (the link from the owner fact the dated
+record shows), and the status then (`not_yet_recorded`
 before any snapshot covered the record). With `include_history` as well, the history stops at that
 date. The building roll-up and crosswalk IDs are the file's current ones. `include_history` lists
 every fact, current ones included, so on a file that loaded each source once (the DC sample) it

@@ -16,6 +16,8 @@ snapshot:
 - **Owner links.** Organisation-owned parcels, how many are linked to a registered entity, by
   confidence and by rule, and why the rest are not (no entity registry for the state; the exact
   name exists only in another state; several same-name entities; no exact name); the review queue.
+  Parcels whose current ownership links (the rule the readers serve) name more than one entity, or
+  repeat one link, by county: policy says this number is zero.
 - **Citations.** Facts and links whose document is not a snapshot, whose document ID is not a
   SHA-256 content address, that have no record locator, no valid date or no method; sources with no
   URL or licence.
@@ -51,7 +53,7 @@ from typing import Any, Callable, Iterable
 
 from ..ids import FactLotIdError, entity_id, parcel_id
 from .normalize import STATE_BY_FIPS, is_commercial, is_organization, normalize_name, personal_style_organization
-from .store import EXACT_MATCH_BASIS
+from .store import _CURRENT_LINK, EXACT_MATCH_BASIS
 
 DOCUMENT_ID = re.compile(r"^fl:document:sha256-[0-9a-f]{64}$")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -412,6 +414,18 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
         "JOIN snapshots s ON s.document_id = cf.document_id WHERE cf.subject >= ? AND cf.subject < ? "
         "AND cf.predicate = 'ownership.owner_of_record' GROUP BY 1", *_PARCEL)}
 
+    # Current ownership links per parcel under the rule the readers serve (``store._CURRENT_LINK``): a parcel
+    # has one current owner. Links from more than one entity, or one link more than once, mean a reader would
+    # list a former owner, or list the parcel twice in a portfolio (must be zero), by county.
+    owner_links: dict[str, dict[str, int]] = defaultdict(lambda: {"several_owners": 0, "repeated_link": 0})
+    for r in q(
+        "SELECT substr(r.to_urn, 11, 8) AS county, COUNT(*) n, COUNT(DISTINCT r.from_urn) owners "
+        f"FROM relationships r WHERE r.type = 'owns' AND {_CURRENT_LINK} GROUP BY r.to_urn HAVING COUNT(*) > 1"):
+        if r["owners"] > 1:
+            owner_links[r["county"]]["several_owners"] += 1
+        if r["n"] > r["owners"]:
+            owner_links[r["county"]]["repeated_link"] += 1
+
     person_named_entities: dict[str, int] = {}
     if entity_names:
         for r in q("SELECT c.document_id, SUM(fl_is_org_name(s.label) = 0) n FROM coverage c JOIN subjects s ON s.urn = c.subject "
@@ -668,11 +682,22 @@ def _audit(db: sqlite3.Connection, path: Path, today: date, collected: str | Pat
     orphan_links = sum(d["links"] for doc, d in links.items() if doc not in snap_by_doc)
     if orphan_links:
         violations.append(f"{orphan_links} ownership links cite a document that is not a snapshot")
+    for county, n in sorted(owner_links.items()):
+        if n["several_owners"]:
+            violations.append(f"{county}: {n['several_owners']} parcels have current ownership links from more than "
+                              "one entity")
+        if n["repeated_link"]:
+            violations.append(f"{county}: {n['repeated_link']} parcels have one current ownership link more than once")
     return {
         "database": path.name,
         "audited_on": today.isoformat(),
         "stats": stats,
         "entity_registries_by_state": entity_states,
+        "current_owner_links": {
+            "parcels_with_several_owners": sum(n["several_owners"] for n in owner_links.values()),
+            "parcels_with_repeated_link": sum(n["repeated_link"] for n in owner_links.values()),
+            "by_county": {c: dict(n) for c, n in sorted(owner_links.items())},
+        },
         "sources": report_sources,
         "violations": violations,
         "warnings": warnings,
