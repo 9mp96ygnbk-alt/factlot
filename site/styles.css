@@ -646,6 +646,19 @@ ul.principles li {
   overflow-wrap: anywhere;
 }
 
+.try-summary {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.try-copy {
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  width: 100%;
+}
+
 .try-raw {
   margin: 1rem 0;
 }

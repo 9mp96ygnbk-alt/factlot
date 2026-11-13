@@ -314,6 +314,462 @@
       .filter(Boolean);
   }
 
+  // --- the plain summary ------------------------------------------------------------------------
+  // A person's view of the same answer, shown first: address, owner (or why there is none),
+  // the values by roll year the answer holds, building and land facts, sources with dates, and
+  // three actions. Built from the answer only; plain words, no programming terms.
+  // summary:start
+  var REPORTS = "/v1/reports";
+  var PARCEL_ID = /^fl:parcel:(us-\d{5}):([a-z0-9]+(?:-[a-z0-9]+)*)$/;
+  // Places whose public file publishes no owner names (as the hint above says).
+  var NO_OWNER_PLACES = /^us-(06037|06075|24\d{3}|49\d{3})$/;
+  var OWNER_NOT_PUBLISHED =
+    "This source does not publish owner names, so the record has no owner of record.";
+  var OWNER_NOT_ORGANISATION =
+    "The record has no owner of record: the registry keeps owners only when they are organisations, so the owner is not an organisation or the source left it blank.";
+  var OWNER_PERSON_STYLE =
+    "Not shown: the owner of record is written like a person's estate or trust.";
+  var BOUNDARY =
+    "Public-record values as their publisher released them. Not an appraisal or an opinion of value; not legal or tax advice.";
+  var SHEET_NOTE =
+    "The sheet uses one of the free tier's 3 reports a month and one lookup.";
+
+  // The property pages' rule for an owner written like a person's estate or trust.
+  // person-rule:start
+  var INSTITUTION =
+    /\b(UNIVERSITY|COLLEGE|SCHOOLS?|ACADEMY|SEMINARY|CHURCH|DIOCESE|ARCHDIOCESE|PARISH|SYNAGOGUE|TEMPLE|MOSQUE|DISTRICT|AUTHORITY|FUND|FOUNDATION|ASSOCIATION|SOCIETY|HOSPITAL|MUSEUM|LIBRARY|PENSION)\b/;
+  var PERSON_STYLE = [
+    /(?<!\bREAL )\bESTATE OF\b/,
+    /\bEST OF\b/,
+    /\bLIFE ESTATE\b/,
+    /\bHEIRS?\b/,
+    /\b(LIVING|REVOCABLE|IRREVOCABLE|REV|REVOC|IRREV|IRREVOC|FAMILY|TESTAMENTARY|MARITAL|SURVIVORS?|BYPASS|CREDIT SHELTER)\b.*\b(TRUST|TR|TRST)\b/,
+    /\b(TRUST|TR|TRST)\b.*\b(DTD|DATED|U A|UA|UTA|U T A|UAD|UDT|FBO)\b/,
+    /\b(TR|TRS|TRSTEE|TTEE|TTEES)$/,
+  ];
+  function ownerReadsAsPerson(value) {
+    var s = String(value)
+      .toUpperCase()
+      .replace(/[^A-Z0-9 ]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (
+      PERSON_STYLE.some(function (p) {
+        return p.test(s);
+      })
+    )
+      return true;
+    if (/\b(TRUSTEES?|TTEES?|TRSTEES?)\b/.test(s))
+      return !(/\bBOARD OF TRUSTEES\b/.test(s) || INSTITUTION.test(s));
+    return false;
+  }
+  // person-rule:end
+
+  function money(n) {
+    return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+
+  function factOf(record, predicate) {
+    var facts = Array.isArray(record.facts) ? record.facts : [];
+    for (var i = 0; i < facts.length; i++)
+      if (facts[i] && facts[i].predicate === predicate) return facts[i];
+    return null;
+  }
+
+  /** The owner line: the organisation the answer names, or why there is none. */
+  function ownerOf(record) {
+    var f = factOf(record, "ownership.owner_of_record");
+    if (f && typeof f.value === "string" && f.value.trim()) {
+      if (ownerReadsAsPerson(f.value)) return { text: OWNER_PERSON_STYLE };
+      return { name: f.value, fact: f };
+    }
+    var m = PARCEL_ID.exec(record.urn || "");
+    return {
+      text:
+        m && NO_OWNER_PLACES.test(m[1])
+          ? OWNER_NOT_PUBLISHED
+          : OWNER_NOT_ORGANISATION,
+    };
+  }
+
+  /** The values the answer holds, one per roll year and value type, newest first. */
+  function valuesOf(record) {
+    var out = [];
+    var vh = Array.isArray(record.value_history) ? record.value_history : [];
+    vh.forEach(function (e) {
+      [
+        ["market_value", "Market value"],
+        ["appraised_value", "Appraised value"],
+      ].forEach(function (t) {
+        if (!e || typeof e[t[0]] !== "number") return;
+        var c = (e.citations && e.citations[t[0]]) || {};
+        out.push({
+          year: typeof e.tax_year === "number" ? String(e.tax_year) : "",
+          type: t[1],
+          amount: e[t[0]],
+          asOf: c.as_of || e.as_of || "",
+          doc: c.document_id || "",
+        });
+      });
+    });
+    if (out.length) return out;
+    var year = factOf(record, "parcel.tax_year");
+    [
+      ["parcel.market_value", "Market value"],
+      ["parcel.appraised_value", "Appraised value"],
+    ].forEach(function (t) {
+      var f = factOf(record, t[0]);
+      if (!f || typeof f.value !== "number") return;
+      var s = sourcesOf(f)[0];
+      out.push({
+        year: year ? String(year.value) : "",
+        type: t[1],
+        amount: f.value,
+        asOf: f.as_of || "",
+        doc: (s && s.document_id) || "",
+      });
+    });
+    return out;
+  }
+
+  /** One value row: every value on the summary is drawn by this function. */
+  function valueRow(v) {
+    return el("tr", null, [
+      el("th", { scope: "row", text: v.year || "Year not stated" }),
+      el("td", { text: v.type }),
+      el("td", { text: money(v.amount) }),
+      el("td", { class: "small", text: v.asOf ? "as of " + v.asOf : "" }),
+    ]);
+  }
+
+  var BUILDING = [
+    ["parcel.improvement_area_sf", "Building area"],
+    ["parcel.year_built", "Year built"],
+    ["parcel.building_class", "Building class"],
+    ["parcel.state_property_category", "State property category"],
+    ["parcel.local_use_code", "Local use code"],
+    ["parcel.num_floors", "Floors"],
+    ["parcel.land_area_sf", "Land area"],
+  ];
+
+  function buildingOf(record) {
+    var out = [];
+    BUILDING.forEach(function (b) {
+      var f = factOf(record, b[0]);
+      if (!f || f.value === null || f.value === undefined || f.value === "")
+        return;
+      var text =
+        typeof f.value === "number" && /_sf$/.test(b[0])
+          ? f.value.toLocaleString("en-US", { maximumFractionDigits: 0 }) +
+            " sq ft"
+          : String(f.value);
+      out.push({ label: b[1], text: text, fact: f });
+    });
+    return out;
+  }
+
+  /** The source files behind what the summary shows, with every as-of date they carry. */
+  function summarySources(record, shownFacts, values) {
+    var byDoc = {};
+    var list = [];
+    var facts = Array.isArray(record.facts) ? record.facts : [];
+    function add(doc, asOf, f) {
+      if (!doc) return;
+      var x = byDoc[doc];
+      if (!x) {
+        var holder =
+          f ||
+          facts.filter(function (g) {
+            return sourcesOf(g).some(function (s) {
+              return s.document_id === doc;
+            });
+          })[0];
+        var s = holder
+          ? sourcesOf(holder).filter(function (y) {
+              return y.document_id === doc;
+            })[0]
+          : null;
+        x = {
+          title: (s && s.title) || "Document " + doc,
+          rights: (holder && holder.rights) || {},
+          dates: [],
+        };
+        byDoc[doc] = x;
+        list.push(x);
+      }
+      if (asOf && x.dates.indexOf(asOf) === -1) x.dates.push(asOf);
+    }
+    shownFacts.forEach(function (f) {
+      sourcesOf(f).forEach(function (s) {
+        add(s.document_id, f.as_of, f);
+      });
+    });
+    values.forEach(function (v) {
+      add(v.doc, v.asOf, null);
+    });
+    return list;
+  }
+
+  function sourceLine(x) {
+    var parts = [x.title];
+    if (x.dates.length)
+      parts.push("as of " + x.dates.sort().reverse().join(", "));
+    if (x.rights.attribution)
+      parts.push("attribution: " + x.rights.attribution);
+    else if (x.rights.license) parts.push("licence: " + x.rights.license);
+    return parts.join("; ");
+  }
+
+  /** The summary as plain text, for pasting into an email. */
+  function summaryText(record, s) {
+    var lines = [s.title];
+    if (s.apn) lines.push("Account or parcel number: " + s.apn);
+    lines.push("FactLot ID: " + record.urn);
+    lines.push(
+      "Owner of record: " + (s.owner.name ? s.owner.name : s.owner.text),
+    );
+    if (s.values.length) {
+      lines.push("", "Values:");
+      s.values.forEach(function (v) {
+        lines.push(
+          "  " +
+            (v.year ? v.year + " " : "") +
+            v.type.toLowerCase() +
+            ": " +
+            money(v.amount) +
+            (v.asOf ? " (as of " + v.asOf + ")" : ""),
+        );
+      });
+    }
+    if (s.note) lines.push(s.note);
+    if (s.building.length) {
+      lines.push("", "Building and land:");
+      s.building.forEach(function (b) {
+        lines.push("  " + b.label + ": " + b.text);
+      });
+    }
+    if (s.sources.length) {
+      lines.push("", "Sources:");
+      s.sources.forEach(function (x) {
+        lines.push("  " + sourceLine(x));
+      });
+    }
+    lines.push("", BOUNDARY, "Looked up with FactLot (factlot.com).");
+    return lines.join("\n");
+  }
+
+  /** A download link only when it is the report service's own link. */
+  function downloadLink(u) {
+    return typeof u === "string" &&
+      /^https:\/\/[a-z0-9.-]+\/v1\/reports\/d\/[A-Za-z0-9_-]{43}$/.test(u)
+      ? u
+      : null;
+  }
+
+  function sheetAction(urn, slot) {
+    var b = el("button", {
+      type: "button",
+      class: "button primary",
+      text: "Download a one-page sheet (PDF)",
+    });
+    var out = el("p", { class: "small", role: "status" });
+    b.addEventListener("click", function () {
+      b.disabled = true;
+      out.textContent = "Building the sheet…";
+      post(REPORTS, {
+        kind: "property_sheet",
+        format: "pdf",
+        arguments: { urn: urn },
+      })
+        .then(function (r) {
+          clear(out);
+          var d = r.data || {};
+          var link = r.status === 201 ? downloadLink(d.download_url) : null;
+          if (link) {
+            out.appendChild(
+              el("a", { href: link, text: "Your sheet is ready: download it" }),
+            );
+            out.appendChild(
+              document.createTextNode(
+                " (the link works for 24 hours" +
+                  (d.reports && typeof d.reports.remaining === "number"
+                    ? "; free reports left this month: " + d.reports.remaining
+                    : "") +
+                  ").",
+              ),
+            );
+          } else {
+            out.textContent =
+              typeof d.message === "string" && d.message
+                ? d.message
+                : "The sheet could not be made (HTTP " + r.status + ").";
+            b.disabled = false;
+          }
+        })
+        .catch(function () {
+          out.textContent =
+            "The sheet could not be made: the service did not answer. Nothing was counted.";
+          b.disabled = false;
+        });
+    });
+    slot.appendChild(b);
+    return out;
+  }
+
+  /** The public property page, linked only when the site serves one for this parcel. */
+  function pageAction(urn, slot) {
+    var m = PARCEL_ID.exec(urn || "");
+    if (!m || typeof fetch !== "function") return;
+    var path = "/property/" + m[1] + "/" + m[2];
+    fetch(path, { method: "HEAD", credentials: "omit", cache: "no-store" })
+      .then(function (res) {
+        if (res.status === 200)
+          slot.appendChild(
+            el("a", {
+              class: "button",
+              href: path,
+              text: "Open this property's page",
+            }),
+          );
+      })
+      .catch(function () {});
+  }
+
+  function copyAction(text, slot) {
+    var b = el("button", {
+      type: "button",
+      class: "button",
+      text: "Copy as text",
+    });
+    var out = el("p", { class: "small", role: "status" });
+    b.addEventListener("click", function () {
+      var shown = function () {
+        clear(out);
+        var area = el("textarea", {
+          class: "try-copy",
+          rows: "12",
+          readonly: "readonly",
+          "aria-label": "The summary as text",
+        });
+        area.value = text;
+        out.appendChild(area);
+        area.focus();
+        area.select();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(text).then(function () {
+          out.textContent = "Copied. Paste it into an email or a document.";
+        }, shown);
+      else shown();
+    });
+    slot.appendChild(b);
+    return out;
+  }
+
+  function summaryBlock(record) {
+    var situs = factOf(record, "parcel.situs_address");
+    var apn = factOf(record, "parcel.apn");
+    var s = {
+      title: situs ? String(situs.value) : record.label || record.urn,
+      apn: apn ? String(apn.value) : "",
+      owner: ownerOf(record),
+      values: valuesOf(record),
+      building: buildingOf(record),
+      note: "",
+    };
+    s.sources = summarySources(
+      record,
+      [situs, apn, s.owner.fact]
+        .concat(
+          s.building.map(function (b) {
+            return b.fact;
+          }),
+        )
+        .filter(Boolean),
+      s.values,
+    );
+    var box = el("section", { class: "try-summary", "aria-label": "Summary" });
+    box.appendChild(el("h2", { text: s.title }));
+    var ids = el("dl", { class: "try-ids" });
+    var row = function (k, v) {
+      ids.appendChild(el("dt", { text: k }));
+      ids.appendChild(
+        el("dd", null, [el("span", { class: "try-wrap", text: v })]),
+      );
+    };
+    if (s.apn) row("Account or parcel number", s.apn);
+    row("FactLot ID", record.urn);
+    row("Owner of record", s.owner.name ? s.owner.name : s.owner.text);
+    box.appendChild(ids);
+
+    box.appendChild(el("h3", { text: "Values by roll year" }));
+    if (s.values.length) {
+      var t = el("table");
+      t.appendChild(
+        el("caption", {
+          class: "visually-hidden",
+          text: "Values by roll year",
+        }),
+      );
+      var tb = el("tbody");
+      s.values.forEach(function (v) {
+        tb.appendChild(valueRow(v));
+      });
+      t.appendChild(tb);
+      box.appendChild(el("div", { class: "try-table" }, [t]));
+    } else
+      box.appendChild(el("p", { text: "The record holds no roll value." }));
+    if (typeof record.history_note === "string" && record.history_note) {
+      // The API's own sentence, shown as text. It ends with the pricing URL; the page links
+      // its own /pricing/ instead of printing the address.
+      var sentence = record.history_note.replace(/:\s*https?:\/\/\S+\s*$/, ".");
+      s.note = sentence;
+      box.appendChild(
+        el("p", { class: "note try-history" }, [
+          sentence + " ",
+          el("a", { href: "/pricing/", text: "Plans and limits" }),
+        ]),
+      );
+    }
+    if (s.building.length) {
+      box.appendChild(el("h3", { text: "Building and land" }));
+      var bl = el("dl", { class: "try-ids" });
+      s.building.forEach(function (b) {
+        bl.appendChild(el("dt", { text: b.label }));
+        bl.appendChild(el("dd", { text: b.text }));
+      });
+      box.appendChild(bl);
+    }
+    if (s.sources.length) {
+      box.appendChild(el("h3", { text: "Sources" }));
+      var ul = el("ul", { class: "try-sources" });
+      s.sources.forEach(function (x) {
+        ul.appendChild(el("li", { text: sourceLine(x) }));
+      });
+      box.appendChild(ul);
+    }
+    box.appendChild(el("p", { class: "small", text: BOUNDARY }));
+
+    var actions = el("p", { class: "actions try-actions" });
+    var sheetOut = sheetAction(record.urn, actions);
+    var copyOut = copyAction(summaryText(record, s), actions);
+    pageAction(record.urn, actions);
+    box.appendChild(actions);
+    box.appendChild(el("p", { class: "small", text: SHEET_NOTE }));
+    box.appendChild(sheetOut);
+    box.appendChild(copyOut);
+    return box;
+  }
+
+  /** What tells one matching parcel from another, from the search answer itself. */
+  function distinguish(it) {
+    var m = PARCEL_ID.exec((it && it.urn) || "");
+    return m
+      ? "County code " + m[1].slice(3) + ", parcel " + m[2]
+      : String((it && it.urn) || "");
+  }
+  // summary:end
+
   function render(record) {
     clear(results);
     var facts = Array.isArray(record.facts) ? record.facts : [];
@@ -343,15 +799,11 @@
       "parcel.neighborhood_code",
     ]);
     var year = byPredicate["parcel.tax_year"];
-    var situs = byPredicate["parcel.situs_address"];
     var apn = byPredicate["parcel.apn"];
 
     var card = el("div", { class: "try-record" });
-    card.appendChild(
-      el("h2", {
-        text: situs ? String(situs.value) : record.label || record.urn,
-      }),
-    );
+    card.appendChild(summaryBlock(record));
+    card.appendChild(el("h3", { text: "Every fact, with its citation" }));
     var ids = el("dl", { class: "try-ids" });
     var dt = function (k, v) {
       ids.appendChild(el("dt", { text: k }));
@@ -380,16 +832,13 @@
       );
     }
     card.appendChild(el("h3", { text: "Owner of record" }));
-    if (owner.length) {
+    var ownerLine = ownerOf(record);
+    if (owner.length && ownerLine.name) {
       card.appendChild(
         factsTable("Owner of record as the API returned it", owner),
       );
     } else {
-      card.appendChild(
-        el("p", {
-          text: "The API returned no owner for this parcel. Either the county's public file carries no owner names (Los Angeles County, San Francisco, Maryland and Utah) or the owner is a natural person, whose name the API withholds.",
-        }),
-      );
+      card.appendChild(el("p", { text: ownerLine.text }));
     }
     if (Array.isArray(record.warnings) && record.warnings.length) {
       var warn = el("div", { class: "note" }, [
@@ -404,18 +853,9 @@
       warn.appendChild(wl);
       card.appendChild(warn);
     }
-    if (typeof record.history_note === "string" && record.history_note) {
-      // The API's own sentence, shown as text. It ends with the pricing URL; the page links
-      // its own /pricing/ instead of printing the address.
-      var sentence = record.history_note.replace(/:\s*https?:\/\/\S+\s*$/, ".");
-      card.appendChild(
-        el("p", { class: "note try-history" }, [
-          sentence + " ",
-          el("a", { href: "/pricing/", text: "Plans and limits" }),
-        ]),
-      );
-    }
-    card.appendChild(sourceBlock(parcelFacts.concat(owner)));
+    card.appendChild(
+      sourceBlock(parcelFacts.concat(ownerLine.name ? owner : [])),
+    );
     card.appendChild(
       el("details", { class: "try-raw" }, [
         el("summary", { text: "Raw JSON: what your agent receives" }),
@@ -451,11 +891,11 @@
     ]);
     var ul = el("ul", { class: "try-chips" });
     items.forEach(function (it) {
-      var b = el("button", {
-        type: "button",
-        class: "try-chip",
-        text: it.label || it.urn,
-      });
+      var b = el("button", { type: "button", class: "try-chip" }, [
+        it.label || it.urn,
+        el("br"),
+        el("span", { class: "small", text: distinguish(it) }),
+      ]);
       b.addEventListener("click", function () {
         fetchRecord(it.urn, my);
       });
@@ -494,7 +934,11 @@
         showQuota(r.headers);
         if (r.status !== 200 || !r.data) return apiProblem(r);
         var items = Array.isArray(r.data.results) ? r.data.results : [];
-        if (!items.length) return missed("", r.data.coverage);
+        if (!items.length)
+          return missed(
+            typeof r.data.message === "string" ? r.data.message : "",
+            r.data.coverage,
+          );
         if (items.length === 1) return fetchRecord(items[0].urn, my);
         choose(items, my);
       })
