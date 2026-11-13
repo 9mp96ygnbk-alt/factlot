@@ -245,7 +245,7 @@ to the calculator directly.
 **Finding a parcel by address.** Give `registry_search_address` the whole address, as
 `"1200 Main St, Houston, TX 77002"`: the street line finds the matches, and the state (or the ZIP
 code's state) keeps only parcels in that state, those with the ZIP code first, then those in the
-city. A miss names what the registry holds in that state, so "no match in Massachusetts: only the
+city. Give the city with the state: a bare ", TX" or ", Texas" is not read as a state. A miss names what the registry holds in that state, so "no match in Massachusetts: only the
 City of Boston is loaded" is an answer, not a reason to retry without the state.
 
 ### Worked example: a Harris County parcel
