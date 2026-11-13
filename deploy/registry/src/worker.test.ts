@@ -390,6 +390,85 @@ test("the Worker answers like runTool on the shared fixture", async () => {
   );
 });
 
+test("a pack built before row version 2 answers through this code: no apn or use code, same candidates, use-code narrowing refused", async () => {
+  const pack = join(dir, "pack-rv1");
+  buildPack([{ name: "fixture", path: fixture }], pack);
+  // Make it a row-version-1 pack: rows without apn and local use code, a manifest without rv.
+  const strip = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.length === 13 &&
+        typeof v[0] === "string" &&
+        (Array.isArray(v[10]) || v[10] === 0)
+        ? v.slice(0, 11)
+        : v.map(strip)
+      : v && typeof v === "object"
+        ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, strip(x)]))
+        : v;
+  const walk = (d: string) => {
+    for (const f of readdirSync(d, { withFileTypes: true })) {
+      const path = join(d, f.name);
+      if (f.isDirectory()) walk(path);
+      else
+        writeFileSync(
+          path,
+          JSON.stringify(strip(JSON.parse(readFileSync(path, "utf8")))),
+        );
+    }
+  };
+  walk(join(pack, "q"));
+  const mPath = join(pack, "manifest.json");
+  const manifest = JSON.parse(readFileSync(mPath, "utf8")) as Manifest;
+  assert.equal(manifest.equity?.rv, 2);
+  delete manifest.equity!.rv;
+  writeFileSync(mPath, JSON.stringify(manifest));
+  const assets = fileAssets(pack);
+  configureRegistry(fixture);
+  try {
+    const tool = getTool("registry_tx_equity_candidates")!;
+    const ask = async (input: Row) =>
+      JSON.parse(await worker(assets, tool.name, tool.input.parse(input))) as {
+        ok: boolean;
+        result?: { candidates: Row[]; selection: Row };
+        error?: { error: string; message: string };
+      };
+    const sdk = (input: Row) =>
+      runTool(tool.name, input) as {
+        ok: true;
+        result: { candidates: Row[]; selection: Row };
+      };
+    const subject = "fl:parcel:us-48997:1000001";
+    for (const input of [
+      { urn: subject, tax_year: 2026 },
+      { urn: subject, tax_year: 2026, same_building_class: true },
+      { urn: subject },
+    ]) {
+      const got = await ask(input);
+      assert.ok(got.ok, JSON.stringify(got.error));
+      const want = sdk(input).result;
+      assert.deepEqual(
+        got.result!.candidates.map((c) => c.id),
+        want.candidates.map((c) => c.id),
+      );
+      assert.deepEqual(got.result!.selection.steps, want.selection.steps);
+      assert.ok(
+        got.result!.candidates.every(
+          (c) => c.apn === null && c.local_use_code === null,
+        ),
+      );
+    }
+    for (const input of [
+      { urn: subject, same_local_use_code: true },
+      { urn: subject, local_use_codes: ["4300"] },
+    ]) {
+      const got = await ask(input);
+      assert.equal(got.error?.error, "RegistryUnavailable");
+      assert.match(got.error!.message, /need the next registry build/);
+    }
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
 test("entity search through the label-ordered list answers like runTool", async () => {
   // Posting lists of at most 2 rows: most queries take the label-ordered path.
   const pack = join(dir, "pack-names");
@@ -1533,6 +1612,36 @@ test("parts cache: seeded from a finished build and its kept part files", async 
     }),
     ["tx"],
     "ny's file is still newer than its job",
+  );
+  // Candidate rows of an earlier row version are not seeded into a build of this one.
+  const mPath = join(pack, "manifest.json");
+  const mText = readFileSync(mPath, "utf8");
+  const m = JSON.parse(mText) as Manifest;
+  delete m.equity!.rv;
+  writeFileSync(mPath, JSON.stringify(m));
+  const refused: string[] = [];
+  try {
+    assert.deepEqual(
+      seedPartsCache(
+        {
+          cache: join(dir, "parts-cache-rv"),
+          pack,
+          kept,
+          buildCode: code({}),
+          currentCode: code({}),
+        },
+        (l) => refused.push(l),
+      ),
+      [],
+    );
+  } finally {
+    writeFileSync(mPath, mText);
+  }
+  assert.ok(
+    refused.includes(
+      "tx: not seeded: its candidate rows are row version 1, not 2",
+    ),
+    refused.join("\n"),
   );
   assert.deepEqual(snapshot(pack), packBefore, "the pack is only read");
 });
