@@ -721,7 +721,8 @@ test("candidate lists split into chunks count and order like the whole list", as
       // Narrowed by local use code: the rows read within the area band select what the SDK selects.
       const narrowed = { ...params, local_use_codes: ["4600"] };
       const nRule = equityRule(subject.urn, s, narrowed)!;
-      const band = (await listRowsInArea(pack, list, nRule)).map((r) => ({
+      const inArea: EqRow[] = await listRowsInArea(pack, list, nRule);
+      const band = inArea.map((r) => ({
         urn: h.u + r[0],
         row: decodeRow(h, docs, r),
         docs: ["doc-0"],
