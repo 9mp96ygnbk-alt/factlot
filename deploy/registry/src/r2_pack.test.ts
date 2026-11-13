@@ -49,13 +49,13 @@ buildPack([{ name: "fixture", path: fixture }], packA);
 const manifestA = JSON.parse(
   readFileSync(join(packA, "manifest.json"), "utf8"),
 ) as Manifest;
-const urn = Object.keys(
+const shardParcels = Object.keys(
   (
     JSON.parse(readFileSync(join(packA, "g/0/0.json"), "utf8")) as {
       e: Record<string, unknown>;
     }
   ).e,
-).find((k) => k.startsWith("fl:parcel:"))!;
+).filter((k) => k.startsWith("fl:parcel:"));
 
 /** Pack B: pack A with another built_at and one record shard changed, so answers tell the packs apart. */
 const packB = join(dir, "pack-b");
@@ -66,7 +66,7 @@ writeFileSync(
 );
 const shardB = join(packB, "g/0/0.json");
 const shardText = readFileSync(shardB, "utf8");
-// A value of the shard's string table, so the record of `urn` (or another in the shard) reads differently.
+// A value of the shard's string table, so some records of the shard read differently.
 writeFileSync(shardB, shardText.replaceAll("Example City", "Sample City"));
 assert.ok(readFileSync(shardB, "utf8") !== shardText, "pack B differs");
 
@@ -104,6 +104,18 @@ const r2 = (bucket: MemoryBucket, ttl = "0"): Env => ({
 async function assetsAnswer(pack: string, tool: string, input: unknown) {
   return run({ ASSETS: fileAssets(pack) }, tool, input);
 }
+
+/** A parcel of the changed shard whose record uses the changed string, so the two packs answer it differently. */
+let urn = "";
+for (const k of shardParcels) {
+  const a = await assetsAnswer(packA, "registry_get", { urn: k });
+  const b = await assetsAnswer(packB, "registry_get", { urn: k });
+  if (a.status === 200 && a.body !== b.body) {
+    urn = k;
+    break;
+  }
+}
+assert.ok(urn, "a parcel of the shard reads differently in pack B");
 
 test("the Worker on r2 fails closed: no pointer, a malformed one, an incomplete or mismatched pack", async () => {
   const bucket = new MemoryBucket();
