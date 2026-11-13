@@ -253,26 +253,33 @@
               see after checkout each have a separate box, unticked, that says
               what is sent (if you see no such box, they are not on offer and
               none are sent): up to 4 optional notes about a free key (one when
-              a lookup leaves earlier roll years out, one if the key has not
-              been used after 2 days, one when the daily limit is reached, and a
-              summary after 7 days), or up to 2 about a plan (one if the key has
-              not been used 1 day after you buy, and one after 7 days). Each
-              note is sent at most once, never more than one a day, and carries
-              our postal address and a link that stops all of them with one
-              click, without signing in. While they are on offer you can also
-              stop them by entering your address at factlot.com/account/stop
-              (that page exists only then), and you can always stop them by
-              emailing contact@factlot.com. If you tick the box we record it
-              only when you press the button on the page that the link in the
-              free key email opens (so nobody can sign up another person's
-              address), or, for a plan, when you save your choice on the page
-              after checkout, using the address you gave Stripe. We then store,
-              with your key or subscription, your email address (we cannot send
-              without it), the time you ticked the box, a reference to your
-              key's usage tally or your subscription, and the time each note was
-              sent. That record, and the address in it, is deleted when you stop
-              the notes, when you delete your free key, and after the key or
-              plan has ended. When you stop, we keep one marker: the hash of
+              a lookup leaves out earlier roll years or some of an owner's
+              parcels, one if the key has not been used after 2 days, one when
+              the daily limit is reached, and a summary after 7 days), or up to
+              2 about a plan (one if the key has not been used 1 day after you
+              buy, and one after 7 days). Each note is sent at most once, never
+              more than one a day, and carries our postal address and a link
+              that stops all of them with one click, without signing in. While
+              they are on offer you can also stop them by entering your address
+              at factlot.com/account/stop (that page exists only then; for an
+              address that gets no optional notes it records a stop only if the
+              address has a free key), and you can always stop them by emailing
+              contact@factlot.com. If you tick the box we record it only when
+              you press the button on the page that the link in the free key
+              email opens (so nobody can sign up another person's address), or,
+              for a plan, when you save your choice on the page after checkout,
+              using the address you gave Stripe. We then store, with your key or
+              subscription, your email address (we cannot send without it), the
+              time you ticked the box, a reference to your key's usage tally or
+              your subscription, and the time each note was sent. That record,
+              and the address in it, is deleted when you stop the notes, when
+              you delete your free key (whether or not optional emails are still
+              offered), and when your plan is cancelled. To send the notes that
+              depend on time we also keep, for each such note, an entry holding
+              the hash of your address and the hour it falls due; it is deleted
+              once handled, and in any case 32 days after it falls due. For a
+              plan we keep a pointer from the subscription to that hash, deleted
+              with the record. When you stop, we keep one marker: the hash of
               your address described above and the time you stopped, and nothing
               else, so that you are never sent an optional note again, even if
               you later ask for a new key or tick the box again. Deleting a key
@@ -480,16 +487,15 @@
               <tr>
                 <th scope="row">Optional-email consent records</th>
                 <td>
-                  Until you stop the emails or delete your free key, or after
-                  the key or plan has ended (removed by a daily sweep)
+                  Until you stop the emails, delete your free key or cancel your
+                  plan (deleted at once); the entry for each note that depends
+                  on time until it is handled, at most 32 days after it falls
+                  due
                 </td>
               </tr>
               <tr>
                 <th scope="row">Which optional emails were sent</th>
-                <td>
-                  As long as the consent record, plus a failed-send marker
-                  without your address until the same events
-                </td>
+                <td>As long as the consent record, and at most 395 days</td>
               </tr>
               <tr>
                 <th scope="row">Optional-email stop markers</th>
@@ -507,6 +513,13 @@
                 <td>
                   Up to 90 days, or until the free key is deleted, whichever is
                   first
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Watch-list stop-link records</th>
+                <td>
+                  The subscription ID under a random ID, no address; deleted
+                  when the alerts stop or the subscription is cancelled
                 </td>
               </tr>
               <tr>
