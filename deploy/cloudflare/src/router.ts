@@ -12,9 +12,10 @@
  * the key store is read. A known key whose subscription lapsed gets 403 for tools but can still
  * read /v1/account and open the billing portal to fix its card.
  *
- * Registry lookups (answered calls of registry_* tools; registry_coverage, input errors, misses
- * outside loaded coverage and unanswered calls are given back; a batch tool reserves one per
- * subject or item and keeps what its answered subjects or items cost) are metered on top: per
+ * Registry lookups (calls of registry_* tools that find something; registry_coverage, input
+ * errors, misses outside loaded coverage, unanswered calls and, up to an hourly limit, answers,
+ * items or subjects that find nothing are given back; a batch tool reserves one per subject or
+ * item and keeps what its answered subjects or items cost) are metered on top: per
  * address per UTC day without a key, per subscription per calendar month with one. A request
  * over the cap gets 429 RegistryQuotaExceeded (REST) or the same error as an MCP tool result
  * with isError; other tools keep working.
@@ -81,7 +82,7 @@ import {
   wwwAuthenticate,
   type OAuthCaller,
 } from "./oauth.ts";
-import { addressSubject } from "./limiter.ts";
+import { EMPTY_COUNTER, addressSubject } from "./limiter.ts";
 import { modelEnabled, type ModelDeps } from "./model.ts";
 import {
   MAX_MODEL_CALLS_PER_REQUEST,
@@ -151,6 +152,8 @@ import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   MAX_REGISTRY_CALLS_PER_MCP_REQUEST,
   ANONYMOUS_REQUESTS_PER_MINUTE,
+  EMPTY_ANSWERS_PER_HOUR,
+  LOOKUP_RULE,
   PLANS,
   isPlanId,
   PRICING_URL,
@@ -621,16 +624,14 @@ export function lookupItemAnswer(entry: unknown): unknown {
 }
 
 /**
- * The charged part of a registry_lookup_batch answer, entry by entry in input order (an entry
- * per item, never more than the items reserved): an entry with status error (an input error, or
- * an item the registry could not answer) is free; a not_found entry costs what isChargedAnswer
- * gives its miss and coverage, whether the miss came as a result (registry_resolve_parcel,
+ * Whether one registry_lookup_batch entry is inside loaded coverage and not an error, so not
+ * given back outright (batchClassify): an entry with status error (an input error, or an item
+ * the registry could not answer) is free; a not_found entry is judged by isChargedAnswer on its
+ * miss and coverage, whether the miss came as a result (registry_resolve_parcel,
  * registry_search_address) or as registry_get's NotFound kept in `error` (a URN not in the
- * registry: charged inside loaded coverage, free outside it, as an account miss is); a found or
- * ambiguous entry costs one (lookupItemAnswer). Each is counted with the parcel's URN when one
- * was found, else with the state the item names, for usage by region.
+ * registry); a found or ambiguous entry is charged (lookupItemAnswer). A not_found entry inside
+ * loaded coverage is an answer that found nothing: free within the hourly guard.
  */
-/** Whether one registry_lookup_batch entry is charged (lookupCharges). */
 export function lookupEntryCharged(entry: unknown): boolean {
   if (typeof entry !== "object" || entry === null) return false;
   if (
@@ -643,58 +644,109 @@ export function lookupEntryCharged(entry: unknown): boolean {
 
 type Charge = { tool: string; args: unknown };
 
-function lookupCharges(
-  tool: string,
-  items: unknown[],
-  answer: unknown,
-): Charge[] {
-  const results = (answer as { results?: unknown } | null)?.results;
-  if (!Array.isArray(results)) return [];
-  return results.slice(0, items.length).flatMap((r, k): Charge[] => {
-    if (typeof r !== "object" || r === null) return [];
-    if (!lookupEntryCharged(r)) return [];
-    const urn = (r as { parcel?: { urn?: unknown } }).parcel?.urn;
-    if (typeof urn === "string") return [{ tool, args: { urn } }];
-    const state = lookupItemStateFips((items[k] ?? {}) as LookupItem);
-    return [{ tool, args: state === null ? {} : { state_fips: state } }];
-  });
+/**
+ * One answer the meter decides on: `key` names it for marking (markAnswers): "r" for the REST
+ * answer, `<type>:<id>` for an MCP call, and `<key>#<index>` for an entry of a batch's `results`.
+ */
+interface Answered extends Charge {
+  key: string;
 }
 
+/** What a registry answer costs: charged calls, answers that found nothing, coverage misses. */
+interface Classified {
+  charged: Charge[];
+  /** Inside loaded coverage, found nothing: free within the hourly guard, in order. */
+  empty: Answered[];
+  /** Coverage misses, given back (and marked counted: false). */
+  missed: Answered[];
+}
+
+const NONE = (): Classified => ({ charged: [], empty: [], missed: [] });
+
 /**
- * The charged part of a batch registry answer. registry_lookup_batch: lookupCharges. The Texas
- * batch: one entry per answered subject (an entry of `results` without an `error`), with that
- * subject's own arguments; subjects given by county and APN are in state 48 (the tool's
- * default), which names their region.
+ * A batch registry answer, entry by entry (never more entries than the subjects or items it
+ * reserved). registry_lookup_batch: an entry with status error is free; a found or ambiguous
+ * entry is charged; a not_found entry is an answer that found nothing when its single call would
+ * be inside loaded coverage (lookupEntryCharged; a URN not in the registry included), else a
+ * coverage miss. Each is counted with the parcel's URN when one was found, else with the state
+ * the item names, for usage by region. The Texas batch: an entry without an `error` is charged
+ * with that subject's own arguments (subjects given by county and APN are in state 48, the tool's
+ * default, which names their region); a NotFound inside loaded coverage found nothing; any other
+ * error is free.
  */
+function batchClassify(
+  tool: string,
+  args: unknown,
+  answer: unknown,
+  base: string,
+): Classified {
+  const out = NONE();
+  const subjects = batchSubjects(tool, args) ?? [];
+  const results = (answer as { results?: unknown } | null)?.results;
+  if (!Array.isArray(results)) return out;
+  const room = () => out.charged.length + out.empty.length < subjects.length;
+  if (tool === "registry_lookup_batch") {
+    results.slice(0, subjects.length).forEach((r, k) => {
+      if (typeof r !== "object" || r === null) return;
+      const urn = (r as { parcel?: { urn?: unknown } }).parcel?.urn;
+      const state = lookupItemStateFips((subjects[k] ?? {}) as LookupItem);
+      const c: Charge = {
+        tool,
+        args:
+          typeof urn === "string"
+            ? { urn }
+            : state === null
+              ? {}
+              : { state_fips: state },
+      };
+      const notFound = (r as { status?: unknown }).status === "not_found";
+      if (!lookupEntryCharged(r)) {
+        if (notFound) out.missed.push({ ...c, key: `${base}#${k}` });
+      } else if (notFound) out.empty.push({ ...c, key: `${base}#${k}` });
+      else out.charged.push(c);
+    });
+    return out;
+  }
+  const byId = new Map(
+    subjects.map((s) => [(s as { id?: unknown } | null)?.id, s]),
+  );
+  results.forEach((r, k) => {
+    if (typeof r !== "object" || r === null || !room()) return;
+    const { id: _id, ...subject } = (byId.get((r as { id?: unknown }).id) ??
+      {}) as Record<string, unknown>;
+    void _id;
+    const c: Charge = {
+      tool,
+      args:
+        tool === "registry_tx_equity_candidates_batch" &&
+        subject.urn === undefined
+          ? { state_fips: "48", ...subject }
+          : subject,
+    };
+    if (!("error" in r)) {
+      out.charged.push(c);
+      return;
+    }
+    const err = (r as { error?: { error?: unknown; coverage?: unknown } })
+      .error;
+    if (
+      err?.error === "NotFound" &&
+      typeof err.coverage === "object" &&
+      err.coverage !== null &&
+      isChargedAnswer({ results: [], coverage: err.coverage })
+    )
+      out.empty.push({ ...c, key: `${base}#${k}` });
+  });
+  return out;
+}
+
+/** The charged part of a batch registry answer (batchClassify). */
 function batchCharges(
   tool: string,
   args: unknown,
   answer: unknown,
 ): { tool: string; args: unknown }[] {
-  const subjects = batchSubjects(tool, args) ?? [];
-  if (tool === "registry_lookup_batch")
-    return lookupCharges(tool, subjects, answer);
-  const byId = new Map(
-    subjects.map((s) => [(s as { id?: unknown } | null)?.id, s]),
-  );
-  const results = (answer as { results?: unknown } | null)?.results;
-  if (!Array.isArray(results)) return [];
-  return results
-    .filter((r) => typeof r === "object" && r !== null && !("error" in r))
-    .slice(0, subjects.length)
-    .map((r) => {
-      const { id: _id, ...subject } = (byId.get((r as { id?: unknown }).id) ??
-        {}) as Record<string, unknown>;
-      void _id;
-      return {
-        tool,
-        args:
-          tool === "registry_tx_equity_candidates_batch" &&
-          subject.urn === undefined
-            ? { state_fips: "48", ...subject }
-            : subject,
-      };
-    });
+  return batchClassify(tool, args, answer, "").charged;
 }
 
 /**
@@ -789,8 +841,7 @@ export function quotaError(
       : "IP address");
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
-  const free =
-    "Only answered lookups count, and a call inside loaded coverage that finds nothing still counts: coverage checks, misses outside loaded coverage and input errors are free.";
+  const free = LOOKUP_RULE;
   const short = q.remaining > 0 && needed > q.remaining;
   const left = q.remaining.toLocaleString("en-US");
   const shortfall = (whose: string) =>
@@ -1569,21 +1620,55 @@ async function route(
     oauth?.subject ?? freeKey?.subject ?? (await addressKey());
   // A free key's lookups also count against its address's shared daily cap (`freeaddr:`).
   const freeAddrSubject = async () => `freeaddr:${await addressKey()}`;
-  // Give back `n` lookups taken in the window that ends at `resetsAt`.
-  const giveBack = async (n: number, resetsAt: string) => {
+  // Give back `n` lookups taken in the window that ends at `resetsAt`; how many were given back
+  // (fewer when the window ended in between, none when the meter failed). A free key's lookups
+  // count as given back only when its address's were too.
+  const giveBack = async (n: number, resetsAt: string): Promise<number> => {
+    const back = (r: number | void) => (typeof r === "number" ? r : n);
     try {
-      await env.METER.refund(
-        paid ? meterSubject(paid.record, paid.hash) : await freeSubject(),
-        paid ? "month" : "day",
-        n,
-        resetsAt,
+      let returned = back(
+        await env.METER.refund(
+          paid ? meterSubject(paid.record, paid.hash) : await freeSubject(),
+          paid ? "month" : "day",
+          n,
+          resetsAt,
+        ),
       );
       if (freeKey)
-        await env.METER.refund(await freeAddrSubject(), "day", n, resetsAt);
-      return true;
+        returned = Math.min(
+          returned,
+          back(
+            await env.METER.refund(await freeAddrSubject(), "day", n, resetsAt),
+          ),
+        );
+      return returned;
     } catch {
       console.error(JSON.stringify({ msg: "quota refund failed" }));
-      return false;
+      return 0;
+    }
+  };
+  // The hourly guard on answers that find nothing: up to `n` more of them are not counted while it
+  // allows. Keyed like the lookup quotas: per subscription with a paid key; the free keys of one
+  // address together (`freeaddr:`); a free sign-in connection on its own subject; else the address.
+  // Undefined when the meter could not be asked: such answers then stay counted.
+  const emptyGuard = async (n: number) => {
+    const limit = EMPTY_ANSWERS_PER_HOUR[paid ? paid.record.plan : "anonymous"];
+    try {
+      const g = await env.METER.consume(
+        paid
+          ? meterSubject(paid.record, paid.hash)
+          : freeKey
+            ? await freeAddrSubject()
+            : await freeSubject(),
+        { ...EMPTY_COUNTER, limit, n },
+      );
+      return {
+        granted: g.granted,
+        note: `This answer found nothing but counts as a registry lookup: ${limit.toLocaleString("en-US")} answers that found nothing were already not counted this hour for this ${paid ? "subscription" : "IP address"}. From ${g.quota?.resets_at ?? "the next hour (UTC)"}, answers that find nothing are again not counted.`,
+      };
+    } catch {
+      console.error(JSON.stringify({ msg: "empty-answer guard failed" }));
+      return undefined;
     }
   };
   let hit: HitResult;
@@ -1693,7 +1778,7 @@ async function route(
         extraSources: (env as PagesEnv).PROPERTY_PAGES_EXTRA_SOURCES,
         callMcp: (body) => route(asCaller(request, url, body), env, api, opts),
         // The same give-back the router uses for an unanswered lookup of this caller.
-        giveBack: (resetsAt) => giveBack(1, resetsAt),
+        giveBack: async (resetsAt) => (await giveBack(1, resetsAt)) > 0,
       }),
     // A free key's reports also count against its address's month, the meter keyless reports use.
     ...(freeKey && !paid && !oauth
@@ -1775,9 +1860,9 @@ async function route(
   if (deniedError && path !== "/mcp") {
     // A batch call that does not fit runs not at all: give back what was taken for it.
     if (hit.granted > 0 && hit.quota) {
-      await giveBack(hit.granted, hit.quota.resets_at);
+      const returned = await giveBack(hit.granted, hit.quota.resets_at);
       headers["x-factlot-registry-quota-remaining"] = String(
-        Math.min(hit.quota.limit, hit.quota.remaining + hit.granted),
+        Math.min(hit.quota.limit, hit.quota.remaining + returned),
       );
     }
     return withHeaders(json(429, denial(wanted, hit.granted)), {
@@ -1877,8 +1962,10 @@ async function route(
     );
   meterUsage(res.status);
 
-  // Only real answers are charged: a lookup that was refused as invalid, missed outside the
-  // loaded coverage, or could not be answered (RegistryUnavailable) is given back.
+  // Only answers that find something are charged: a lookup that was refused as invalid, missed
+  // outside the loaded coverage, could not be answered (RegistryUnavailable) or, within the hourly
+  // guard, found nothing (a batch item or subject included) is given back, and an answer that
+  // found nothing says whether it counted.
   if (hit.quota && hit.granted > 0) {
     const counted =
       path === "/mcp"
@@ -1889,14 +1976,56 @@ async function route(
             restText,
             hit.granted,
           );
-    res = counted.res;
+    const guard =
+      counted.empty.length > 0
+        ? await emptyGuard(counted.empty.length)
+        : undefined;
+    const given = guard?.granted ?? 0;
+    const marks = new Map<string, Record<string, unknown>>();
+    const outcome = new Map<Answered, string>();
+    for (const m of counted.missed) outcome.set(m, "not_loaded");
+    counted.empty.forEach((m, i) => {
+      if (i < given) outcome.set(m, "free");
+      else {
+        outcome.set(m, "charged");
+        counted.charged.push(m);
+        if (guard)
+          marks.set(m.key, { counted: true, counted_note: guard.note });
+      }
+    });
+    // Give back first, then say so: an answer says counted: false only when its lookup was given
+    // back. Answers that found nothing take the returned lookups before errors and unanswered calls.
+    const toGive = counted.free + given;
+    const returned =
+      toGive > 0 ? await giveBack(toGive, hit.quota.resets_at) : 0;
+    let left = returned;
+    for (const [m, o] of outcome) {
+      if (o === "charged") continue;
+      if (left > 0) {
+        left--;
+        marks.set(m.key, { counted: false });
+      } else {
+        outcome.set(m, "charged");
+        counted.charged.push(m);
+        marks.set(m.key, { counted: true, counted_note: NOT_GIVEN_BACK });
+      }
+    }
+    for (const [m, o] of outcome)
+      countEvent(env, "lookup_empty", [m.tool, o, kind]);
+    if (returned > 0)
+      headers["x-factlot-registry-quota-remaining"] = String(
+        Math.min(hit.quota.limit, hit.quota.remaining + returned),
+      );
+    res =
+      marks.size > 0
+        ? await markAnswers(counted.res, path === "/mcp", marks)
+        : counted.res;
     for (const c of counted.charged)
       countEvent(env, "lookup", [
         c.tool,
         regionDim(regionOf(c.tool, c.args)),
         kind,
       ]);
-    const unanswered = counted.free;
     // The subscription's daily usage (by tool and region) for /account and account_usage.
     if (paid && counted.charged.length > 0)
       deferWith(opts)(
@@ -1919,10 +2048,6 @@ async function route(
             region: regionOf(c.tool, c.args),
           })),
         ),
-      );
-    if (unanswered > 0 && (await giveBack(unanswered, hit.quota.resets_at)))
-      headers["x-factlot-registry-quota-remaining"] = String(
-        Math.min(hit.quota.limit, hit.quota.remaining + unanswered),
       );
   }
   // Paid gating: a free caller sees the current roll year's values only, and the first parcels
@@ -2069,10 +2194,9 @@ async function mcpWithDenials(
 }
 
 /**
- * Whether a registry tool's answer is a real answer (charged as a lookup). Free: a miss whose
- * `coverage` says the county, state, entity registry or ID system asked about is not loaded.
- * Charged: a record, a resolved URN, owners, and a search that ran inside loaded coverage, even
- * with no results.
+ * Whether a registry tool's answer is inside loaded coverage. Free: a miss whose `coverage` says
+ * the county, state, entity registry or ID system asked about is not loaded. Everything else is
+ * charged unless it found nothing (`foundNothing`, free within the hourly guard).
  */
 export function isChargedAnswer(answer: unknown): boolean {
   if (typeof answer !== "object" || answer === null) return true;
@@ -2095,12 +2219,154 @@ export function isChargedAnswer(answer: unknown): boolean {
   return true;
 }
 
-interface Charges {
+/** How a registry tool's answer says it found nothing, by tool (other tools always find something). */
+const FOUND_NOTHING: ReadonlyMap<
+  string,
+  (a: Record<string, unknown>) => boolean
+> = new Map([
+  ["registry_search_address", noResults],
+  ["registry_search_entities", noResults],
+  ["registry_owned_by", noResults],
+  ["registry_resolve_parcel", (a) => a.urn === null],
+  ["registry_resolve_external", (a) => a.urn === null],
+]);
+
+function noResults(a: Record<string, unknown>): boolean {
+  return Array.isArray(a.results) && a.results.length === 0;
+}
+
+/**
+ * Whether a registry answer found nothing: an empty `results` list (registry_search_address,
+ * registry_search_entities, registry_owned_by) or `urn: null` (registry_resolve_parcel,
+ * registry_resolve_external). A NotFound from registry_get is an error answer, never charged.
+ */
+export function foundNothing(tool: string, answer: unknown): boolean {
+  const test = FOUND_NOTHING.get(tool);
+  return (
+    test !== undefined &&
+    typeof answer === "object" &&
+    answer !== null &&
+    !Array.isArray(answer) &&
+    test(answer as Record<string, unknown>)
+  );
+}
+
+/** The note on an answer that found nothing whose lookup could not be given back. */
+const NOT_GIVEN_BACK =
+  "This answer found nothing, but its lookup could not be given back (the quota window ended or the meter was unavailable), so it counts as a registry lookup.";
+
+interface Charges extends Classified {
   res: Response;
-  /** Lookups to give back. */
+  /** Lookups to give back (not counting `empty`, which the hourly guard decides). */
   free: number;
-  /** The calls that were charged: tool name and arguments. */
-  charged: { tool: string; args: unknown }[];
+}
+
+/** Classify one registry answer (a batch entry by entry) into `c`, under the key `key`. */
+function classify(
+  c: Classified,
+  tool: string,
+  args: unknown,
+  key: string,
+  answer: unknown,
+): void {
+  if (BATCH_REGISTRY_TOOLS.has(tool)) {
+    const b = batchClassify(tool, args, answer, key);
+    c.charged.push(...b.charged);
+    c.empty.push(...b.empty);
+    c.missed.push(...b.missed);
+  } else if (!isChargedAnswer(answer)) {
+    if (FOUND_NOTHING.has(tool)) c.missed.push({ tool, args, key });
+  } else if (foundNothing(tool, answer)) c.empty.push({ tool, args, key });
+  else c.charged.push({ tool, args });
+}
+
+/** `fields` merged into one answer object, and `<key>#<index>` marks into its `results` entries. */
+function markObject(
+  value: unknown,
+  key: string,
+  marks: ReadonlyMap<string, Record<string, unknown>>,
+): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return value;
+  let out = value as Record<string, unknown>;
+  const own = marks.get(key);
+  if (own) out = { ...out, ...own };
+  if (Array.isArray(out.results)) {
+    const results = out.results as unknown[];
+    if (results.some((_, k) => marks.has(`${key}#${k}`)))
+      out = {
+        ...out,
+        results: results.map((r, k) => {
+          const f = marks.get(`${key}#${k}`);
+          return f && typeof r === "object" && r !== null
+            ? { ...(r as object), ...f }
+            : r;
+        }),
+      };
+  }
+  return out;
+}
+
+/** `marks` applied to a JSON text, keeping its indentation. */
+function markText(
+  text: string,
+  key: string,
+  marks: ReadonlyMap<string, Record<string, unknown>>,
+): string {
+  const value = JSON.parse(text) as unknown;
+  const out = markObject(value, key, marks);
+  return out === value
+    ? text
+    : JSON.stringify(out, null, /^\{\s*\n/.test(text) ? 2 : undefined);
+}
+
+/** The MCP key of a call's answer (ids 1 and "1" differ). */
+const mcpKey = (id: unknown) => `${typeof id}:${String(id)}`;
+
+/**
+ * The answers named in `marks` with its fields added (`counted`, and `counted_note` when an
+ * answer that found nothing was counted): the REST body, or each MCP call's result (its text
+ * item and structuredContent), a batch's entries included. Anything that cannot be read is left
+ * as it is.
+ */
+async function markAnswers(
+  res: Response,
+  mcp: boolean,
+  marks: ReadonlyMap<string, Record<string, unknown>>,
+): Promise<Response> {
+  const text = await res.text();
+  const rebuilt = (body: string) => {
+    const out = new Response(body, res);
+    out.headers.delete("content-length");
+    return out;
+  };
+  try {
+    if (!mcp) return rebuilt(markText(text, "r", marks));
+    const parsed = JSON.parse(text) as unknown;
+    for (const m of Array.isArray(parsed) ? parsed : [parsed]) {
+      const msg = m as {
+        id?: unknown;
+        result?: {
+          content?: { type?: unknown; text?: unknown }[];
+          structuredContent?: unknown;
+        };
+      } | null;
+      if (!msg?.result || msg.id === undefined) continue;
+      const key = mcpKey(msg.id);
+      const item = msg.result.content?.[0];
+      if (item && typeof item.text === "string")
+        item.text = markText(item.text, key, marks);
+      if (msg.result.structuredContent !== undefined)
+        msg.result.structuredContent = markObject(
+          msg.result.structuredContent,
+          key,
+          marks,
+        );
+    }
+    return rebuilt(JSON.stringify(parsed));
+  } catch {
+    return rebuilt(text);
+  }
 }
 
 /** The JSON-RPC answer to a refused registry call, a batch tool or a dated registry_get (a tool error, like the model-backed tools'). */
@@ -2140,18 +2406,19 @@ async function restCharge(
   granted: number,
 ): Promise<Charges> {
   const args = parseArgs(body);
-  const charged = (answer: unknown) =>
-    BATCH_REGISTRY_TOOLS.has(tool)
-      ? batchCharges(tool, args, answer)
-      : isChargedAnswer(answer)
-        ? [{ tool, args }]
-        : [];
-  const outcome = (res: Response, c: Charges["charged"]): Charges => ({
-    res,
-    free: Math.max(0, granted - c.length),
-    charged: c,
-  });
-  if (res.status !== 200) return outcome(res, []);
+  const outcome = (res: Response, c: Classified = NONE()): Charges => {
+    // Never more than was granted, charged and found-nothing together.
+    const charged = c.charged.slice(0, granted);
+    const empty = c.empty.slice(0, granted - charged.length);
+    return {
+      res,
+      charged,
+      empty,
+      missed: c.missed,
+      free: Math.max(0, granted - charged.length - empty.length),
+    };
+  };
+  if (res.status !== 200) return outcome(res);
   const text = await res.text();
   const copy = new Response(text, res);
   let answer: unknown;
@@ -2159,9 +2426,14 @@ async function restCharge(
     answer = JSON.parse(text);
   } catch {
     // Not JSON: an answer all the same.
-    return outcome(copy, Array(granted).fill({ tool, args }));
+    return outcome(copy, {
+      ...NONE(),
+      charged: Array(granted).fill({ tool, args }),
+    });
   }
-  return outcome(copy, charged(answer).slice(0, granted));
+  const c = NONE();
+  classify(c, tool, args, "r", answer);
+  return outcome(copy, c);
 }
 
 /**
@@ -2192,11 +2464,20 @@ async function mcpCharges(
         })
       : [{ tool, args }];
   });
-  const outcome = (res: Response, charged: Charges["charged"]): Charges => ({
-    res,
-    free: Math.max(0, granted - charged.length),
-    charged,
-  });
+  // What was read from the answers; `outcome(res, charged)` when they could not be read.
+  const c = NONE();
+  const outcome = (res: Response, charged?: Charges["charged"]): Charges => {
+    const read = charged ? { ...NONE(), charged } : c;
+    const kept = read.charged.slice(0, granted);
+    const empty = read.empty.slice(0, granted - kept.length);
+    return {
+      res,
+      charged: kept,
+      empty,
+      missed: read.missed,
+      free: Math.max(0, granted - kept.length - empty.length),
+    };
+  };
   if (
     res.status !== 200 ||
     !(res.headers.get("content-type") ?? "").includes("application/json")
@@ -2215,7 +2496,7 @@ async function mcpCharges(
     const id = (m as { id?: unknown } | null)?.id;
     if (id !== undefined) answers.set(id, m);
   }
-  const charged: Charges["charged"] = [];
+  const charged = c.charged;
   for (const call of calls) {
     const m = answers.get(call.id) as
       | {
@@ -2235,11 +2516,9 @@ async function mcpCharges(
       charged.push({ tool, args });
       continue;
     }
-    if (BATCH_REGISTRY_TOOLS.has(tool))
-      charged.push(...batchCharges(tool, args, answer));
-    else if (isChargedAnswer(answer)) charged.push({ tool, args });
+    classify(c, tool, args, mcpKey(call.id), answer);
   }
-  return outcome(copy, charged);
+  return outcome(copy);
 }
 
 type AccountCall = {

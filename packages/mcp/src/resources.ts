@@ -490,7 +490,7 @@ export function marketResource(data: ResourceData, slug: string) {
       uri: `factlot://sources/${x.source_id}`,
     })),
     example: {
-      note: "What the tools answered when this example was generated; a call now answers from the current pack and may differ. Each call except registry_coverage is one registry lookup.",
+      note: "What the tools answered when this example was generated; a call now answers from the current pack and may differ. A registry call that finds something is one registry lookup; searches, resolves and owner lookups that find nothing (up to an hourly limit), registry_coverage, coverage misses and input errors are not counted.",
       calls,
     },
     holds: m.holds,

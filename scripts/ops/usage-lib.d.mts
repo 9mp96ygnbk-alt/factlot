@@ -21,6 +21,11 @@ export interface Summary {
     by_region: Record<string, number>;
     by_caller: Record<string, number>;
   };
+  empty_answers: {
+    total: number;
+    by_outcome: Record<string, number>;
+    by_tool: Record<string, number>;
+  };
   distinct_callers: Record<string, number>;
   active_paid_keys: number;
   quota_exhausted: Record<string, number>;

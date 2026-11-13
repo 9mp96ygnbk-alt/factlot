@@ -50,6 +50,13 @@ test("fixture data: sums over isolates and days, per surface, tool, region and t
   assert.equal(y.lookups.by_tool["registry_search"], 14);
   assert.equal(w.lookups.by_region["us-48"], 144);
   assert.equal(y.quota_exhausted["keyless"], 4);
+  assert.equal(y.empty_answers.total, 12);
+  assert.deepEqual(y.empty_answers.by_outcome, {
+    free: 9,
+    not_loaded: 2,
+    charged: 1,
+  });
+  assert.equal(y.empty_answers.by_tool["registry_search_address"], 11);
   assert.deepEqual(y.plan_required, { batch: 3, dated: 2, model_tool: 1 });
   assert.equal(y.history_notes, 52);
   assert.equal(y.checkout_starts_by_interval["pro/year"], 1);

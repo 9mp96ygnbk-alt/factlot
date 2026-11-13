@@ -114,6 +114,13 @@ export function summarize(records, days) {
       by_region: Object.fromEntries(by(counters, "lookup", 1)),
       by_caller: Object.fromEntries(by(counters, "lookup", 2)),
     },
+    // Answers that found nothing: [tool, outcome, caller kind]; outcome "free" (not counted),
+    // "charged" (past the hourly guard, also in lookups) or "not_loaded" (a coverage miss).
+    empty_answers: {
+      total: total(by(counters, "lookup_empty", 0)),
+      by_outcome: Object.fromEntries(by(counters, "lookup_empty", 1)),
+      by_tool: Object.fromEntries(by(counters, "lookup_empty", 0)),
+    },
     distinct_callers: distinct,
     active_paid_keys: sketchEstimate(paid),
     quota_exhausted: Object.fromEntries(by(counters, "quota_exhausted", 0)),
@@ -206,6 +213,20 @@ export function formatReport(report) {
   add(["Registry lookups (charged)", ...num((s) => s.lookups.total)]);
   add(...topRows("  by tool", y?.lookups.by_tool, w?.lookups.by_tool));
   add(...topRows("  by region", y?.lookups.by_region, w?.lookups.by_region));
+  add([
+    "Registry answers that found nothing",
+    ...num((s) => s.empty_answers.total),
+  ]);
+  add(
+    ...topRows(
+      "  by outcome (free, charged past the hourly guard, not_loaded)",
+      y?.empty_answers.by_outcome,
+      w?.empty_answers.by_outcome,
+    ),
+  );
+  add(
+    ...topRows("  by tool", y?.empty_answers.by_tool, w?.empty_answers.by_tool),
+  );
   add(["Distinct callers (approximate)", "", ""]);
   add(
     ...CALLER_ORDER.map((k) => [

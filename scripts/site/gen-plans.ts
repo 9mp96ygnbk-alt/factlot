@@ -93,7 +93,7 @@ const SPANS = {
 /** llms.txt states each sentence as one list item, found by how it starts. */
 const LINES: Record<keyof typeof SPANS, RegExp> = {
   "paid-only": /^- \w+ things on the hosted API need a Pro or Team key: .*$/gm,
-  counted: /^- A lookup is one answered call to a .*$/gm,
+  counted: /^- A lookup is one (?:answered )?call to a .*$/gm,
 };
 
 /** `text` with every plan sentence it holds rewritten from plans.ts, and how many it holds. */

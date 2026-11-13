@@ -25,6 +25,7 @@ import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
+  LOOKUP_RULE,
   PLANS,
   QUOTA_RULES,
   REPORTS_PER_MONTH,
@@ -41,9 +42,8 @@ import {
 
 export { escapeHtml };
 
-/** The one-line counting rule on the onboarding and account pages. */
-export const LOOKUP_RULE =
-  "A lookup is one answered call to a registry tool, and a call inside loaded coverage that finds nothing still counts; coverage checks, misses outside loaded coverage and input errors are free.";
+/** The one-line counting rule on the onboarding and account pages (defined in plans.ts). */
+export { LOOKUP_RULE };
 
 export const REPORT_RULE =
   "A report is one document report_create builds and stores; input errors are free, and reports never count as lookups.";

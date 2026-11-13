@@ -96,12 +96,32 @@ export function isMeteredRegistryTool(
   );
 }
 
+/**
+ * Registry answers that find nothing (an empty result list, no owned parcels, urn null, a batch
+ * item or subject not in the registry) inside loaded coverage are not counted as lookups, up to
+ * this many an hour (UTC) per allowance, keyed like the lookup quotas: keyless calls per IP
+ * address; the free keys used from one address together, a separate allowance of the same size; a
+ * free sign-in connection on its own meter; with a paid key, per subscription. Past it, such
+ * answers count as lookups until the hour ends, so free probing stays bounded; the per-minute
+ * request limit applies throughout.
+ */
+export const EMPTY_ANSWERS_PER_HOUR: Record<Tier, number> = {
+  anonymous: 60,
+  pro: 600,
+  team: 3_000,
+};
+
+/** The one-line counting rule (account and onboarding pages, quota errors, news, prompts). */
+export const LOOKUP_RULE =
+  "A lookup is one registry call that finds something. Searches, resolves and owner lookups that find nothing (up to an hourly limit), registry_coverage, coverage misses and input errors are not counted.";
+
 /** How registry lookups are counted, one sentence each (in /v1/plans). */
 export const QUOTA_RULES = {
   counted:
-    "A lookup is one answered call to a registry_* tool: a record, a resolved ID, owners or search results, and a call inside loaded coverage that finds nothing still counts. Free: registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+    "A lookup is one call to a registry_* tool that finds something: a record, a resolved ID, owners or search results. Not counted: a call that finds nothing (an empty list or urn null), registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+  empty: `Answers that find nothing are not counted, and say counted: false, up to ${EMPTY_ANSWERS_PER_HOUR.anonymous} an hour per IP address without a key, a further ${EMPTY_ANSWERS_PER_HOUR.anonymous} an hour shared by the free keys used from that address, ${EMPTY_ANSWERS_PER_HOUR.pro.toLocaleString("en-US")} an hour on Pro and ${EMPTY_ANSWERS_PER_HOUR.team.toLocaleString("en-US")} an hour on Team; a free sign-in connection's are counted like its lookups. Past that, until the hour ends (UTC), each one counts as a lookup and carries counted: true with a note saying why.`,
   batch:
-    "A registry batch tool needs one lookup per subject or item left in the allowance to run (a batch larger than what remains is refused whole). registry_tx_equity_candidates_batch counts one lookup per answered subject, and subjects with an error are given back. registry_lookup_batch counts each item as the single call that identifies its parcel would count (registry_resolve_parcel for an account or a URN, registry_search_address for an address): a miss inside loaded coverage counts, a URN not in the registry included; an item with an error and a miss outside loaded coverage are given back. One MCP request may make at most 500 registry service calls (a registry_lookup_batch item counts 2, a registry_tx_equity_candidates_batch subject 1); a batch call past that is refused whole and counts nothing.",
+    "A registry batch tool needs one lookup per subject or item left in the allowance to run (a batch larger than what remains is refused whole). registry_tx_equity_candidates_batch counts one lookup per answered subject, and subjects with an error are given back (a subject not in the registry inside loaded coverage as an answer that finds nothing). registry_lookup_batch counts each item as the single call that identifies its parcel would count (registry_resolve_parcel for an account or a URN, registry_search_address for an address): an item that finds nothing inside loaded coverage, a URN not in the registry included, is an answer that finds nothing; an item with an error and a miss outside loaded coverage are given back. Within the hourly limit an item or subject that finds nothing is not counted and says counted: false; past it, it counts and says counted: true. One MCP request may make at most 500 registry service calls (a registry_lookup_batch item counts 2, a registry_tx_equity_candidates_batch subject 1); a batch call past that is refused whole and counts nothing.",
   free: `Without a key, ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} lookups a day per IP address (stored only as a hash; IPv6 per /64), counted per UTC day and reset at 00:00 UTC.`,
   paid: "With a key, lookups count per subscription per calendar month (UTC), shared by all of its keys; requests a minute count per key.",
   at_cap:

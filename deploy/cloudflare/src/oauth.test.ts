@@ -10,6 +10,7 @@ import {
 } from "./keys.ts";
 import {
   RateLimiterObject,
+  addressSubject,
   objectLimiter,
   objectMeter,
   type CounterStore,
@@ -18,6 +19,7 @@ import {
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   FREE_CONNECTIONS_PER_DAY,
+  freeConnectionMeter,
   isOAuthToken,
   listConnections,
   paidUserId,
@@ -1810,4 +1812,78 @@ describe("every PAID_ONLY entry applies to a free connection", () => {
     it(`${id}: a free connection is refused or cut, a paid connection is not`, async () => {
       await scenarios[id]!();
     });
+});
+
+describe("answers that find nothing, through OAuth: the hourly guard's meter", () => {
+  /** The inner handler: every registry search finds nothing inside loaded coverage. */
+  const emptyInner: Fetcher = {
+    fetch: async (r: Request) => {
+      const m = JSON.parse(await r.text()) as { id: number };
+      const answer = { results: [], coverage: { county_loaded: true } };
+      return new Response(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: m.id,
+          result: { content: [{ type: "text", text: JSON.stringify(answer) }] },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    },
+  };
+  const search = (e: Env, bearer: string) =>
+    handle(
+      new Request(`${API}/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          authorization: `Bearer ${bearer}`,
+          "cf-connecting-ip": IP,
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name: "registry_search_address",
+            arguments: { query: "x" },
+          },
+        }),
+      }),
+      e,
+      emptyInner,
+    );
+  const tally = async (e: Env, subject: string, limit: number) =>
+    (await e.METER.quota(subject, "hour", limit, "empty")).used;
+
+  it("a free connection: its sign-in meter, apart from the address's keyless allowance", async () => {
+    const e = env();
+    const { tokens } = await connect(e, { decision: "free" });
+    const res = await search(e, tokens.access_token);
+    const text = (await res.json()) as {
+      result: { content: { text: string }[] };
+    };
+    assert.equal(
+      (JSON.parse(text.result.content[0]!.text) as { counted: boolean })
+        .counted,
+      false,
+    );
+    const meter = `oauthfree:${await freeConnectionMeter(IP, "salt")}`;
+    assert.equal(await tally(e, meter, 60), 1);
+    assert.equal(
+      await tally(e, await addressSubject(IP, Date.now(), "salt"), 60),
+      0,
+    );
+    assert.equal((await e.METER.quota(meter, "day", 25)).used, 0);
+  });
+
+  it("a paid connection: its subscription, like a key's", async () => {
+    const e = env();
+    const { key } = await issue(e);
+    const { tokens } = await connect(e, { decision: "key", key });
+    await search(e, tokens.access_token);
+    await search(e, key);
+    assert.equal(await tally(e, "sub:sub_1", 600), 2);
+    assert.equal((await e.METER.quota("sub:sub_1", "month", 5000)).used, 0);
+  });
 });

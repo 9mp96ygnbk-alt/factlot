@@ -24,6 +24,12 @@
  *   as index "evt", blob1 the event name, blobs 2 to 4 its dimensions, double1 the count, so the
  *   history can be queried by SQL with a token that can read Analytics Engine.
  *
+ * Registry answers: `lookup` counts the charged lookups (by tool, region and caller kind);
+ * `lookup_empty` counts answers that found nothing, by tool, outcome and caller kind: "free"
+ * (not counted, within the hourly guard), "charged" (past the guard, also in `lookup`) or
+ * "not_loaded" (a coverage miss). The miss rate is lookup_empty over lookup_empty plus the
+ * answers that found something (lookup minus lookup_empty "charged"). No query text is kept.
+ *
  * Counting never throws and never changes a response.
  */
 import type { Env } from "./types.ts";
@@ -43,6 +49,8 @@ export type EventName =
   | "req"
   | "mcp_call"
   | "lookup"
+  /** A registry answer that found nothing: [tool, "free" | "charged" | "not_loaded", caller kind]. */
+  | "lookup_empty"
   | "quota_exhausted"
   | "plan_required"
   | "history_note"

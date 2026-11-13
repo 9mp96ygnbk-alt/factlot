@@ -89,6 +89,7 @@ import {
   MAX_REGISTRY_CALLS_PER_MCP_REQUEST,
   MODEL_TOOLS,
   PAID_ONLY,
+  EMPTY_ANSWERS_PER_HOUR,
   PLANS,
   REPORTS_PER_MONTH,
   planForLookupKey,
@@ -105,6 +106,7 @@ import {
 } from "./registry.ts";
 import {
   handle,
+  foundNothing,
   isChargedAnswer,
   lookupEntryCharged,
   lookupItemAnswer,
@@ -1259,6 +1261,53 @@ describe("meter", () => {
     assert.ok(CLAIM_TTL_MS >= INACTIVE_RETENTION_SECONDS * 1000);
     await c.obj.alarm();
     assert.equal(c.store.claims.size, 0);
+  });
+
+  it("hour windows: the counter of uncounted empty answers resets each UTC hour and goes at its end", async () => {
+    assert.deepEqual(quotaWindow("hour", Date.UTC(2026, 11, 31, 23, 59)), {
+      window: "hour:2026-12-31T23",
+      resetsAt: Date.UTC(2027, 0, 1),
+    });
+    const clock = { t: T0 };
+    const lim = fakeLimiter(clock);
+    const meterService: MeterService = objectMeter(lim.ns);
+    const empty = {
+      kind: "hour" as const,
+      counter: "empty" as const,
+      limit: 2,
+    };
+    await meterService.consume("sub:sub_1", { kind: "month", limit: 10, n: 1 });
+    await meterService.consume("sub:sub_1", { kind: "day", limit: 10, n: 1 });
+    await meterService.consume("sub:sub_1", {
+      kind: "month",
+      counter: "reports",
+      limit: 10,
+      n: 1,
+    });
+    assert.equal(
+      (await meterService.consume("sub:sub_1", { ...empty, n: 3 })).granted,
+      2,
+    );
+    const o = lim.object("meter:sub:sub_1");
+    assert.equal(o.store.counts.get("empty:hour:2026-11-07T12"), 2);
+    assert.equal(o.store.counts.get("month:2026-11"), 1, "lookups apart");
+    assert.equal(o.alarm, Date.UTC(2026, 10, 7, 13), "alarm at the hour's end");
+    clock.t = Date.UTC(2026, 10, 7, 13, 0, 1);
+    await o.obj.alarm();
+    assert.equal(o.store.counts.has("empty:hour:2026-11-07T12"), false);
+    assert.equal(o.store.counts.get("month:2026-11"), 1);
+    assert.equal(o.store.counts.get("day:2026-11-07"), 1, "the day survives");
+    assert.equal(
+      o.store.counts.get("reports:month:2026-11"),
+      1,
+      "the reports counter survives",
+    );
+    assert.equal(o.alarm, Date.UTC(2026, 10, 8), "then the day's end");
+    assert.equal(
+      (await meterService.consume("sub:sub_1", { ...empty, n: 1 })).granted,
+      1,
+      "a new hour",
+    );
   });
 
   it("runs the same statements on SQLite", async (t) => {
@@ -3818,7 +3867,7 @@ describe("onboarding page", () => {
     assert.match(html, /1300 Pennsylvania Ave NW in Washington, DC/);
     assert.match(
       html,
-      /A lookup is one answered call to a registry tool, and a call inside loaded coverage that finds nothing still counts; coverage checks, misses outside loaded coverage and input errors are free\./,
+      /A lookup is one registry call that finds something\. Searches, resolves and owner lookups that find nothing \(up to an hourly limit\), registry_coverage, coverage misses and input errors are not counted\./,
     );
     assert.ok(html.includes(`export FACTLOT_API_KEY=&quot;${key}&quot;`));
     assert.ok(
@@ -4325,7 +4374,7 @@ describe("quota fairness: only answered lookups are charged", () => {
   const remaining = (r: Response) =>
     Number(r.headers.get("x-factlot-registry-quota-remaining"));
 
-  it("REST: a real answer and a search inside coverage are charged; misses and errors are free", async () => {
+  it("REST: a real answer is charged; misses, answers that find nothing and errors are free", async () => {
     const e = env();
     e.RL_ANON = new CountingLimit(100);
     const api = fairApi();
@@ -4345,11 +4394,12 @@ describe("quota fairness: only answered lookups are charged", () => {
     });
     assert.equal(
       remaining(ran),
-      23,
-      "a search inside coverage is charged with no results",
+      24,
+      "a search inside coverage that finds nothing is free",
     );
+    assert.equal(((await ran.json()) as { counted?: unknown }).counted, false);
     const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
-    assert.equal(q.used, 2, "the meter agrees with the headers");
+    assert.equal(q.used, 1, "the meter agrees with the headers");
   });
 
   it("MCP batch: charges the answers, gives back misses, tool errors and invalid params", async () => {
@@ -4368,9 +4418,9 @@ describe("quota fairness: only answered lookups are charged", () => {
       ],
     });
     assert.equal(res.status, 200);
-    assert.equal(remaining(res), 23, "get and the entity search are charged");
+    assert.equal(remaining(res), 24, "only get is charged");
     const q = await e.METER.quota(await addressSubject(IP, T0), "day", 25);
-    assert.equal(q.used, 2);
+    assert.equal(q.used, 1);
   });
 
   it("paid: the monthly quota and the 429 text state the rule", async () => {
@@ -4385,7 +4435,7 @@ describe("quota fairness: only answered lookups are charged", () => {
     const plans = (await (
       await call(e, innerApi().api, "/v1/plans", { method: "GET" })
     ).json()) as { quotas: { counted: string } };
-    assert.match(plans.quotas.counted, /answered call/);
+    assert.match(plans.quotas.counted, /that finds something/);
     assert.match(
       plans.quotas.counted,
       /input errors, misses outside loaded coverage/,
@@ -4395,8 +4445,896 @@ describe("quota fairness: only answered lookups are charged", () => {
     assert.equal(over.status, 429);
     assert.match(
       String(((await over.json()) as { message: string }).message),
-      /coverage checks, misses outside loaded coverage and input errors are free/,
+      /Searches, resolves and owner lookups that find nothing \(up to an hourly limit\), registry_coverage, coverage misses and input errors are not counted\./,
     );
+  });
+});
+
+describe("registry answers that find nothing are not counted", () => {
+  // Inside loaded coverage, by tool: an answer that finds nothing, and one that finds something.
+  const EMPTY: Record<string, Record<string, unknown>> = {
+    registry_search_address: {
+      results: [],
+      coverage: { state: "TX", state_loaded: true, county_loaded: true },
+    },
+    registry_search_entities: {
+      results: [],
+      coverage: { loaded_jurisdictions: ["us-tx"] },
+    },
+    registry_owned_by: {
+      results: [],
+      buildings: [],
+      coverage: { jurisdiction: "us-tx", entity_known: true },
+    },
+    registry_resolve_parcel: {
+      urn: null,
+      coverage: { county_loaded: true, state_loaded: true },
+    },
+    registry_resolve_external: {
+      urn: null,
+      coverage: { system: "hcad_account", system_loaded: true },
+    },
+  };
+  const FOUND: Record<string, Record<string, unknown>> = {
+    registry_search_address: { results: [{ urn: "fl:parcel:us-48201:1" }] },
+    registry_search_entities: { results: [{ urn: "fl:entity:us-tx:1" }] },
+    registry_owned_by: {
+      results: [{ urn: "fl:parcel:us-48201:1" }],
+      buildings: [],
+    },
+    registry_resolve_parcel: { urn: "fl:parcel:us-48201:1" },
+    registry_resolve_external: { urn: "fl:parcel:us-48201:1" },
+    registry_get: { urn: "fl:parcel:us-48201:1" },
+    registry_coverage: { counties: [] },
+  };
+  const NOT_LOADED = { results: [], coverage: { county_loaded: false } };
+  const TOOLS = Object.keys(EMPTY);
+  const pathOf = (tool: string) =>
+    `/v1/registry/${tool.slice("registry_".length)}`;
+  type Args = {
+    found?: boolean;
+    not_loaded?: boolean;
+    q?: string;
+    subjects?: { id: string; urn: string }[];
+  };
+  /** registry_tx_equity_candidates_batch: a subject whose urn ends in ":miss" is a coverage miss. */
+  const batchAnswer = (args: Args | undefined) => ({
+    results: (args?.subjects ?? []).map((s) =>
+      s.urn.endsWith(":miss")
+        ? {
+            id: s.id,
+            error: {
+              error: "NotFound",
+              message: "not loaded",
+              issues: [],
+              coverage: { county_loaded: false },
+            },
+          }
+        : { id: s.id, subject: { id: s.urn }, candidates: [] },
+    ),
+  });
+  const answerFor = (tool: string, args: Args | undefined) =>
+    tool === "registry_tx_equity_candidates_batch"
+      ? batchAnswer(args)
+      : args?.not_loaded
+        ? NOT_LOADED
+        : args?.found || !(tool in EMPTY)
+          ? FOUND[tool]
+          : EMPTY[tool];
+  /**
+   * The inner handler: {found: true} finds something, {not_loaded: true} misses coverage.
+   * `seen` lists the bodies it was sent; `during` runs while it answers (a clock move).
+   */
+  const registryApi = (
+    opts: { seen?: string[]; during?: () => void } = {},
+  ) => ({
+    fetch: async (r: Request) => {
+      const path = new URL(r.url).pathname;
+      const text = await r.text();
+      opts.seen?.push(`${path} ${text}`);
+      opts.during?.();
+      const json = (b: unknown) =>
+        new Response(JSON.stringify(b), {
+          headers: { "content-type": "application/json" },
+        });
+      if (path === "/mcp") {
+        const parsed = JSON.parse(text) as unknown;
+        const items = (Array.isArray(parsed) ? parsed : [parsed]) as {
+          id: number;
+          params: { name: string; arguments?: Args };
+        }[];
+        const out = items.map((m) => {
+          const a = answerFor(m.params.name, m.params.arguments);
+          return {
+            jsonrpc: "2.0",
+            id: m.id,
+            result: {
+              content: [{ type: "text", text: JSON.stringify(a) }],
+              structuredContent: a,
+            },
+          };
+        });
+        return json(Array.isArray(parsed) ? out : out[0]);
+      }
+      return json(
+        answerFor(
+          `registry_${path.slice("/v1/registry/".length)}`,
+          JSON.parse(text || "{}") as Args,
+        ),
+      );
+    },
+  });
+  const mcpCall = (name: string, id: number, args: Args = {}) => ({
+    jsonrpc: "2.0",
+    id,
+    method: "tools/call",
+    params: { name, arguments: args },
+  });
+  const setup = () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    return { e, api: registryApi() };
+  };
+  /** A free key, stored as the free-key flow stores it. */
+  async function freeKey(e: ReturnType<typeof env>) {
+    const key = `fl_free_${generateKey().slice("fl_live_".length)}`;
+    const hash = await hashKey(key);
+    await e.KEYS.put(
+      `freekey:${hash}`,
+      JSON.stringify({ email_hash: "e".repeat(64), created: "2026-11-07" }),
+    );
+    return { key, subject: `freekey:${keyId(hash)}` };
+  }
+  type Tier = "anonymous" | "free key" | "pro" | "team";
+  /** A caller of each kind, and how many lookups its meter has counted. */
+  async function caller(e: ReturnType<typeof env>, tier: Tier) {
+    if (tier === "anonymous") {
+      const subject = await addressSubject(IP, T0);
+      return {
+        key: undefined,
+        used: async () => (await e.METER.quota(subject, "day", 25)).used,
+      };
+    }
+    if (tier === "free key") {
+      const k = await freeKey(e);
+      return {
+        key: k.key,
+        used: async () => (await e.METER.quota(k.subject, "day", 25)).used,
+      };
+    }
+    const { key } = await issue(e, {
+      plan: tier,
+      subscription: `sub_${tier}`,
+    });
+    return {
+      key,
+      used: async () =>
+        (await e.METER.quota(`sub:sub_${tier}`, "month", 100_000)).used,
+    };
+  }
+  const TIERS: Tier[] = ["anonymous", "free key", "pro", "team"];
+  const body = async (r: Response) =>
+    (await r.json()) as Record<string, unknown>;
+
+  for (const tier of TIERS)
+    it(`REST, ${tier}: every tool that finds nothing is not counted and says counted: false`, async () => {
+      const { e, api } = setup();
+      const c = await caller(e, tier);
+      for (const tool of TOOLS) {
+        const r = await call(e, api, pathOf(tool), { key: c.key, body: {} });
+        assert.equal(r.status, 200);
+        const before = r.headers.get("x-factlot-registry-quota-remaining");
+        assert.deepEqual(await body(r), { ...EMPTY[tool], counted: false });
+        assert.equal(await c.used(), 0, `${tool}: nothing counted`);
+        // The header shows the lookup given back.
+        const limit = r.headers.get("x-factlot-registry-quota-limit");
+        assert.equal(before, limit, `${tool}: remaining is the full quota`);
+      }
+      for (const [i, tool] of TOOLS.entries()) {
+        const r = await call(e, api, pathOf(tool), {
+          key: c.key,
+          body: { found: true },
+        });
+        const b = await body(r);
+        assert.equal(
+          b.counted,
+          undefined,
+          `${tool}: a found answer is as sent`,
+        );
+        assert.deepEqual(b, FOUND[tool]);
+        assert.equal(await c.used(), i + 1, `${tool}: found, counted`);
+      }
+    });
+
+  it("a coverage miss stays free and also says counted: false", async () => {
+    const { e, api } = setup();
+    const c = await caller(e, "anonymous");
+    const r = await call(e, api, "/v1/registry/search_address", {
+      body: { not_loaded: true },
+    });
+    assert.deepEqual(await body(r), { ...NOT_LOADED, counted: false });
+    assert.equal(await c.used(), 0);
+    // A record (registry_get) is never marked.
+    const got = await call(e, api, "/v1/registry/get", { body: {} });
+    assert.deepEqual(await body(got), FOUND.registry_get);
+    assert.equal(await c.used(), 1);
+  });
+
+  for (const tier of TIERS)
+    it(`MCP, ${tier}: a call that finds nothing is not counted, alone or in a batch`, async () => {
+      const { e, api } = setup();
+      const c = await caller(e, tier);
+      for (const [i, tool] of TOOLS.entries()) {
+        const r = await call(e, api, "/mcp", {
+          key: c.key,
+          body: mcpCall(tool, i + 1),
+        });
+        const m = (await r.json()) as {
+          result: {
+            content: { text: string }[];
+            structuredContent: unknown;
+          };
+        };
+        assert.deepEqual(JSON.parse(m.result.content[0]!.text), {
+          ...EMPTY[tool],
+          counted: false,
+        });
+        assert.deepEqual(m.result.structuredContent, {
+          ...EMPTY[tool],
+          counted: false,
+        });
+      }
+      assert.equal(await c.used(), 0);
+      // A batch: only the calls that answered with something count.
+      const res = await call(e, api, "/mcp", {
+        key: c.key,
+        body: [
+          mcpCall("registry_search_address", 1),
+          mcpCall("registry_search_address", 2, { found: true }),
+          mcpCall("registry_resolve_parcel", 3),
+          mcpCall("registry_owned_by", 4, { found: true }),
+          mcpCall("registry_get", 5),
+          mcpCall("registry_resolve_external", 6),
+          mcpCall("registry_search_entities", 7, { not_loaded: true }),
+          mcpCall("registry_coverage", 8),
+        ],
+      });
+      assert.equal(res.status, 200);
+      assert.equal(await c.used(), 3, "ids 2, 4 and 5 found something");
+      const out = (await res.json()) as {
+        id: number;
+        result: { content: { text: string }[]; structuredContent: unknown };
+      }[];
+      const counted = Object.fromEntries(
+        out.map((m) => [
+          m.id,
+          (JSON.parse(m.result.content[0]!.text) as { counted?: boolean })
+            .counted,
+        ]),
+      );
+      assert.deepEqual(counted, {
+        1: false,
+        2: undefined,
+        3: false,
+        4: undefined,
+        5: undefined,
+        6: false,
+        7: false,
+        8: undefined,
+      });
+      for (const m of out)
+        assert.deepEqual(
+          m.result.structuredContent,
+          JSON.parse(m.result.content[0]!.text),
+          "structuredContent and text agree",
+        );
+    });
+
+  it(`the hourly guard: ${EMPTY_ANSWERS_PER_HOUR.anonymous} free empty answers an hour per address, then counted with a note`, async () => {
+    const { e, api } = setup();
+    const c = await caller(e, "anonymous");
+    const limit = EMPTY_ANSWERS_PER_HOUR.anonymous;
+    for (let i = 0; i < limit; i++) {
+      const r = await call(e, api, "/v1/registry/search_address", {
+        body: {},
+      });
+      assert.equal((await body(r)).counted, false, `empty answer ${i + 1}`);
+      e.clock.t += 2_000; // 30 a minute: under the minute limit
+    }
+    assert.equal(await c.used(), 0);
+    const over = await call(e, api, "/v1/registry/search_address", {
+      body: {},
+    });
+    assert.equal(over.status, 200);
+    const b = await body(over);
+    assert.deepEqual(b.results, []);
+    assert.equal(b.counted, true);
+    assert.match(
+      String(b.counted_note),
+      new RegExp(
+        `found nothing but counts as a registry lookup: ${limit} answers that found nothing were already not counted this hour for this IP address\\. From 2026-11-07T13:00:00\\.000Z, answers that find nothing are again not counted\\.`,
+      ),
+    );
+    assert.equal(await c.used(), 1, "counted past the guard");
+    assert.equal(over.headers.get("x-factlot-registry-quota-remaining"), "24");
+    // An answer that finds something is unchanged by the guard.
+    const found = await call(e, api, "/v1/registry/search_address", {
+      body: { found: true },
+    });
+    assert.equal((await body(found)).counted, undefined);
+    assert.equal(await c.used(), 2);
+    // The next hour (UTC) the guard starts again.
+    e.clock.t = Date.UTC(2026, 10, 7, 13, 0, 1);
+    const next = await call(e, api, "/v1/registry/search_address", {
+      body: {},
+    });
+    assert.equal((await body(next)).counted, false);
+    assert.equal(await c.used(), 2);
+  });
+
+  it("the per-minute limit still applies to answers that find nothing", async () => {
+    const { e, api } = setup();
+    for (let i = 0; i < 60; i++)
+      assert.equal(
+        (await call(e, api, "/v1/registry/search_address", { body: {} }))
+          .status,
+        200,
+      );
+    const r = await call(e, api, "/v1/registry/search_address", { body: {} });
+    assert.equal(r.status, 429);
+    assert.equal((await body(r)).error, "RateLimited");
+  });
+
+  for (const tier of ["free key", "pro", "team"] as const)
+    it(`the hourly guard on ${tier}: ${tier === "free key" ? "shared by the address's free keys" : "per subscription"}`, async () => {
+      const { e, api } = setup();
+      const c = await caller(e, tier);
+      const limit =
+        EMPTY_ANSWERS_PER_HOUR[tier === "free key" ? "anonymous" : tier];
+      const subject =
+        tier === "free key"
+          ? `freeaddr:${await addressSubject(IP, T0)}`
+          : `sub:sub_${tier}`;
+      // All but one of the hour's free empty answers are used.
+      await e.METER.consume(subject, {
+        kind: "hour",
+        counter: "empty",
+        limit,
+        n: limit - 1,
+      });
+      const last = await call(e, api, "/v1/registry/owned_by", {
+        key: c.key,
+        body: {},
+      });
+      assert.equal((await body(last)).counted, false);
+      assert.equal(await c.used(), 0);
+      const k2 = tier === "free key" ? (await freeKey(e)).key : c.key;
+      const over = await call(e, api, "/v1/registry/owned_by", {
+        key: k2,
+        body: {},
+      });
+      const b = await body(over);
+      assert.equal(b.counted, true);
+      assert.match(
+        String(b.counted_note),
+        new RegExp(
+          `${limit.toLocaleString("en-US")} answers that found nothing were already not counted this hour for this ${tier === "free key" ? "IP address" : "subscription"}`,
+        ),
+      );
+      if (tier !== "free key") assert.equal(await c.used(), 1);
+      else {
+        // The first key's lookup was given back; the second key's counts on its own meter.
+        assert.equal(
+          await c.used(),
+          0,
+          "nothing counted for the first free key",
+        );
+        const k2Subject = `freekey:${keyId(await hashKey(k2!))}`;
+        assert.equal((await e.METER.quota(k2Subject, "day", 25)).used, 1);
+      }
+    });
+
+  it("keyless calls and the free keys of one IP address have separate hourly allowances", async () => {
+    const { e, api } = setup();
+    const limit = EMPTY_ANSWERS_PER_HOUR.anonymous;
+    const ip = await addressSubject(IP, T0);
+    const fk = await freeKey(e);
+    // The keyless allowance is used up: keyless empty answers count, a free key's do not.
+    await e.METER.consume(ip, {
+      kind: "hour",
+      counter: "empty",
+      limit,
+      n: limit,
+    });
+    const keyless = await call(e, api, "/v1/registry/search_address", {
+      body: {},
+    });
+    assert.equal((await body(keyless)).counted, true);
+    const withKey = await call(e, api, "/v1/registry/search_address", {
+      key: fk.key,
+      body: {},
+    });
+    assert.equal((await body(withKey)).counted, false);
+    // And the other way round: the free keys' allowance used up leaves keyless calls free.
+    const { e: e2, api: api2 } = setup();
+    const fk2 = await freeKey(e2);
+    await e2.METER.consume(`freeaddr:${ip}`, {
+      kind: "hour",
+      counter: "empty",
+      limit,
+      n: limit,
+    });
+    const viaKey = await call(e2, api2, "/v1/registry/search_address", {
+      key: fk2.key,
+      body: {},
+    });
+    assert.equal((await body(viaKey)).counted, true);
+    const plain = await call(e2, api2, "/v1/registry/search_address", {
+      body: {},
+    });
+    assert.equal((await body(plain)).counted, false);
+  });
+
+  it("an MCP batch granted only part of its reservation: the refused call is not refunded, the refund stays within the grant", async () => {
+    for (const order of ["empty first", "found first"] as const) {
+      const { e } = setup();
+      const seen: string[] = [];
+      const api = registryApi({ seen });
+      const c = await caller(e, "anonymous");
+      const subject = await addressSubject(IP, T0);
+      await e.METER.consume(subject, { kind: "day", limit: 25, n: 24 });
+      const empty = mcpCall("registry_search_address", 1);
+      const found = mcpCall("registry_get", 2);
+      const res = await call(e, api, "/mcp", {
+        body: order === "empty first" ? [empty, found] : [found, empty],
+      });
+      const out = (await res.json()) as {
+        id: number;
+        result: {
+          isError?: boolean;
+          content: { text: string }[];
+        };
+      }[];
+      const byId = new Map(out.map((m) => [m.id, m.result]));
+      const refused = order === "empty first" ? 2 : 1;
+      const ran = order === "empty first" ? 1 : 2;
+      assert.equal(byId.get(refused)!.isError, true, order);
+      assert.match(
+        byId.get(refused)!.content[0]!.text,
+        /RegistryQuotaExceeded/,
+      );
+      assert.equal(seen.length, 1);
+      assert.ok(
+        !seen[0]!.includes(`"id":${refused}`),
+        "the refused call was not sent",
+      );
+      assert.ok(seen[0]!.includes(`"id":${ran}`));
+      // Empty first: its lookup is given back (24 used); found first: it is kept (25 used).
+      assert.equal(await c.used(), order === "empty first" ? 24 : 25, order);
+      if (order === "empty first")
+        assert.equal(
+          (JSON.parse(byId.get(1)!.content[0]!.text) as { counted: boolean })
+            .counted,
+          false,
+        );
+    }
+  });
+
+  it("registry_tx_equity_candidates_batch in an MCP batch with answers that find nothing", async () => {
+    const { e, api } = setup();
+    const c = await caller(e, "pro");
+    const res = await call(e, api, "/mcp", {
+      key: c.key,
+      body: [
+        mcpCall("registry_tx_equity_candidates_batch", 1, {
+          subjects: [
+            { id: "a", urn: "fl:parcel:us-48201:1" },
+            { id: "b", urn: "fl:parcel:us-48201:miss" },
+            { id: "c", urn: "fl:parcel:us-48201:3" },
+          ],
+        }),
+        mcpCall("registry_search_address", 2),
+        mcpCall("registry_owned_by", 3),
+      ],
+    });
+    assert.equal(res.status, 200);
+    assert.equal(await c.used(), 2, "the two answered subjects only");
+    assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "4998");
+    const out = (await res.json()) as {
+      id: number;
+      result: { content: { text: string }[] };
+    }[];
+    const counted = (id: number) =>
+      (
+        JSON.parse(out.find((m) => m.id === id)!.result.content[0]!.text) as {
+          counted?: boolean;
+        }
+      ).counted;
+    assert.equal(counted(1), undefined, "the batch answer is as sent");
+    assert.equal(counted(2), false);
+    assert.equal(counted(3), false);
+  });
+
+  it("at the cap an empty search is refused before it runs: 429 over REST, a tool error over MCP", async () => {
+    const { e } = setup();
+    const seen: string[] = [];
+    const api = registryApi({ seen });
+    await e.METER.consume(await addressSubject(IP, T0), {
+      kind: "day",
+      limit: 25,
+      n: 25,
+    });
+    const rest = await call(e, api, "/v1/registry/search_address", {
+      body: {},
+    });
+    assert.equal(rest.status, 429);
+    assert.equal((await body(rest)).error, "RegistryQuotaExceeded");
+    const viaMcp = await call(e, api, "/mcp", {
+      body: mcpCall("registry_search_address", 1),
+    });
+    assert.equal(viaMcp.status, 200);
+    const m = (await viaMcp.json()) as {
+      result: { isError: boolean; content: { text: string }[] };
+    };
+    assert.equal(m.result.isError, true);
+    assert.match(m.result.content[0]!.text, /RegistryQuotaExceeded/);
+    assert.deepEqual(seen, [], "nothing was forwarded");
+  });
+
+  it("when the give-back fails, an answer the limit allowed says it was counted", async () => {
+    const { e, api } = setup();
+    const meter = e.METER;
+    e.METER = {
+      ...meter,
+      refund: async () => {
+        throw new Error("down");
+      },
+    };
+    const c = await caller(e, "anonymous");
+    let r: Response | undefined;
+    const logs = await captureLogs(async () => {
+      r = await call(e, api, "/v1/registry/search_address", { body: {} });
+    });
+    assert.match(logs, /quota refund failed/);
+    const b = await body(r!);
+    assert.equal(b.counted, true);
+    assert.match(String(b.counted_note), /could not be given back/);
+    assert.equal(r!.headers.get("x-factlot-registry-quota-remaining"), "24");
+    assert.equal(await c.used(), 1);
+  });
+
+  it("when the window rolls over between reserve and give-back, nothing is given back and the answer says so", async () => {
+    const { e } = setup();
+    const c = await caller(e, "pro");
+    // The month ends while the registry answers.
+    e.clock.t = Date.UTC(2026, 10, 30, 23, 59, 59);
+    const api = registryApi({
+      during: () => {
+        e.clock.t = Date.UTC(2026, 11, 1, 0, 0, 1);
+      },
+    });
+    const r = await call(e, api, "/v1/registry/search_entities", {
+      key: c.key,
+      body: {},
+    });
+    const b = await body(r);
+    assert.equal(b.counted, true);
+    assert.match(String(b.counted_note), /could not be given back/);
+    assert.equal(r.headers.get("x-factlot-registry-quota-remaining"), "4999");
+    // November keeps the lookup; December starts empty.
+    const nov = e.limiter.object("meter:sub:sub_pro").store.counts;
+    assert.equal(nov.get("month:2026-11"), 1);
+    assert.equal(nov.get("month:2026-12") ?? 0, 0);
+  });
+
+  it("an MCP batch past the guard counts the empty answers beyond it, in order", async () => {
+    const { e, api } = setup();
+    const c = await caller(e, "pro");
+    await e.METER.consume("sub:sub_pro", {
+      kind: "hour",
+      counter: "empty",
+      limit: EMPTY_ANSWERS_PER_HOUR.pro,
+      n: EMPTY_ANSWERS_PER_HOUR.pro - 1,
+    });
+    const res = await call(e, api, "/mcp", {
+      key: c.key,
+      body: [
+        mcpCall("registry_search_address", 1),
+        mcpCall("registry_search_entities", 2),
+      ],
+    });
+    const out = (await res.json()) as {
+      id: number;
+      result: { structuredContent: { counted?: boolean } };
+    }[];
+    const byId = new Map(out.map((m) => [m.id, m.result.structuredContent]));
+    assert.equal(byId.get(1)!.counted, false);
+    assert.equal(byId.get(2)!.counted, true);
+    assert.equal(await c.used(), 1);
+  });
+
+  it("when the guard cannot be asked, an answer that finds nothing stays counted, unmarked", async () => {
+    const { e, api } = setup();
+    const meter = e.METER;
+    e.METER = {
+      ...meter,
+      consume: async (subject, quota) => {
+        if (quota.counter === "empty") throw new Error("down");
+        return meter.consume(subject, quota);
+      },
+    };
+    const c = await caller(e, "anonymous");
+    let r: Response | undefined;
+    const logs = await captureLogs(async () => {
+      r = await call(e, api, "/v1/registry/search_address", { body: {} });
+    });
+    assert.match(logs, /empty-answer guard failed/);
+    assert.deepEqual(await body(r!), EMPTY.registry_search_address);
+    assert.equal(await c.used(), 1);
+  });
+
+  it("usage counters keep answers that found nothing apart, by outcome, with no query text", async () => {
+    resetUsageForTests({ waitUntil: () => {}, sleep: async () => {} });
+    const { e, api } = setup();
+    e.USAGE_COUNTERS_ENABLED = "true";
+    const q = "1200 Main St";
+    await call(e, api, "/v1/registry/search_address", { body: { q } });
+    await call(e, api, "/v1/registry/search_address", {
+      body: { q, found: true },
+    });
+    await call(e, api, "/v1/registry/search_address", {
+      body: { q, not_loaded: true },
+    });
+    await e.METER.consume(await addressSubject(IP, T0), {
+      kind: "hour",
+      counter: "empty",
+      limit: EMPTY_ANSWERS_PER_HOUR.anonymous,
+      n: EMPTY_ANSWERS_PER_HOUR.anonymous,
+    });
+    await call(e, api, "/mcp", {
+      body: mcpCall("registry_resolve_parcel", 1, { q }),
+    });
+    const counters = snapshot().counters;
+    assert.equal(
+      counters["lookup_empty|registry_search_address|free|keyless"],
+      1,
+    );
+    assert.equal(
+      counters["lookup_empty|registry_search_address|not_loaded|keyless"],
+      1,
+    );
+    assert.equal(
+      counters["lookup_empty|registry_resolve_parcel|charged|keyless"],
+      1,
+    );
+    const lookups = Object.entries(counters)
+      .filter(([k]) => k.startsWith("lookup|"))
+      .reduce((n, [, v]) => n + v, 0);
+    assert.equal(
+      lookups,
+      2,
+      "the found search and the empty one past the guard",
+    );
+    assert.ok(!JSON.stringify(snapshot()).includes("Main"), "no query text");
+  });
+});
+
+describe("batch items and subjects that find nothing: not counted, guarded item by item", () => {
+  const LOOKUP = "registry_lookup_batch";
+  const LOOKUP_PATH = "/v1/registry/lookup/batch";
+  const TX_PATH = "/v1/registry/tx_equity_candidates/batch";
+  const inside = { county_loaded: true, state_loaded: true };
+  const foundEntry = (urn: string) => ({
+    status: "found",
+    parcel: { urn },
+  });
+  const emptyEntry = { status: "not_found", coverage: inside };
+  /** The inner handler: every batch call gets `answer(args)`, over REST and MCP. */
+  const batchApi = (answer: (args: Record<string, unknown>) => unknown) => ({
+    fetch: async (r: Request) => {
+      const path = new URL(r.url).pathname;
+      const text = await r.text();
+      const json = (b: unknown) =>
+        new Response(JSON.stringify(b), {
+          headers: { "content-type": "application/json" },
+        });
+      if (path !== "/mcp")
+        return json(answer(JSON.parse(text) as Record<string, unknown>));
+      const m = JSON.parse(text) as {
+        id: number;
+        params: { arguments: Record<string, unknown> };
+      };
+      const a = answer(m.params.arguments);
+      return json({
+        jsonrpc: "2.0",
+        id: m.id,
+        result: {
+          content: [{ type: "text", text: JSON.stringify(a) }],
+          structuredContent: a,
+        },
+      });
+    },
+  });
+  const items = (n: number) =>
+    Array.from({ length: n }, (_, k) => ({
+      urn: `fl:parcel:us-48201:${k + 1}`,
+    }));
+  const setup = async (plan: "pro" | "team" = "pro") => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    const { key } = await issue(e, { plan, subscription: "sub_b" });
+    const used = async () =>
+      (await e.METER.quota("sub:sub_b", "month", 100_000)).used;
+    const tally = async () =>
+      (
+        await e.METER.quota(
+          "sub:sub_b",
+          "hour",
+          EMPTY_ANSWERS_PER_HOUR[plan],
+          "empty",
+        )
+      ).used;
+    return { e, key, used, tally };
+  };
+  type Entry = { counted?: boolean; counted_note?: string; status?: string };
+
+  it("registry_lookup_batch over REST: only found items count; items that find nothing say counted: false and use the guard", async () => {
+    const { e, key, used, tally } = await setup();
+    const api = batchApi(() => ({
+      results: [
+        foundEntry("fl:parcel:us-48201:1"),
+        emptyEntry,
+        { status: "not_found", coverage: { county_loaded: false } },
+        { status: "error", error: { error: "InputError", message: "x" } },
+        {
+          status: "not_found",
+          coverage: inside,
+          error: { error: "NotFound", message: "no record" },
+        },
+      ],
+    }));
+    const res = await call(e, api, LOOKUP_PATH, {
+      key,
+      body: { items: items(5) },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(await used(), 1, "the found item only");
+    assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "4999");
+    assert.equal(await tally(), 2, "two items found nothing inside coverage");
+    const r = ((await res.json()) as { results: Entry[] }).results;
+    assert.deepEqual(
+      r.map((x) => x.counted),
+      [undefined, false, false, undefined, false],
+    );
+  });
+
+  it("registry_lookup_batch over MCP: past the guard, the rest of the items that find nothing count, in order, with a note", async () => {
+    const { e, key, used, tally } = await setup();
+    const limit = EMPTY_ANSWERS_PER_HOUR.pro;
+    await e.METER.consume("sub:sub_b", {
+      kind: "hour",
+      counter: "empty",
+      limit,
+      n: limit - 1,
+    });
+    const api = batchApi(() => ({
+      results: [
+        emptyEntry,
+        foundEntry("fl:parcel:us-48201:2"),
+        emptyEntry,
+        emptyEntry,
+      ],
+    }));
+    const res = await call(e, api, "/mcp", {
+      key,
+      body: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: LOOKUP, arguments: { items: items(4) } },
+      },
+    });
+    const m = (await res.json()) as {
+      result: {
+        content: { text: string }[];
+        structuredContent: { results: Entry[] };
+      };
+    };
+    const r = (JSON.parse(m.result.content[0]!.text) as { results: Entry[] })
+      .results;
+    assert.deepEqual(
+      r.map((x) => x.counted),
+      [false, undefined, true, true],
+    );
+    assert.match(String(r[2]!.counted_note), /counts as a registry lookup/);
+    assert.deepEqual(
+      m.result.structuredContent.results,
+      r,
+      "text and structuredContent agree",
+    );
+    assert.equal(await used(), 3, "the found item and the two past the guard");
+    assert.equal(await tally(), limit);
+  });
+
+  it("a batch of fifty items that find nothing is fifty answers to the guard, not fifty free probes", async () => {
+    const { e, key, used } = await setup();
+    const limit = EMPTY_ANSWERS_PER_HOUR.pro;
+    await e.METER.consume("sub:sub_b", {
+      kind: "hour",
+      counter: "empty",
+      limit,
+      n: limit - 10,
+    });
+    const api = batchApi(() => ({
+      results: Array.from({ length: 50 }, () => emptyEntry),
+    }));
+    const res = await call(e, api, LOOKUP_PATH, {
+      key,
+      body: { items: items(50) },
+    });
+    const r = ((await res.json()) as { results: Entry[] }).results;
+    assert.equal(r.filter((x) => x.counted === false).length, 10);
+    assert.equal(r.filter((x) => x.counted === true).length, 40);
+    assert.equal(await used(), 40);
+  });
+
+  it("registry_tx_equity_candidates_batch: a subject not in the registry inside coverage is not counted and uses the guard; other errors stay free and unmarked", async () => {
+    const { e, key, used, tally } = await setup("team");
+    const api = batchApi(() => ({
+      results: [
+        { id: "a", subject: { id: "fl:parcel:us-48201:1" }, candidates: [] },
+        {
+          id: "b",
+          error: {
+            error: "NotFound",
+            message: "no record",
+            issues: [],
+            coverage: inside,
+          },
+        },
+        {
+          id: "c",
+          error: {
+            error: "NotFound",
+            message: "not loaded",
+            issues: [],
+            coverage: { county_loaded: false },
+          },
+        },
+        { id: "d", error: { error: "InputError", message: "x", issues: [] } },
+      ],
+    }));
+    const subjects = ["a", "b", "c", "d"].map((id, k) => ({
+      id,
+      urn: `fl:parcel:us-48201:${k + 1}`,
+    }));
+    const res = await call(e, api, TX_PATH, { key, body: { subjects } });
+    assert.equal(res.status, 200);
+    assert.equal(await used(), 1, "the answered subject only");
+    assert.equal(await tally(), 1);
+    const r = ((await res.json()) as { results: (Entry & { id: string })[] })
+      .results;
+    assert.deepEqual(
+      r.map((x) => [x.id, x.counted]),
+      [
+        ["a", undefined],
+        ["b", false],
+        ["c", undefined],
+        ["d", undefined],
+      ],
+    );
+    // Past the guard the subject counts and says so.
+    await e.METER.consume("sub:sub_b", {
+      kind: "hour",
+      counter: "empty",
+      limit: EMPTY_ANSWERS_PER_HOUR.team,
+      n: EMPTY_ANSWERS_PER_HOUR.team,
+    });
+    const again = await call(e, api, TX_PATH, { key, body: { subjects } });
+    const r2 = ((await again.json()) as { results: (Entry & { id: string })[] })
+      .results;
+    assert.equal(r2[1]!.counted, true);
+    assert.equal(await used(), 3);
   });
 });
 
@@ -5847,7 +6785,11 @@ describe("paid gating (GATING_ENABLED)", () => {
     };
     for (const answer of [portfolio(3), portfolio(1), miss])
       for (const a of await freeAnswers(answer, OWNED, OWNED_PATH)) {
-        assert.deepEqual(a, answer);
+        // An owner with no parcels found nothing: not counted, and the answer says so.
+        assert.deepEqual(
+          a,
+          answer === miss ? { ...answer, counted: false } : answer,
+        );
         assert.ok(!("portfolio_withheld" in a) && !("portfolio_note" in a));
       }
   });
@@ -10888,12 +11830,18 @@ describe("registry_lookup_batch: single calls fanned out, metered per item", () 
       : { tool: "registry_get", args: { urn } };
   }
 
-  /** What the single call would be charged on its own: a tool error is free, else isChargedAnswer. */
+  /**
+   * What the single call would be charged on its own: a tool error is free, a miss outside loaded
+   * coverage is free (isChargedAnswer), and an answer that finds nothing is free within the
+   * hourly guard (foundNothing).
+   */
   function singleCharge(item: Record<string, unknown>): number {
     const c = singleCall(item);
     if (!c) return 0;
     const o = runTool(c.tool, c.args);
-    return o.ok && isChargedAnswer(o.result) ? 1 : 0;
+    return o.ok && isChargedAnswer(o.result) && !foundNothing(c.tool, o.result)
+      ? 1
+      : 0;
   }
 
   it("answers every shared vector exactly as the SDK's batch, with single calls only", async () => {
@@ -11111,7 +12059,9 @@ describe("registry_lookup_batch: single calls fanned out, metered per item", () 
           .results;
         v.arguments.items.forEach((item, k) => {
           const e = entries[k]!;
-          const batch = lookupEntryCharged(e) ? 1 : 0;
+          // A not_found entry inside loaded coverage found nothing: free within the guard.
+          const batch =
+            lookupEntryCharged(e) && e.status !== "not_found" ? 1 : 0;
           assert.equal(
             batch,
             singleCharge(item),
@@ -11523,7 +12473,8 @@ describe("registry_lookup_batch: single calls fanned out, metered per item", () 
     ];
     const res = await call(e, api, PATH, { key, body: { items } });
     assert.equal(res.status, 200);
-    assert.equal(used(e), 6);
+    // The two not_found entries inside loaded coverage found nothing: given back.
+    assert.equal(used(e), 4);
     await flush();
     const u = (await (
       await call(e, innerApi().api, "/v1/account/usage", {
@@ -11533,10 +12484,8 @@ describe("registry_lookup_batch: single calls fanned out, metered per item", () 
     ).json()) as { by_region: Record<string, number> };
     assert.deepEqual(u.by_region, {
       "us-36": 1,
-      "us-48": 1,
       "us-24": 1,
       "us-08": 1,
-      "us-06": 1,
       other: 1,
     });
   });

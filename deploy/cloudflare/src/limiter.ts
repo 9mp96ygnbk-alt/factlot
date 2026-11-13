@@ -10,6 +10,8 @@
  *   is read from the object's own clock, so every request for one subject agrees on it. An alarm
  *   at the end of each window deletes the ended window's counter (the privacy page promises that
  *   day counts go when the day ends and month counts when the month ends).
+ * - Registry answers that found nothing and were not counted as lookups, per UTC hour
+ *   (`empty:hour:<YYYY-MM-DDTHH>`), for the hourly guard on them; deleted when the hour ends.
  * - Claims: first-writer-wins markers (`claim:<name>`), used where KV's eventual consistency is
  *   not enough (redeeming one checkout session from two regions at once). Deleted after 30 days.
  * - Usage (subscriptions only): charged registry lookups per UTC day, by tool and by region
@@ -107,6 +109,11 @@ export function quotaWindow(
   const d = new Date(now);
   const y = d.getUTCFullYear();
   const m = d.getUTCMonth();
+  if (kind === "hour")
+    return {
+      window: `hour:${d.toISOString().slice(0, 13)}`,
+      resetsAt: Date.UTC(y, m, d.getUTCDate(), d.getUTCHours() + 1),
+    };
   if (kind === "day")
     return {
       window: `day:${d.toISOString().slice(0, 10)}`,
@@ -120,7 +127,8 @@ export function quotaWindow(
 
 /**
  * The stored name of a counter's window: `month:2026-11` for registry lookups, and the same
- * window prefixed `reports:` for the reports counter, so the two never share a count.
+ * window prefixed with the counter's name for any other counter (`reports:month:2026-11`,
+ * `empty:hour:2026-11-12T14`), so no two counters share a count.
  */
 export function counterWindow(
   kind: QuotaKind,
@@ -128,8 +136,11 @@ export function counterWindow(
   counter: QuotaCounter = "lookups",
 ): { window: string; resetsAt: number } {
   const w = quotaWindow(kind, now);
-  return counter === "reports" ? { ...w, window: `reports:${w.window}` } : w;
+  return counter === "lookups" ? w : { ...w, window: `${counter}:${w.window}` };
 }
+
+/** The window of the hourly guard on uncounted empty registry answers (router.ts). */
+export const EMPTY_COUNTER = { kind: "hour", counter: "empty" } as const;
 
 /** Durable counters and claims for one object. Synchronous, so a read-modify-write is atomic. */
 export interface UsageRow {
@@ -374,19 +385,20 @@ export class Meter {
 
   /**
    * Give back `n` lookups taken in the window that ends at `resetsAt` (the registry could not
-   * answer). Nothing happens once that window has ended.
+   * answer). Nothing happens once that window has ended. `returned`: how many were given back.
    */
   refund(
     kind: QuotaKind,
     n: number,
     resetsAt: string,
     counter?: QuotaCounter,
-  ): QuotaState | undefined {
+  ): (QuotaState & { returned: number }) | undefined {
     const { window, resetsAt: end } = counterWindow(kind, this.now(), counter);
     if (new Date(end).toISOString() !== resetsAt || n <= 0) return undefined;
-    const used = Math.max(0, this.store.getCount(window) - n);
+    const before = this.store.getCount(window);
+    const used = Math.max(0, before - n);
     this.store.setCount(window, used);
-    return quotaState(used, 0, end);
+    return { ...quotaState(used, 0, end), returned: before - used };
   }
 
   /** The store was wiped. */
@@ -475,6 +487,8 @@ export class Meter {
     this.store.pruneBefore(quotaWindow("day", now).window);
     this.store.pruneBefore(quotaWindow("month", now).window);
     this.store.pruneBefore(counterWindow("month", now, "reports").window);
+    const empty = counterWindow(EMPTY_COUNTER.kind, now, EMPTY_COUNTER.counter);
+    this.store.pruneBefore(empty.window);
     this.store.clearClaims();
     this.store.pruneUsageBefore(
       new Date(now - (USAGE_RETENTION_DAYS - 1) * DAY_MS)
@@ -493,6 +507,9 @@ export class Meter {
       this.store.getCount(day.window) > 0
         ? day.resetsAt
         : quotaWindow("month", now).resetsAt;
+    // The hourly count of uncounted empty answers goes when its hour ends.
+    if (this.store.getCount(empty.window) > 0)
+      next = Math.min(next, empty.resetsAt);
     // Usage is pruned day by day; a last-use mark goes 90 days after it was written.
     if (this.store.readUsage("0000").length > 0)
       next = Math.min(next, day.resetsAt);
@@ -628,9 +645,10 @@ export class RateLimiterObject {
         resets_at: string;
         counter?: QuotaCounter;
       };
+      const r = this.meter.refund(b.kind, b.n, b.resets_at, b.counter);
       return jsonResponse({
-        refunded:
-          this.meter.refund(b.kind, b.n, b.resets_at, b.counter) !== undefined,
+        refunded: r !== undefined,
+        returned: r?.returned ?? 0,
       });
     }
     if (url.pathname === "/slot") {
@@ -773,14 +791,15 @@ export function objectMeter(
         perMinute: null,
         quota,
       }),
-    refund: async (subject, kind, n, resets_at, counter) => {
-      await call(ns, `meter:${subject}`, "/refund", {
-        kind,
-        n,
-        resets_at,
-        ...(counter ? { counter } : {}),
-      });
-    },
+    refund: async (subject, kind, n, resets_at, counter) =>
+      (
+        await call<{ returned?: number }>(ns, `meter:${subject}`, "/refund", {
+          kind,
+          n,
+          resets_at,
+          ...(counter ? { counter } : {}),
+        })
+      ).returned ?? 0,
     quota: (subject, kind, limit, counter) =>
       call<QuotaState>(ns, `meter:${subject}`, "/quota", {
         kind,

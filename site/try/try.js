@@ -90,7 +90,7 @@
       left +
       " of " +
       limit +
-      ". The search and the record fetch each count as one, and a search inside loaded coverage that finds nothing still counts; misses outside loaded coverage and input errors are free.";
+      ". The search and the record fetch each count as one when they find something; a search that finds nothing (up to an hourly limit), misses outside loaded coverage and input errors are free.";
   }
 
   function problem(title, lines, links) {

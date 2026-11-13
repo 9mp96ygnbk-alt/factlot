@@ -29,10 +29,13 @@ export interface RateLimit {
   peek(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-export type QuotaKind = "day" | "month";
+export type QuotaKind = "hour" | "day" | "month";
 
-/** Which counter a quota uses: registry lookups (the default) or reports. */
-export type QuotaCounter = "lookups" | "reports";
+/**
+ * Which counter a quota uses: registry lookups (the default), reports, or registry answers that
+ * found nothing and were not counted as lookups (the hourly guard on them, see router.ts).
+ */
+export type QuotaCounter = "lookups" | "reports" | "empty";
 
 export interface QuotaSpec {
   kind: QuotaKind;
@@ -78,14 +81,17 @@ export interface MeterService {
     limit: number,
     counter?: QuotaCounter,
   ): Promise<QuotaState>;
-  /** Give back lookups the registry could not answer (same window only). */
+  /**
+   * Give back lookups the registry could not answer (same window only). Resolves to how many
+   * were given back: 0 once that window has ended (a fake meter may resolve to nothing).
+   */
   refund(
     subject: string,
     kind: QuotaKind,
     n: number,
     resets_at: string,
     counter?: QuotaCounter,
-  ): Promise<void>;
+  ): Promise<number | void>;
   /** First writer wins, strongly consistent: returns the value stored under `name`. */
   claim(name: string, value: string): Promise<string>;
   /** Record charged registry lookups for `sub:<subscription>` (tool name, region prefix). */
