@@ -456,8 +456,9 @@ async function deleteAddress(
   }
   await env.METER.forget(`freemail:${eh.slice(0, 32)}`);
   await env.KEYS.delete(`freeemail:${eh}`);
-  // The consent record (and the address in it) goes with the key; the stop marker stays.
-  if (lifecycleEnabled(env)) await forgetFreeConsent(env, eh);
+  // The consent record (and the address in it) goes with the key, whether or not lifecycle
+  // emails are on, so turning them off never strands an address; the stop marker stays.
+  await forgetFreeConsent(env, eh);
 }
 
 /** The deletion email, run after the answer is sent; only for an address that has a key. */

@@ -16,15 +16,25 @@
  *   lc:<kind>:<h>    consent record, kind "free" or "paid", h the salted address hash that
  *                    freekey.ts uses: {to, consent_at, subject, key_hash or subscription, since}. It
  *                    holds the address because mail cannot be sent without it, and only for someone
- *                    who ticked the box. Deleted by a stop, by deleting the free key, and by the
- *                    sweep when the key or plan is gone. It is never written back after a send (the
- *                    sent markers live elsewhere), so a stop cannot be undone by a send in flight.
+ *                    who ticked the box. Deleted by a stop (and whenever a stop marker is seen for
+ *                    its hash), by deleting the free key (whether or not this feature is on), by
+ *                    the plan's cancellation (the Stripe webhook, through lcsub:), and by the
+ *                    sweep when a due item finds the key or plan gone. It is never written back
+ *                    after a send (the sent markers live elsewhere), so a stop cannot be undone by
+ *                    a send in flight.
+ *   lcsub:<subscription>  the address hash of a plan's consent record, so the cancellation webhook
+ *                    can delete it. Deleted with the record.
+ *   lcdue:<yyyymmddhh>:<kind>:<h>:<id>  one time-based message's due hour (A2, A4, B1, B2), written
+ *                    with the consent record; empty value. The sweep lists this prefix in date
+ *                    order, handles what is due and deletes it; KV deletes it on its own
+ *                    DUE_UNTIL_DAYS + 2 days after it falls due, as a backstop.
  *   lcmark:<kind>:<h> which messages were sent (time) or failed ("failed:<time>"): ids and times
- *                    only, no address. A failed message is marked so it stops being due.
+ *                    only, no address. A failed message is marked so it stops being due. Written
+ *                    with a MARK_TTL_DAYS expiry (the once-only claims last as long), so a mark
+ *                    written after a concurrent stop does not stay for good.
  *   lcstop:<h>       suppression: the time of the stop and nothing else (the hash, no address). Kept
  *                    for good; deleting a key does not remove it, and a new key request or a new
  *                    consent cannot undo it.
- *   lcsweep:cursor   where the next sweep batch starts.
  * Durable Object claims (strongly consistent): `lcsent:<d>` once per person per message and
  * `lccap:<d>` the day's one optional message, where d is a SHA-256 of the address hash with the
  * message id or the day, so a claim never holds the address hash itself. Claims are kept 395 days
@@ -37,7 +47,8 @@
  *
  * Triggers: A1 and A3 fire from the router (a free key's answer that left something out; its daily
  * lookups running out); A2, A4, B1 and B2 are time based and run from `lifecycleSweep`, which the
- * Worker's scheduled handler calls (no cron is configured: the owner adds it when switching on).
+ * Worker's scheduled handler calls every hour (scheduled.ts LIFECYCLE_CRON; no cron is configured:
+ * the owner adds it when switching on).
  *
  * Nothing here logs an address, link or key.
  */
@@ -111,7 +122,56 @@ const DAY_MS = 86_400_000;
 const recordKey = (kind: Kind, h: string) => `lc:${kind}:${h}`;
 const stopKey = (h: string) => `lcstop:${h}`;
 const markKey = (kind: Kind, h: string) => `lcmark:${kind}:${h}`;
-const CURSOR_KEY = "lcsweep:cursor";
+const subKey = (subscription: string) => `lcsub:${subscription}`;
+const DUE_PREFIX = "lcdue:";
+/** The due hour of a time: the next whole hour UTC (yyyymmddhh), so "due" never comes early. */
+const dueHour = (ms: number) =>
+  new Date(Math.ceil(ms / 3_600_000) * 3_600_000)
+    .toISOString()
+    .slice(0, 13)
+    .replace(/[-T]/g, "");
+const dueKey = (at: number, kind: Kind, h: string, id: MessageId) =>
+  `${DUE_PREFIX}${dueHour(at)}:${kind}:${h}:${id}`;
+/** How long a sent mark is kept: as long as the once-only claims (limiter.ts CLAIM_TTL_MS). */
+export const MARK_TTL_DAYS = 395;
+
+/** The two time-based messages of a record, with the time each falls due. */
+function dueItems(kind: Kind, since: number): { id: MessageId; at: number }[] {
+  return kind === "free"
+    ? [
+        { id: "A2", at: since + DUE_AFTER_DAYS.A2 * DAY_MS },
+        { id: "A4", at: since + DUE_AFTER_DAYS.A4 * DAY_MS },
+      ]
+    : [
+        { id: "B1", at: since + DUE_AFTER_DAYS.B1 * DAY_MS },
+        { id: "B2", at: since + DUE_AFTER_DAYS.B2 * DAY_MS },
+      ];
+}
+
+/**
+ * Delete a consent record and everything kept beside it (marks, due items, the plan pointer).
+ * `rec` is the record when already read; otherwise it is read here to find its due items.
+ */
+async function dropRecord(
+  env: Env,
+  kind: Kind,
+  h: string,
+  rec?: LifecycleRecord,
+): Promise<void> {
+  rec ??= await readRecord(env, kind, h);
+  await env.KEYS.delete(recordKey(kind, h));
+  await env.KEYS.delete(markKey(kind, h));
+  if (rec) {
+    const since = Date.parse(rec.since);
+    if (Number.isFinite(since))
+      for (const d of dueItems(kind, since))
+        await env.KEYS.delete(dueKey(d.at, kind, h, d.id));
+    if (rec.subscription) {
+      if ((await env.KEYS.get(subKey(rec.subscription))) === h)
+        await env.KEYS.delete(subKey(rec.subscription));
+    }
+  }
+}
 
 async function readMarks(env: Env, kind: Kind, h: string): Promise<Marks> {
   const raw = await env.KEYS.get(markKey(kind, h));
@@ -132,7 +192,9 @@ async function writeMark(
 ): Promise<void> {
   const marks = await readMarks(env, kind, h);
   marks[id] = value;
-  await env.KEYS.put(markKey(kind, h), JSON.stringify(marks));
+  await env.KEYS.put(markKey(kind, h), JSON.stringify(marks), {
+    expirationTtl: MARK_TTL_DAYS * 86_400,
+  });
 }
 
 /** A claim name that does not contain the address hash itself. */
@@ -227,17 +289,34 @@ export async function stopEmails(
 ): Promise<{ already: boolean }> {
   const already = await isSuppressed(env, h);
   if (!already) await env.KEYS.put(stopKey(h), new Date(now).toISOString());
-  for (const kind of ["free", "paid"] as const) {
-    await env.KEYS.delete(recordKey(kind, h));
-    await env.KEYS.delete(markKey(kind, h));
-  }
+  for (const kind of ["free", "paid"] as const) await dropRecord(env, kind, h);
   return { already };
 }
 
-/** Free key deletion removes the consent record; the suppression marker stays. */
+/**
+ * Free key deletion removes the consent record (and the address in it), whether or not this
+ * feature is on, so turning it off never strands an address: two KV deletes. Its due items expire
+ * on their own, and the sweep drops any it meets. The suppression marker stays.
+ */
 export async function forgetFreeConsent(env: Env, h: string): Promise<void> {
   await env.KEYS.delete(recordKey("free", h));
   await env.KEYS.delete(markKey("free", h));
+}
+
+/**
+ * A cancelled plan: delete its consent record through the subscription's pointer. Run by the
+ * Stripe webhook whether or not this feature is on (one KV read when there is no record).
+ */
+export async function forgetPaidConsent(
+  env: Env,
+  subscription: string,
+): Promise<void> {
+  const h = await env.KEYS.get(subKey(subscription));
+  if (!h) return;
+  const rec = await readRecord(env, "paid", h);
+  if (!rec || rec.subscription === subscription)
+    await dropRecord(env, "paid", h, rec);
+  await env.KEYS.delete(subKey(subscription));
 }
 
 // --- Consent ------------------------------------------------------------------------------------
@@ -264,7 +343,11 @@ export async function recordConsent(
   c: ConsentInput,
 ): Promise<"recorded" | "refreshed" | "suppressed" | "off" | "none"> {
   if (!lifecycleEnabled(env)) return "off";
-  if (await isSuppressed(env, c.h)) return "suppressed";
+  if (await isSuppressed(env, c.h)) {
+    // A record written meanwhile elsewhere does not survive the stop.
+    await dropRecord(env, c.kind, c.h);
+    return "suppressed";
+  }
   const existing = await readRecord(env, c.kind, c.h);
   if (!existing && !c.to) return "none";
   const iso = new Date(c.now).toISOString();
@@ -288,9 +371,21 @@ export async function recordConsent(
         since: iso,
       };
   await env.KEYS.put(recordKey(c.kind, c.h), JSON.stringify(rec));
+  if (!existing) {
+    // The time-based messages, indexed by when they fall due.
+    for (const d of dueItems(c.kind, c.now))
+      await env.KEYS.put(dueKey(d.at, c.kind, c.h, d.id), "", {
+        expirationTtl: Math.max(
+          60,
+          Math.ceil((d.at - c.now) / 1000) + (DUE_UNTIL_DAYS + 2) * 86_400,
+        ),
+      });
+  }
+  if (c.kind === "paid" && rec.subscription)
+    await env.KEYS.put(subKey(rec.subscription), c.h);
   // A stop that landed while this ran must win: look again and take the record back out.
   if (await isSuppressed(env, c.h)) {
-    await env.KEYS.delete(recordKey(c.kind, c.h));
+    await dropRecord(env, c.kind, c.h, rec);
     return "suppressed";
   }
   return existing ? "refreshed" : "recorded";
@@ -324,7 +419,10 @@ export async function deliverPromo(
 ): Promise<SendResult> {
   if (!lifecycleEnabled(env)) return "off";
   // The cheap checks first: no stop marker, a consent record, not sent (or failed) before.
-  if (await isSuppressed(env, h)) return "suppressed";
+  if (await isSuppressed(env, h)) {
+    await dropRecord(env, kind, h);
+    return "suppressed";
+  }
   const rec = await readRecord(env, kind, h);
   if (!rec) return "no-consent";
   const ctx = await promoContext(env, h, kind);
@@ -345,7 +443,10 @@ export async function deliverPromo(
     return "already";
   }
   // A stop during the claims above wins.
-  if (await isSuppressed(env, h)) return "suppressed";
+  if (await isSuppressed(env, h)) {
+    await dropRecord(env, kind, h, rec);
+    return "suppressed";
+  }
   let ok: boolean;
   try {
     ok = await sendEmail(env, "lifecycle", {
@@ -522,27 +623,29 @@ export interface SweepResult {
   sent: Partial<Record<MessageId, number>>;
   removed: number;
   errors: number;
-  /** The batch reached the end of the list: the next run starts again from the first record. */
+  /** Everything due by now was handled (the next item, if any, is not due yet). */
   complete: boolean;
 }
 
 /**
- * Records one sweep invocation reads. Cloudflare's limits page gives a Worker 10,000 subrequests
- * per invocation on the paid plan, and the Workers KV limits page gives 1,000 operations to
- * external services per invocation; the smaller number is the one to stay under. Worst case for
- * one paid record: stop marker 1, record 1, liveness 1 (the subscription's key list) + up to 5
- * (its keys), marks 1, meter 1, then the send gate (stop 1, record 1, marks 1, two claims 2, mark
- * read and write 2) = 18 operations; plus 3 for the list and the cursor. 50 x 18 + 3 = 903, under
- * 1,000. A free record costs fewer. With a cron every hour that reaches 1,200 records a day; the
- * cursor in KV carries the next run on from where this one stopped, so every record is reached.
+ * Due items one sweep invocation handles. The Workers KV limits page gives 1,000 operations to
+ * external services per invocation (the paid plan's 10,000 subrequests is the larger limit), so
+ * the worst case must stay under 1,000 counting every KV, Durable Object and send operation. One
+ * paid item, at most: stop marker 1, record 1, liveness 6 (the subscription's key list and up to
+ * 5 keys), marks 1, meter usage 1, then the send gate (stop 1, marks 1, two claims 2, the second
+ * stop check 1, the send 1 and its header-fallback resend 1, mark read and write 2), then the due
+ * item's delete 1 = 21; a stopped or ended record instead costs at most the record's clean-up
+ * (about 8). 40 x 21 + 1 for the list = 841, under 1,000 with margin. A free item costs fewer.
+ * With the hourly cron that is 960 items a day, and an item is handled once and deleted.
  */
-export const SWEEP_BATCH = 50;
+export const SWEEP_BATCH = 40;
 
 /**
- * Run the time-based messages over one batch of consent records, starting at the saved cursor:
- * for each, remove it if the address was stopped or the key or plan has ended, skip it once it is
- * older than DUE_UNTIL_DAYS, else find the message it is due for and send it through the same gate
- * as every optional message. One bad record cannot stop the run.
+ * Handle the time-based messages that are due: list the `lcdue:` index in date order (oldest
+ * first), and for each item due by now remove the record if the address was stopped or the key
+ * or plan has ended, send the message if it still applies, and delete the item. Items past
+ * DUE_UNTIL_DAYS are deleted unsent. A run stops at the first item not yet due; the next run picks
+ * up what this one did not reach. One bad item cannot stop the run (it is counted and deleted).
  */
 export async function lifecycleSweep(
   env: Env,
@@ -557,53 +660,61 @@ export async function lifecycleSweep(
     complete: true,
   };
   if (!lifecycleEnabled(env) || !env.KEYS.list) return result;
-  const cursor = (await env.KEYS.get(CURSOR_KEY)) ?? undefined;
   const batch = await env.KEYS.list({
-    prefix: "lc:",
-    cursor,
-    limit: batchSize,
+    prefix: DUE_PREFIX,
+    limit: Math.min(batchSize, SWEEP_BATCH),
   });
+  const nowHour = dueHour(now - 3_599_999);
+  let reachedFuture = false;
   for (const { name } of batch.keys) {
+    const m = /^lcdue:(\d{10}):(free|paid):([0-9a-f]{64}):(A2|A4|B1|B2)$/.exec(
+      name,
+    );
+    if (!m) {
+      await env.KEYS.delete(name);
+      continue;
+    }
+    if (m[1]! > nowHour) {
+      reachedFuture = true;
+      break;
+    }
     result.checked++;
     try {
-      await sweepOne(env, name, now, result);
+      await sweepOne(env, m[2] as Kind, m[3]!, m[4] as MessageId, now, result);
     } catch {
       result.errors++;
     }
+    await env.KEYS.delete(name).catch(() => undefined);
   }
-  result.complete = batch.list_complete;
-  if (batch.list_complete) await env.KEYS.delete(CURSOR_KEY);
-  else if (batch.cursor) await env.KEYS.put(CURSOR_KEY, batch.cursor);
+  result.complete = reachedFuture || batch.list_complete;
   return result;
 }
 
 async function sweepOne(
   env: Env,
-  name: string,
+  kind: Kind,
+  h: string,
+  id: MessageId,
   now: number,
   result: SweepResult,
 ): Promise<void> {
-  const m = /^lc:(free|paid):([0-9a-f]{64})$/.exec(name);
-  if (!m) return;
-  const kind = m[1] as Kind;
-  const h = m[2]!;
-  const drop = async () => {
-    await env.KEYS.delete(name);
-    await env.KEYS.delete(markKey(kind, h));
+  const drop = async (rec?: LifecycleRecord) => {
+    if (!(await env.KEYS.get(recordKey(kind, h)))) return;
+    await dropRecord(env, kind, h, rec);
     result.removed++;
   };
   if (await isSuppressed(env, h)) return drop();
   const rec = await readRecord(env, kind, h);
-  if (!rec || !(await recordIsLive(env, rec))) return drop();
+  if (!rec) return;
+  if (!(await recordIsLive(env, rec))) return drop(rec);
   const ageDays = (now - Date.parse(rec.since)) / DAY_MS;
-  // Past DUE_UNTIL_DAYS nothing time-based is sent again; the record is not looked at further.
+  // Past DUE_UNTIL_DAYS nothing time-based is sent: the item is just deleted.
   if (!(ageDays >= 1) || ageDays > DUE_UNTIL_DAYS) return;
   const marks = await readMarks(env, kind, h);
   // The meter's window runs back from today: far enough to cover everything since the start.
   const window = Math.min(DUE_UNTIL_DAYS, Math.ceil(ageDays) + 1);
   const usage = await env.METER.usage(rec.subject, window);
-  const id = dueMessage(kind, marks, ageDays, usage.total > 0);
-  if (!id) return;
+  if (dueMessage(kind, marks, ageDays, usage.total > 0) !== id) return;
   const plan = rec.plan && isPlanId(rec.plan) ? PLANS[rec.plan] : PLANS.pro;
   const r = await deliverPromo(env, kind, h, id, now, (_rec, ctx) => {
     if (id === "A2") return unusedFreeMessage(ctx);
@@ -712,6 +823,9 @@ export async function lifecycleRoute(
         status: 405,
         headers: { allow: "GET, HEAD, POST" },
       });
+    const origin = request.headers.get("origin");
+    if (origin && origin !== "null" && origin !== url.origin)
+      return stopFormPage(403, "This form only works on its own page.");
     const body = new URLSearchParams(opts.body ?? "");
     const email = (body.get("email") ?? "").trim();
     if (email.length > 254 || !EMAIL_RE.test(email))
@@ -721,7 +835,7 @@ export async function lifecycleRoute(
         503,
         "This is being set up; write to the contact address on this page.",
       );
-    await stopEmails(env, await addressHash(env, email), now);
+    await stopByForm(env, await addressHash(env, email), now);
     // The same answer for every address: it tells nobody whether it was getting the emails.
     return messagePage(
       200,
@@ -738,6 +852,35 @@ export async function lifecycleRoute(
     return paidConsentRoute(env, request, url, opts);
   }
   return undefined;
+}
+
+/** New stop markers the address form may create in one hour, across all callers. */
+export const STOP_FORM_PER_HOUR = 100;
+
+/**
+ * The address form: an address with a consent record is always stopped. Otherwise a marker is
+ * written only for an address FactLot has a free key for (so it can never be mailed later), and
+ * only while the hour's STOP_FORM_PER_HOUR new markers are not used up; for any other address
+ * nothing is written. The page answers the same in every case. Signed stop links are not limited.
+ */
+async function stopByForm(env: Env, h: string, now: number): Promise<void> {
+  const consented =
+    (await env.KEYS.get(recordKey("free", h))) !== null ||
+    (await env.KEYS.get(recordKey("paid", h))) !== null;
+  if (consented) {
+    await stopEmails(env, h, now);
+    return;
+  }
+  if (await isSuppressed(env, h)) return;
+  if ((await env.KEYS.get(`freeemail:${h}`)) === null) return;
+  const hour = new Date(now).toISOString().slice(0, 13);
+  const hit = await env.METER.consume(`lcstopform:${hour}`, {
+    kind: "day",
+    limit: STOP_FORM_PER_HOUR,
+    n: 1,
+  });
+  if (hit.granted < 1) return;
+  await stopEmails(env, h, now);
 }
 
 /** POST /account/lifecycle: the checkbox on the page after checkout. */

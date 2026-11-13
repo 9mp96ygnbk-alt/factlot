@@ -68,6 +68,7 @@ import { messagePage, onboardingPage } from "./pages.ts";
 import { propertyPath } from "../../registry/src/page-rules.ts";
 import { claimUrl, newClaim, storeClaim } from "./claim.ts";
 import { countEvent } from "./usage.ts";
+import { forgetPaidConsent } from "./lifecycle.ts";
 import { forgetWatch } from "./watch-forget.ts";
 
 /** How long a key's subscription status is trusted before it is re-checked with Stripe. */
@@ -802,6 +803,10 @@ export async function handleWebhook(
       // answers 503, so Stripe sends the event again. Nothing is called while watch lists are off.
       if (watchEnabled(env) && stripeStatusIsTerminal(state.stripe_status))
         await forgetWatch(env, sub);
+      // A cancelled plan's optional-email consent record goes too (lifecycle.ts), whether or not
+      // lifecycle emails are on: one KV read when there is none.
+      if (stripeStatusIsTerminal(state.stripe_status))
+        await forgetPaidConsent(env, sub);
       if (created)
         await kv.put(`subevt:${sub}`, String(created), {
           expirationTtl: INACTIVE_RETENTION_SECONDS,

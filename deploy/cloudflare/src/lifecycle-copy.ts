@@ -100,7 +100,7 @@ export const DUE_UNTIL_DAYS = 30;
 /** The consent box texts: what is sent and how often, in plain words. */
 export function freeConsentText(): string {
   const n = optionalMessages("free").length;
-  return `Also email me up to ${n} optional notes about FactLot, only about my free key: one when a lookup leaves earlier roll years out, one if I have not used the key after ${DUE_AFTER_DAYS.A2} days, one when I reach the daily limit, and a summary after ${DUE_AFTER_DAYS.A4} days. No more than ${PROMO_DAILY_CAP} a day, each with a link that stops them.`;
+  return `Also email me up to ${n} optional notes about FactLot, only about my free key: one when a lookup leaves out earlier roll years or some of an owner's parcels (both are part of the paid plans), one if I have not used the key after ${DUE_AFTER_DAYS.A2} days, one when I reach the daily limit, and a summary after ${DUE_AFTER_DAYS.A4} days. No more than ${PROMO_DAILY_CAP} a day, each with a link that stops them.`;
 }
 
 export function paidConsentText(): string {

@@ -9,7 +9,7 @@
  * stops the other; the caller hands each to its own waitUntil.
  */
 export const WATCH_CRON = "*/15 * * * *";
-export const LIFECYCLE_CRON = "0 15 * * *";
+export const LIFECYCLE_CRON = "0 * * * *";
 
 export interface ScheduledJobs {
   watch(): Promise<unknown>;

@@ -100,9 +100,9 @@
   // Cron triggers (examples only; none is configured). The scheduled handler (src/worker.ts)
   // dispatches on the cron string: "*/15 * * * *" runs the watch-list check (src/watch-check.ts,
   // WATCH_LISTS_ENABLED; a run with no new pack is one registry and one Durable Object request),
-  // "0 15 * * *" the lifecycle sweep (src/lifecycle.ts, LIFECYCLE_EMAILS_ENABLED). Uncomment the
+  // "0 * * * *" (hourly) the lifecycle sweep (src/lifecycle.ts, LIFECYCLE_EMAILS_ENABLED). Uncomment the
   // line for each feature you turn on; each job does nothing while its variable is off.
-  // "triggers": { "crons": ["*/15 * * * *", "0 15 * * *"] },
+  // "triggers": { "crons": ["*/15 * * * *", "0 * * * *"] },
   // Email (welcome email after purchase, lost-key recovery links), through Cloudflare Email
   // Service: factlot.com is onboarded for Email Sending (Compute > Email Service > Email Sending;
   // the cf-bounce MX, SPF, DKIM and _dmarc records are managed there) and RECOVERY_SIGNING_SECRET

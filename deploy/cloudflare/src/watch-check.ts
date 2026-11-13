@@ -327,8 +327,7 @@ export async function compareItems(
       });
     } catch (err) {
       if (!(err instanceof RegistryCallFailed)) throw err;
-      // The failed call and the health probe.
-      calls += 2;
+      // The failed call and the health probe both count (the loop ends below).
       ctx.spend(2);
       // Is the registry down, or did these subjects break the call?
       const up = await ctx.reader.builtAt().then(

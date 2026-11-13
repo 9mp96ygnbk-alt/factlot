@@ -74,7 +74,14 @@ import {
   unusedPaidMessage,
   withheldMessage,
 } from "./lifecycle-copy.ts";
-import { deliverPromo, lifecycleSweep } from "./lifecycle.ts";
+import {
+  MARK_TTL_DAYS,
+  SWEEP_BATCH,
+  addressHash,
+  deliverPromo,
+  lifecycleSweep,
+  recordConsent,
+} from "./lifecycle.ts";
 import { body } from "./email.ts";
 import {
   PLANS,
@@ -9200,7 +9207,7 @@ describe("lifecycle emails", () => {
       assert.match(privacy, /if you see no such box, they are not on offer/);
       assert.match(
         privacy,
-        /factlot\.com\/account\/stop \(that page exists only then\)/,
+        /factlot\.com\/account\/stop \(that page exists only then;/,
       );
       assert.match(privacy, /press the button on the page that the link/);
       for (const row of [
@@ -9211,6 +9218,9 @@ describe("lifecycle emails", () => {
         "395 days; not deleted by a stop or a key deletion",
         "Free key lookup tally",
         "Up to 90 days",
+        "Watch-list stop-link records",
+        "at most 32 days after it falls due",
+        "and at most 395 days",
       ])
         assert.ok(privacy.includes(row), row);
       assert.doesNotMatch(
@@ -9294,7 +9304,7 @@ describe("lifecycle emails", () => {
       );
     });
 
-    it("S4: the sweep works in batches with a saved cursor, reaches every record, survives a bad one and skips old ones", async () => {
+    it("S4: the sweep reads only due items, in date order and in batches, survives a bad one and leaves nothing behind", async () => {
       const { e, mail } = setup();
       const emails = ["a", "b", "c", "d", "e"].map((x) => `${x}@example.com`);
       for (const [i, em] of emails.entries()) {
@@ -9305,6 +9315,11 @@ describe("lifecycle emails", () => {
       }
       const names = lcKeys(e);
       assert.equal(names.length, 5);
+      // Two due items per record (A2 and A4), keyed by their due hour.
+      const due = () => lcKeys(e, "lcdue");
+      assert.equal(due().length, 10);
+      for (const d of due())
+        assert.match(d, /^lcdue:\d{10}:free:[0-9a-f]{64}:(A2|A4)$/);
       // One record whose meter read throws.
       const bad = JSON.parse(e.KEYS.data.get(names[1]!)!) as Record<
         string,
@@ -9319,36 +9334,41 @@ describe("lifecycle emails", () => {
         if (subject === "boom") throw new Error("do down");
         return usage(subject, days);
       };
+      // Nothing is due yet: the run stops at the first item, reading nothing else.
+      const early = await lifecycleSweep(e, e.clock.t, 10);
+      assert.equal(early.checked, 0);
+      assert.equal(early.complete, true);
       e.clock.t += 3 * DAY;
       const seen: number[] = [];
       let complete = false;
       let errors = 0;
-      const to = new Set<string>();
       for (let run = 0; run < 10 && !complete; run++) {
         const r = await lifecycleSweep(e, e.clock.t, 2);
         seen.push(r.checked);
         errors += r.errors;
         complete = r.complete;
       }
+      // Only the five A2 items were due; the A4 ones wait.
       assert.deepEqual(seen, [2, 2, 1]);
       assert.equal(errors, 1, "the bad record was counted, not fatal");
-      for (const m of optionalMails(mail)) to.add(m.to);
+      const to = new Set(optionalMails(mail).map((m) => m.to));
       assert.equal(to.size, 4, "every other record was reached across runs");
-      assert.ok(
-        !e.KEYS.data.has("lcsweep:cursor"),
-        "cursor cleared at the end",
-      );
-      // Not re-examined once past the time-based window: no meter read at all.
+      assert.equal(due().length, 5, "handled items are deleted");
+      // A record whose address was stopped is deleted when its item comes up.
+      e.KEYS.data.set(`lcstop:${names[0]!.split(":")[2]}`, "t");
+      // Past the time-based window: the remaining items go unsent, with no meter read.
       usageCalls = 0;
       e.clock.t += 40 * DAY;
       const old = await lifecycleSweep(e, e.clock.t, 10);
       assert.equal(old.checked, 5);
+      assert.equal(old.removed, 1);
       assert.equal(usageCalls, 0);
-      assert.equal(old.removed, 0);
-      // A record whose address was stopped is deleted by the sweep.
-      e.KEYS.data.set(`lcstop:${names[0]!.split(":")[2]}`, "t");
-      assert.equal((await lifecycleSweep(e, e.clock.t, 10)).removed, 1);
       assert.ok(!e.KEYS.data.has(names[0]!));
+      assert.equal(due().length, 0, "nothing left in the index");
+      assert.ok(
+        ![...e.KEYS.data.keys()].some((k) => k.startsWith("lcsweep:")),
+        "no cursor",
+      );
     });
 
     it("S5: the consent form of the page after checkout needs its proof: genuine, for that session, within the hour, from its own origin", async () => {
@@ -9454,10 +9474,11 @@ describe("lifecycle emails", () => {
       for (let i = 0; i < 6; i++)
         codes.push((await stop(`loop${i}@example.com`)).status);
       assert.deepEqual(codes, [200, 200, 429, 429, 429, 429]);
+      // Addresses FactLot holds nothing for get no marker at all through the form.
       assert.equal(
         lcKeys(e, "lcstop").length,
-        2,
-        "only the allowed ones wrote a marker",
+        0,
+        "no marker for an address with no consent, key or plan",
       );
       e.RL_ANON = new CountingLimit(100);
       assert.equal(
@@ -9616,6 +9637,187 @@ describe("lifecycle emails", () => {
       assert.match(text, /We will not add you to any mailing list/);
       for (const [k, v] of e.KEYS.data)
         if (k.startsWith("freelink:")) assert.doesNotMatch(v, /stopped@/);
+    });
+  });
+
+  describe("second review", () => {
+    const deleteFree = (e: E, key: string) =>
+      handle(
+        new Request("https://api.factlot.com/v1/keys/free", {
+          method: "DELETE",
+          headers: { authorization: `Bearer ${key}`, "cf-connecting-ip": IP },
+        }),
+        e,
+        innerApi().api,
+        { now: () => e.clock.t },
+      );
+
+    it("L1: consent writes its due items with an expiry; a plan's cancellation deletes its record, even with the variable off", async () => {
+      const { e } = setup();
+      const h = await addressHash(e, "buyer@example.com");
+      assert.equal(
+        await recordConsent(e, {
+          kind: "paid",
+          h,
+          to: "buyer@example.com",
+          subject: "sub:sub_9",
+          subscription: "sub_9",
+          plan: "pro",
+          now: e.clock.t,
+        }),
+        "recorded",
+      );
+      const due = lcKeys(e, "lcdue");
+      assert.equal(due.length, 2);
+      for (const d of due) assert.ok((e.KEYS.ttl.get(d) ?? 0) > 30 * 86_400);
+      assert.equal(e.KEYS.data.get("lcsub:sub_9"), h);
+      e.LIFECYCLE_EMAILS_ENABLED = undefined;
+      e.STRIPE_WEBHOOK_SECRET = "whsec_x";
+      const res = await handleWebhook(
+        e,
+        await signed(
+          {
+            id: "evt_9",
+            type: "customer.subscription.deleted",
+            created: Math.floor(e.clock.t / 1000),
+            data: { object: { id: "sub_9", status: "canceled" } },
+          },
+          "whsec_x",
+          Math.floor(e.clock.t / 1000),
+        ),
+        () => e.clock.t,
+      );
+      assert.equal(res.status, 200);
+      assert.deepEqual(
+        [...e.KEYS.data.keys()].filter((k) => /^lc(:|due:|sub:|mark:)/.test(k)),
+        [],
+      );
+      assert.ok(SWEEP_BATCH <= 40);
+    });
+
+    it("L1: a run touches only what is due, at most SWEEP_BATCH items", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "one@example.com", true);
+      e.clock.t += 3 * DAY;
+      const list = e.KEYS.list.bind(e.KEYS);
+      let limit = 0;
+      e.KEYS.list = async (o: { prefix?: string; limit?: number }) => {
+        limit = o.limit ?? 0;
+        assert.equal(o.prefix, "lcdue:");
+        return list(o);
+      };
+      const r = await lifecycleSweep(e, e.clock.t, 500);
+      assert.equal(limit, SWEEP_BATCH);
+      assert.equal(r.checked, 1, "the A4 item is not due yet");
+    });
+
+    it("L2: deleting a free key removes its consent record with the variable off, in exactly two KV deletes", async () => {
+      const { e, mail } = setup();
+      const key = await mint(e, mail, "dark2@example.com", true);
+      assert.equal(lcKeys(e).length, 1);
+      e.LIFECYCLE_EMAILS_ENABLED = undefined;
+      const del = e.KEYS.delete.bind(e.KEYS);
+      const deleted: string[] = [];
+      e.KEYS.delete = async (k: string) => {
+        deleted.push(k);
+        return del(k);
+      };
+      assert.equal((await deleteFree(e, key)).status, 200);
+      assert.equal(lcKeys(e).length, 0);
+      assert.equal(deleted.filter((k) => k.startsWith("lc")).length, 2);
+    });
+
+    it("L3: the consent text names both things a free answer can leave out", () => {
+      assert.match(
+        freeConsentText(),
+        /earlier roll years or some of an owner's parcels/,
+      );
+    });
+
+    it("L4: sent marks expire with the once-only claims", async () => {
+      const { e, mail } = setup();
+      const key = await mint(e, mail, "marks@example.com", true);
+      await lookup(e, key);
+      const [mark] = lcKeys(e, "lcmark");
+      assert.ok(mark);
+      assert.equal(e.KEYS.ttl.get(mark), MARK_TTL_DAYS * 86_400);
+    });
+
+    it("L5: a stop marker seen when consenting or sending deletes the consent record", async () => {
+      const { e, mail } = setup();
+      const key = await mint(e, mail, "race@example.com", true);
+      const [name] = lcKeys(e);
+      const h = name!.split(":")[2]!;
+      e.KEYS.data.set(`lcstop:${h}`, "t");
+      assert.equal(
+        await deliverPromo(e, "free", h, "A1", e.clock.t, () => undefined),
+        "suppressed",
+      );
+      assert.equal(lcKeys(e).length, 0);
+      // A record written elsewhere a moment later is taken out by the next consent attempt.
+      e.KEYS.data.set(
+        name!,
+        JSON.stringify({
+          v: 1,
+          kind: "free",
+          to: "race@example.com",
+          consent_at: "x",
+          subject: "s",
+          since: new Date(e.clock.t).toISOString(),
+        }),
+      );
+      assert.equal(
+        await recordConsent(e, {
+          kind: "free",
+          h,
+          subject: "s",
+          now: e.clock.t,
+        }),
+        "suppressed",
+      );
+      assert.equal(lcKeys(e).length, 0);
+      assert.ok(key);
+    });
+
+    it("L7: the address form refuses a foreign origin, marks only addresses FactLot knows, within an hourly ceiling", async () => {
+      const { e, mail } = setup();
+      await mint(e, mail, "known@example.com", false);
+      const post = (email: string, origin = "https://factlot.com") =>
+        run(
+          e,
+          new Request("https://factlot.com/account/stop", {
+            method: "POST",
+            body: `email=${encodeURIComponent(email)}`,
+            headers: {
+              "content-type": "application/x-www-form-urlencoded",
+              origin,
+              "cf-connecting-ip": IP,
+            },
+          }),
+        );
+      assert.equal(
+        (await post("known@example.com", "https://evil.example")).status,
+        403,
+      );
+      assert.equal(lcKeys(e, "lcstop").length, 0);
+      const a = await post("stranger@example.com");
+      const b = await post("known@example.com");
+      assert.equal(a.status, 200);
+      assert.equal(
+        await a.text().then((t) => t.replace(/nonce-[^']+|nonce="[^"]+"/g, "")),
+        await b.text().then((t) => t.replace(/nonce-[^']+|nonce="[^"]+"/g, "")),
+      );
+      assert.equal(lcKeys(e, "lcstop").length, 1, "only the known address");
+      // The hour's ceiling used up: a known address with no consent gets no new marker.
+      await mint(e, mail, "known2@example.com", false);
+      const hour = new Date(e.clock.t).toISOString().slice(0, 13);
+      await e.METER.consume(`lcstopform:${hour}`, {
+        kind: "day",
+        limit: 100,
+        n: 100,
+      });
+      await post("known2@example.com");
+      assert.equal(lcKeys(e, "lcstop").length, 1);
     });
   });
 });
