@@ -34,6 +34,7 @@ export const REPORT_KINDS = [
   "dcf_summary",
   "critical_dates",
   "tx_protest_deadline",
+  "property_sheet",
 ] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
 
@@ -57,6 +58,7 @@ export const KIND_TOOLS: Record<ReportKind, readonly string[]> = {
     "rules_tx_property_tax_protest_deadline",
     "rules_tx_property_tax_protest_deadline_batch",
   ],
+  property_sheet: ["registry_get"],
 };
 
 export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
@@ -69,6 +71,7 @@ export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
   dcf_summary: ["xlsx", "pdf"],
   critical_dates: ["xlsx", "pdf", "ics"],
   tx_protest_deadline: ["ics", "pdf"],
+  property_sheet: ["pdf", "xlsx"],
 };
 
 export interface Issue {
@@ -78,8 +81,15 @@ export interface Issue {
 
 /** The kinds built from a calculator FactLot reruns: arguments are required. */
 export const COMPUTED_KINDS: readonly ReportKind[] = REPORT_KINDS.filter(
-  (k) => k !== "lease_abstract",
+  (k) => k !== "lease_abstract" && k !== "property_sheet",
 );
+
+/**
+ * The kinds built from the hosted registry's answer: the host looks the parcel up for the
+ * caller (registry_get, gated and metered as any call of theirs) and hands the answer over
+ * (CreateOptions.registry); the package never reads a registry itself.
+ */
+export const REGISTRY_KINDS: readonly ReportKind[] = ["property_sheet"];
 
 export type ReportErrorCode =
   | "InputError"
@@ -1081,6 +1091,7 @@ export function checkInput(
   args: unknown,
   now?: number,
 ): Checked {
+  if (kind === "property_sheet") return checkSheetArgs(input, args);
   const tool = toolFor(kind, input, args);
   const spec = getTool(tool);
   if (!spec) throw new ReportInputError("InputError", `unknown tool ${tool}`);
@@ -1134,6 +1145,55 @@ export function checkInput(
           ),
         }
       : {}),
+  };
+}
+
+/** A parcel's FactLot ID (the id package's parcel pattern). */
+export const PARCEL_URN = /^fl:parcel:(us-\d{5}):([a-z0-9]+(?:-[a-z0-9]+)*)$/;
+
+/** property_sheet's arguments: one parcel's FactLot ID and nothing else. */
+export const PropertySheetArgs = z.strictObject({
+  urn: z
+    .string()
+    .max(200)
+    .regex(
+      PARCEL_URN,
+      "a parcel's FactLot ID, such as fl:parcel:us-48201:0010010000001 (registry_search_address returns it)",
+    ),
+});
+
+/**
+ * property_sheet: the arguments are checked here; the record is the host's lookup, attached
+ * later (attachRegistry in index.ts). No result is accepted from the caller.
+ */
+function checkSheetArgs(input: unknown, args: unknown): Checked {
+  if (input !== undefined)
+    throw new ReportInputError(
+      "InputError",
+      "property_sheet takes no input: FactLot looks the parcel up itself (registry_get, as your plan returns it) and builds the sheet from that answer only",
+      [{ path: "input", message: "not accepted for property_sheet" }],
+      'send only "arguments": { "urn": "<the parcel\'s FactLot ID>" }',
+    );
+  if (args === undefined)
+    throw new ReportInputError(
+      "ArgumentsRequired",
+      "property_sheet needs the parcel's FactLot ID: arguments { urn }",
+      [{ path: "arguments.urn", message: "missing: this field is required" }],
+      'send "arguments": { "urn": "fl:parcel:..." } (registry_search_address returns the urn for an address)',
+    );
+  const parsed = PropertySheetArgs.safeParse(args);
+  if (!parsed.success)
+    throw new ReportInputError(
+      "ArgumentsError",
+      "property_sheet takes one argument, urn: a parcel's FactLot ID",
+      zodIssues(parsed.error, "arguments"),
+      'send "arguments": { "urn": "fl:parcel:..." } and nothing else (registry_search_address returns the urn for an address)',
+    );
+  return {
+    tool: "registry_get",
+    result: undefined,
+    check: "computed",
+    args: parsed.data,
   };
 }
 
