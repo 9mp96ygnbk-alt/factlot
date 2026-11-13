@@ -25,6 +25,7 @@ import {
   addressRangeMatches,
   addressSearchForms,
   addressStreetWords,
+  addressUnit,
   addressWhereIssues,
   addressWordsWithoutOrdinals,
   configureRegistry,
@@ -637,6 +638,7 @@ test("name and address normalization match the Python vectors", () => {
       { path: string; message: string }[],
     ][];
     address_queries_with_place: [string, string][];
+    address_units: [string | null, string | null][];
   };
   for (const [input, expected] of v.names)
     assert.equal(normalizeName(input), expected, input);
@@ -682,6 +684,8 @@ test("name and address normalization match the Python vectors", () => {
     assert.deepEqual(addressWhereIssues(where), issues, JSON.stringify(where));
   for (const [query, rewritten] of v.address_queries_with_place)
     assert.equal(addressQueryWithPlace(query), rewritten, query);
+  for (const [text, unit] of v.address_units)
+    assert.equal(addressUnit(text), unit, String(text));
 });
 
 test("address places and ranks: TypeScript matches Python on random queries", () => {

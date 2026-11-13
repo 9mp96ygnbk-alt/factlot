@@ -1095,7 +1095,8 @@ def address_place(query: str) -> dict[str, Any]:
     """The place an address query names after its street line (``addressPlace`` in TS): ``{"city", "state", "zip"}``,
     read conservatively from the end of the part after the first comma: a trailing country ("USA", "U.S.A.", "US",
     "United States") is dropped and "D.C." is DC; a ZIP code is a 5-digit number (or ZIP+4) that ends the query and
-    does not follow a unit, suite, box, room, building or number word, and only orders the matches; a state (two
+    does not follow a unit, suite, box, room, building or number word, and only orders the matches (a number of 4 or 6
+    to 9 digits there, or "6103.0", is a ZIP code written wrongly and is passed over); a state (two
     letters, or the full name) counts only when it follows a city, in its comma part or the one before, and never
     after a unit word or floor ordinal, and is the only part that filters; the city is the comma part left at the
     end, and only orders. Anything else is ignored; a query without a comma names no place.
@@ -1134,13 +1135,24 @@ def address_place(query: str) -> dict[str, Any]:
             k = 1
         else:
             k = 0
+        # A ZIP code written wrongly ("6103.0", "60701822", "7700"): not a ZIP code, and not read as anything else.
         if k:
-            before = w[n - k - 1] if n - k - 1 >= 0 else None
+            bad = 0
+        elif n >= 2 and re.fullmatch(r"[0-9]{4}", w[-2]) and w[-1] == "0":
+            bad = 2
+        elif re.fullmatch(r"[0-9]{4}|[0-9]{6,9}", w[-1]):
+            bad = 1
+        else:
+            bad = 0
+        if k or bad:
+            m = k or bad
+            before = w[n - m - 1] if n - m - 1 >= 0 else None
             # "Suite 12345", "PO Box 12345": a unit's number, and the part is no place.
             if before is not None and before != "FL" and _is_unit_word(before):
                 return none
-            zip5 = w[n - k]
-            drop(k)
+            if k:
+                zip5 = w[n - k]
+            drop(m)
     state = None
     if parts:
         w = parts[-1]
@@ -1322,6 +1334,11 @@ def address_search_forms(words: list[str]) -> list[list[str]]:
     eye = [i for i, w in enumerate(n) if w == "EYE" and i + 1 < len(n) and n[i + 1] in SEARCH_STREET_TYPES]
     if eye:
         add(["I" if i in eye else w for i, w in enumerate(n)])
+    # San Francisco writes "03RD ST" for 3rd Street.
+    lead = not (words and words[0][:1].isdigit())
+    padded = ["0" + w if (i > 0 or lead) and re.fullmatch(r"[1-9](?:ST|ND|RD|TH)", w) else w for i, w in enumerate(n)]
+    if padded != n:
+        add(padded)
     # Without a house number, the first word may be the street number itself ("42ND ST").
     add(_ordinals_dropped(n, 1 if words and words[0][:1].isdigit() else 0))
     add(address_words_with_ordinals(n))
@@ -1508,7 +1525,7 @@ def address_street_hint_from(number: str, place: dict[str, Any],
 
 ADDRESS_CARD_PREDICATES = ("parcel.apn", "parcel.state_property_category", "parcel.local_use_code",
                            "parcel.improvement_area_sf", "parcel.year_built")
-_LABEL_UNIT = re.compile(r"(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|SPC|SPACE)\.?\s*#?\s*([A-Z0-9][A-Z0-9-]*)")
+_LABEL_UNIT = re.compile(r"(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*#?\s*([A-Z0-9][A-Z0-9-]*)")
 
 
 def _card_text(v: Any) -> str | None:
@@ -1526,6 +1543,15 @@ def _js_number(v: float) -> str:
     return repr(v) if isinstance(v, float) else str(v)
 
 
+def address_unit(text: Any) -> str | None:
+    """The unit a label or query names after a designator in its street line ("Unit 101", "#103"), or None
+    (``addressUnit`` in TS)."""
+    if not isinstance(text, str):
+        return None
+    m = _LABEL_UNIT.search(_upper_ascii(text.split(",")[0]).replace("#", " # "))
+    return m.group(1) if m else None
+
+
 def address_card(label: Any, facts: list[dict[str, Any]]) -> dict[str, Any]:
     """What tells a search result apart from others at the same address (``addressCard`` in TS): account, property
     category, use code, improvement area, land only (no improvement area and no year built) and the unit its label
@@ -1536,15 +1562,13 @@ def address_card(label: Any, facts: list[dict[str, Any]]) -> dict[str, Any]:
     area = first.get("parcel.improvement_area_sf")
     improvement = area if isinstance(area, (int, float)) and not isinstance(area, bool) else None
     built = first.get("parcel.year_built")
-    line = _upper_ascii(label.split(",")[0]).replace("#", " # ") if isinstance(label, str) else ""
-    m = _LABEL_UNIT.search(line)
     return {
         "account": _card_text(first.get("parcel.apn")),
         "property_category": _card_text(first.get("parcel.state_property_category")),
         "use_code": _card_text(first.get("parcel.local_use_code")),
         "improvement_area_sf": improvement,
         "land_only": not (improvement is not None and improvement > 0) and built is None,
-        "unit": m.group(1) if m else None,
+        "unit": address_unit(label),
     }
 
 
@@ -1562,10 +1586,10 @@ def _code_points(s: str) -> tuple:
 
 def address_match_key(m: dict[str, Any]) -> tuple:
     """The order of an address search's matches (``addressMatchCompare`` in TS): place group, the words as written
-    first, exact address first, then label (null first), then URN."""
+    first, exact address first, the label naming the query's unit first, then label (null first), then URN."""
     label = m["label"]
-    return (m["rank"], m["tier"], not m["exact"], label is not None, _code_points(label) if label is not None else (),
-            _code_points(m["urn"]))
+    return (m["rank"], m["tier"], not m["exact"], not m["unit"], label is not None,
+            _code_points(label) if label is not None else (), _code_points(m["urn"]))
 
 
 def _same_label_run(a: dict[str, Any], b: dict[str, Any]) -> bool:

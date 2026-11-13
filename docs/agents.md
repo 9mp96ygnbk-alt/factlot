@@ -253,7 +253,8 @@ however it is written (`Fifth Avenue`, `5th Ave`, `5 Avenue`; `Forty-Second St`)
 number matches a lot whose address is a range holding it on the same side of the street (`350 5th
 Ave` finds `338-350 5 AVENUE`). Each result carries what tells parcels at one address apart
 (account or lot number, property category, use code, improvement area, `land_only`, the unit its
-label names); parcels sharing a label come improved first, largest improvement area first. A miss
+label names); a parcel whose label names the unit the query names comes first, and parcels sharing a
+label come improved first, largest improvement area first. A miss
 says why in `coverage.reason`: `state_not_loaded`, `county_not_loaded` (also when every county
 known to hold the named city or ZIP code is not loaded), `street_not_found`,
 `street_not_in_place`, `house_number_not_found` (with `nearest_house_numbers` on that street) or

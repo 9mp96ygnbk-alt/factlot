@@ -947,7 +947,8 @@ export function addressWordsWithOrdinals(words: string[]): string[] | null {
  * then a numbered street written in words as one ordinal, and the street numbers with and without their ordinal
  * endings ("FIFTH AVE", "5TH AVE" and "5 AVE" are one street). Rolls write numbered streets either way. Two names
  * the registry's rolls write their own way are searched by them too: Sixth Avenue and the Avenue of the Americas as
- * "AVE OF THE AMER" and "AVE OF THE AMERICAS" (Manhattan), and Eye Street as "I ST" (Washington, DC).
+ * "AVE OF THE AMER" and "AVE OF THE AMERICAS" (Manhattan), Eye Street as "I ST" (Washington, DC), and the 1st to
+ * 9th streets with a leading zero ("03RD ST", San Francisco).
  */
 export function addressSearchForms(words: string[]): string[][] {
   const forms = [words];
@@ -984,6 +985,14 @@ export function addressSearchForms(words: string[]): string[][] {
         w === "EYE" && STREET_TYPES.has(n[i + 1] ?? "") ? "I" : w,
       ),
     );
+  // San Francisco writes "03RD ST" for 3rd Street.
+  const padded = n.map((w, i) =>
+    (i > 0 || !/^[0-9]/.test(words[0] ?? "")) &&
+    /^[1-9](?:ST|ND|RD|TH)$/.test(w)
+      ? `0${w}`
+      : w,
+  );
+  if (padded.some((w, i) => w !== n[i])) add(padded);
   // Without a house number, the first word may be the street number itself ("42ND ST").
   add(ordinalsDropped(n, /^[0-9]/.test(words[0] ?? "") ? 1 : 0));
   add(addressWordsWithOrdinals(n));
@@ -1205,7 +1214,7 @@ export interface AddressCard {
 }
 
 const LABEL_UNIT =
-  /(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|SPC|SPACE)\.?\s*#?\s*([A-Z0-9][A-Z0-9-]*)/;
+  /(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*#?\s*([A-Z0-9][A-Z0-9-]*)/;
 
 function cardText(v: unknown): string | null {
   return typeof v === "string" && v !== ""
@@ -1213,6 +1222,13 @@ function cardText(v: unknown): string | null {
     : typeof v === "number" && Number.isFinite(v)
       ? String(v)
       : null;
+}
+
+/** The unit a label or query names after a designator in its street line ("Unit 101", "#103"), or null. */
+export function addressUnit(text: unknown): string | null {
+  if (typeof text !== "string") return null;
+  const line = upperAscii(text.split(",")[0] ?? "").replaceAll("#", " # ");
+  return LABEL_UNIT.exec(line)?.[1] ?? null;
 }
 
 /**
@@ -1232,17 +1248,13 @@ export function addressCard(
   const improvement =
     typeof area === "number" && Number.isFinite(area) ? area : null;
   const built = first.get("parcel.year_built");
-  const line =
-    typeof label === "string"
-      ? upperAscii(label.split(",")[0] ?? "").replaceAll("#", " # ")
-      : "";
   return {
     account: cardText(first.get("parcel.apn")),
     property_category: cardText(first.get("parcel.state_property_category")),
     use_code: cardText(first.get("parcel.local_use_code")),
     improvement_area_sf: improvement,
     land_only: !(improvement !== null && improvement > 0) && built == null,
-    unit: LABEL_UNIT.exec(line)?.[1] ?? null,
+    unit: addressUnit(label),
   };
 }
 
@@ -1507,7 +1519,8 @@ export function addressPlaceWith(
  * conservatively from the end of the part after the first comma:
  * - a trailing country ("USA", "U.S.A.", "US", "United States") is dropped, and "D.C." is DC;
  * - a ZIP code is a 5-digit number (or ZIP+4) that ends the query and does not follow a unit, suite, box, room,
- *   building or number word ("Suite 12345" makes the part no place); it only orders the matches;
+ *   building or number word ("Suite 12345" makes the part no place); it only orders the matches; a number of 4 or 6
+ *   to 9 digits there (or "6103.0") is a ZIP code written wrongly, as some rolls do, and is passed over;
  * - a state (two letters, or the full name) counts only when it follows a city, in its comma part or the one
  *   before, and never after a unit word or floor ordinal ("12th Fl", "Unit CO"); it is the only part that filters;
  * - the city is the comma part left at the end: one to five words of letters, none a unit word ("Washington" in
@@ -1555,13 +1568,21 @@ export function addressPlace(query: string): AddressPlace {
         : /^[0-9]{5}$/.test(w[n - 1]!)
           ? 1
           : 0;
-    if (k) {
-      const before = w[n - k - 1];
+    // A ZIP code written wrongly ("6103.0", "60701822", "7700"): not a ZIP code, and not read as anything else.
+    const bad = k
+      ? 0
+      : n >= 2 && /^[0-9]{4}$/.test(w[n - 2]!) && w[n - 1] === "0"
+        ? 2
+        : /^(?:[0-9]{4}|[0-9]{6,9})$/.test(w[n - 1]!)
+          ? 1
+          : 0;
+    if (k || bad) {
+      const before = w[n - (k || bad) - 1];
       // "Suite 12345", "PO Box 12345": a unit's number, and the part is no place.
       if (before !== undefined && before !== "FL" && isUnitWord(before))
         return none;
-      zip = w[n - k]!;
-      drop(k);
+      if (k) zip = w[n - k]!;
+      drop(k || bad);
     }
   }
   let state: string | null = null;
@@ -1679,6 +1700,8 @@ export interface AddressMatch {
   tier: 0 | 1;
   /** The parcel's address key is one of its tier's spellings exactly. */
   exact: boolean;
+  /** The parcel's label names the unit the query names ("#310", "Unit 4B"). */
+  unit: boolean;
 }
 
 function labelCompare(a: string | null, b: string | null): number {
@@ -1690,14 +1713,15 @@ function labelCompare(a: string | null, b: string | null): number {
 
 /**
  * The order of an address search's matches (`address_match_key` in Python): place group (same ZIP code, then same
- * city, then the rest), the words as written before other spellings and ranges, exact address first, then label,
- * then URN.
+ * city, then the rest), the words as written before other spellings and ranges, exact address first, those whose
+ * label names the unit the query names first (a unit never filters), then label, then URN.
  */
 export function addressMatchCompare(a: AddressMatch, b: AddressMatch): number {
   return (
     a.rank - b.rank ||
     a.tier - b.tier ||
     Number(b.exact) - Number(a.exact) ||
+    Number(b.unit) - Number(a.unit) ||
     labelCompare(a.label, b.label) ||
     binaryCompare(a.urn, b.urn)
   );
@@ -1926,7 +1950,7 @@ function searchAddress(
     };
   }
   const forms = addressForms(runs);
-  const sorted = addressMatches(d, mode, forms, place);
+  const sorted = addressMatches(d, mode, forms, place, addressUnit(address));
   const end = addressWindowEnd(sorted, limit);
   const results = addressResultRows(
     sorted.slice(0, end).map((m) => ({
@@ -1982,6 +2006,7 @@ function addressMatches(
   mode: "house_number" | "street",
   forms: AddressForms,
   place: AddressPlace,
+  unit: string | null,
 ): AddressMatch[] {
   const all = [...forms.first, ...forms.other];
   const where: string[] = [];
@@ -2027,7 +2052,14 @@ function addressMatches(
     if (rank < 0) continue;
     const m = byUrn.get(urn);
     if (!m || t[0] < m.tier)
-      byUrn.set(urn, { urn, label, rank, tier: t[0], exact: t[1] });
+      byUrn.set(urn, {
+        urn,
+        label,
+        rank,
+        tier: t[0],
+        exact: t[1],
+        unit: unit !== null && addressUnit(label) === unit,
+      });
     else if (t[0] === m.tier && t[1]) m.exact = true;
   }
   return [...byUrn.values()].sort(addressMatchCompare);

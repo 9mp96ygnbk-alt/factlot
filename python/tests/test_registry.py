@@ -20,6 +20,7 @@ from factlot.registry.normalize import (
     address_range_matches,
     address_search_forms,
     address_street_words,
+    address_unit,
     address_where_issues,
     address_place_rank,
     address_query,
@@ -119,6 +120,8 @@ class Normalization(unittest.TestCase):
             self.assertEqual(address_where_issues(where), issues, str(where))
         for query, rewritten in vectors["address_queries_with_place"]:
             self.assertEqual(address_query_with_place(query), rewritten, query)
+        for text, unit in vectors["address_units"]:
+            self.assertEqual(address_unit(text), unit, str(text))
 
     def test_county_names_match_the_census_table(self):
         tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "county-names.tsv"

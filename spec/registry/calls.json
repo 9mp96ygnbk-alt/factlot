@@ -784,6 +784,24 @@
     }
   },
   {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Dr #103, Example City TX 77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Drive Unit 102"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, Shoreville, MD 2199"
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"

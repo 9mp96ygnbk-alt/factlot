@@ -42,6 +42,7 @@ from .normalize import (
     address_row_tier,
     address_state,
     address_street_hint_from,
+    address_unit,
     address_window_end,
     distinctive_tokens,
     scrub_mailing_address,
@@ -1567,7 +1568,7 @@ class Registry:
             rows = self._search_address_runs(mode, runs, limit, place)
             return [{**r, **self._address_card(r["urn"], r["label"])} for r in rows], None
         forms = address_forms(runs)
-        ordered = self._address_matches(mode, forms, place)
+        ordered = self._address_matches(mode, forms, place, address_unit(address))
         end = address_window_end(ordered, limit)
         results = address_result_rows([(m, self._address_card(m["urn"], m["label"])) for m in ordered[:end]], limit)
         if results or not hint:
@@ -1594,8 +1595,8 @@ class Registry:
             "ORDER BY predicate, as_of DESC, fact_id", (urn, *ADDRESS_CARD_PREDICATES)).fetchall()
         return address_card(label, [{"predicate": r["predicate"], "value": json.loads(r["value_json"])} for r in rows])
 
-    def _address_matches(self, mode: str, forms: dict[str, list[list[str]]],
-                         place: dict[str, Any]) -> list[dict[str, Any]]:
+    def _address_matches(self, mode: str, forms: dict[str, list[list[str]]], place: dict[str, Any],
+                         unit: str | None = None) -> list[dict[str, Any]]:
         """Every parcel a search matches (each spelling, and with a house number each range holding it), in its place's
         state (and county) only, sorted by ``address_match_key``."""
         where, params = [], []
@@ -1624,7 +1625,8 @@ class Registry:
                 continue
             m = by_urn.get(urn)
             if m is None or t[0] < m["tier"]:
-                by_urn[urn] = {"urn": urn, "label": label, "rank": rank, "tier": t[0], "exact": t[1]}
+                by_urn[urn] = {"urn": urn, "label": label, "rank": rank, "tier": t[0], "exact": t[1],
+                               "unit": unit is not None and address_unit(label) == unit}
             elif t[0] == m["tier"] and t[1]:
                 m["exact"] = True
         return sorted(by_urn.values(), key=address_match_key)

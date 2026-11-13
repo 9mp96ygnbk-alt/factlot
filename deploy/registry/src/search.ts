@@ -41,6 +41,7 @@ import {
   addressRowTier,
   addressSearchKeysFor,
   addressStreetHintFrom,
+  addressUnit,
   addressWindowEnd,
   nameSearchKeyFor,
   type AddressCard,
@@ -161,7 +162,15 @@ export async function searchAddress(
     return { results, hint: null };
   }
   const forms = addressForms([words]);
-  const sorted = await addressMatches(pack, m, mode, forms, limit, place);
+  const sorted = await addressMatches(
+    pack,
+    m,
+    mode,
+    forms,
+    limit,
+    place,
+    addressUnit(query),
+  );
   const end = addressWindowEnd(sorted, limit);
   const items: { match: AddressMatch; card: AddressCard }[] = [];
   for (const match of sorted.slice(0, end))
@@ -201,6 +210,7 @@ async function addressMatches(
   forms: AddressForms,
   limit: number,
   place: AddressPlace,
+  unit: string | null,
 ): Promise<AddressMatch[]> {
   const first = forms.first[0]!;
   const byUrn = new Map<string, AddressMatch>();
@@ -215,7 +225,14 @@ async function addressMatches(
     const was = byUrn.get(urn);
     if (!was || t[0] < was.tier) {
       if (was && was.rank === top && was.tier === 0) full--;
-      byUrn.set(urn, { urn, label, rank, tier: t[0], exact: t[1] });
+      byUrn.set(urn, {
+        urn,
+        label,
+        rank,
+        tier: t[0],
+        exact: t[1],
+        unit: unit !== null && addressUnit(label) === unit,
+      });
       if (rank === top && t[0] === 0) full++;
       return rank === top && t[0] === 0;
     }
@@ -225,7 +242,7 @@ async function addressMatches(
   const exact =
     (await dictionary<ExactList>(pack, m, `E:${first.join(" ")}`)) ?? [];
   for (const [urn, label] of exact) put(urn, label, null);
-  let done = full >= limit;
+  let done = unit === null && full >= limit;
   const written = addressListKey(mode, first);
   const lists: string[] = [];
   if (written !== null) lists.push(written);
@@ -253,7 +270,9 @@ async function addressMatches(
           done = true;
           break scan;
         }
-        if (put(urn, label, k) && isWritten && full >= limit) boundary = label;
+        // A query naming a unit reads the whole list: the parcel naming that unit may come later in label order.
+        if (put(urn, label, k) && isWritten && unit === null && full >= limit)
+          boundary = label;
       }
   }
   return [...byUrn.values()].sort(addressMatchCompare);
