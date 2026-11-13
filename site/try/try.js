@@ -90,7 +90,7 @@
       left +
       " of " +
       limit +
-      ". A search that finds a parcel and the record fetch each count as one; misses and input errors are free.";
+      ". A search and the record fetch each count as one, a search that finds nothing inside loaded coverage included; misses outside loaded coverage and input errors are free.";
   }
 
   function problem(title, lines, links) {

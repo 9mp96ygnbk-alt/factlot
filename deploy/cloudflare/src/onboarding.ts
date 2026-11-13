@@ -162,7 +162,7 @@ export function setupGuide(o: {
       id: "claude",
       name: "Claude Desktop and claude.ai",
       steps: [
-        "Settings → Connectors → Add custom connector. Name it FactLot and enter the sign-in URL below; leave the OAuth client id and secret empty.",
+        "Customize → Connectors → + Add → Add custom connector. Name it FactLot and enter the sign-in URL below; leave the OAuth client id and secret empty.",
         "Click Connect: a FactLot page opens. Paste your key once and choose Connect with my key. The connection is tied to your subscription, not to the key, so replacing the key keeps it working; see or disconnect it at " +
           site +
           "/account.",

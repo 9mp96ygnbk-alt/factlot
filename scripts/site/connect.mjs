@@ -62,7 +62,7 @@ export function connectJson(raw, version) {
 function authLines(a) {
   const rows = [
     ["Free", a.free],
-    ["Paid key", a.key],
+    ["With a key", a.key],
     ["Sign-in", a.oauth],
   ].filter(([, v]) => v);
   return `<ul class="plain">\n${rows.map(([k, v]) => `<li><strong>${k}:</strong> ${esc(v)}</li>`).join("\n")}\n</ul>`;
@@ -105,10 +105,15 @@ export function connectBody(raw, version) {
   tool to any MCP client. Each section gives the shortest path for one surface. The same
   information is machine-readable at <a href="/connect.json">/connect.json</a>.
 </p>
+<p>
+  The local server (the standalone package and the Claude Desktop extension) is release
+  v${esc(version)}. The hosted server runs newer code: it offers MCP resources and prompts, and
+  tools, that the local server gains in its next release.
+</p>
 <h2 id="keys">Keys and sign-in</h2>
 <ul class="plain">
 <li><strong>Free:</strong> ${esc(d.auth.free)}</li>
-<li><strong>Paid:</strong> ${esc(d.auth.key)} See <a href="/pricing/">pricing</a>.</li>
+<li><strong>With a key:</strong> ${esc(d.auth.key)} See <a href="/pricing/">pricing</a>.</li>
 <li><strong>Sign-in:</strong> ${esc(d.auth.oauth)} The sign-in URL is <code>${esc(d.signin_url)}</code>.</li>
 </ul>
 <p class="small">${esc(d.verification_note)}</p>

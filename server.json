@@ -34,7 +34,7 @@
     {
       "registryType": "mcpb",
       "identifier": "https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb",
-      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "fileSha256": "c6874dae4334890a4a9df16e571388ed713dd7eec1103007c55185a175e4e157",
       "transport": {
         "type": "stdio"
       }

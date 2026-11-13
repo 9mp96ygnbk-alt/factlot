@@ -36,7 +36,7 @@ export { escapeHtml };
 
 /** The one-line counting rule on the onboarding and account pages. */
 export const LOOKUP_RULE =
-  "A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free.";
+  "A lookup is one answered call to a registry tool, a search inside loaded coverage that finds nothing included; coverage checks, misses outside loaded coverage and input errors are free.";
 
 export const REPORT_RULE =
   "A report is one document report_create builds and stores; input errors are free, and reports never count as lookups.";

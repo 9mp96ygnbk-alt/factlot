@@ -1,8 +1,13 @@
 # Install verification
 
-Every way an agent developer can install FactLot, run end to end on a clean checkout, with the
-exact commands and results. Re-run this before each release; the automated parts run in CI
-(`ci.yml`) and on every tag (`release-assets.yml`, `container.yml`).
+Every way an agent developer could install FactLot on 3 November 2026, run end to end by hand on a
+clean checkout of version 0.1.0, with the exact commands and results. This record has not been
+re-run by hand since: the repository has since gone public and releases up to v0.5.0 have been
+published, and its tool counts, file names and "not available yet" list describe 0.1.0, not the
+current release. What runs on every change and every release tag instead is automated: CI
+(`ci.yml`) builds the packages and the Claude Desktop extension and runs the end-to-end MCP test,
+and on each tag `release-assets.yml` installs each release file the way a user would and tests it,
+and `container.yml` tests the Docker image.
 
 - **When:** 2026-11-03, 01:10 to 02:30 EST.
 - **Where:** macOS 27.2 on arm64, Node.js 26.8.1, npm 11.19.0, Python 3.14.4, Docker 29.0.1.

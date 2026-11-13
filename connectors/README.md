@@ -172,6 +172,7 @@ by the SDK's 2.x line, which is a different package set (`@modelcontextprotocol/
 `node`; 2.4.0 on 2026-10-23), a new server API (`registerTool`, Standard Schema, Zod 4), a renamed
 Streamable HTTP transport and a rewritten client auth API. That migration touches every file that
 imports the SDK (server, stdio, Worker tests, e2e, conformance), so it is its own piece of work,
-best done after the in-flight MCP resources and prompts changes land. When it is done, serve both
+best done now that the MCP resources and prompts are in (hosted today; the local server gains them
+in its next release). When it is done, serve both
 eras (`createMcpHandler` plus the legacy path), keep `initialize` working for the clients listed
 above, and change `npm run test:connectors:live`'s 2026-07-28 rule to expect a 200.

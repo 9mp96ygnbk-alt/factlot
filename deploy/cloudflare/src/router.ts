@@ -781,7 +781,7 @@ export function quotaError(
   const resets = q.resets_at;
   const limit = q.limit.toLocaleString("en-US");
   const free =
-    "Only answered lookups count: coverage checks, misses and input errors are free.";
+    "Only answered lookups count (a search inside loaded coverage that finds nothing is answered): coverage checks, misses outside loaded coverage and input errors are free.";
   const short = q.remaining > 0 && needed > q.remaining;
   const left = q.remaining.toLocaleString("en-US");
   const shortfall = (whose: string) =>
@@ -839,7 +839,7 @@ function mcpBrowserPage(siteBase: string, apiBase: string): Response {
     `<h1>This is the FactLot MCP endpoint</h1>
 <p class="lead">It is the address an AI client connects to, not a page to read. Instructions for each client are at <a href="${site}/mcp-server/">${site.replace(/^https?:\/\//, "")}/mcp-server/</a>.</p>
 <ol>
-<li>Claude (web, Desktop, mobile): Settings, Connectors, Add custom connector, then enter <code>${url}/signin</code> and sign in.</li>
+<li>Claude (web, Desktop, mobile): Customize, then Connectors, then + Add, then Add custom connector, and enter <code>${url}/signin</code> and sign in.</li>
 <li>ChatGPT: Settings, Apps, Advanced settings, Developer mode; create an app with <code>${url}/signin</code>.</li>
 <li>Claude Code and other clients that send headers: <code>claude mcp add --transport http factlot ${url}</code>.</li>
 </ol>

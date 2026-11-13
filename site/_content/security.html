@@ -7,7 +7,8 @@
 <p class="small">
   Trust pages: <a href="/status/">Status</a> · Security ·
   <a href="/sla/">Service levels</a> · <a href="/assurance/">Assurance</a>.
-  Written 7 November 2026. The same text is in the repository as
+  Written 7 November 2026; the free key and the daily usage totals added 13
+  November 2026. The same text is in the repository as
   <a href="{{REPO}}/blob/main/docs/security.md">docs/security.md</a>.
 </p>
 
@@ -60,18 +61,25 @@
   <li>
     <strong>Cloudflare KV.</strong> Key records for paid plans: a SHA-256 hash
     of each key, plan, status, Stripe customer and subscription IDs, and dates.
-    Never a key. Also the report files built with <code>report_create</code>,
-    for 24 hours.
+    Never a key. Free key records: a SHA-256 hash of the key, a hash of the
+    email address made with a secret only FactLot holds (never the address), and
+    dates; and short-lived records of the emailed links, held under a hash of
+    each link's random ID. Daily usage totals: counts by route group, tool,
+    state or county and kind of caller, with distinct-caller estimates built
+    from values that are already hashes; no IP address, address searched,
+    parcel, key or email. Also the report files built with
+    <code>report_create</code>, for 24 hours.
   </li>
   <li>
     <strong>Cloudflare Durable Objects.</strong> Per-minute rate limits,
-    registry lookup quotas and monthly report counters: counters for the current
-    window only, keyed by key ID or by a hash of the IP address.
+    registry lookup quotas and monthly report counters, including a free key's
+    own counters: counters for the current window only, keyed by key ID or by a
+    hash of the IP address.
   </li>
   <li>
     <strong>Cloudflare Analytics Engine.</strong> Usage records for capacity
-    planning: time, key ID, plan, path, method and status. No IP address. Kept
-    90 days.
+    planning: time, key ID ("free-key" for a free key), plan, path, method and
+    status, and event totals. No IP address. Kept 90 days.
   </li>
 </ul>
 <p>
@@ -101,6 +109,20 @@
 <h3>Stored</h3>
 <ul class="plain">
   <li>Usage metadata: time, key ID, plan, path, method, status (90 days)</li>
+  <li>
+    Daily usage totals, with no IP address, address searched, parcel, key or
+    email: 40 days (90 days for event totals). Distinct visitors and callers are
+    estimated from a hash of the IP address that changes every day, a
+    connection's ID or a key ID, folded into a sketch that cannot be turned back
+    into a list.
+  </li>
+  <li>
+    For an optional free key: the key's hash, a secret-keyed hash of the email
+    address (never the address itself) and dates, until you delete the key (a
+    replaced key's record for 12 months); the emailed link's record for 30
+    minutes, and a marker that a link was used, not linked to the address, for
+    13 months
+  </li>
   <li>
     Key hashes and subscription records for paid plans, until the subscription
     ends and then for up to 12 months
@@ -172,6 +194,13 @@
     A paid key is <code>fl_live_</code> followed by 32 random bytes (256 bits).
     It is shown once, when it is created. Only its SHA-256 hash is stored, so
     FactLot cannot show a key again; a lost key is replaced, not recovered.
+  </li>
+  <li>
+    A free key is <code>fl_free_</code> followed by 32 random bytes, shown once
+    and stored only as its SHA-256 hash, the same way. It is a free caller: it
+    has the Free plan's limits on its own meter and opens nothing a paid key
+    does. You can delete it yourself; the
+    <a href="/privacy">privacy notice</a> says what is deleted with it.
   </li>
   <li>
     The "key ID" in usage records and responses is the first 16 characters of
@@ -320,9 +349,10 @@
   <li>
     The API does not send a <code>Strict-Transport-Security</code> header, and
     the static site sends no <code>Content-Security-Policy</code> header (its
-    only script is the same-origin file behind the Try a lookup page, which
-    writes API answers as text, never as HTML). The plain-HTTP redirect above is
-    what protects first visits.
+    only scripts are two same-origin files under /try/: the one behind the Try a
+    lookup page, which writes API answers as text, never as HTML, and the one
+    that shows the free key link when the API offers it). The plain-HTTP
+    redirect above is what protects first visits.
   </li>
   <li>
     Enterprise customers can ask about a signed data-processing agreement and

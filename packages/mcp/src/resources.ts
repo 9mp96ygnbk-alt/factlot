@@ -152,7 +152,13 @@ export interface PlanFacts {
     reports_per_month: number;
     summary: string;
   }[];
-  gating: { free_history: string; batch: string; dated_get: string };
+  gating: {
+    free_history: string;
+    batch: string;
+    dated_get: string;
+    /** Everything that needs a Pro or Team key on the hosted API (PAID_ONLY in plans.ts). */
+    paid_only: { what: string; free: string; tools: string[]; arg?: string }[];
+  };
   quota_rules: Record<string, string>;
 }
 
@@ -587,6 +593,7 @@ export function plansResource(data: ResourceData) {
       value_history_without_key: p.gating.free_history,
       registry_batch: p.gating.batch,
       dated_registry_get: p.gating.dated_get,
+      paid_only: p.gating.paid_only,
     },
     quota_rules: p.quota_rules,
   };

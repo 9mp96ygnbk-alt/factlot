@@ -15,6 +15,7 @@ export function otherDistrictsTable(): string;
 export function countWord(n: number): string;
 export function hubHostedTable(counties: unknown[]): string;
 export function hubRollSentence(counties: unknown[]): string;
+export function texasRollsText(counties: unknown[]): string;
 export function hubCountyLinks(
   counties: unknown[],
   exampleSlugs: string[],

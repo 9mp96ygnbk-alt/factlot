@@ -4897,6 +4897,43 @@ export const RESOURCE_DATA: ResourceData = {
       free_history: "current roll year only",
       batch: "Pro and Team",
       dated_get: "Pro and Team",
+      paid_only: [
+        {
+          what: "value history before the current roll year (registry_get, and the subject of registry_tx_equity_candidates)",
+          free: "the current roll year only, and the answer says what was left out",
+          tools: ["registry_get", "registry_tx_equity_candidates"],
+        },
+        {
+          what: "registry_get with as_of (a record as it stood on an earlier date)",
+          free: "the current record, without as_of",
+          tools: ["registry_get"],
+          arg: "as_of",
+        },
+        {
+          what: "registry_tx_equity_candidates with tax_year (a roll year you name)",
+          free: "the newest roll year with values, without tax_year",
+          tools: ["registry_tx_equity_candidates"],
+          arg: "tax_year",
+        },
+        {
+          what: "an owner's parcels beyond the first three (registry_owned_by)",
+          free: "the first three parcels, and the number left out",
+          tools: ["registry_owned_by"],
+        },
+        {
+          what: "the registry batch tools registry_lookup_batch and registry_tx_equity_candidates_batch",
+          free: "one parcel per call with the single-parcel tools",
+          tools: [
+            "registry_lookup_batch",
+            "registry_tx_equity_candidates_batch",
+          ],
+        },
+        {
+          what: "the model-backed tools doc_extract_lease and report_narrative",
+          free: "not included",
+          tools: ["doc_extract_lease", "report_narrative"],
+        },
+      ],
     },
     quota_rules: {
       counted:

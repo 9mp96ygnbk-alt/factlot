@@ -87,6 +87,7 @@ import {
 import { body } from "./email.ts";
 import {
   MAX_REGISTRY_CALLS_PER_MCP_REQUEST,
+  PAID_ONLY,
   PLANS,
   REPORTS_PER_MONTH,
   planForLookupKey,
@@ -3745,7 +3746,7 @@ describe("onboarding page", () => {
     assert.match(html, /1300 Pennsylvania Ave NW in Washington, DC/);
     assert.match(
       html,
-      /A lookup is one answered call to a registry tool; coverage checks, misses and input errors are free\./,
+      /A lookup is one answered call to a registry tool, a search inside loaded coverage that finds nothing included; coverage checks, misses outside loaded coverage and input errors are free\./,
     );
     assert.ok(html.includes(`export FACTLOT_API_KEY=&quot;${key}&quot;`));
     assert.ok(
@@ -4319,7 +4320,7 @@ describe("quota fairness: only answered lookups are charged", () => {
     assert.equal(over.status, 429);
     assert.match(
       String(((await over.json()) as { message: string }).message),
-      /coverage checks, misses and input errors are free/,
+      /coverage checks, misses outside loaded coverage and input errors are free/,
     );
   });
 });
@@ -7079,6 +7080,7 @@ describe("paid gating (GATING_ENABLED)", () => {
         candidates_tax_year: string;
         recorded_facts: string;
         pricing: string;
+        paid_only: unknown;
       };
       plans: {
         free: Record<string, unknown>;
@@ -7101,6 +7103,7 @@ describe("paid gating (GATING_ENABLED)", () => {
       candidates_tax_year: "Pro and Team",
       recorded_facts: "Pro and Team (registry_recorded_facts)",
       pricing: "https://factlot.com/pricing/",
+      paid_only: JSON.parse(JSON.stringify(PAID_ONLY)),
     });
     assert.match(String(enabled.plans.free.note), /current roll year/);
     assert.match(

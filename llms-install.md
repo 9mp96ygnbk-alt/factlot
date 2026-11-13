@@ -22,6 +22,8 @@ remote or HTTP MCP server; for example, Cursor's `.cursor/mcp.json`:
 ## Option 2: local stdio server (Node.js 22.6 or newer)
 
 The release build runs as a stdio server with its dependencies bundled. It makes no network calls.
+It is release v0.5.0; the hosted server runs newer code, with tools, MCP resources and prompts that
+the local server gains in its next release.
 
 ```json
 {

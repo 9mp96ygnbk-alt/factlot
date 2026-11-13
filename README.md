@@ -29,7 +29,7 @@ returns cited facts or the reason it could not
 ([document verification](docs/document-verification.md)). No model runs on FactLot's side and
 nothing is stored.
 
-**Check us against your own spreadsheet:** [seven Excel workbooks](examples/reconciliation/) (office,
+**Check us against your own spreadsheet:** [eight Excel workbooks](examples/reconciliation/) (office,
 industrial, retail, hotel, lender, lease accounting and more) put live Excel formulas beside FactLot's
 numbers with a difference column of 0.00 (synthetic inputs; ARGUS parity is untested and not
 claimed). What the registry holds, county by county, and the licence and AI-use rights of every
@@ -47,14 +47,17 @@ government-tenant leases, not market comps for every use. Search them from any a
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Claude Code plugin             | `/plugin marketplace add 9mp96ygnbk-alt/factlot`, then `/plugin install factlot@factlot`: twelve CRE skills (loan sizing, lease economics, CAM, ASC 842, returns and more) wired to the hosted tools ([plugin](plugins/factlot/README.md)) |
 | Claude Code                    | `claude mcp add --transport http factlot https://api.factlot.com/mcp`                                                                                                                                                                      |
-| Claude (web and Desktop)       | Settings, Connectors, Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.5.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb)                                           |
+| Claude (web and Desktop)       | Customize, then Connectors, then + Add, then Add custom connector: `https://api.factlot.com/mcp`. Or open [`factlot-0.5.0.mcpb`](https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-0.5.0.mcpb)                    |
 | ChatGPT                        | Developer mode app with `https://api.factlot.com/mcp`, or a Custom GPT Action importing `https://api.factlot.com/openapi-3.0.json`                                                                                                         |
 | Cursor, VS Code, other clients | Remote MCP URL `https://api.factlot.com/mcp` ([guides](connectors/README.md))                                                                                                                                                              |
 | Any MCP client, run locally    | `npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz` (Node.js 22.6+, no network calls)                                                                                             |
 | Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.5.0#subdirectory=python"`                                                                                                                                               |
 | Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.5.0`                                                                                                                                                                             |
 
-The hosted endpoint is free with no key at 60 requests a minute. It is listed in the
+The hosted endpoint is free with no key at 60 requests a minute. The local package, the Desktop
+extension, the Python install and the Docker image above are release v0.5.0; the hosted endpoint
+runs newer code, with tools, MCP resources and prompts that the local server gains in its next
+release. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
 as `io.github.9mp96ygnbk-alt/factlot`. Runnable examples for REST, Python and agent SDKs are in
 [`examples/`](examples/).
@@ -68,7 +71,7 @@ curl -fLO https://github.com/9mp96ygnbk-alt/factlot/releases/download/registry-s
 FACTLOT_REGISTRY_DB="$PWD/factlot-registry-sample-dc-2026-11-07.db" npx -y https://github.com/9mp96ygnbk-alt/factlot/releases/download/v0.5.0/factlot-mcp-standalone-0.5.0.tgz
 ```
 
-**Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, 25 registry lookups a day per IP address, and 3 reports a month per IP address. The free tier returns the current roll year only in `registry_get`'s value history and does not include the registry batch tools (`registry_lookup_batch`, `registry_tx_equity_candidates_batch`). [Pro, $49 a month or $490 a year](https://factlot.com/pricing/): 1 API key, 600 requests a minute, 5,000 registry lookups a month, 50 reports a month, full multi-year value history, the registry batch lookup, email support. [Team, $599 a month](https://factlot.com/pricing/): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, 1,000 reports a month, full multi-year value history, the registry batch lookup, priority support, and a vote on which regions open next. Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew until cancelled (monthly, or yearly on Pro yearly); cancel any time. A registry download licence ($2,400 a year per state file, refreshed weekly, for internal use, not redistribution) is available on request, and Enterprise (private deployment, invoicing, a signed data-processing agreement with a no-training commitment, and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
+**Plans:** the hosted endpoint is free with no key: every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, 25 registry lookups a day per IP address, and 3 reports a month per IP address; an optional free key by email gives the same limits on its own meter. <!-- plans:paid-only -->Six things on the hosted API need a Pro or Team key: value history before the current roll year (`registry_get`, and the subject of `registry_tx_equity_candidates`); `registry_get` with `as_of` (a record as it stood on an earlier date); `registry_tx_equity_candidates` with `tax_year` (a roll year you name); an owner's parcels beyond the first three (`registry_owned_by`); the registry batch tools `registry_lookup_batch` and `registry_tx_equity_candidates_batch`; and the model-backed tools `doc_extract_lease` and `report_narrative`.<!-- /plans:paid-only --> [Pro, $49 a month or $490 a year](https://factlot.com/pricing/): 1 API key, 600 requests a minute, 5,000 registry lookups a month, 50 reports a month, email support. [Team, $599 a month](https://factlot.com/pricing/): up to 5 API keys, 3,000 requests a minute, 100,000 registry lookups a month, 1,000 reports a month, priority support, and a vote on which regions open next. <!-- plans:counted -->A lookup is one answered call to a `registry_*` tool: a record, a resolved ID, owners, or a search that ran inside loaded coverage (even with no results). Free: `registry_coverage`, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.<!-- /plans:counted --> Limits are hard caps with no overage charges; at a cap the call returns HTTP 429 with the reset time. Paid plans renew until cancelled (monthly, or yearly on Pro yearly); cancel any time. A registry download licence ($2,400 a year per state file, for internal use, not redistribution, refreshed when the hosted regions are, with no promised interval; see [service levels](https://factlot.com/sla/)) is available on request, and Enterprise (private deployment, invoicing, a signed data-processing agreement with a no-training commitment, and SSO) is by quote: [contact@factlot.com](mailto:contact@factlot.com?subject=FactLot%20Enterprise%20or%20registry%20licence). [Terms](https://factlot.com/terms) · [Privacy](https://factlot.com/privacy). Questions and bug reports go in [GitHub Discussions](https://github.com/9mp96ygnbk-alt/factlot/discussions) and Issues.
 
 ## Hosted registry
 
@@ -99,6 +102,8 @@ exclude natural persons' names (if a record names you as a person, or is wrong, 
 we will remove or correct it), and the Maryland, Utah, Los Angeles County and San Francisco files carry no owner names. The DC data is the same as the
 downloadable sample registry-sample-dc-2026-11-07.
 
+<!-- texas:rolls -->Texas roll years on the hosted API: Nine of the sixteen counties hold more than one roll year (Harris 2022 to 2026, Dallas 2022 to 2026, Travis 2022 to 2026, Nueces 2021 to 2026, Galveston 2023 to 2026, Jefferson 2025 to 2026, Brazos 2016 to 2026, Guadalupe 2025 to 2026, Kaufman 2024 to 2026), six hold one, and Midland has no values because the publisher's file has none.<!-- /texas:rolls -->
+
 The other regions in the project's pipeline are available only on a
 self-hosted FactLot with a registry file; more hosted regions open as their terms allow.
 Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.
@@ -112,14 +117,14 @@ another.
 
 FactLot gives every agent three things it can use by default:
 
-| Package                              | What it does                                                                                                                                                                                                                                                                                                                        | License    |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| [`@factlot/calc`](packages/calc)     | Deterministic CRE calculators: rent schedules, net effective rent, proposal comparison, percentage rent, CAM reconciliation, loan sizing, ASC 842 lease remeasurement, prepayment and defeasance, WALT, IRR/NPV, lease vs. own, renew vs. relocate, hotel metrics. Every result includes an audit trail and a versioned formula ID. | Apache-2.0 |
-| [`@factlot/id`](packages/id)         | **FactLot ID** gives canonical IDs for parcels, legal entities, buildings, spaces, leases, and documents. IDs are deterministic wherever the world already has a key (parcels, entities, buildings from their street address, spaces, documents), so any agent can compute them offline; leases get minted IDs.                     | Apache-2.0 |
-| [`@factlot/schema`](packages/schema) | The FactLot data model. A fact is one atomic claim with **provenance** (source document, page, clause, method) and **rights** (whether an AI may use or redistribute it).                                                                                                                                                           | MIT        |
-| [`@factlot/tools`](packages/tools)   | The tool catalog, with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI platforms, plus one `runTool` dispatcher.                                                                                                                                                                           | MIT        |
-| [`@factlot/server`](packages/server) | The remote connector: Streamable HTTP MCP at `/mcp`, REST at `/v1`, and OpenAPI. Runs in Docker.                                                                                                                                                                                                                                    | Apache-2.0 |
-| [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                                                                                                                                        | Apache-2.0 |
+| Package                              | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | License    |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| [`@factlot/calc`](packages/calc)     | 26 deterministic CRE calculators: rent schedules, net effective rent, proposal comparison, multifamily rent rolls, percentage rent, CAM reconciliation, capex recovery, loan sizing, amortization, ASC 842 lease remeasurement, prepayment and defeasance, WALT, NPV, IRR, DCF and direct capitalization, equity waterfalls, 1031 exchange dates, lease critical dates, lease vs. own, renew vs. relocate, hotel metrics, Texas unequal-appraisal arithmetic and reconciliation checks. Every result includes an audit trail and a versioned formula ID. | Apache-2.0 |
+| [`@factlot/id`](packages/id)         | **FactLot ID** gives canonical IDs for parcels, legal entities, buildings, spaces, leases, and documents. IDs are deterministic wherever the world already has a key (parcels, entities, buildings from their street address, spaces, documents), so any agent can compute them offline; leases get minted IDs.                                                                                                                                                                                                                                          | Apache-2.0 |
+| [`@factlot/schema`](packages/schema) | The FactLot data model. A fact is one atomic claim with **provenance** (source document, page, clause, method) and **rights** (whether an AI may use or redistribute it).                                                                                                                                                                                                                                                                                                                                                                                | MIT        |
+| [`@factlot/tools`](packages/tools)   | The tool catalog, with native tool definitions for Claude, OpenAI, Gemini, Amazon Bedrock, Mistral, and OpenAPI platforms, plus one `runTool` dispatcher.                                                                                                                                                                                                                                                                                                                                                                                                | MIT        |
+| [`@factlot/server`](packages/server) | The remote connector: Streamable HTTP MCP at `/mcp`, REST at `/v1`, and OpenAPI. Runs in Docker.                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Apache-2.0 |
+| [`@factlot/mcp`](packages/mcp)       | An MCP server that exposes all of the above to Claude and any other MCP-capable agent. It runs locally and needs no API key.                                                                                                                                                                                                                                                                                                                                                                                                                             | Apache-2.0 |
 
 ## What FactLot covers today
 
@@ -128,10 +133,10 @@ Be clear about scope before adopting it:
 - **Calculators, IDs, and the fact model work anywhere.** They need no data and no API key, and
   they run offline in both SDKs with identical results.
 - **The registry covers the largest metros, unevenly, and not all of it is hosted.** The
-  project's registry pipeline has built and verified 1,733,923 commercial, industrial and
-  multifamily parcels in 330 counties (19 states and DC) from 40 public-record sources, with 14.2
-  million registered entities from Texas, New York, Colorado, Pennsylvania, DC and Connecticut for
-  owner resolution: the largest metros (Harris, Dallas, Tarrant (not served by the hosted registry), Travis and Collin in Texas, New
+  project's registry pipeline has built commercial, industrial and multifamily parcels from
+  verified public-record sources, with registered entities from Texas, New York, Colorado,
+  Pennsylvania, DC and Connecticut for owner resolution (counts per county and source in
+  [coverage](docs/registry/coverage.md) and on the [coverage map](https://factlot.com/coverage/)): the largest metros (Harris, Dallas, Tarrant (not served by the hosted registry), Travis and Collin in Texas, New
   York City, Los Angeles, Boston, San Francisco, Denver, Charlotte, Minneapolis and DC), the rest of
   the top 100 counties where the licence allows, and statewide files for New York, Maryland,
   Massachusetts, Vermont, Arkansas and Connecticut, most of Utah, 24 Minnesota counties
@@ -159,7 +164,7 @@ Be clear about scope before adopting it:
 
 | Platform                                      | How to connect                                                                                                                                                                                                                                  |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claude**                                    | Add a custom connector with `https://api.factlot.com/mcp`, install the one-click Desktop extension (`factlot.mcpb`), use Claude Code, or call it from the Claude API                                                                            |
+| **Claude**                                    | Add a custom connector with `https://api.factlot.com/mcp`, install the one-click Desktop extension (`factlot-0.5.0.mcpb`), use Claude Code, or call it from the Claude API                                                                      |
 | **ChatGPT and OpenAI**                        | Create a ChatGPT app in developer mode (`search`/`fetch` make deep research work), import `/openapi-3.0.json` (the curated subset of at most 30 operations) as a Custom GPT Action, use the Responses API's remote MCP, or use function calling |
 | **Google Gemini**                             | Use Gemini API function declarations, Gemini CLI over MCP, or Vertex AI                                                                                                                                                                         |
 | **Microsoft Copilot**                         | Add an MCP tool in Copilot Studio, use the Power Platform connector, or build a Microsoft 365 API plugin                                                                                                                                        |
@@ -171,8 +176,10 @@ Every surface serves the same tools, generated from one catalog. See **[connecto
 ## Quick start: use FactLot from an agent
 
 FactLot is not on npm or PyPI yet. These work without either: they run the stdio MCP server
-from a GitHub release, from a clone, or in Docker. Each was run end to end
-([install verification](docs/install-verification.md)).
+from a GitHub release, from a clone, or in Docker. On every release tag the release workflows
+install each release file the way a user would and test it, and test the Docker image; the last
+hand-run pass over every install path was made on version 0.1.0
+([install verification](docs/install-verification.md) says what it covered).
 
 ```bash
 # From the GitHub release: one file, dependencies bundled
@@ -230,7 +237,8 @@ The server provides these tools:
   `registry_owned_by`, `registry_coverage`, `registry_lookup_batch` (up to 50 parcels by URN,
   account number or address), `registry_tx_equity_candidates`,
   `registry_tx_equity_candidates_batch`
-- **MCP resources and prompts** (no key, no registry lookup): `factlot://coverage`,
+- **MCP resources and prompts** (hosted server; the local server gains them in its next release;
+  no key, no registry lookup): `factlot://coverage`,
   `factlot://sources`, `factlot://markets`, `factlot://schemas/tools`, `factlot://schemas/fact`,
   `factlot://spec/id`, `factlot://plans`; prompts `property_owner`, `owner_portfolio`,
   `parcel_value_history`, `tx_unequal_appraisal_candidates`, `lease_abstract_check`, `deal_math`
@@ -239,7 +247,7 @@ The server provides these tools:
 ## Quick start: Python agents
 
 ```bash
-pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git#subdirectory=python"
+pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.5.0#subdirectory=python"
 ```
 
 ```python
@@ -273,7 +281,7 @@ const loan = debtSizing({
 loan.value.max_loan; // 9750000
 loan.value.binding_constraint; // "ltv"
 loan.steps; // every intermediate value, with formulas
-loan.formula; // { id: "calc.debt_sizing", version: 2 }
+loan.formula; // { id: "calc.debt_sizing", version: 3 }
 
 parcelId({ stateFips: "06", countyFips: "037", apn: "5432-001-012" });
 // { kind: "parcel", urn: "fl:parcel:us-06037:5432001012", short: "flp_..." }
