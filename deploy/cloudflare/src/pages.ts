@@ -11,6 +11,11 @@ import type { HostedRegion } from "./account-tools.ts";
 import type { AccountSummary } from "./billing.ts";
 import { CHANGELOG_URL, CONTACT, REPO } from "./contact.ts";
 import { escapeHtml } from "./html.ts";
+import {
+  CONSENT_FOOTNOTE,
+  freeConsentText,
+  paidConsentText,
+} from "./lifecycle-copy.ts";
 import { base64url } from "./keys.ts";
 import { HOSTING_NOTE, WHATS_NEW } from "./news.ts";
 import type { Connection } from "./oauth.ts";
@@ -186,6 +191,10 @@ export interface OnboardingOptions {
   status?: number;
   /** Whether the hosted API has a model (the model-backed tools answer). */
   model?: boolean;
+  /** A link back to what the buyer was looking at before checkout. */
+  back?: { href: string; label: string };
+  /** Shows the optional-email box for this checkout session (lifecycle emails on, key shown now). */
+  consent?: { sessionId: string };
 }
 
 /**
@@ -226,6 +235,7 @@ export function onboardingPage(o: OnboardingOptions): Response {
     h1,
     `<h1>${escapeHtml(h1)}</h1>
 ${o.notice ? notice(o.notice.text, o.notice.warn, o.notice.title) : ""}
+${o.back ? `<p><a class="button" href="${escapeHtml(o.back.href)}">${escapeHtml(o.back.label)}</a></p>` : ""}
 <p class="lead">Five steps, about five minutes. An agent can read the same guide as JSON or Markdown:</p>
 ${block("agent-url", "Give this URL to your agent", g.links.onboarding)}
 <section class="step" aria-labelledby="h-key"><h2 id="h-key"><span class="n">1</span>Save your key</h2>
@@ -258,9 +268,32 @@ ${facts}
 <ul class="plain"><li>${escapeHtml(LOOKUP_RULE)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li><li>${escapeHtml(REPORT_RULE)}</li></ul>
 <div class="buttons"><a class="button primary" href="${escapeHtml(site)}/account">Manage billing / cancel</a></div>
 <p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${plan?.id === "team" ? " (priority support)" : ""}. What changed lately: <a href="${CHANGELOG_URL}">changelog</a>.</p>
-</section>`,
-    { status: o.status, site, copy: true, testApi: api },
+</section>${o.consent ? consentSection(o.consent.sessionId) : ""}`,
+    {
+      status: o.status,
+      site,
+      copy: true,
+      testApi: api,
+      formAction: o.consent ? "'self'" : undefined,
+    },
   );
+}
+
+/** The unticked box after checkout; it posts the checkout session so the choice is tied to the purchase. */
+function consentSection(sessionId: string): string {
+  return `<section class="step" aria-labelledby="h-optional"><h2 id="h-optional">Optional emails</h2>
+<form method="post" action="/account/lifecycle"><input type="hidden" name="session_id" value="${escapeHtml(sessionId)}">
+<p><label><input type="checkbox" name="lifecycle_emails" value="1"> ${escapeHtml(paidConsentText())}</label></p>
+<p class="small">${escapeHtml(CONSENT_FOOTNOTE)}</p>
+<div class="buttons"><button type="submit" class="button">Save my choice</button></div></form></section>`;
+}
+
+/** Stop the optional emails by address, no sign-in (lifecycle emails on). */
+function stopSection(): string {
+  return `<section class="step" id="stop" aria-labelledby="h-stop"><h2 id="h-stop">Stop optional emails</h2>
+<p>Every optional email has a stop link. Or enter the address here: the emails stop at once and for good.</p>
+<form method="post" action="/account/stop"><label for="stop-email">Email</label><input id="stop-email" name="email" type="email" autocomplete="email" required maxlength="254">
+<div class="buttons"><button type="submit" class="button">Stop optional emails</button></div></form></section>`;
 }
 
 const ACCOUNT_FORM_ACTION = "'self' https://billing.stripe.com";
@@ -342,14 +375,15 @@ function recoverSection(state: RecoveryState): string {
 export const FREE_KEY_SENT =
   "If that address can receive email, a link is on its way. It works once and expires in 30 minutes.";
 
-function freeKeySection(state: RecoveryState): string {
+function freeKeySection(state: RecoveryState, lifecycle = false): string {
   const form =
     state === "on"
       ? `<p>No plan needed. A free key gives you the free limits (${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day, ${REPORTS_PER_MONTH.anonymous} reports a month, ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute) on your own meter instead of one shared with everyone on your network.</p>
 <form method="post" action="/account/free-key"><label for="free-email">Email</label><input id="free-email" name="email" type="email" autocomplete="email" required maxlength="254">
 <p><label><input type="checkbox" name="accept_terms" value="1" required> I accept the <a href="https://factlot.com/terms">terms</a> and <a href="https://factlot.com/privacy">privacy policy</a>.</label></p>
+${lifecycle ? `<p><label><input type="checkbox" name="lifecycle_emails" value="1"> ${escapeHtml(freeConsentText())}</label></p>\n<p class="small">${escapeHtml(CONSENT_FOOTNOTE)}</p>` : ""}
 <div class="buttons"><button type="submit" class="button">Email me a free key</button></div></form>
-<p class="small">We email one link, once. This is not a newsletter. A new key replaces your earlier free key.</p>
+<p class="small">${lifecycle ? "We email one link, once, unless you tick the box above." : "We email one link, once. This is not a newsletter."} A new key replaces your earlier free key.</p>
 <h3>Delete my free key</h3>
 <form method="post" action="/account/free-key-delete"><label for="free-delete-email">Email the key was issued to</label><input id="free-delete-email" name="email" type="email" autocomplete="email" required maxlength="254">
 <div class="buttons"><button type="submit" class="button">Email me a deletion link</button></div></form>
@@ -425,6 +459,7 @@ export function accountFormPage(
   message?: string,
   recovery: RecoveryState = "no-email",
   freeKeyOn = false,
+  lifecycleOn = false,
 ): Response {
   return page(
     "Your FactLot account",
@@ -436,8 +471,9 @@ ${message ? notice(message, status >= 400) : ""}
 <input id="key" name="key" type="password" autocomplete="off" spellcheck="false" placeholder="fl_live_..." required>
 <div class="buttons"><button type="submit" class="button primary" name="action" value="view">Show my account</button></div>
 </form>
-${freeKeyOn ? freeKeySection(recovery) : ""}
+${freeKeyOn ? freeKeySection(recovery, lifecycleOn) : ""}
 ${recoverSection(recovery)}
+${lifecycleOn ? stopSection() : ""}
 <p class="small">No plan yet? See <a href="https://factlot.com/pricing/">pricing</a>. Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
     { status, formAction: ACCOUNT_FORM_ACTION },
   );
@@ -541,6 +577,8 @@ export interface AccountPageOptions {
   /** Apps connected to the subscription by OAuth sign-in. */
   connections?: Connection[];
   api?: string;
+  /** Lifecycle emails are on: show how to stop the optional emails. */
+  lifecycle?: boolean;
 }
 
 /** Connected apps (OAuth sign-ins) with a Disconnect button each. */
@@ -638,6 +676,7 @@ ${
 }</section>
 ${opts.connections ? connectionsSection(key, api, opts.connections) : ""}
 ${regions}
+${opts.lifecycle ? stopSection() : ""}
 <section class="step" aria-labelledby="h-new-things"><h2 id="h-new-things">What's new</h2>
 <ul class="plain">${WHATS_NEW.map((w) => `<li>${escapeHtml(w.text)}</li>`).join("")}</ul>
 <p class="small"><a href="${escapeHtml(s.changelog)}">Full changelog</a></p></section>

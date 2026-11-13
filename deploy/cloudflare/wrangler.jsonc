@@ -24,6 +24,13 @@
 // /v1/keys/free and /account/free-key answer 404 and /account shows no form; keys already issued
 // keep working. Publish the privacy notice and terms that describe it before setting it.
 //
+// LIFECYCLE_EMAILS_ENABLED ("true": the lifecycle emails are on; deliberately NOT set in `vars`
+// below). Needs FREE_KEY_ENABLED's bindings, the secret POSTAL_ADDRESS (one line, printed in the
+// footer of every optional note; without it none is sent) and, for the time-based notes, a cron
+// trigger such as `"triggers": { "crons": ["0 15 * * *"] }` (none is configured). Unset or any
+// other value: no lifecycle message is sent, the consent boxes are not shown, /account/stop and
+// /account/lifecycle answer 404 and the checkout return link is ignored. See src/lifecycle.ts.
+//
 // OAuth 2.1 for header-less MCP clients (src/oauth.ts) needs no new binding: its records live in
 // the KEYS namespace under the `oauth:` prefix. It does need `global_fetch_strictly_public`
 // below, which lets the authorization server verify Client ID Metadata Documents (ChatGPT's
