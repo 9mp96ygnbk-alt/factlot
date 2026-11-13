@@ -119,6 +119,8 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
   const python = JSON.parse(
     execFileSync("python3", [join(spec, "query_fixture.py"), db], {
       encoding: "utf8",
+      // The answers to every shared call are past Node's default of 1 MiB.
+      maxBuffer: 64 * 1024 * 1024,
     }),
   ) as Record<string, unknown>[];
   configureRegistry(db);
