@@ -6726,7 +6726,8 @@ describe("free key by email", () => {
     const ips = [IP, IP, IP].map((ip) => ask(tight.e, "x@example.com", ip));
     const codes: number[] = [];
     for (const r of ips) codes.push((await r).status);
-    assert.deepEqual(codes, [202, 202, 429]);
+    // The three run at once: which one meets the limit depends on scheduling.
+    assert.deepEqual([...codes].sort(), [202, 202, 429]);
   });
 
   it("a GET or HEAD of the link redeems nothing; the POST does, once", async () => {
