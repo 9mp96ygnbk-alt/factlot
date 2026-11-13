@@ -404,10 +404,10 @@
   <li>
     A lookup is one call to a <code>registry_*</code> tool that finds something:
     a record, a resolved ID, owners or search results. Not counted: a call that
-    finds nothing (an empty list or urn null; up to an hourly limit),
-    <code>registry_coverage</code>, input errors, misses outside loaded coverage
-    (county, state, entity registry or ID system not loaded) and calls the
-    registry could not answer.
+    finds nothing (an empty list, urn null or a NotFound inside loaded coverage;
+    up to an hourly limit), <code>registry_coverage</code>, input errors, misses
+    outside loaded coverage (county, state, entity registry or ID system not
+    loaded) and calls the registry could not answer.
   </li>
   <li>
     A <code>registry_get</code> or

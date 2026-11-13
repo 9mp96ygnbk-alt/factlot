@@ -4999,7 +4999,7 @@ export const RESOURCE_DATA: ResourceData = {
     },
     quota_rules: {
       counted:
-        "A lookup is one call to a registry_* tool that finds something: a record, a resolved ID, owners or search results. Not counted: a call that finds nothing (an empty list or urn null; up to an hourly limit), registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
+        "A lookup is one call to a registry_* tool that finds something: a record, a resolved ID, owners or search results. Not counted: a call that finds nothing (an empty list, urn null or a NotFound inside loaded coverage; up to an hourly limit), registry_coverage, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.",
       empty:
         "A registry_get or registry_tx_equity_candidates NotFound inside loaded coverage is an answer that finds nothing too. Answers that find nothing are not counted, and say counted: false, up to 60 an hour per IP address without a key, a further 60 an hour shared by the free keys used from that address, 600 an hour on Pro and 3,000 an hour on Team; a free sign-in connection has its own 60 an hour, shared by the connections started from one address. Past that, until the hour ends (UTC), each one counts as a lookup and carries counted: true with a note saying why.",
       batch:

@@ -2,7 +2,8 @@
 // Worker enforces and /v1/plans serves). scripts/site/build.mjs fills the pricing, home, MCP and Try pages'
 // {{PLAN_*}} placeholders from it. The documents that cannot be built (PLAN_FILES) hold the same two sentences,
 // what needs a Pro or Team key and how a lookup is counted, between markers (<!-- plans:paid-only --> ...
-// <!-- /plans:paid-only -->, <!-- plans:counted --> ... <!-- /plans:counted -->) or, in llms.txt, as whole
+// <!-- /plans:paid-only -->, <!-- plans:counted --> ... <!-- /plans:counted -->, and the short rule as
+// <!-- plans:rule --> ... <!-- /plans:rule -->) or, in llms.txt, as whole
 // lines; this script rewrites them, and site.test.ts fails when the JSON or any of them differs from plans.ts.
 //
 //   node --experimental-strip-types --conditions=factlot-source scripts/site/gen-plans.ts
@@ -18,6 +19,7 @@ import {
   PLANS,
   PRICING_URL,
   PRO_YEARLY,
+  LOOKUP_RULE,
   QUOTA_RULES,
   REPORTS_PER_MONTH,
   paidOnlyText,
@@ -89,11 +91,15 @@ export const PLAN_FILES = [
 const SPANS = {
   "paid-only": () => markdownCode(paidOnlyText()),
   counted: () => markdownCode(QUOTA_RULES.counted),
+  // The one-line rule (LOOKUP_RULE), where a document states it short.
+  rule: () => markdownCode(LOOKUP_RULE),
 };
 /** llms.txt states each sentence as one list item, found by how it starts. */
 const LINES: Record<keyof typeof SPANS, RegExp> = {
   "paid-only": /^- \w+ things on the hosted API need a Pro or Team key: .*$/gm,
   counted: /^- A lookup is one (?:answered )?call to a .*$/gm,
+  // Not stated as a line of its own in llms.txt.
+  rule: /(?!)/gm,
 };
 
 /** `text` with every plan sentence it holds rewritten from plans.ts, and how many it holds. */

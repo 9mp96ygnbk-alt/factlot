@@ -11,6 +11,7 @@ import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
+  LOOKUP_RULE,
   MODEL_TOOLS,
   PAID_ONLY,
   PLANS,
@@ -19,7 +20,12 @@ import {
   REPORTS_PER_MONTH,
   paidOnlyText,
 } from "../../deploy/cloudflare/src/plans.ts";
-import { PLAN_FILES, plansData, renderPlans } from "./gen-plans.ts";
+import {
+  PLAN_FILES,
+  markdownCode,
+  plansData,
+  renderPlans,
+} from "./gen-plans.ts";
 import {
   countyBody,
   exampleBody,
@@ -1328,6 +1334,44 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
       read("llms.txt").includes(
         `share ${ANONYMOUS_REQUESTS_PER_MINUTE}/min and ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} lookups/day`,
       ),
+    );
+  });
+  it("no document or page states the old lookup rule by hand, and the short rule is generated", () => {
+    assert.ok(
+      read("docs/getting-started.md").includes(
+        `<!-- plans:rule -->${markdownCode(LOOKUP_RULE)}<!-- /plans:rule -->`,
+      ),
+    );
+    const files = [
+      "README.md",
+      "llms-install.md",
+      "site/try/try.js",
+      ...[
+        "docs",
+        "connectors",
+        "site",
+        "site/_content",
+        "packages/mcp",
+        "packages/tools",
+        "packages/server",
+        "python",
+      ].flatMap((dir) =>
+        readdirSync(new URL(`${dir}/`, root))
+          .filter((f) => /\.(md|html)$/.test(f))
+          .map((f) => `${dir}/${f}`),
+      ),
+    ];
+    for (const f of files) {
+      const text = flat(f);
+      assert.doesNotMatch(
+        text,
+        /one answered call to a|answered lookups count|finds nothing still counts|misses outside the loaded coverage and input errors are free/,
+        f,
+      );
+    }
+    assert.match(
+      read("site/try/try.js"),
+      /finds nothing \(up to an hourly limit\)/,
     );
   });
   it("README, the docs and llms.txt state the same two sentences (run scripts/site/gen-plans.ts)", () => {
