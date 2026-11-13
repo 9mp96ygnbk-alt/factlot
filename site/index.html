@@ -166,8 +166,43 @@
               Each fact names its method, its source document and record, and
               the rights that travel with it.
             </p>
+            <form
+              class="try-form lookup-form hero-lookup"
+              action="/lookup/"
+              method="get"
+            >
+              <label for="hero-q">Look up a commercial property</label>
+              <div class="try-row">
+                <input
+                  id="hero-q"
+                  name="q"
+                  type="text"
+                  maxlength="200"
+                  required
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  placeholder="1000 Louisiana St, Houston"
+                  aria-describedby="hero-hint"
+                />
+                <input
+                  class="try-state"
+                  name="state"
+                  type="text"
+                  maxlength="40"
+                  autocomplete="off"
+                  placeholder="TX"
+                  aria-label="State (optional)"
+                />
+                <button class="button primary" type="submit">Look up</button>
+              </div>
+              <p id="hero-hint" class="small">
+                An address in a hosted county. The answer is a page of cited
+                facts: no account, no key, no script.
+              </p>
+            </form>
             <p class="actions">
-              <a class="button primary" href="/try/">Try a lookup</a>
+              <a class="button" href="/try/">Try a lookup</a>
               <a class="button" href="/connect/">Connect Claude or ChatGPT</a>
             </p>
           </div>

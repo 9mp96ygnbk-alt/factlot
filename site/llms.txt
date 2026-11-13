@@ -34,18 +34,18 @@ Downloads: registry sample on real data, https://github.com/9mp96ygnbk-alt/factl
 
 ## Links
 
-- [Connect](https://factlot.com/connect/): setup per client and framework; JSON at https://factlot.com/connect.json
-- [Coverage catalog (JSON)](https://factlot.com/coverage.json): hosted places, sources, rights, ID systems
-- [Coverage map](https://factlot.com/coverage/): county status; per-county JSON at https://factlot.com/coverage/counties.json
+- [Connect](https://factlot.com/connect/): setup per client and framework; JSON: https://factlot.com/connect.json
+- [Coverage catalog (JSON)](https://factlot.com/coverage.json)
+- [Coverage map](https://factlot.com/coverage/): county status; per-county JSON: https://factlot.com/coverage/counties.json
 - [OpenAPI 3.1](https://api.factlot.com/openapi.json): every tool; [OpenAPI 3.0](https://api.factlot.com/openapi-3.0.json): at most 30 operations for Custom GPT Actions (`?operations=all` for every tool)
-- [Tool reference](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json): every tool's name, description and input schema
+- [Tool reference](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json): every tool's name, description, input schema
 - [Registry guide](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md): what the registry holds, [coverage by county](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md), [rights](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/rights.md)
-- [Try a lookup](https://factlot.com/try/): a cited record by address, free
+- [Try a lookup](https://factlot.com/try/): a cited record by address, free; as a URL: https://factlot.com/lookup/?q=<address> (&format=json for JSON)
 - [Calculators](https://factlot.com/calculators/): worked examples and audit trails
 - [Agent guide](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md): which tool to call when
 - [Document verification](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/document-verification.md): textual checks; they do not find terms the agent missed
 - [Texas property tax protest deadline](https://factlot.com/texas/property-tax-protest-deadline/): deadlines with statute citations
-- [Claude Code plugin](https://github.com/9mp96ygnbk-alt/factlot/blob/main/plugins/factlot/README.md): twelve CRE skills wired to these tools
+- [Claude Code plugin](https://github.com/9mp96ygnbk-alt/factlot/blob/main/plugins/factlot/README.md): twelve CRE skills
 - [Python SDK](https://github.com/9mp96ygnbk-alt/factlot/blob/main/python/README.md): `factlot.anthropic_tools()`, `factlot.openai_tools()`, `factlot.run_tool(name, input)`
 - Trust: [status](https://factlot.com/status/), [security](https://factlot.com/security/), [service levels](https://factlot.com/sla/), [assurance](https://factlot.com/assurance/), [terms](https://factlot.com/terms), [privacy](https://factlot.com/privacy)
 - [Source repository](https://github.com/9mp96ygnbk-alt/factlot): Apache-2.0 and MIT; contact@factlot.com

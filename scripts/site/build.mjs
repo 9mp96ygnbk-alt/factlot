@@ -392,10 +392,13 @@ const WORKER_PATHS = [
   "/health",
   "/v1",
   "/billing",
+  "/lookup",
 ];
+const workerPath = (p) =>
+  WORKER_PATHS.some((w) => p === w || p.startsWith(`${w}/`));
 function addPage(page, sources) {
   const p = page.urlPath.replace(/\/+$/, "");
-  if (WORKER_PATHS.some((w) => p === w || p.startsWith(`${w}/`)))
+  if (workerPath(p))
     throw new Error(
       `${page.urlPath} is a path the Worker answers itself; pick another`,
     );
@@ -1618,6 +1621,8 @@ const exists = (u) => {
   const f = path.join(out, p);
   return (
     p === "/" ||
+    // A path the Worker answers itself (the lookup pages) is not a file of the site.
+    workerPath(p.replace(/\/+$/, "")) ||
     fs.existsSync(path.join(f, "index.html")) ||
     (fs.existsSync(f) && fs.statSync(f).isFile()) ||
     fs.existsSync(`${f}.html`)

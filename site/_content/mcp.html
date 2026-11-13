@@ -188,6 +188,12 @@
   The reply names the server and carries its instructions: which tool to use for
   which task, and how to cite the result.
 </p>
+<p>
+  A client that cannot add a server can still read a record: a GET to
+  <code>https://factlot.com/lookup/?q=1000+Louisiana+St&amp;state=TX</code>
+  answers a page of cited facts, or JSON with <code>&amp;format=json</code>,
+  with no key (<a href="/connect/#no-connector">details</a>).
+</p>
 
 <h2 id="tools">What the tools do</h2>
 <ul class="plain">

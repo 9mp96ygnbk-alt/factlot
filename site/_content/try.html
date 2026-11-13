@@ -10,7 +10,7 @@
   AI agent would get, with no account and no API key.
 </p>
 
-<form id="try-form" class="try-form" action="/try/" method="get" novalidate>
+<form id="try-form" class="try-form" action="/lookup/" method="get" novalidate>
   <label for="try-q">Property address</label>
   <div class="try-row">
     <input
@@ -89,10 +89,9 @@
 
 <noscript>
   <p class="note">
-    This page needs JavaScript to send the lookup. Without it, the same calls
-    are one line each; see
-    <a href="/mcp-server/">the MCP server page</a> or the
-    <a href="https://api.factlot.com/openapi.json">OpenAPI description</a>.
+    With JavaScript off, the Look up button opens the answer as a plain page at
+    <a href="/lookup/">factlot.com/lookup/</a>: the same record, with every
+    source. The sample buttons above need JavaScript.
   </p>
 </noscript>
 
@@ -109,6 +108,15 @@
     organisation (or why there is none), the roll values with their year and
     date, building and land facts, and the source of each. "Copy as text" puts
     the same summary on your clipboard for an email.
+  </li>
+  <li>
+    <strong>A lookup page</strong> is the same lookup as a web address, with no
+    script: <code>factlot.com/lookup/?q=1000+Louisiana+St&amp;state=TX</code>
+    answers a page of cited facts that can be bookmarked or sent, and an
+    assistant that can only open a web address can read it. A search is one
+    lookup and a record another, as here; a record that has a property page is
+    sent to that page and is not counted.
+    <a href="/lookup/">Look up by address</a>.
   </li>
   <li>
     <strong>The property sheet</strong> is a one-page PDF of the same record,

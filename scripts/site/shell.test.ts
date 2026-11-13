@@ -758,6 +758,69 @@ describe("the hand-written sources", () => {
     assert.ok(security.includes("FactLot is run by one person"));
   });
 
+  it("the home page and the try page look up through a form that needs no script", () => {
+    for (const [file, id] of [
+      ["site/index.html", "hero-q"],
+      ["site/_content/try.html", "try-q"],
+    ] as const) {
+      const html = read(file).replace(/\s+/g, " ");
+      const form = /<form\b[^>]*action="\/lookup\/"[^>]*>[\s\S]*?<\/form>/.exec(
+        html,
+      )?.[0];
+      assert.ok(form, `${file}: a form that goes to /lookup/`);
+      assert.match(form, /<form\b[^>]*method="get"/, file);
+      assert.match(
+        form,
+        new RegExp(`<input [^>]*id="${id}" [^>]*name="q" [^>]*maxlength="200"`),
+        file,
+      );
+      assert.match(form, /<button class="button primary" type="submit"/, file);
+      assert.doesNotMatch(form, /<input[^>]*name="(?:key|token)"/i, file);
+    }
+    // The home page's form also takes the state, as the lookup pages' own form does.
+    assert.match(
+      read("site/index.html").replace(/\s+/g, " "),
+      /<input class="try-state" name="state" type="text" maxlength="40"/,
+    );
+    const tryPage = read("site/_content/try.html").replace(/\s+/g, " ");
+    assert.ok(
+      tryPage.includes(
+        "With JavaScript off, the Look up button opens the answer as a plain page",
+      ),
+    );
+    assert.ok(!tryPage.includes("This page needs JavaScript"));
+  });
+
+  it("lookup pages may be fetched, are named to machines, and are in no sitemap", () => {
+    const robots = read("site/robots.txt");
+    assert.match(robots, /^User-agent: \*\nAllow: \/$/m);
+    assert.doesNotMatch(robots, /Disallow: \/lookup/);
+    for (const f of ["llms.txt", "site/llms.txt"])
+      assert.ok(
+        read(f).includes(
+          "https://factlot.com/lookup/?q=<address> (&format=json for JSON)",
+        ),
+        f,
+      );
+    const connect = json<{
+      lookup_pages: Record<string, string | string[]>;
+    }>("site/_data/connect.json").lookup_pages;
+    assert.equal(connect.search_url, "https://factlot.com/lookup/?q={address}");
+    assert.equal(
+      connect.record_url,
+      "https://factlot.com/lookup/{county}/{parcel_id}",
+    );
+    assert.deepEqual(connect.place_parameters, [
+      "state",
+      "city",
+      "zip",
+      "county",
+    ]);
+    assert.match(String(connect.auth), /never in the address/);
+    for (const f of ["site/_content/mcp.html", "README.md"])
+      assert.ok(read(f).includes("https://factlot.com/lookup/?q="), f);
+  });
+
   it("the home page takes the Texas sentence from the Texas page and does not type it", () => {
     const texasPage = read("site/_content/texas.html");
     const sentence = texasSoftwareSentence(texasPage);
@@ -1212,6 +1275,38 @@ describe("the built site", () => {
           f.slice(out.length),
         );
       }
+      // Lookup pages are the Worker's: the build makes no /lookup/ file, lists none in the
+      // sitemap, and the connect page and connect.json say how to open one.
+      assert.ok(!existsSync(`${out}/lookup`));
+      assert.ok(
+        !readFileSync(`${out}/sitemap.xml`, "utf8").includes("/lookup"),
+      );
+      const connectPage = readFileSync(`${out}/connect/index.html`, "utf8");
+      assert.ok(
+        connectPage.includes(
+          '<h2 id="no-connector">No connector? Open a web address</h2>',
+        ),
+      );
+      assert.ok(
+        connectPage.includes(
+          "https://factlot.com/lookup/?q=1000+Louisiana+St&amp;state=TX\nhttps://factlot.com/lookup/us-48201/0011440000001",
+        ),
+      );
+      const connectJson = JSON.parse(
+        readFileSync(`${out}/connect.json`, "utf8"),
+      ) as { lookup_pages: { search_url: string; counting: string } };
+      assert.equal(
+        connectJson.lookup_pages.search_url,
+        "https://factlot.com/lookup/?q={address}",
+      );
+      assert.ok(
+        words(connectPage).includes(connectJson.lookup_pages.counting),
+        "the page states the counting rule connect.json gives",
+      );
+      assert.match(
+        readFileSync(`${out}/index.html`, "utf8"),
+        /<form\s+class="try-form lookup-form hero-lookup"\s+action="\/lookup\/"\s+method="get"\s*>/,
+      );
       const coverage = readFileSync(`${out}/coverage/index.html`, "utf8");
       assert.equal(coverage.split('class="covsvg inset"').length - 1, 3);
       const texasHub = readFileSync(`${out}/texas/index.html`, "utf8");
