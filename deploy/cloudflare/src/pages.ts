@@ -499,17 +499,20 @@ function accountFacts(s: AccountSummary, receipts?: string): string {
   const st = statusText(s);
   const q = s.registry_lookups;
   const left = Math.max(0, q.limit - q.used);
-  return `<dl class="facts">
+  // This month's use, as readouts: the same rows and words, set apart from the plan's terms.
+  return `<dl class="usage">
+<div><dt>Registry lookups</dt><dd><progress max="${q.limit}" value="${Math.min(q.used, q.limit)}" aria-label="Registry lookups used">${q.used} of ${q.limit}</progress><br>${q.used.toLocaleString("en-US")} of ${q.limit.toLocaleString("en-US")} used this month (${left.toLocaleString("en-US")} left); resets ${escapeHtml(utc(q.resets_at))}</dd></div>
+<div><dt>Reports</dt><dd>${s.reports.used.toLocaleString("en-US")} of ${s.reports.limit.toLocaleString("en-US")} built this month with <code>report_create</code> (XLSX, PDF, ICS); resets ${escapeHtml(utc(s.reports.resets_at))}</dd></div>
+<div><dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd></div>
+</dl>
+<dl class="facts">
 <dt>Status</dt><dd${st.warn ? ' class="warn"' : ""}>${escapeHtml(st.text)}</dd>
 <dt>Price</dt><dd>${escapeHtml(s.price)}, renews monthly until cancelled</dd>
 ${s.renewal_at ? `<dt>Renewal</dt><dd>Renews on ${escapeHtml(day(s.renewal_at))}</dd>` : ""}
 ${s.ends_at ? `<dt>Ends</dt><dd class="warn">Ends on ${escapeHtml(day(s.ends_at))}; it will not renew</dd>` : ""}
 ${receipts ? `<dt>Receipts</dt><dd>Stripe emails receipts to ${escapeHtml(receipts)}</dd>` : ""}
 <dt>Rate limit</dt><dd>${s.requests_per_minute.toLocaleString("en-US")} requests a minute per key</dd>
-<dt>Registry lookups</dt><dd><progress max="${q.limit}" value="${Math.min(q.used, q.limit)}" aria-label="Registry lookups used">${q.used} of ${q.limit}</progress><br>${q.used.toLocaleString("en-US")} of ${q.limit.toLocaleString("en-US")} used this month (${left.toLocaleString("en-US")} left); resets ${escapeHtml(utc(q.resets_at))}</dd>
-<dt>Reports</dt><dd>${s.reports.used.toLocaleString("en-US")} of ${s.reports.limit.toLocaleString("en-US")} built this month with <code>report_create</code> (XLSX, PDF, ICS); resets ${escapeHtml(utc(s.reports.resets_at))}</dd>
 <dt>Model-backed tools</dt><dd>${modelFacts(s)}</dd>
-<dt>Keys</dt><dd>${s.keys.count} of ${s.keys.limit}</dd>
 <dt>What counts</dt><dd>${escapeHtml(LOOKUP_RULE)} ${escapeHtml(REPORT_RULE)}</dd>
 ${s.payment_failed_at ? `<dt>Last failed payment</dt><dd class="warn">${escapeHtml(utc(s.payment_failed_at))}</dd>` : ""}
 ${s.deletes_at ? `<dt>Record deleted</dt><dd>${escapeHtml(utc(s.deletes_at))} unless the key is active again</dd>` : ""}

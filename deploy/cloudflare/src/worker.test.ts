@@ -1351,6 +1351,33 @@ describe("addresses", () => {
 describe("router", () => {
   const assets = { fetch: async () => new Response("<html>site</html>") };
 
+  it("hands the stylesheet, the fonts and the icon to the built site on every host", async () => {
+    const { api } = innerApi();
+    const seen: string[] = [];
+    const built = {
+      fetch: async (r: Request) => {
+        seen.push(new URL(r.url).pathname);
+        return new Response("built");
+      },
+    };
+    const paths = [
+      "/styles.css",
+      "/favicon.svg",
+      "/fonts/instrument-sans-latin-wght-normal.woff2",
+      "/fonts/geist-mono-latin-wght-normal.woff2",
+    ];
+    for (const host of ["api.factlot.com", "factlot.com"])
+      for (const p of paths) {
+        const res = await handle(
+          new Request(`https://${host}${p}`),
+          env({ ASSETS: built }),
+          api,
+        );
+        assert.equal(await res.text(), "built", `${host}${p}`);
+      }
+    assert.deepEqual(seen, [...paths, ...paths]);
+  });
+
   it("serves its own robots.txt on the API host", async () => {
     const { api } = innerApi();
     const res = await handle(
@@ -4960,6 +4987,13 @@ describe("account usage, tools and page", () => {
       html,
       /<svg class="spark"[^>]*aria-label="1 registry lookup from 2026-10-09 to 2026-11-07; most on 2026-11-07 \(1\)"/,
     );
+    // This month's use is set apart as readouts: lookups with their bar, reports and keys.
+    assert.match(
+      html,
+      /<dl class="usage">\n<div><dt>Registry lookups<\/dt><dd><progress max="100000" value="1"[^>]*>1 of 100000<\/progress><br>1 of 100,000 used this month \(99,999 left\); resets [^<]+<\/dd><\/div>\n<div><dt>Reports<\/dt><dd>0 of 1,000 built this month with <code>report_create<\/code> \(XLSX, PDF, ICS\); resets [^<]+<\/dd><\/div>\n<div><dt>Keys<\/dt><dd>1 of 5<\/dd><\/div>\n<\/dl>\n<dl class="facts">/,
+    );
+    for (const label of ["Registry lookups", "Reports", "Keys"])
+      assert.equal(html.split(`<dt>${label}</dt>`).length - 1, 1, label);
     assert.match(html, /<code>us-11<\/code> 1/);
     assert.match(html, /2026-11-07 12:00 UTC/, "the key's last use");
     assert.match(
