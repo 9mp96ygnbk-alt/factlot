@@ -1,0 +1,2027 @@
+{
+  "story_format": 1,
+  "slug": "loving-county-tx-commercial-roll-values-2022-2024",
+  "title": "Commercial roll values in Loving County, TX, 2022 to 2024: what the appraisal district's files show",
+  "description": "Computed figures from the appraisal district's roll files for Loving County, TX: stated values of commercial, industrial and multifamily parcels by roll year, 2022 to 2024, and how many parcels' values rose or fell.",
+  "county": {
+    "fips": "48301",
+    "name": "Loving County",
+    "state": "TX"
+  },
+  "period": {
+    "first_year": 2022,
+    "last_year": 2024,
+    "years": [
+      {
+        "year": 2022,
+        "preliminary": false
+      },
+      {
+        "year": 2023,
+        "preliminary": false
+      },
+      {
+        "year": 2024,
+        "preliminary": false
+      }
+    ]
+  },
+  "value_type": "market",
+  "options": {
+    "thresholds_percent": [
+      "10",
+      "25"
+    ],
+    "min_cell": 10,
+    "name_organisations": false,
+    "preliminary_years": []
+  },
+  "sentences": [
+    {
+      "id": "s.scope",
+      "text": "The current file lists 26 parcels in the commercial scope (multifamily, commercial and industrial real property).",
+      "figures": [
+        "scope.parcels"
+      ]
+    },
+    {
+      "id": "s.year.2022",
+      "text": "In 2022, 26 of them have a stated market value, totalling $50,235,000.",
+      "figures": [
+        "param.year.2022",
+        "y2022.parcels",
+        "y2022.total"
+      ]
+    },
+    {
+      "id": "s.year.2023",
+      "text": "In 2023, 26 of them have a stated market value, totalling $54,561,000.",
+      "figures": [
+        "param.year.2023",
+        "y2023.parcels",
+        "y2023.total"
+      ]
+    },
+    {
+      "id": "s.year.2024",
+      "text": "In 2024, 26 of them have a stated market value, totalling $57,938,640.",
+      "figures": [
+        "param.year.2024",
+        "y2024.parcels",
+        "y2024.total"
+      ]
+    },
+    {
+      "id": "s.p2022_2023.direction",
+      "text": "Of 26 parcels with a value in both 2022 and 2023, 15 (57.7%) were higher in 2023 than in 2022, 0 (0.0%) were lower and 11 were unchanged.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2023",
+        "p2022_2023.both",
+        "p2022_2023.rose",
+        "p2022_2023.rose_pct",
+        "p2022_2023.fell",
+        "p2022_2023.fell_pct",
+        "p2022_2023.same"
+      ]
+    },
+    {
+      "id": "s.p2022_2023.threshold.10",
+      "text": "Between 2022 and 2023, 3 parcels rose by more than 10 percent and 0 fell by more than 10 percent.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2023",
+        "param.threshold.10",
+        "p2022_2023.rose_gt_10",
+        "p2022_2023.fell_gt_10"
+      ]
+    },
+    {
+      "id": "s.p2022_2023.threshold.25",
+      "text": "Between 2022 and 2023, 0 parcels rose by more than 25 percent and 0 fell by more than 25 percent.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2023",
+        "param.threshold.25",
+        "p2022_2023.rose_gt_25",
+        "p2022_2023.fell_gt_25"
+      ]
+    },
+    {
+      "id": "s.p2022_2023.distribution",
+      "text": "The median change in stated value between 2022 and 2023 was 10.0 percent; the lower quartile was 0.0 percent and the upper quartile was 10.0 percent.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2023",
+        "p2022_2023.median",
+        "p2022_2023.q1",
+        "p2022_2023.q3"
+      ]
+    },
+    {
+      "id": "s.p2023_2024.direction",
+      "text": "Of 26 parcels with a value in both 2023 and 2024, 14 (53.8%) were higher in 2024 than in 2023, 9 (34.6%) were lower and 3 were unchanged.",
+      "figures": [
+        "param.year.2023",
+        "param.year.2024",
+        "p2023_2024.both",
+        "p2023_2024.rose",
+        "p2023_2024.rose_pct",
+        "p2023_2024.fell",
+        "p2023_2024.fell_pct",
+        "p2023_2024.same"
+      ]
+    },
+    {
+      "id": "s.p2023_2024.threshold.10",
+      "text": "Between 2023 and 2024, 11 parcels rose by more than 10 percent and 3 fell by more than 10 percent.",
+      "figures": [
+        "param.year.2023",
+        "param.year.2024",
+        "param.threshold.10",
+        "p2023_2024.rose_gt_10",
+        "p2023_2024.fell_gt_10"
+      ]
+    },
+    {
+      "id": "s.p2023_2024.threshold.25",
+      "text": "Between 2023 and 2024, 11 parcels rose by more than 25 percent and 0 fell by more than 25 percent.",
+      "figures": [
+        "param.year.2023",
+        "param.year.2024",
+        "param.threshold.25",
+        "p2023_2024.rose_gt_25",
+        "p2023_2024.fell_gt_25"
+      ]
+    },
+    {
+      "id": "s.p2023_2024.distribution",
+      "text": "The median change in stated value between 2023 and 2024 was 3.0 percent; the lower quartile was -5.0 percent and the upper quartile was 30.0 percent.",
+      "figures": [
+        "param.year.2023",
+        "param.year.2024",
+        "p2023_2024.median",
+        "p2023_2024.q1",
+        "p2023_2024.q3"
+      ]
+    },
+    {
+      "id": "s.p2022_2024.direction",
+      "text": "Of 26 parcels with a value in both 2022 and 2024, 23 (88.5%) were higher in 2024 than in 2022, 0 (0.0%) were lower and 3 were unchanged.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2024",
+        "p2022_2024.both",
+        "p2022_2024.rose",
+        "p2022_2024.rose_pct",
+        "p2022_2024.fell",
+        "p2022_2024.fell_pct",
+        "p2022_2024.same"
+      ]
+    },
+    {
+      "id": "s.p2022_2024.threshold.10",
+      "text": "Between 2022 and 2024, 14 parcels rose by more than 10 percent and 0 fell by more than 10 percent.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2024",
+        "param.threshold.10",
+        "p2022_2024.rose_gt_10",
+        "p2022_2024.fell_gt_10"
+      ]
+    },
+    {
+      "id": "s.p2022_2024.threshold.25",
+      "text": "Between 2022 and 2024, 11 parcels rose by more than 25 percent and 0 fell by more than 25 percent.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2024",
+        "param.threshold.25",
+        "p2022_2024.rose_gt_25",
+        "p2022_2024.fell_gt_25"
+      ]
+    },
+    {
+      "id": "s.p2022_2024.distribution",
+      "text": "The median change in stated value between 2022 and 2024 was 13.3 percent; the lower quartile was 4.5 percent and the upper quartile was 30.0 percent.",
+      "figures": [
+        "param.year.2022",
+        "param.year.2024",
+        "p2022_2024.median",
+        "p2022_2024.q1",
+        "p2022_2024.q3"
+      ]
+    },
+    {
+      "id": "s.owner",
+      "text": "In the current file, 25 of 26 parcels (96.2%) have an organisation as owner of record, and 21 (80.8%) are owned of record by an organisation matched by exact normalized name to the Texas Comptroller of Public Accounts active franchise taxpayer file.",
+      "figures": [
+        "scope.parcels",
+        "owner.org_stated",
+        "owner.org_stated_pct",
+        "owner.registered",
+        "owner.registered_pct"
+      ]
+    }
+  ],
+  "figures": [
+    {
+      "id": "param.min_cell",
+      "label": "Smallest group a table cell may be built from",
+      "value": 10,
+      "unit": "count",
+      "rule": "A fixed rule of the generator: a table cell built from fewer parcels is left empty, except a county total.",
+      "sources": []
+    },
+    {
+      "id": "param.year.2022",
+      "label": "Roll year 2022",
+      "value": 2022,
+      "unit": "year",
+      "rule": "A roll year named by the operator.",
+      "sources": []
+    },
+    {
+      "id": "param.year.2023",
+      "label": "Roll year 2023",
+      "value": 2023,
+      "unit": "year",
+      "rule": "A roll year named by the operator.",
+      "sources": []
+    },
+    {
+      "id": "param.year.2024",
+      "label": "Roll year 2024",
+      "value": 2024,
+      "unit": "year",
+      "rule": "A roll year named by the operator.",
+      "sources": []
+    },
+    {
+      "id": "param.threshold.10",
+      "label": "Change threshold of 10 percent",
+      "value": 10,
+      "unit": "percent",
+      "rule": "A change threshold named by the operator.",
+      "sources": []
+    },
+    {
+      "id": "param.threshold.25",
+      "label": "Change threshold of 25 percent",
+      "value": 25,
+      "unit": "percent",
+      "rule": "A change threshold named by the operator.",
+      "sources": []
+    },
+    {
+      "id": "scope.parcels",
+      "label": "Parcels in the commercial scope",
+      "value": 26,
+      "unit": "count",
+      "rule": "Count of the county's parcels in the commercial scope: the current file's state property category is multifamily (B), commercial (F1) or industrial (F2) real property.",
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "scope.excluded",
+      "label": "Parcels held for the county outside that scope",
+      "value": 0,
+      "unit": "count",
+      "rule": "Count of the county's parcel subjects in the registry that are not in the commercial scope or have no single state category.",
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "y2022.parcels",
+      "label": "Parcels with a stated market value, 2022",
+      "value": 26,
+      "unit": "count",
+      "rule": "Count of in-scope parcels with a positive stated market value in the tax year 2022 file.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "y2022.total",
+      "label": "Total stated market value, 2022",
+      "value": 50235000,
+      "unit": "usd",
+      "rule": "Sum of those stated market values, in dollars.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "y2023.parcels",
+      "label": "Parcels with a stated market value, 2023",
+      "value": 26,
+      "unit": "count",
+      "rule": "Count of in-scope parcels with a positive stated market value in the tax year 2023 file.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "y2023.total",
+      "label": "Total stated market value, 2023",
+      "value": 54561000,
+      "unit": "usd",
+      "rule": "Sum of those stated market values, in dollars.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "y2024.parcels",
+      "label": "Parcels with a stated market value, 2024",
+      "value": 26,
+      "unit": "count",
+      "rule": "Count of in-scope parcels with a positive stated market value in the tax year 2024 file.",
+      "sources": [
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "y2024.total",
+      "label": "Total stated market value, 2024",
+      "value": 57938640,
+      "unit": "usd",
+      "rule": "Sum of those stated market values, in dollars.",
+      "sources": [
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.both",
+      "label": "Parcels with a value in both 2022 and 2023",
+      "value": 26,
+      "unit": "count",
+      "rule": "Count of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.rose",
+      "label": "Parcels higher in 2023 than in 2022",
+      "value": 15,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file, those whose 2023 value is above their 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.fell",
+      "label": "Parcels lower in 2023 than in 2022",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file, those whose 2023 value is below their 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.same",
+      "label": "Parcels unchanged from 2022 to 2023",
+      "value": 11,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file, those whose two values are equal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.rose_pct",
+      "label": "Share higher in 2023 than in 2022",
+      "value": 57.7,
+      "unit": "percent",
+      "rule": "Parcels higher divided by parcels with a value in both years, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.fell_pct",
+      "label": "Share lower in 2023 than in 2022",
+      "value": 0.0,
+      "unit": "percent",
+      "rule": "Parcels lower divided by parcels with a value in both years, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.rose_gt_10",
+      "label": "Parcels up by more than 10 percent, 2022 to 2023",
+      "value": 3,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file, those whose 2023 value exceeds their 2022 value by more than 10 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.fell_gt_10",
+      "label": "Parcels down by more than 10 percent, 2022 to 2023",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file, those whose 2023 value is below their 2022 value by more than 10 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.rose_gt_25",
+      "label": "Parcels up by more than 25 percent, 2022 to 2023",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file, those whose 2023 value exceeds their 2022 value by more than 25 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.fell_gt_25",
+      "label": "Parcels down by more than 25 percent, 2022 to 2023",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2023 file, those whose 2023 value is below their 2022 value by more than 25 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.q1",
+      "label": "Lower quartile of change, 2022 to 2023",
+      "value": 0.0,
+      "unit": "percent",
+      "rule": "First quartile of per-parcel change, the 2023 value minus the 2022 value as a percent of the 2022 value, over in-scope parcels with a positive stated market value in both the 2022 and the 2023 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.median",
+      "label": "Median change, 2022 to 2023",
+      "value": 10.0,
+      "unit": "percent",
+      "rule": "Median of per-parcel change, the 2023 value minus the 2022 value as a percent of the 2022 value, over in-scope parcels with a positive stated market value in both the 2022 and the 2023 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2023.q3",
+      "label": "Upper quartile of change, 2022 to 2023",
+      "value": 10.0,
+      "unit": "percent",
+      "rule": "Third quartile of per-parcel change, the 2023 value minus the 2022 value as a percent of the 2022 value, over in-scope parcels with a positive stated market value in both the 2022 and the 2023 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.both",
+      "label": "Parcels with a value in both 2023 and 2024",
+      "value": 26,
+      "unit": "count",
+      "rule": "Count of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.rose",
+      "label": "Parcels higher in 2024 than in 2023",
+      "value": 14,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file, those whose 2024 value is above their 2023 value.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.fell",
+      "label": "Parcels lower in 2024 than in 2023",
+      "value": 9,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file, those whose 2024 value is below their 2023 value.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.same",
+      "label": "Parcels unchanged from 2023 to 2024",
+      "value": 3,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file, those whose two values are equal.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.rose_pct",
+      "label": "Share higher in 2024 than in 2023",
+      "value": 53.8,
+      "unit": "percent",
+      "rule": "Parcels higher divided by parcels with a value in both years, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.fell_pct",
+      "label": "Share lower in 2024 than in 2023",
+      "value": 34.6,
+      "unit": "percent",
+      "rule": "Parcels lower divided by parcels with a value in both years, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.rose_gt_10",
+      "label": "Parcels up by more than 10 percent, 2023 to 2024",
+      "value": 11,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file, those whose 2024 value exceeds their 2023 value by more than 10 percent of the 2023 value.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.fell_gt_10",
+      "label": "Parcels down by more than 10 percent, 2023 to 2024",
+      "value": 3,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file, those whose 2024 value is below their 2023 value by more than 10 percent of the 2023 value.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.rose_gt_25",
+      "label": "Parcels up by more than 25 percent, 2023 to 2024",
+      "value": 11,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file, those whose 2024 value exceeds their 2023 value by more than 25 percent of the 2023 value.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.fell_gt_25",
+      "label": "Parcels down by more than 25 percent, 2023 to 2024",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2023 and the 2024 file, those whose 2024 value is below their 2023 value by more than 25 percent of the 2023 value.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.q1",
+      "label": "Lower quartile of change, 2023 to 2024",
+      "value": -5.0,
+      "unit": "percent",
+      "rule": "First quartile of per-parcel change, the 2024 value minus the 2023 value as a percent of the 2023 value, over in-scope parcels with a positive stated market value in both the 2023 and the 2024 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.median",
+      "label": "Median change, 2023 to 2024",
+      "value": 3.0,
+      "unit": "percent",
+      "rule": "Median of per-parcel change, the 2024 value minus the 2023 value as a percent of the 2023 value, over in-scope parcels with a positive stated market value in both the 2023 and the 2024 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2023_2024.q3",
+      "label": "Upper quartile of change, 2023 to 2024",
+      "value": 30.0,
+      "unit": "percent",
+      "rule": "Third quartile of per-parcel change, the 2024 value minus the 2023 value as a percent of the 2023 value, over in-scope parcels with a positive stated market value in both the 2023 and the 2024 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.both",
+      "label": "Parcels with a value in both 2022 and 2024",
+      "value": 26,
+      "unit": "count",
+      "rule": "Count of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.rose",
+      "label": "Parcels higher in 2024 than in 2022",
+      "value": 23,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file, those whose 2024 value is above their 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.fell",
+      "label": "Parcels lower in 2024 than in 2022",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file, those whose 2024 value is below their 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.same",
+      "label": "Parcels unchanged from 2022 to 2024",
+      "value": 3,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file, those whose two values are equal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.rose_pct",
+      "label": "Share higher in 2024 than in 2022",
+      "value": 88.5,
+      "unit": "percent",
+      "rule": "Parcels higher divided by parcels with a value in both years, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.fell_pct",
+      "label": "Share lower in 2024 than in 2022",
+      "value": 0.0,
+      "unit": "percent",
+      "rule": "Parcels lower divided by parcels with a value in both years, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.rose_gt_10",
+      "label": "Parcels up by more than 10 percent, 2022 to 2024",
+      "value": 14,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file, those whose 2024 value exceeds their 2022 value by more than 10 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.fell_gt_10",
+      "label": "Parcels down by more than 10 percent, 2022 to 2024",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file, those whose 2024 value is below their 2022 value by more than 10 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.rose_gt_25",
+      "label": "Parcels up by more than 25 percent, 2022 to 2024",
+      "value": 11,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file, those whose 2024 value exceeds their 2022 value by more than 25 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.fell_gt_25",
+      "label": "Parcels down by more than 25 percent, 2022 to 2024",
+      "value": 0,
+      "unit": "count",
+      "rule": "Of in-scope parcels with a positive stated market value in both the 2022 and the 2024 file, those whose 2024 value is below their 2022 value by more than 25 percent of the 2022 value.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.q1",
+      "label": "Lower quartile of change, 2022 to 2024",
+      "value": 4.5,
+      "unit": "percent",
+      "rule": "First quartile of per-parcel change, the 2024 value minus the 2022 value as a percent of the 2022 value, over in-scope parcels with a positive stated market value in both the 2022 and the 2024 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.median",
+      "label": "Median change, 2022 to 2024",
+      "value": 13.3,
+      "unit": "percent",
+      "rule": "Median of per-parcel change, the 2024 value minus the 2022 value as a percent of the 2022 value, over in-scope parcels with a positive stated market value in both the 2022 and the 2024 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "p2022_2024.q3",
+      "label": "Upper quartile of change, 2022 to 2024",
+      "value": 30.0,
+      "unit": "percent",
+      "rule": "Third quartile of per-parcel change, the 2024 value minus the 2022 value as a percent of the 2022 value, over in-scope parcels with a positive stated market value in both the 2022 and the 2024 file; linear interpolation between closest ranks, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "owner.org_stated",
+      "label": "Parcels with an organisation as owner of record",
+      "value": 25,
+      "unit": "count",
+      "rule": "Count of in-scope parcels for which, in the current file the owner of record is an organisation; owners who are natural persons are not stored in the registry.",
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "owner.org_stated_pct",
+      "label": "Share with an organisation as owner of record",
+      "value": 96.2,
+      "unit": "percent",
+      "rule": "That count divided by the parcels in the commercial scope, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "owner.registered",
+      "label": "Parcels owned of record by an organisation on the Texas Comptroller of Public Accounts active franchise taxpayer file",
+      "value": 21,
+      "unit": "count",
+      "rule": "Count of in-scope parcels whose owner of record the registry linked, by exact match of normalized legal name, to an organisation listed in the Texas Comptroller of Public Accounts active franchise taxpayer file.",
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "entities-1",
+          "source_id": "tx-comptroller-franchise",
+          "as_of": "2026-10-31",
+          "attribution": "Texas Comptroller of Public Accounts"
+        }
+      ]
+    },
+    {
+      "id": "owner.registered_pct",
+      "label": "Share owned of record by such an organisation",
+      "value": 80.8,
+      "unit": "percent",
+      "rule": "That count divided by the parcels in the commercial scope, times 100, rounded half up to one decimal.",
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "entities-1",
+          "source_id": "tx-comptroller-franchise",
+          "as_of": "2026-10-31",
+          "attribution": "Texas Comptroller of Public Accounts"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "id": "t.group_year",
+      "title": "Stated value by roll year and property group",
+      "columns": [
+        {
+          "label": "Group",
+          "unit": "text"
+        },
+        {
+          "label": "Roll year",
+          "unit": "year"
+        },
+        {
+          "label": "Parcels with a value",
+          "unit": "count"
+        },
+        {
+          "label": "Total stated value",
+          "unit": "usd"
+        }
+      ],
+      "rule": "Per group and roll year: in-scope parcels with a positive stated value of the chosen type, and their sum. The county-total rows are exempt from the minimum cell size; a group with fewer than 10 parcels is left out.",
+      "rows": [
+        [
+          "All parcels in the commercial scope",
+          2022,
+          26,
+          50235000
+        ],
+        [
+          "Commercial real property (state category F1)",
+          2022,
+          12,
+          12660000
+        ],
+        [
+          "Multifamily (state category B)",
+          2022,
+          11,
+          22275000
+        ],
+        [
+          "All parcels in the commercial scope",
+          2023,
+          26,
+          54561000
+        ],
+        [
+          "Commercial real property (state category F1)",
+          2023,
+          12,
+          13926000
+        ],
+        [
+          "Multifamily (state category B)",
+          2023,
+          11,
+          22275000
+        ],
+        [
+          "All parcels in the commercial scope",
+          2024,
+          26,
+          57938640
+        ],
+        [
+          "Commercial real property (state category F1)",
+          2024,
+          12,
+          13681140
+        ],
+        [
+          "Multifamily (state category B)",
+          2024,
+          11,
+          28957500
+        ]
+      ],
+      "suppressed_cells": 0,
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "t.group_change",
+      "title": "Change in stated value by property group",
+      "columns": [
+        {
+          "label": "Group",
+          "unit": "text"
+        },
+        {
+          "label": "Period",
+          "unit": "text"
+        },
+        {
+          "label": "Parcels with a value in both years",
+          "unit": "count"
+        },
+        {
+          "label": "Higher",
+          "unit": "count"
+        },
+        {
+          "label": "Lower",
+          "unit": "count"
+        },
+        {
+          "label": "Unchanged",
+          "unit": "count"
+        },
+        {
+          "label": "Median change (percent)",
+          "unit": "percent"
+        }
+      ],
+      "rule": "Per group and period, over in-scope parcels with a positive stated value in both years. The county-total rows are exempt from the minimum cell size; a count below 10, and a group with fewer than 10 parcels, is left out or empty.",
+      "rows": [
+        [
+          "All parcels in the commercial scope",
+          "2022 to 2023",
+          26,
+          15,
+          0,
+          11,
+          10.0
+        ],
+        [
+          "Commercial real property (state category F1)",
+          "2022 to 2023",
+          12,
+          12,
+          null,
+          null,
+          10.0
+        ],
+        [
+          "Multifamily (state category B)",
+          "2022 to 2023",
+          11,
+          null,
+          null,
+          11,
+          0.0
+        ],
+        [
+          "All parcels in the commercial scope",
+          "2023 to 2024",
+          26,
+          14,
+          9,
+          3,
+          3.0
+        ],
+        [
+          "Commercial real property (state category F1)",
+          "2023 to 2024",
+          12,
+          null,
+          null,
+          null,
+          -2.5
+        ],
+        [
+          "Multifamily (state category B)",
+          "2023 to 2024",
+          11,
+          11,
+          null,
+          null,
+          30.0
+        ],
+        [
+          "All parcels in the commercial scope",
+          "2022 to 2024",
+          26,
+          23,
+          0,
+          3,
+          13.3
+        ],
+        [
+          "Commercial real property (state category F1)",
+          "2022 to 2024",
+          12,
+          12,
+          null,
+          null,
+          7.3
+        ],
+        [
+          "Multifamily (state category B)",
+          "2022 to 2024",
+          11,
+          11,
+          null,
+          null,
+          30.0
+        ]
+      ],
+      "suppressed_cells": 13,
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "t.dim.neighborhood",
+      "title": "Largest neighborhood codes",
+      "columns": [
+        {
+          "label": "Neighborhood code",
+          "unit": "text"
+        },
+        {
+          "label": "Parcels with a value",
+          "unit": "count"
+        },
+        {
+          "label": "Total stated value",
+          "unit": "usd"
+        }
+      ],
+      "rule": "The 10 neighborhood codes (as written in the current file) with the most in-scope parcels that have a value in the last roll year, with at least 10 parcels each.",
+      "rows": [
+        [
+          "NB-A",
+          22,
+          41478690
+        ]
+      ],
+      "suppressed_cells": 0,
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    },
+    {
+      "id": "t.dim.building_class",
+      "title": "Largest building classes",
+      "columns": [
+        {
+          "label": "Building class",
+          "unit": "text"
+        },
+        {
+          "label": "Parcels with a value",
+          "unit": "count"
+        },
+        {
+          "label": "Total stated value",
+          "unit": "usd"
+        }
+      ],
+      "rule": "The 10 building classes (as written in the current file) with the most in-scope parcels that have a value in the last roll year, with at least 10 parcels each.",
+      "rows": [
+        [
+          "C",
+          12,
+          13681140
+        ],
+        [
+          "S",
+          11,
+          28957500
+        ]
+      ],
+      "suppressed_cells": 0,
+      "sources": [
+        {
+          "key": "current",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2022",
+          "source_id": "tx-fixture-cad-2022",
+          "as_of": "2022-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2023",
+          "source_id": "tx-fixture-cad-2023",
+          "as_of": "2023-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        },
+        {
+          "key": "roll-2024",
+          "source_id": "tx-fixture-cad",
+          "as_of": "2024-07-25",
+          "attribution": "Fixture Central Appraisal District"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "key": "roll-2022",
+      "source_id": "tx-fixture-cad-2022",
+      "document_id": "fl:document:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "publisher": "Fixture Central Appraisal District",
+      "title": "Roll export, tax year 2022",
+      "url": "https://example.test/roll",
+      "filename": "roll2022.zip",
+      "as_of": "2022-07-25",
+      "retrieved_at": "2026-11-01T00:00:00+00:00",
+      "attribution": "Fixture Central Appraisal District",
+      "license": "Public record; no licence stated",
+      "redistribution": "unknown",
+      "ai_use": "unknown",
+      "terms_reviewed": "2026-01-01",
+      "tax_year": 2022,
+      "preliminary": false
+    },
+    {
+      "key": "roll-2023",
+      "source_id": "tx-fixture-cad-2023",
+      "document_id": "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "publisher": "Fixture Central Appraisal District",
+      "title": "Roll export, tax year 2023",
+      "url": "https://example.test/roll",
+      "filename": "roll2023.zip",
+      "as_of": "2023-07-25",
+      "retrieved_at": "2026-11-01T00:00:00+00:00",
+      "attribution": "Fixture Central Appraisal District",
+      "license": "Public record; no licence stated",
+      "redistribution": "unknown",
+      "ai_use": "unknown",
+      "terms_reviewed": "2026-01-01",
+      "tax_year": 2023,
+      "preliminary": false
+    },
+    {
+      "key": "roll-2024",
+      "source_id": "tx-fixture-cad",
+      "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "publisher": "Fixture Central Appraisal District",
+      "title": "Roll export, tax year 2024",
+      "url": "https://example.test/roll",
+      "filename": "roll2024.zip",
+      "as_of": "2024-07-25",
+      "retrieved_at": "2026-11-01T00:00:00+00:00",
+      "attribution": "Fixture Central Appraisal District",
+      "license": "Public record; no licence stated",
+      "redistribution": "unknown",
+      "ai_use": "unknown",
+      "terms_reviewed": "2026-01-01",
+      "tax_year": 2024,
+      "preliminary": false
+    },
+    {
+      "key": "current",
+      "source_id": "tx-fixture-cad",
+      "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "publisher": "Fixture Central Appraisal District",
+      "title": "Roll export, tax year 2024",
+      "url": "https://example.test/roll",
+      "filename": "roll2024.zip",
+      "as_of": "2024-07-25",
+      "retrieved_at": "2026-11-01T00:00:00+00:00",
+      "attribution": "Fixture Central Appraisal District",
+      "license": "Public record; no licence stated",
+      "redistribution": "unknown",
+      "ai_use": "unknown",
+      "terms_reviewed": "2026-01-01"
+    },
+    {
+      "key": "entities-1",
+      "source_id": "tx-comptroller-franchise",
+      "document_id": "fl:document:sha256-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "publisher": "Texas Comptroller of Public Accounts",
+      "title": "Active Franchise Taxpayers",
+      "url": "https://example.test/c",
+      "filename": "e.csv",
+      "as_of": "2026-10-31",
+      "retrieved_at": "2026-11-01T00:00:00+00:00",
+      "attribution": "Texas Comptroller of Public Accounts",
+      "license": "Public domain",
+      "redistribution": "attribution_required",
+      "ai_use": "unknown",
+      "terms_reviewed": "2026-01-01"
+    }
+  ],
+  "registry": {
+    "schema_version": "2",
+    "parcel_rule": "2",
+    "name_key_version": "2",
+    "address_key_version": "2",
+    "documents": [
+      "fl:document:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "fl:document:sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "fl:document:sha256-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "inputs_sha256": "503e67ec2e657b18cc2e1a9920810ac7708668ed1ade74f7508e86cfdaccf5c0"
+  },
+  "generator": {
+    "name": "factlot.registry.story",
+    "version": "1"
+  }
+}

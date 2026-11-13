@@ -1,0 +1,10 @@
+{
+  "story_file": "loving-county-tx-commercial-roll-values-2022-2024.json",
+  "story_sha256": "9b29a08b699598b4be9e25baf854a8c65c2b0c80618549a66770fc2d3f52879a",
+  "result": "pass",
+  "verified_on": "2026-11-12",
+  "verifier": "factlot.registry.story 1",
+  "figures_checked": 57,
+  "tables_checked": 4,
+  "inputs_sha256": "503e67ec2e657b18cc2e1a9920810ac7708668ed1ade74f7508e86cfdaccf5c0"
+}
