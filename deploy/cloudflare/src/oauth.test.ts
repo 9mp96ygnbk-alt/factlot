@@ -24,6 +24,8 @@ import {
   prefixedKV,
   type ListableKV,
 } from "./oauth.ts";
+import { unzip } from "@factlot/reports";
+
 import { handle } from "./router.ts";
 import type { Env, Fetcher, RateLimit } from "./types.ts";
 
@@ -1436,5 +1438,93 @@ describe("email sign-in link", () => {
       ).status,
       404,
     );
+  });
+});
+
+describe("property_sheet over an OAuth connection", () => {
+  const URN = "fl:parcel:us-48201:0010010000001";
+  const rec = {
+    urn: URN,
+    kind: "parcel",
+    facts: [],
+    relationships: [],
+    value_history: [
+      { tax_year: 2026, market_value: 1_010_101, appraised_value: 1_020_202 },
+      { tax_year: 2025, market_value: 7_777_777, appraised_value: 7_676_767 },
+    ],
+    warnings: [],
+  };
+  /** The inner handler answers registry_get with a parcel holding two roll years. */
+  const registryInner: Fetcher = {
+    fetch: async (r: Request) => {
+      const m = JSON.parse(await r.text()) as { id: number };
+      return new Response(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: m.id,
+          result: {
+            content: [{ type: "text", text: JSON.stringify(rec) }],
+            structuredContent: rec,
+          },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    },
+  };
+  async function sheetText(e: TestEnv, token: string): Promise<string> {
+    const res = await handle(
+      new Request(`${API}/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          authorization: `Bearer ${token}`,
+          "cf-connecting-ip": IP,
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 5,
+          method: "tools/call",
+          params: {
+            name: "report_create",
+            arguments: {
+              kind: "property_sheet",
+              format: "xlsx",
+              arguments: { urn: URN },
+            },
+          },
+        }),
+      }),
+      e,
+      registryInner,
+    );
+    const ans = (await res.json()) as {
+      result: { isError?: boolean; content: { text: string }[] };
+    };
+    assert.ok(!ans.result.isError, ans.result.content[0]?.text);
+    const stored = [...e.KEYS.data.entries()].find(([k]) =>
+      k.startsWith("report:"),
+    );
+    assert.ok(stored, "stored");
+    const files = await unzip(
+      new Uint8Array(stored[1].value as unknown as ArrayBuffer),
+    );
+    return [...files.values()].map((d) => new TextDecoder().decode(d)).join("");
+  }
+
+  it("a free connection: the connection's own lookup, the current roll year only", async () => {
+    const e = env({ GATING_ENABLED: "true" });
+    const { tokens } = await connect(e, { decision: "free" });
+    const x = await sheetText(e, tokens.access_token);
+    assert.ok(x.includes("1010101"));
+    assert.ok(!x.includes("7777777"), "no earlier year");
+  });
+
+  it("a paid connection: every roll year", async () => {
+    const e = env({ GATING_ENABLED: "true" });
+    const { key } = await issue(e);
+    const { tokens } = await connect(e, { decision: "key", key });
+    const x = await sheetText(e, tokens.access_token);
+    assert.ok(x.includes("1010101") && x.includes("7777777"));
   });
 });

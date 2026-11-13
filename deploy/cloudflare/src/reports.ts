@@ -23,7 +23,9 @@
 import {
   MAX_REPORT_BYTES,
   ReportInputError,
+  attachRegistry,
   prepareReport,
+  registryUrn,
   renderReport,
   reportRequestJsonSchema,
   type PreparedReport,
@@ -39,6 +41,7 @@ import {
   REPORT_DOWNLOAD_HOURS,
   type Tier,
 } from "./plans.ts";
+import type { SheetLookupOutcome } from "./property-sheet.ts";
 import type { Env, QuotaSpec, QuotaState } from "./types.ts";
 import { countEvent } from "./usage.ts";
 
@@ -67,7 +70,7 @@ export const REPORT_TOOL = {
   name: REPORT_TOOL_NAME,
   title: "Create a client-ready report (XLSX, PDF, ICS)",
   description:
-    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas; send registry_tx_equity_candidates' sources as context.sources to print each cited source's as-of date, URL and rights), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline dated on its contractual day and a reminder 30 days before; dates before today are left out unless include_past is true), tx_protest_deadline (rules_tx_property_tax_protest_deadline on tax_year, notice_delivered_date?, as_of?, or the _batch rule when arguments has items: ics, one calendar with each notice's statutory filing deadline and conservative file-by date as all-day events, reminders 30 and 7 days before the file-by date, the rule's basis, status, warnings and notes in each description, and the rule's next_season dates when the requested year has passed; or pdf, a deadline sheet). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons, tx_protest_deadline item ids) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256, filename and billed (true when this request counted against the month; every refusal has billed: false); inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
+    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas; send registry_tx_equity_candidates' sources as context.sources to print each cited source's as-of date, URL and rights), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline dated on its contractual day and a reminder 30 days before; dates before today are left out unless include_past is true), tx_protest_deadline (rules_tx_property_tax_protest_deadline on tax_year, notice_delivered_date?, as_of?, or the _batch rule when arguments has items: ics, one calendar with each notice's statutory filing deadline and conservative file-by date as all-day events, reminders 30 and 7 days before the file-by date, the rule's basis, status, warnings and notes in each description, and the rule's next_season dates when the requested year has passed; or pdf, a deadline sheet), property_sheet (pdf or xlsx: one page for one parcel, arguments { urn } only, the parcel's FactLot ID from registry_search_address: FactLot runs registry_get on it as your own call, so it costs one lookup and is gated like any registry_get of yours (free: the current roll year only, with a line naming the earlier years a Pro or Team key adds), then lays out the address, IDs, owner of record when the registry holds an organisation (or why there is none), the linked registered entity as the registry's match with its confidence, values by roll year with each file's as-of date, building and land facts, for a Texas parcel the next general protest deadline under Tex. Tax Code §41.44(a)(1) labelled as the general rule, and every source with its licence or attribution; no context is accepted). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons, tx_protest_deadline item ids) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256, filename and billed (true when this request counted against the month; every refusal has billed: false); inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
   inputSchema: (() => {
     const s = reportRequestJsonSchema() as {
       properties: Record<string, unknown>;
@@ -122,6 +125,11 @@ export interface ReportCaller {
    * report needs room in both; a refusal or a failed build gives both back.
    */
   also?: { subject: () => Promise<string>; per: string };
+  /**
+   * property_sheet: registry_get on the parcel as this caller (property-sheet.ts), gated and
+   * metered like any of their registry calls. Without it a property_sheet is not offered.
+   */
+  sheet?: (urn: string) => Promise<SheetLookupOutcome>;
 }
 
 export interface ReportOptions {
@@ -201,12 +209,15 @@ export type ReportOutcome =
       quota: QuotaState;
       file: ReportFile;
       base64?: string;
+      /** A property sheet's registry quota headers (the lookup it used). */
+      headers?: Record<string, string>;
     }
   | {
       ok: false;
       status: number;
       body: Record<string, unknown>;
       quota?: QuotaState;
+      headers?: Record<string, string>;
     };
 
 const UNAVAILABLE: ReportOutcome = {
@@ -381,7 +392,8 @@ async function buildAndStore(
       return { ...inputError(err), quota: before } as ReportOutcome;
     throw err;
   }
-  // Charge before building: a build the runtime kills is not free.
+  // Charge before building (a build the runtime kills is not free), and before a property
+  // sheet's lookup, so a lookup is never spent on a report that cannot be had.
   let charged = await infra(env.METER.consume(subject, spec));
   if (charged.granted >= 1 && charged.quota && alsoSubject !== undefined) {
     const shared = await infra(env.METER.consume(alsoSubject, spec));
@@ -416,11 +428,58 @@ async function buildAndStore(
       ...(charged.quota ? { quota: charged.quota } : {}),
     };
   const quota = charged.quota;
+  const restored = {
+    ...quota,
+    used: quota.used - 1,
+    remaining: quota.remaining + 1,
+  };
   // Give a report back on every meter it was charged to.
   const refundAll = async () => {
     await refundReport(env, subject, quota);
     if (alsoSubject !== undefined) await refundReport(env, alsoSubject, quota);
   };
+  // property_sheet: the caller's own registry_get of the parcel (one lookup, gated for their
+  // plan), with the report already reserved. A lookup that fails or misses is passed on as the
+  // lookup answered, and the report is given back.
+  let registryHeaders: Record<string, string> = {};
+  let refundLookup = async () => true;
+  const urn = registryUrn(prepared);
+  if (urn !== undefined) {
+    if (!caller.sheet) {
+      await refundAll();
+      return { ...FAILED, quota: restored };
+    }
+    let got: SheetLookupOutcome;
+    try {
+      got = await caller.sheet(urn);
+    } catch {
+      await refundAll();
+      throw new Unavailable("lookup");
+    }
+    registryHeaders = got.headers;
+    if (!got.ok) {
+      await refundAll();
+      return {
+        ok: false,
+        status: got.status,
+        body: got.body,
+        quota: restored,
+        headers: registryHeaders,
+      };
+    }
+    refundLookup = got.refundLookup;
+    try {
+      prepared = attachRegistry(prepared, got.lookup);
+    } catch {
+      // Not this parcel's record: a fault on FactLot's side.
+      await refundAll();
+      return {
+        ...lookupFault(await refundLookup()),
+        quota: restored,
+        headers: registryHeaders,
+      };
+    }
+  }
   let file: ReportFile;
   try {
     file = await renderReport(prepared, { now: o.now() });
@@ -428,15 +487,19 @@ async function buildAndStore(
       throw new ReportInputError("TooLarge", "the report is over 25 MiB");
   } catch (err) {
     await refundAll();
+    const back = await refundLookup();
     if (err instanceof ReportInputError)
       return {
         ...inputError(err),
-        quota: {
-          ...quota,
-          used: quota.used - 1,
-          remaining: quota.remaining + 1,
-        },
+        quota: restored,
+        headers: registryHeaders,
       } as ReportOutcome;
+    if (!back)
+      return {
+        ...lookupFault(false),
+        quota: restored,
+        headers: registryHeaders,
+      };
     throw err;
   }
   const token = randomToken();
@@ -458,8 +521,15 @@ async function buildAndStore(
       { expirationTtl: REPORT_TTL_SECONDS, metadata: meta },
     );
   } catch {
-    // Not stored: give the report back.
+    // Not stored: give the report (and a sheet's lookup) back.
     await refundAll();
+    if (!(await refundLookup()))
+      return {
+        ...lookupFault(false),
+        status: 503,
+        quota: restored,
+        headers: registryHeaders,
+      };
     throw new Unavailable("store");
   }
   const body: Record<string, unknown> = {
@@ -489,7 +559,39 @@ async function buildAndStore(
     if (file.bytes.byteLength < INLINE_MAX_BYTES) base64 = toBase64(file.bytes);
     else body.inline_omitted = "the file is 1 MiB or more; use download_url";
   }
-  return { ok: true, body, quota, file, ...(base64 ? { base64 } : {}) };
+  return {
+    ok: true,
+    body,
+    quota,
+    file,
+    headers: registryHeaders,
+    ...(base64 ? { base64 } : {}),
+  };
+}
+
+/**
+ * A property sheet that could not be built after its lookup was counted. The report is always
+ * given back; the lookup is given back through the router when it can be, and the body says
+ * plainly when it could not.
+ */
+function lookupFault(lookupGivenBack: boolean): {
+  ok: false;
+  status: number;
+  body: Record<string, unknown>;
+} {
+  return {
+    ok: false,
+    status: 500,
+    body: {
+      error: "ReportFailed",
+      code: "ReportFailed",
+      message: lookupGivenBack
+        ? "FactLot could not build this sheet (a fault on our side, not in the request). The report and the registry lookup were given back."
+        : "FactLot could not build this sheet (a fault on our side, not in the request). The report was given back; the registry lookup it used could not be given back and stays counted.",
+      next: `retry once; if it fails again, email ${CONTACT}`,
+      issues: [],
+    },
+  };
 }
 
 /** POST /v1/reports. */
@@ -536,7 +638,10 @@ export async function reportsRest(
     });
   }
   const out = await runReport(env, caller, body, o);
-  const headers = out.quota ? reportQuotaHeaders(out.quota) : {};
+  const headers = {
+    ...(out.headers ?? {}),
+    ...(out.quota ? reportQuotaHeaders(out.quota) : {}),
+  };
   if (!out.ok) {
     if (out.status === 429 || out.status === 503)
       headers["retry-after"] = String(out.body.retry_after_seconds ?? 60);

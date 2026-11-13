@@ -4,8 +4,9 @@ The site is static HTML with no framework, no external scripts or fonts, and no 
 `<script>` elements are `application/ld+json` blocks (schema.org data), which the browser does not
 execute, and one same-origin file, `/try/try.js`, on the Try a lookup page (`/try/`). That page posts
 to the Worker's own `/v1/registry/search_address` and `/v1/registry/get` routes on the page's origin,
-so it needs no CORS and no key, and the free tier meters it like any other keyless caller. The
-build fails on any other script.
+and, when a visitor asks for the one-page sheet, to `/v1/reports`; it asks `/property/...` with
+HEAD whether a parcel has a public page. It needs no CORS and no key, and the free tier meters it
+like any other keyless caller. The build fails on any other script.
 
 - `site/` holds the hand-written pages (`index.html`, `privacy.html`, `terms.html`, `404.html`),
   `styles.css`, icons, `robots.txt`, the IndexNow key file, and `llms.txt` (a copy of the

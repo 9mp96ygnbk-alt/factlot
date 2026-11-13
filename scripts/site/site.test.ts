@@ -498,11 +498,12 @@ describe("/try/ page", () => {
   const html = read("site/_content/try.html");
   const js = read("site/try/try.js");
 
-  it("calls only the two same-origin registry routes, with no key, storage or HTML injection", () => {
+  it("calls only same-origin routes (two registry routes and reports), with no key, storage or HTML injection", () => {
     const paths = [...js.matchAll(/"(\/v1\/[^"]*)"/g)].map((m) => m[1]);
     assert.deepEqual(paths.sort(), [
       "/v1/registry/get",
       "/v1/registry/search_address",
+      "/v1/reports",
     ]);
     assert.ok(!/https?:\/\//.test(js), "no absolute URL in the script");
     for (const bad of [

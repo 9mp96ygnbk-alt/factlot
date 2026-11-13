@@ -33,6 +33,12 @@ import {
 } from "./kinds/finance.ts";
 import { datesDoc, datesIcs, leaseDoc } from "./kinds/lease.ts";
 import { protestDoc, protestIcs } from "./kinds/protest.ts";
+import {
+  parcelRecord,
+  propertySheetDoc,
+  sheetSubject,
+  type RegistryLookup,
+} from "./kinds/sheet.ts";
 import { TX_DISCLAIMER, txDoc, txXlsx } from "./kinds/tx.ts";
 import {
   COMPUTED_KINDS,
@@ -41,6 +47,7 @@ import {
   REPORT_FORMATS,
   REPORT_KINDS,
   REPORTS_DOCS,
+  REGISTRY_KINDS,
   ReportInputError,
   TOOLS_URL,
   checkInput,
@@ -54,6 +61,7 @@ export {
   COMPUTED_KINDS,
   KIND_FORMATS,
   KIND_TOOLS,
+  REGISTRY_KINDS,
   REPORT_FORMATS,
   REPORT_KINDS,
   ReportContext,
@@ -65,6 +73,20 @@ export { jsonEqual } from "./validate.ts";
 export { unzip } from "./zip.ts";
 export { TX_DISCLAIMER } from "./kinds/tx.ts";
 export { TX_SOFTWARE } from "./kinds/protest.ts";
+export {
+  ENTITY_NOT_PRINTED,
+  SHEET_CONTACT,
+  SHEET_CONTACT_LINE,
+  OWNER_NOT_ORGANISATION,
+  OWNER_NOT_PUBLISHED,
+  OWNER_PERSON_STYLE,
+  SHEET_BOUNDARY,
+  SHEET_FACTS,
+  SHEET_PRICING_URL,
+  type RegistryLookup,
+  type SheetPlan,
+} from "./kinds/sheet.ts";
+export { PARCEL_URN } from "./validate.ts";
 
 /** KV's largest value; a larger document is refused. */
 export const MAX_REPORT_BYTES = 25 * 1024 * 1024;
@@ -94,6 +116,7 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   dcf_summary: "DCF summary",
   critical_dates: "Lease critical dates",
   tx_protest_deadline: "Texas protest deadline",
+  property_sheet: "Property sheet",
 };
 
 export const ReportRequest = z.strictObject({
@@ -101,7 +124,7 @@ export const ReportRequest = z.strictObject({
   format: z
     .enum(REPORT_FORMATS)
     .describe(
-      "xlsx, pdf, or ics (critical_dates and tx_protest_deadline). tx_protest_deadline comes as ics or pdf.",
+      "xlsx, pdf, or ics (critical_dates and tx_protest_deadline). tx_protest_deadline comes as ics or pdf; property_sheet as pdf or xlsx.",
     ),
   input: z
     .unknown()
@@ -113,7 +136,7 @@ export const ReportRequest = z.strictObject({
     .unknown()
     .optional()
     .describe(
-      "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only. tx_protest_deadline: rules_tx_property_tax_protest_deadline's (tax_year, notice_delivered_date?, as_of?), or with items the _batch rule's (items: [{id, tax_year, notice_delivered_date?}], as_of?).",
+      "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only. tx_protest_deadline: rules_tx_property_tax_protest_deadline's (tax_year, notice_delivered_date?, as_of?), or with items the _batch rule's (items: [{id, tax_year, notice_delivered_date?}], as_of?). property_sheet: { urn } only, a parcel's FactLot ID; FactLot runs registry_get on it for the caller (gated and counted as the caller's lookup).",
     ),
   context: ReportContext.optional().describe(
     "Optional title, prepared-for line, and citations (text only).",
@@ -150,6 +173,11 @@ export interface CreateOptions {
   version?: string;
   /** Generation time, ms since epoch (default: now). */
   now?: number;
+  /**
+   * property_sheet: the host's registry_get answer for the caller (gated for their plan). The
+   * package never reads a registry; without this a property_sheet request is refused.
+   */
+  registry?: RegistryLookup;
 }
 
 /** The report request as JSON Schema (for the MCP tool), plus `inline`. */
@@ -240,6 +268,13 @@ export function prepareReport(
       [{ path: "format", message: `one of ${KIND_FORMATS[kind].join(", ")}` }],
       `send "format" as one of ${KIND_FORMATS[kind].map((f) => `"${f}"`).join(", ")}`,
     );
+  if (REGISTRY_KINDS.includes(kind) && parsed.data.context !== undefined)
+    throw new ReportInputError(
+      "InputError",
+      `${kind} takes no context: it prints only what the registry's answer holds`,
+      [{ path: "context", message: `not accepted for ${kind}` }],
+      'send only "kind", "format" and "arguments": { "urn": "fl:parcel:..." }',
+    );
   checkCallerText(kind, ctx, args);
   const checked = checkInput(kind, input, args, opts.now ?? Date.now());
   if (kind === "tx_unequal_appraisal" && format === "pdf")
@@ -285,12 +320,43 @@ function txPdfLimits(r: TxResult): void {
     );
 }
 
+/** The parcel a registry kind looks up (undefined for every other kind). */
+export function registryUrn(prepared: PreparedReport): string | undefined {
+  return REGISTRY_KINDS.includes(prepared.kind)
+    ? (prepared.checked.args as { urn: string }).urn
+    : undefined;
+}
+
+/**
+ * Attach the host's registry_get answer to a prepared registry kind. Throws (a fault, not the
+ * caller's) when the answer is not the parcel asked for.
+ */
+export function attachRegistry(
+  prepared: PreparedReport,
+  lookup: RegistryLookup,
+): PreparedReport {
+  const urn = registryUrn(prepared);
+  if (urn === undefined)
+    throw new Error(`${prepared.kind} is not built from the registry`);
+  parcelRecord(lookup.record, urn);
+  return { ...prepared, checked: { ...prepared.checked, result: lookup } };
+}
+
 /** Build one document. Throws ReportInputError for anything an agent can fix. */
 export async function createReport(
   request: unknown,
   opts: CreateOptions = {},
 ): Promise<ReportFile> {
-  return renderReport(prepareReport(request, opts), opts);
+  const prepared = prepareReport(request, opts);
+  if (registryUrn(prepared) === undefined) return renderReport(prepared, opts);
+  if (!opts.registry)
+    throw new ReportInputError(
+      "InputError",
+      `${prepared.kind} is built by the hosted API from its registry (api.factlot.com): it is not available without one`,
+      [{ path: "kind", message: "hosted only" }],
+      "send this request to POST https://api.factlot.com/v1/reports or report_create on the hosted MCP server",
+    );
+  return renderReport(attachRegistry(prepared, opts.registry), opts);
 }
 
 /**
@@ -302,6 +368,8 @@ export async function renderReport(
   opts: CreateOptions = {},
 ): Promise<ReportFile> {
   const { kind, format, ctx, checked } = prepared;
+  if (REGISTRY_KINDS.includes(kind) && checked.result === undefined)
+    throw new Error(`${kind}: no registry answer attached`);
   const version = opts.version ?? CATALOG_VERSION;
   const now = opts.now ?? Date.now();
   const generatedAt = new Date(now);
@@ -317,7 +385,9 @@ export async function renderReport(
       ? `${checked.check === "supplied" ? SUPPLIED_LABEL : LEASE_COMPUTED_LABEL} ${generated}; see ${TERMS_URL}`
       : kind === "tx_protest_deadline"
         ? `${generated}; dates are the rule's results; see ${TERMS_URL}`
-        : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
+        : kind === "property_sheet"
+          ? `${generated}; public-record values as published, laid out by code with no model; not an appraisal; see ${TERMS_URL}`
+          : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
   // A Texas PDF carries the disclaimer twice: on the cover and in every page's footer.
   const p: Provenance = {
     footer:
@@ -355,7 +425,7 @@ export async function renderReport(
       `the ${format} file would be ${bytes.byteLength} bytes; the limit is ${MAX_REPORT_BYTES} (25 MiB)`,
     );
 
-  const subject = ctx.title ?? subjectOf(kind, checked.result);
+  const subject = ctx.title ?? subjectOf(kind, checked.result, checked.args);
   const date = generatedAt.toISOString().slice(0, 10);
   const filename = [
     "factlot",
@@ -390,6 +460,7 @@ const BUILDERS: Record<ReportKind, (k: KindInput) => ReportDoc> = {
   dcf_summary: dcfDoc,
   critical_dates: datesDoc,
   tx_protest_deadline: protestDoc,
+  property_sheet: propertySheetDoc,
 };
 
 /**
@@ -412,7 +483,13 @@ export function subjectSlug(
     .replace(/-+$/g, "");
 }
 
-function subjectOf(kind: ReportKind, result: unknown): string | undefined {
+function subjectOf(
+  kind: ReportKind,
+  result: unknown,
+  args?: unknown,
+): string | undefined {
+  if (kind === "property_sheet")
+    return sheetSubject({ checked: { args, result } });
   const r = result as { value?: { subject_id?: unknown; tax_year?: unknown } };
   if (kind === "tx_unequal_appraisal") {
     const id =

@@ -65,7 +65,13 @@ export type Block = BlockBody & {
 type BlockBody =
   | { t: "heading"; text: string }
   | { t: "subheading"; text: string }
-  | { t: "para"; text: string; grey?: boolean }
+  | {
+      t: "para";
+      text: string;
+      grey?: boolean;
+      /** PDF text size (default 9). */
+      size?: number;
+    }
   | { t: "notice"; text: string; tone?: "warn" | "info" }
   | { t: "bullets"; items: string[] }
   | { t: "kv"; rows: Kv[] }
@@ -203,7 +209,10 @@ export async function renderPdf(
         w.subheading(b.text);
         break;
       case "para":
-        w.para(b.text, { color: b.grey ? "grey" : "ink" });
+        w.para(b.text, {
+          color: b.grey ? "grey" : "ink",
+          ...(b.size ? { size: b.size } : {}),
+        });
         break;
       case "notice":
         w.notice(b.text, b.tone ?? "warn");

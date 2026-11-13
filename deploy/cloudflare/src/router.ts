@@ -94,7 +94,7 @@ import {
   onFreeKeyAnswer,
   onFreeKeyLimit,
 } from "./lifecycle.ts";
-import { propertyPagesRoute } from "./property-pages.ts";
+import { propertyPagesRoute, type PagesEnv } from "./property-pages.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import {
   accountFormPage,
@@ -168,6 +168,7 @@ import {
   type ReportCaller,
   reportsEnabled,
 } from "./reports.ts";
+import { asCaller, lookupForSheet } from "./property-sheet.ts";
 import type {
   Env,
   Fetcher,
@@ -1529,6 +1530,16 @@ async function route(
             ? `freemail:${freeKey.email_hash.slice(0, 32)}`
             : undefined) ??
           reportAddressSubject()),
+    // property_sheet: registry_get as this caller's own call (property-sheet.ts).
+    sheet: (urn) =>
+      lookupForSheet(urn, {
+        plan: paid ? paid.record.plan : "free",
+        registry: env.REGISTRY,
+        extraSources: (env as PagesEnv).PROPERTY_PAGES_EXTRA_SOURCES,
+        callMcp: (body) => route(asCaller(request, url, body), env, api, opts),
+        // The same give-back the router uses for an unanswered lookup of this caller.
+        giveBack: (resetsAt) => giveBack(1, resetsAt),
+      }),
     // A free key's reports also count against its address's month, the meter keyless reports use.
     ...(freeKey && !paid && !oauth
       ? {

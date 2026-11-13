@@ -19,7 +19,7 @@
  * PROPERTY_PAGES_PER_MINUTE pages and sitemaps a minute; beyond that the answer is 429 with Retry-After. Answers
  * are kept in the Cache API under a key holding the pack's built_at, so a new pack starts a new cache.
  */
-import { hostedWithheldCounties } from "@factlot/tools";
+import { hostedWithheldCounties, ownerNamesAPerson } from "@factlot/tools";
 
 import {
   SITEMAP_MAX_URLS,
@@ -377,7 +377,7 @@ async function countyNames(
   return counties;
 }
 
-async function sourceIds(
+export async function sourceIds(
   registry: Fetcher,
   refs: SourceRef[],
 ): Promise<Record<string, string | null>> {
@@ -407,32 +407,9 @@ const regionOf = (urn: string): string =>
 const withheldRegion = (region: string): boolean =>
   Object.hasOwn(WITHHELD, region.replace(/^us-/, ""));
 
-// An owner of record written in a way that usually carries a natural person's name although it reads as an
-// organisation to the registry's rule: an estate, heirs, a living, revocable, irrevocable or family trust, a
-// trust "dated" or "under agreement", or a named trustee. A board of trustees, or the trustees of an
-// institution, is an organisation. The page shows no owner, entity or other parcels for such a parcel.
-const INSTITUTION =
-  /\b(UNIVERSITY|COLLEGE|SCHOOLS?|ACADEMY|SEMINARY|CHURCH|DIOCESE|ARCHDIOCESE|PARISH|SYNAGOGUE|TEMPLE|MOSQUE|DISTRICT|AUTHORITY|FUND|FOUNDATION|ASSOCIATION|SOCIETY|HOSPITAL|MUSEUM|LIBRARY|PENSION)\b/;
-const PERSON_STYLE: RegExp[] = [
-  /(?<!\bREAL )\bESTATE OF\b/,
-  /\bEST OF\b/,
-  /\bLIFE ESTATE\b/,
-  /\bHEIRS?\b/,
-  /\b(LIVING|REVOCABLE|IRREVOCABLE|REV|REVOC|IRREV|IRREVOC|FAMILY|TESTAMENTARY|MARITAL|SURVIVORS?|BYPASS|CREDIT SHELTER)\b.*\b(TRUST|TR|TRST)\b/,
-  /\b(TRUST|TR|TRST)\b.*\b(DTD|DATED|U A|UA|UTA|U T A|UAD|UDT|FBO)\b/,
-  /\b(TR|TRS|TRSTEE|TTEE|TTEES)$/,
-];
-export function ownerNamesAPerson(value: string): boolean {
-  const s = value
-    .toUpperCase()
-    .replace(/[^A-Z0-9 ]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (PERSON_STYLE.some((p) => p.test(s))) return true;
-  if (/\b(TRUSTEES?|TTEES?|TRSTEES?)\b/.test(s))
-    return !(/\bBOARD OF TRUSTEES\b/.test(s) || INSTITUTION.test(s));
-  return false;
-}
+// The person rule (an owner written like a person's estate or trust) lives in @factlot/tools so the
+// property sheet applies the same function; the page shows no owner, entity or other parcels for such a parcel.
+export { ownerNamesAPerson };
 
 /** The entity a parcel's `owns` relationship links its owner of record to, or null. */
 export function ownerEntity(rec: PageRecord): string | null {
