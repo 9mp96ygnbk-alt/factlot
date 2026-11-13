@@ -82,7 +82,7 @@ coverage miss (not loaded, which is not the same as no such parcel).
 
 | The user has…                      | Call                                                                                                                                            |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| A street address                   | `registry_search_address` (`136 W 42nd St`; ordinals such as `42nd` match)                                                                      |
+| A street address                   | `registry_search_address` (`350 Fifth Ave`; `Fifth`, `5th` and `5` match, and a number inside a lot's range)                                    |
 | A county parcel number             | `registry_resolve_parcel` (state FIPS, county FIPS, the number as the county prints it)                                                         |
 | An ID from the county's own system | `registry_resolve_external` (`nyc_bbl`, `la_ain`, `sf_parcel`, `boston_pid`, `denver_schednum`, `ct_cama_link`, `sdat_account`, `hcad_account`) |
 | A FactLot URN                      | `registry_get` (facts, values by tax year, owner of record where the file has one)                                                              |
@@ -245,6 +245,20 @@ to the calculator directly.
 **Finding a parcel by address.** Give `registry_search_address` the whole address, as
 `"1200 Main St, Houston, TX 77002"`: the street line finds the matches, the state named after the city keeps only parcels in that state, and the ZIP code and city put the closest matches first (they never filter). Give the city with the state: a bare ", TX" or ", Texas" is not read as a state. A miss names what the registry holds in that state, so "no match in Massachusetts: only the
 City of Boston is loaded" is an answer, not a reason to retry without the state.
+
+The place can also go in its own fields: `{"query": "1200 Main St", "city": "Houston", "state": "TX",
+"postal_code": "77002"}` means the same, `address` is accepted for `query`, and `county_fips`
+(`"48201"`, or `"201"` with `state`) keeps the answer to one county. A numbered street matches
+however it is written (`Fifth Avenue`, `5th Ave`, `5 Avenue`; `Forty-Second St`), and a house
+number matches a lot whose address is a range holding it on the same side of the street (`350 5th
+Ave` finds `338-350 5 AVENUE`). Each result carries what tells parcels at one address apart
+(account or lot number, property category, use code, improvement area, `land_only`, the unit its
+label names); parcels sharing a label come improved first, largest improvement area first. A miss
+says why in `coverage.reason`: `state_not_loaded`, `county_not_loaded` (also when every county
+known to hold the named city or ZIP code is not loaded), `street_not_found`,
+`street_not_in_place`, `house_number_not_found` (with `nearest_house_numbers` on that street) or
+`no_match`; the registry holds commercial, industrial and multifamily parcels only, so a house
+or a condominium unit owned by a person is never in it.
 
 ### Worked example: a Harris County parcel
 
