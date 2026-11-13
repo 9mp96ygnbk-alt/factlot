@@ -125,6 +125,14 @@ NOTICE = (
 )
 
 
+# CALC_ARGS_NOTICE for an answer whose narrowing was applied (``TX_EQUITY_CALC_ARGS_NOTICE_NARROWED`` in TS).
+CALC_ARGS_NOTICE_NARROWED = (
+    "calc_args is the candidate list under FactLot's default rule with the narrowing listed in selection_rule, in "
+    "calc_tx_unequal_appraisal's input shape, not a selection of comparables by FactLot: the caller reviews it, may "
+    "remove, add or edit comparables, and adds any adjustments, each with a reason, before calling "
+    "calc_tx_unequal_appraisal (which needs at least 3 comparables). The order of operations is "
+    "registry_tx_equity_candidates, review, calc_tx_unequal_appraisal with the reviewed calc_args, then report_create."
+)
 CALC_ARGS_NOTICE = (
     "calc_args is the candidate list under FactLot's default rule (selection_rule) in calc_tx_unequal_appraisal's "
     "input shape, not a selection of comparables by FactLot: the caller reviews it, may remove, add or edit "
@@ -181,7 +189,8 @@ def equity_calc_args(answer: dict[str, Any]) -> dict[str, Any]:
             "widened_to_county": selection["widened_to_county"],
             "matched": selection["matched"],
             "returned": selection["returned"],
-            "notice": CALC_ARGS_NOTICE,
+            "notice": CALC_ARGS_NOTICE_NARROWED if any(n["applied"] for n in selection.get("narrowing", []))
+            else CALC_ARGS_NOTICE,
         },
     }
 
@@ -304,6 +313,16 @@ def _comparable(urn: str, facts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     })
 
 
+def _value_counts(subject: dict[str, Any], candidates: list[dict[str, Any]], field: str) -> dict[str, Any]:
+    """The candidates counted by one field's value, with the subject's beside them (``equityValueCounts`` in TS):
+    most candidates first, then by value, none on the roll (null) last."""
+    n: dict[Any, int] = {}
+    for c in candidates:
+        n[c[field]] = n.get(c[field], 0) + 1
+    order = sorted(n.items(), key=lambda kv: (-kv[1], kv[0] is None, kv[0] or ""))
+    return {"subject": subject[field], "counts": [{"value": v, "candidates": k} for v, k in order]}
+
+
 def _code_text(v: Any) -> str:
     return v if isinstance(v, str) else "not on the roll"
 
@@ -377,7 +396,7 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
                   and source_tax_year(c) == year_used and any(c.startswith(_source_base(r) + "-") for r in rolls)]
     subject_facts = _year_facts(subject_rows, rolls, companions)
     subject = {**_comparable(urn, subject_facts), "value_history": reg.value_history(urn)}
-    codes = list(local_use_codes) if local_use_codes else None
+    codes = list(dict.fromkeys(local_use_codes)) if local_use_codes else None
     parameters = {"area_band": area_band, "year_band": year_band, "min_matches": min_matches, "limit": limit,
                   "tax_year": tax_year, "same_building_class": same_building_class,
                   "same_local_use_code": same_local_use_code, "local_use_codes": codes}
@@ -409,6 +428,11 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
         for n in narrowing:
             if not n["applied"]:
                 warnings.append(f"{n['parameter']} {n['text']}")
+        # local_use_codes compares candidates only; a subject without a code is still worth saying.
+        if codes and subject["local_use_code"] is None:
+            roll = "any roll" if year_used is None else f"the {fmt_num(year_used)} roll"
+            warnings.append(f"local_use_codes: the subject has no local use code on {roll}; candidates are kept only "
+                            "when their own code is one of local_use_codes")
         lo, hi = criteria["improvement_area_sf"]["min"], criteria["improvement_area_sf"]["max"]
         sql = _POOL_SQL.format(rolls=", ".join("?" * len(rolls)), sources=", ".join("?" * (len(rolls) + len(companions))))
         pool = _by_subject(reg.db.execute(sql, (
@@ -462,6 +486,10 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
     step_names = [] if missing else [STEPS["base"], STEPS["area"], STEPS["year"]]
     step_names += [STEPS[n["parameter"]] for n in narrowing if n["applied"]]
     steps = [{"step": name, "left": funnel[i]} for i, name in enumerate(step_names)]
+    narrowed = [n["parameter"] for n in narrowing if n["applied"]]
+    if narrowed and len(included) < min_matches:
+        warnings.append(f"the narrowing ({', '.join(narrowed)}) leaves {len(included)} of the {funnel[2]} parcels that "
+                        f"meet the rest of the rule, fewer than min_matches ({min_matches})")
     if not missing and len(included) < min_matches:
         warnings.append(f"{len(included)} candidates meet the rule in the whole county, fewer than min_matches "
                         f"({min_matches}); the statute does not define a reasonable number of comparables")
@@ -479,14 +507,6 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
         if other:
             warnings.append(f"{other} of the {len(candidates)} candidates have a value_basis other than the subject's "
                             f"({subject['value_basis']}): compare like with like")
-    for field, words in (("building_class", "a building class"), ("local_use_code", "a local use code")):
-        mine = subject[field]
-        if not isinstance(mine, str):
-            continue
-        other = sum(1 for c in candidates if c[field] != mine)
-        if other:
-            warnings.append(f"{other} of the {len(candidates)} candidates have {words} other than the subject's "
-                            f"({mine}) or none on the roll")
     # Every snapshot a returned fact comes from, with its source's rights.
     docs = {f["document_id"] for facts in [subject_facts, *(m[4] for m in returned)] for f in facts.values()}
     docs |= {cite["document_id"] for e in subject["value_history"] for cite in e["citations"].values() if cite}
@@ -522,7 +542,10 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
         "candidates": candidates,
         "selection": {"rule": RULE, "parameters": parameters, "tax_year": year_used, "available_tax_years": available,
                       "roll_sources": rolls, "building_class_sources": companions, "compared_files": compared_files,
-                      "subject_summary": subject_summary, "criteria": criteria, "narrowing": narrowing,
+                      "subject_summary": subject_summary,
+                      "class_counts": _value_counts(subject, candidates, "building_class"),
+                      "use_code_counts": _value_counts(subject, candidates, "local_use_code"),
+                      "criteria": criteria, "narrowing": narrowing,
                       "steps": steps, "tiers": tiers, "widened_to_county": widened and not missing,
                       "matched": len(included), "returned": len(returned), "truncated": len(included) > len(returned)},
         "sources": sources,

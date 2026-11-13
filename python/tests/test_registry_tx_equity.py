@@ -120,6 +120,7 @@ class TxEquity(unittest.TestCase):
         # 1000006 outside the year band.
         self.assertEqual([st["left"] for st in sel["steps"]], [9, 8, 7])
         self.assertEqual(sel["narrowing"], [])
+        self.assertNotIn("with the narrowing listed", r["selection_rule"]["notice"])
         self.assertEqual([(f["as_of"], f["before_certification_deadline"], f["subject_value"], f["candidate_values"])
                           for f in sel["compared_files"]], [("2026-10-15", False, True, 7)])
         self.assertEqual(r["selection_rule"]["steps"], sel["steps"])
@@ -135,8 +136,15 @@ class TxEquity(unittest.TestCase):
             ("1000005", "4300", 200),  # 12,000,000 / 60,000
             ("1000009", "4300", 195.56),  # 8,800,000 / 45,000
         ])
-        self.assertIn("3 of the 4 candidates have a building class other than the subject's (B) or none on the roll",
-                      r["warnings"])
+        # Counts by class and use code, the subject's beside them; no warning for a class that differs.
+        self.assertEqual(sel["class_counts"], {"subject": "B", "counts": [
+            {"value": None, "candidates": 2}, {"value": "A", "candidates": 1}, {"value": "B", "candidates": 1}]})
+        self.assertEqual(sel["use_code_counts"], {"subject": "4300", "counts": [{"value": "4300", "candidates": 4}]})
+        self.assertFalse([w for w in r["warnings"] if "building class" in w])
+        self.assertIn("with the narrowing listed in selection_rule", r["selection_rule"]["notice"])
+        # The narrowing leaves 4 of the 7, fewer than min_matches.
+        self.assertIn("the narrowing (same_local_use_code) leaves 4 of the 7 parcels that meet the rest of the rule, "
+                      "fewer than min_matches (10)", r["warnings"])
         self.assertEqual(r["selection_rule"]["narrowing"], sel["narrowing"])
 
         r = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "same_building_class": True})
@@ -150,6 +158,20 @@ class TxEquity(unittest.TestCase):
         self.assertIn("same_local_use_code not applied: local_use_codes was given and is used instead", r["warnings"])
         self.assertEqual([st["left"] for st in r["selection"]["steps"]], [9, 8, 7, 6])
         self.assertTrue(r["selection"]["truncated"])
+
+        # Repeated codes count once, in the answer and in its words.
+        r = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "local_use_codes": ["4600", "4600", "4300"]})
+        self.assertEqual(r["selection"]["parameters"]["local_use_codes"], ["4600", "4300"])
+        self.assertEqual(r["selection"]["narrowing"][0]["text"],
+                         "only parcels whose local use code is one of: 4600, 4300")
+
+        # A subject with no local use code: local_use_codes says so; same_local_use_code is not applied.
+        r = self.run_tool({"urn": "fl:parcel:us-48997:1000015", "tax_year": 2026, "local_use_codes": ["4300"]})
+        self.assertIn("local_use_codes: the subject has no local use code on the 2026 roll; candidates are kept only "
+                      "when their own code is one of local_use_codes", r["warnings"])
+        r = self.run_tool({"urn": "fl:parcel:us-48997:1000015", "tax_year": 2026, "same_local_use_code": True})
+        self.assertIn("same_local_use_code not applied: the subject has no local use code on the 2026 roll",
+                      r["warnings"])
 
         # No class on the roll for 1000004: not applied, said so.
         r = self.run_tool({"county_fips": "997", "apn": "1000004", "tax_year": 2026, "same_building_class": True})

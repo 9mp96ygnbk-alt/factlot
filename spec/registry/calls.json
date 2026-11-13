@@ -604,6 +604,22 @@
     "tool": "registry_tx_equity_candidates",
     "arguments": {
       "urn": "fl:parcel:us-48997:1000001",
+      "tax_year": 2026,
+      "local_use_codes": ["4600", "4600", "4300"]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000015",
+      "tax_year": 2026,
+      "local_use_codes": ["4300"]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates",
+    "arguments": {
+      "urn": "fl:parcel:us-48997:1000001",
       "local_use_codes": []
     }
   },

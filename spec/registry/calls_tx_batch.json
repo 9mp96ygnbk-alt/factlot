@@ -24,6 +24,28 @@
         },
         {
           "id": "B",
+          "urn": "fl:parcel:us-48997:1000004"
+        },
+        {
+          "id": "C",
+          "urn": "fl:parcel:us-48997:1000015"
+        }
+      ],
+      "tax_year": 2026,
+      "same_building_class": true,
+      "local_use_codes": ["4300", "4300"]
+    }
+  },
+  {
+    "tool": "registry_tx_equity_candidates_batch",
+    "arguments": {
+      "subjects": [
+        {
+          "id": "A",
+          "urn": "fl:parcel:us-48997:1000001"
+        },
+        {
+          "id": "B",
           "county_fips": "997",
           "apn": "1000004"
         },

@@ -1714,6 +1714,9 @@ export const TX_EQUITY_RULE =
 export const TX_EQUITY_NOTICE =
   "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.";
 
+/** TX_EQUITY_CALC_ARGS_NOTICE for an answer whose narrowing was applied (`CALC_ARGS_NOTICE_NARROWED` in Python). */
+export const TX_EQUITY_CALC_ARGS_NOTICE_NARROWED =
+  "calc_args is the candidate list under FactLot's default rule with the narrowing listed in selection_rule, in calc_tx_unequal_appraisal's input shape, not a selection of comparables by FactLot: the caller reviews it, may remove, add or edit comparables, and adds any adjustments, each with a reason, before calling calc_tx_unequal_appraisal (which needs at least 3 comparables). The order of operations is registry_tx_equity_candidates, review, calc_tx_unequal_appraisal with the reviewed calc_args, then report_create.";
 export const TX_EQUITY_CALC_ARGS_NOTICE =
   "calc_args is the candidate list under FactLot's default rule (selection_rule) in calc_tx_unequal_appraisal's input shape, not a selection of comparables by FactLot: the caller reviews it, may remove, add or edit comparables, and adds any adjustments, each with a reason, before calling calc_tx_unequal_appraisal (which needs at least 3 comparables). The order of operations is registry_tx_equity_candidates, review, calc_tx_unequal_appraisal with the reviewed calc_args, then report_create.";
 
@@ -1812,7 +1815,11 @@ export function txEquityCalcArgs(answer: Row): {
       widened_to_county: selection.widened_to_county,
       matched: selection.matched,
       returned: selection.returned,
-      notice: TX_EQUITY_CALC_ARGS_NOTICE,
+      notice: ((selection.narrowing as Row[] | undefined) ?? []).some(
+        (n) => n.applied,
+      )
+        ? TX_EQUITY_CALC_ARGS_NOTICE_NARROWED
+        : TX_EQUITY_CALC_ARGS_NOTICE,
     },
   };
 }
@@ -2086,6 +2093,11 @@ export const TX_EQUITY_LIMIT_MAX = 200;
 /** Most codes in `local_use_codes` (`USE_CODES_MAX` in Python). */
 export const TX_EQUITY_USE_CODES_MAX = 50;
 
+/** local_use_codes without repeats, in the order first given (`_use_codes` in Python); empty when none. */
+export function equityUseCodes(params: TxEquityParams): string[] {
+  return [...new Set(params.local_use_codes ?? [])];
+}
+
 /** The parcel URN a `registry_tx_equity_candidates` call names: its `urn`, or the URN of its APN under the file's rule. */
 export function txEquitySubjectUrn(
   stateFips: string,
@@ -2160,8 +2172,8 @@ export function equityRule(
     neighborhood: subject.neighborhood_code as string | null,
     zip: situsZip5(subject.situs_address),
     buildingClass: params.same_building_class ? cls : null,
-    useCodes: params.local_use_codes?.length
-      ? [...params.local_use_codes]
+    useCodes: equityUseCodes(params).length
+      ? equityUseCodes(params)
       : params.same_local_use_code && code !== null
         ? [code]
         : null,
@@ -2378,7 +2390,7 @@ export function equityNarrowing(
       ),
     );
   }
-  const codes = params.local_use_codes ?? [];
+  const codes = equityUseCodes(params);
   if (params.same_local_use_code) {
     const code = subject.local_use_code as string | null;
     out.push(
@@ -2402,6 +2414,30 @@ export function equityNarrowing(
       ),
     );
   return out;
+}
+
+/**
+ * The returned candidates counted by one field's value (`_value_counts` in Python), with the subject's own value
+ * beside them: most candidates first, then by value, none on the roll (null) last.
+ */
+export function equityValueCounts(
+  subject: Row,
+  candidates: Row[],
+  field: "building_class" | "local_use_code",
+): Row {
+  const n = new Map<string | null, number>();
+  for (const c of candidates) {
+    const v = (c[field] as string | null) ?? null;
+    n.set(v, (n.get(v) ?? 0) + 1);
+  }
+  const counts = [...n.entries()].sort(
+    ([a, x], [b, y]) =>
+      y - x || (a === null ? 1 : b === null ? -1 : a < b ? -1 : a > b ? 1 : 0),
+  );
+  return {
+    subject: subject[field] ?? null,
+    counts: counts.map(([value, c]) => ({ value, candidates: c })),
+  };
 }
 
 /** The `registry_tx_equity_candidates` result from its parts; `sources` gives each cited snapshot's entry. */
@@ -2451,9 +2487,15 @@ export function assembleTxEquity(
     warnings.push(
       `no candidates selected: the subject has no current ${missing.join(", ")} fact (an improvement area must be positive), which the rule needs`,
     );
-  else
+  else {
     for (const n of narrowing)
       if (!n.applied) warnings.push(`${String(n.parameter)} ${String(n.text)}`);
+    // local_use_codes compares candidates only; a subject without a code is still worth saying.
+    if (equityUseCodes(params).length && subject.local_use_code === null)
+      warnings.push(
+        `local_use_codes: the subject has no local use code on ${yearUsed === null ? "any roll" : `the ${fmtNum(yearUsed)} roll`}; candidates are kept only when their own code is one of local_use_codes`,
+      );
+  }
   const widened = equityWidened(counts, min_matches);
   const included = counts[0]! + counts[1]! + (widened ? counts[2]! : 0);
   const keys = [subject.neighborhood_code, zip5, subject.county_fips];
@@ -2478,6 +2520,11 @@ export function assembleTxEquity(
   if (stepNames.length !== p.funnel.length)
     throw new Error("the candidate steps and their counts disagree");
   const steps = stepNames.map((step, i) => ({ step, left: p.funnel[i] }));
+  const narrowed = narrowing.filter((n) => n.applied);
+  if (narrowed.length && included < min_matches)
+    warnings.push(
+      `the narrowing (${narrowed.map((n) => String(n.parameter)).join(", ")}) leaves ${included} of the ${p.funnel[2]} parcels that meet the rest of the rule, fewer than min_matches (${min_matches})`,
+    );
   if (!missing.length && included < min_matches)
     warnings.push(
       `${included} candidates meet the rule in the whole county, fewer than min_matches (${min_matches}); the statute does not define a reasonable number of comparables`,
@@ -2500,18 +2547,6 @@ export function assembleTxEquity(
     if (other)
       warnings.push(
         `${other} of the ${candidates.length} candidates have a value_basis other than the subject's (${String(subject.value_basis)}): compare like with like`,
-      );
-  }
-  for (const [field, words] of [
-    ["building_class", "a building class"],
-    ["local_use_code", "a local use code"],
-  ] as const) {
-    const mine = subject[field];
-    if (typeof mine !== "string") continue;
-    const other = candidates.filter((c) => c[field] !== mine).length;
-    if (other)
-      warnings.push(
-        `${other} of the ${candidates.length} candidates have ${words} other than the subject's (${mine}) or none on the roll`,
       );
   }
   // Every snapshot a returned fact comes from, with its source's rights.
@@ -2570,8 +2605,8 @@ export function assembleTxEquity(
         tax_year: taxYear,
         same_building_class: params.same_building_class ?? false,
         same_local_use_code: params.same_local_use_code ?? false,
-        local_use_codes: params.local_use_codes?.length
-          ? [...params.local_use_codes]
+        local_use_codes: equityUseCodes(params).length
+          ? equityUseCodes(params)
           : null,
       },
       tax_year: yearUsed,
@@ -2580,6 +2615,8 @@ export function assembleTxEquity(
       building_class_sources: p.companions,
       compared_files: comparedFiles,
       subject_summary: subjectSummary,
+      class_counts: equityValueCounts(subject, candidates, "building_class"),
+      use_code_counts: equityValueCounts(subject, candidates, "local_use_code"),
       criteria,
       narrowing,
       steps,
