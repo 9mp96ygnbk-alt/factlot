@@ -1,8 +1,40 @@
 /**
- * Addresses factlot.com used to serve (/buildings/…, /markets/…, /questions/…) that crawlers
- * still request. Each maps to the most specific live page; nothing else is touched. The targets
- * are pages the site builds: the Texas hub and county pages, the market pages and /coverage/.
+ * Addresses factlot.com used to serve (/buildings/…, /markets/…, /questions/…, /search, /for-ai)
+ * that crawlers still request. Nothing else is touched.
+ *
+ * The rent pages those addresses carried are now on the sister site FactLease, so an address whose
+ * page exists there goes there: the three section pages (as the earlier site sent them), and the
+ * city and ZIP pages in legacy-factlease.ts, a list read from FactLease's sitemaps. /search and
+ * /for-ai go to the pages that took their place. Every other old address goes to the most
+ * specific page this site builds: a Texas county page, the Texas hub, a market page or /coverage/.
+ *
+ * A target is a fixed string or an entry of that list, looked up, never text taken from the
+ * request, so no address can be made to redirect anywhere else.
  */
+import { FACTLEASE_PAGES } from "./legacy-factlease.ts";
+
+const FACTLEASE = "https://factlease.com";
+
+/** The old section pages, and where the earlier site sent each. */
+const SECTION = new Map([
+  ["buildings", `${FACTLEASE}/buildings`],
+  ["questions", `${FACTLEASE}/questions`],
+  ["markets", `${FACTLEASE}/`],
+]);
+
+/** Old utility pages and the pages that took their place. */
+const REPLACED = new Map([
+  ["search", "/try/"],
+  ["for-ai", "/connect/"],
+]);
+
+/** FactLease's city and ZIP pages, each under the old factlot.com path that named it. */
+const SISTER = new Map<string, string>(
+  FACTLEASE_PAGES.urls.map((url) => [
+    `/markets${url.slice(FACTLEASE.length)}`,
+    url,
+  ]),
+);
 
 const COVERAGE = "/coverage/";
 const TEXAS = "/texas/";
@@ -88,7 +120,16 @@ function placeTarget(slug: string): string {
 
 /** Where a retired address now lives, or undefined when the path is not a retired family. */
 export function legacyRedirect(path: string): string | undefined {
-  const [, family, slug = ""] = path.toLowerCase().split("/");
+  const lower = path.toLowerCase();
+  const whole = lower.replace(/\/$/, "");
+  const [, family, slug = ""] = lower.split("/");
+  // A page by its whole address: a section page, a replaced page, or a page FactLease has.
+  if (whole === `/${family}`) {
+    const to = SECTION.get(family ?? "") ?? REPLACED.get(family ?? "");
+    if (to) return to;
+  }
+  const sister = SISTER.get(whole);
+  if (sister) return sister;
   if (family === "buildings") return COVERAGE;
   if (family === "markets" || family === "questions")
     return slug ? placeTarget(slug) : COVERAGE;

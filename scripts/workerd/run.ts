@@ -371,6 +371,33 @@ async function apiChecks(harness: Harness): Promise<void> {
     "assets GET /about/",
     about.status,
   );
+  // An address that moved answers with a redirect, not followed here: /about without its slash
+  // as every page does, an old utility page to its successor, an old rent page to the sister
+  // site when that site has the page, and to the nearest page of this site when it does not.
+  for (const [from, statuses, to] of [
+    ["/about", [301, 307, 308], "/about/"],
+    ["/pricing", [301, 307, 308], "/pricing/"],
+    ["/search?q=a", [301], "https://factlot.com/try/"],
+    ["/for-ai", [301], "https://factlot.com/connect/"],
+    ["/buildings/", [301], "https://factlease.com/buildings"],
+    ["/markets/", [301], "https://factlease.com/"],
+    [
+      "/markets/houston/zip/77002",
+      [301],
+      "https://factlease.com/houston/zip/77002",
+    ],
+    ["/markets/houston/zip/77999", [301], "https://factlot.com/texas/harris/"],
+    ["/questions/office-rent-in-el-paso", [301], "https://factlot.com/texas/"],
+  ] as const) {
+    const res = await get(`https://factlot.com${from}`, { redirect: "manual" });
+    const location = res.headers.get("location") ?? "";
+    expect(
+      (statuses as readonly number[]).includes(res.status) &&
+        (location === to || location === `https://factlot.com${to}`),
+      `redirect GET ${from}`,
+      `${res.status} ${location}`,
+    );
+  }
 
   // A key-authenticated batch call through the binding, with a test key seeded here.
   const key = `fl_live_${randomBytes(32).toString("base64url")}`;

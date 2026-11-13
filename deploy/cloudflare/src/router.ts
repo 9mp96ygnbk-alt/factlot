@@ -1111,7 +1111,8 @@ async function route(
     if (property) return property;
   }
 
-  // Retired site addresses (/buildings/…, /markets/…, /questions/…) go to the nearest live page.
+  // Retired site addresses (/buildings/…, /markets/…, /questions/…, /search, /for-ai) go where
+  // legacy-paths.ts sends them: the sister site's page when it has one, else the nearest live page.
   if (
     !isApiHost(host) &&
     (request.method === "GET" || request.method === "HEAD")

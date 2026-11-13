@@ -1415,14 +1415,37 @@ describe("router", () => {
     const get = (u: string, init?: RequestInit) =>
       handle(new Request(u, init), env({ ASSETS: assets }), api);
     for (const [from, to] of [
-      ["https://factlot.com/markets/houston/zip/77002", "/texas/harris/"],
+      ["https://factlot.com/markets/houston/zip/77999", "/texas/harris/"],
       ["https://factlot.com/markets/phoenix?x=1", "/coverage/"],
       ["https://factlot.com/questions/office-rent-in-el-paso", "/texas/"],
       ["https://factlot.com/buildings/fl:building:us-48201:abc", "/coverage/"],
+      ["https://factlot.com/search?q=a", "/try/"],
+      ["https://factlot.com/for-ai/", "/connect/"],
     ] as const) {
       const res = await get(from);
       assert.equal(res.status, 301, from);
       assert.equal(res.headers.get("location"), `https://factlot.com${to}`);
+    }
+    // The old rent pages that have a page on the sister site go to it.
+    for (const [from, to] of [
+      ["https://factlot.com/buildings/", "https://factlease.com/buildings"],
+      ["https://factlot.com/questions", "https://factlease.com/questions"],
+      ["https://factlot.com/markets/", "https://factlease.com/"],
+      [
+        "https://factlot.com/markets/houston/zip/77002?utm=1",
+        "https://factlease.com/houston/zip/77002",
+      ],
+      [
+        "https://factlot.com/markets/san-antonio/zip/78205",
+        "https://factlease.com/san-antonio/zip/78205",
+      ],
+    ] as const) {
+      const res = await get(from);
+      assert.equal(res.status, 301, from);
+      assert.equal(res.headers.get("location"), to);
+      const head = await get(from, { method: "HEAD" });
+      assert.equal(head.status, 301, `HEAD ${from}`);
+      assert.equal(head.headers.get("location"), to);
     }
     for (const live of [
       "https://factlot.com/pricing/",

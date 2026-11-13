@@ -720,22 +720,36 @@ describe("the hand-written sources", () => {
       "does not prepare, file or advise on protests",
     ])
       assert.ok(texas.includes(part), part);
-    // Old addresses: they redirect to pages of this site, as the sentence says.
-    assert.ok(about.includes("now redirect to the nearest page on this site."));
-    assert.doesNotMatch(about, /redirect there/);
+    // Old addresses: some redirect to the sister site, as the sentence says, each to a page
+    // that site has; the rest go to a page of this one.
+    assert.ok(
+      about.includes(
+        "Some addresses of an earlier version of factlot.com, which carried those rent pages, now redirect there.",
+      ),
+    );
+    assert.ok(
+      read("site/_content/about.html").includes(
+        '<a href="https://factlease.com/about">FactLease</a>',
+      ),
+    );
+    for (const [old, to] of [
+      ["/buildings/", "https://factlease.com/buildings"],
+      ["/markets/", "https://factlease.com/"],
+      ["/questions/", "https://factlease.com/questions"],
+      ["/markets/houston/zip/77002", "https://factlease.com/houston/zip/77002"],
+    ] as const)
+      assert.equal(legacyRedirect(old), to, old);
     for (const old of [
-      "/buildings/",
       "/buildings/houston/1000-louisiana-st",
-      "/markets/",
-      "/markets/houston",
-      "/markets/houston/zip/77002",
-      "/markets/san-antonio/zip/78205",
-      "/questions/",
+      "/markets/houston/zip/77999",
+      "/markets/dallas",
       "/questions/office-rent-houston-77002",
-    ]) {
-      const to = legacyRedirect(old);
-      assert.match(to ?? "", /^\/[a-z-]+\/(?:[a-z-]+\/)?$/, old);
-    }
+    ])
+      assert.match(
+        legacyRedirect(old) ?? "",
+        /^\/[a-z-]+\/(?:[a-z-]+\/)?$/,
+        old,
+      );
     // The pages it sends readers to exist as fragments of the trust package.
     for (const f of ["assurance", "security", "status", "sla"])
       assert.ok(existsSync(new URL(`site/_content/${f}.html`, root)), f);
