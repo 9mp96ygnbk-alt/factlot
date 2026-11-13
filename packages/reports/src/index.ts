@@ -74,6 +74,9 @@ export { unzip } from "./zip.ts";
 export { TX_DISCLAIMER } from "./kinds/tx.ts";
 export { TX_SOFTWARE } from "./kinds/protest.ts";
 export {
+  ENTITY_NOT_PRINTED,
+  SHEET_CONTACT,
+  SHEET_CONTACT_LINE,
   OWNER_NOT_ORGANISATION,
   OWNER_NOT_PUBLISHED,
   OWNER_PERSON_STYLE,

@@ -5,7 +5,12 @@ import { inflateSync } from "node:zlib";
 
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 
+import { runTool } from "@factlot/tools";
+
+import { texasDeadline } from "./kinds/sheet.ts";
 import {
+  ENTITY_NOT_PRINTED,
+  SHEET_CONTACT_LINE,
   OWNER_NOT_ORGANISATION,
   OWNER_NOT_PUBLISHED,
   OWNER_PERSON_STYLE,
@@ -429,7 +434,7 @@ describe("property_sheet", () => {
       };
     };
     const la = "fl:parcel:us-06037:5151015013";
-    const sheet = async (rec: unknown, urn: string, person = false) =>
+    const sheet = async (rec: unknown, urn: string) =>
       flat(
         (
           await readPdf(
@@ -441,7 +446,6 @@ describe("property_sheet", () => {
                   registry: {
                     record: rec,
                     plan: "free",
-                    owner_person_style: person,
                     entity,
                   },
                 },
@@ -463,7 +467,8 @@ describe("property_sheet", () => {
         ? { ...x, value: "SMITH FAMILY TRUST DTD 1999" }
         : x,
     );
-    const t = await sheet(trust, URN, true);
+    // The rule runs inside the sheet itself: no flag from the host is needed.
+    const t = await sheet(trust, URN);
     assert.ok(t.includes(OWNER_PERSON_STYLE));
     assert.ok(!t.includes("SMITH"), "the owner's name is not printed");
     assert.ok(!t.includes("LOUISIANA TOWER HOLDINGS"), "nor the linked entity");
@@ -541,6 +546,152 @@ describe("property_sheet", () => {
       ),
       undefined,
     );
+  });
+
+  it("rights: printed as the other reports print them, and sources with different terms never share a row", async () => {
+    const r = record();
+    // The same publisher, two files with different recorded terms.
+    r.facts = r.facts.map((x) =>
+      x.predicate === "parcel.year_built"
+        ? {
+            ...x,
+            provenance: {
+              method: "extracted",
+              sources: [
+                src(
+                  "fld_other",
+                  "Harris Central Appraisal District: Building file 2026",
+                ),
+              ],
+            },
+            rights: {
+              ai_use: "permitted",
+              redistribution: "attribution_required",
+              license: "CC BY 4.0",
+              attribution: "Harris Central Appraisal District",
+            },
+          }
+        : x,
+    );
+    const t = flat(
+      (
+        await readPdf(
+          (
+            await createReport(request(), {
+              now: NOW,
+              registry: { record: r, plan: "free" },
+            })
+          ).bytes,
+        )
+      ).text,
+    );
+    assert.ok(
+      t.includes("rights not stated by the publisher: relay to the recipient"),
+    );
+    assert.ok(
+      t.includes("AI use: permitted; redistribution: attribution_required"),
+    );
+    assert.ok(
+      t.includes("[2] 1983") || t.includes("[2] 2026-07-25"),
+      "a row of its own",
+    );
+    assert.ok(!/\bunknown\b/.test(t), "no raw unknown");
+  });
+
+  it("boundary: the pages' sentences and the removal and correction line; Texas keeps its disclaimer", async () => {
+    const pdfText = async (urn: string) => {
+      const r = record({ urn });
+      r.facts = r.facts.map((x) => ({ ...x, subject: urn }));
+      return flat(
+        (
+          await readPdf(
+            (
+              await createReport(
+                { ...request(), arguments: { urn } },
+                { now: NOW, registry: { record: r, plan: "free" } },
+              )
+            ).bytes,
+          )
+        ).text,
+      );
+    };
+    const dc = await pdfText("fl:parcel:us-11001:0376-0068");
+    assert.ok(dc.includes(SHEET_BOUNDARY));
+    assert.ok(
+      dc.includes("not a substitute for checking the source") &&
+        dc.includes(SHEET_CONTACT_LINE),
+    );
+    const tx = await pdfText(URN);
+    assert.ok(
+      tx.includes(`${SHEET_FACTS} ${TX_DISCLAIMER} ${SHEET_CONTACT_LINE}`),
+    );
+  });
+
+  it("the entity: not printed when the host withheld it, or when its name reads like a person's", async () => {
+    const pdf = async (ent: unknown) =>
+      flat(
+        (
+          await readPdf(
+            (
+              await createReport(request(), {
+                now: NOW,
+                registry: { record: record(), plan: "free", entity: ent },
+              })
+            ).bytes,
+          )
+        ).text,
+      );
+    const none = await pdf(undefined);
+    assert.ok(none.includes("LOUISIANA TOWER HOLDINGS LLC"), "the owner stays");
+    assert.ok(none.includes(ENTITY_NOT_PRINTED));
+    assert.ok(!none.includes("32001234567") && !none.includes("Active"));
+    const person = structuredClone(entity);
+    person.facts[0]!.value = "DOE JOHN TR";
+    const p = await pdf(person);
+    assert.ok(p.includes(ENTITY_NOT_PRINTED) && !p.includes("DOE JOHN"));
+  });
+
+  it("deadline: a passed season with no next one prints no date", () => {
+    const passedNoNext: typeof runTool = (name, args) => {
+      const out = runTool(name, args);
+      assert.ok(out.ok);
+      const r = structuredClone(out.result) as {
+        value: Record<string, unknown>;
+      };
+      r.value.status = "passed";
+      r.value.next_season = null;
+      return { ok: true, result: r } as ReturnType<typeof runTool>;
+    };
+    assert.equal(texasDeadline(NOW, passedNoNext), null);
+    assert.ok(texasDeadline(NOW)?.deadline.startsWith("2027-"));
+  });
+
+  it("worst case: many registry notes and long source URLs fit two pages with nothing cut", async () => {
+    const long = `https://example.org/${"roll-files/".repeat(30)}real_acct.zip`;
+    const notes = Array.from(
+      { length: 8 },
+      (_, i) =>
+        `Registry note ${i + 1}: parcel.land_area_sf is 0: a land area must be positive, so the source's value is not usable; the building may be assessed on another account at the same address.`,
+    );
+    const r = record({ warnings: notes });
+    r.facts = r.facts.map((x) => ({
+      ...x,
+      provenance: {
+        method: "extracted",
+        sources: [{ ...x.provenance.sources[0]!, uri: long }],
+      },
+    }));
+    const file = await createReport(request(), {
+      now: NOW,
+      registry: { record: r, plan: "pro", entity },
+    });
+    const pdf = await readPdf(file.bytes);
+    assert.ok(pdf.pages <= 2, `${pdf.pages} pages`);
+    const squeezed = pdf.text.replace(/\s+/g, "");
+    assert.ok(squeezed.includes(long), "the URL in full");
+    for (const n of notes)
+      assert.ok(squeezed.includes(n.replace(/\s+/g, "")), n);
+    assert.ok(!pdf.text.includes("characters"), "no cut-text note");
   });
 
   it("is the same bytes for the same answer and time", async () => {

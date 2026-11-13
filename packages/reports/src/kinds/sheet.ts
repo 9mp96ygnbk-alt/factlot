@@ -13,22 +13,31 @@
  * labelled as the general rule: an account's own deadline depends on its notice date.
  */
 import { texasToday } from "@factlot/calc";
-import { countyName, runTool } from "@factlot/tools";
+import { countyName, ownerNamesAPerson, runTool } from "@factlot/tools";
 
 import type { Block, Raw, ReportDoc } from "../doc.ts";
 import { PARCEL_URN } from "../validate.ts";
 import { subtitle, type KindInput } from "./common.ts";
-import { TX_DISCLAIMER } from "./tx.ts";
+import { TX_DISCLAIMER, rightsText } from "./tx.ts";
 
 /** Where the plans are (the Worker's GATING_PRICING_URL; a Worker test pins the two together). */
 export const SHEET_PRICING_URL = "https://factlot.com/pricing/";
 
-/** The boundary every sheet prints (the property pages' sentence, with the values line first). */
-/** What every value on a sheet is. */
+/** Where a person named in a record, or a wrong record, is reported (the Worker's CONTACT; a test pins them). */
+export const SHEET_CONTACT = "contact@factlot.com";
+/** The property pages' removal and correction line, word for word. */
+export const SHEET_CONTACT_LINE = `If a record names you as a person, or is wrong, email ${SHEET_CONTACT} and we will remove or correct it.`;
+/** What every value on a sheet is (the property pages' first sentence, word for word). */
 export const SHEET_FACTS =
-  "Public-record values as their publisher released them, each cited to its source file.";
-/** The boundary every sheet prints (a Texas sheet prints SHEET_FACTS with the Texas disclaimer). */
-export const SHEET_BOUNDARY = `${SHEET_FACTS} Not an appraisal or an opinion of value; not legal or tax advice.`;
+  "A record shown here is a public-record fact as its publisher released it.";
+/**
+ * The boundary a sheet outside Texas prints: the property pages' sentences word for word. A Texas sheet
+ * prints SHEET_FACTS, the Texas disclaimer and SHEET_CONTACT_LINE.
+ */
+export const SHEET_BOUNDARY = `${SHEET_FACTS} It is not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for checking the source. ${SHEET_CONTACT_LINE}`;
+/** Said when the registry links an entity whose details the sheet does not print. */
+export const ENTITY_NOT_PRINTED =
+  "The registry links this owner to a registered entity; its details are not printed on this sheet.";
 
 /** Places whose hosted source publishes no owner names (the /try/ page and the market pages say the same). */
 const NO_OWNER_REGIONS = [
@@ -52,9 +61,11 @@ export interface RegistryLookup {
   /** registry_get's answer for the parcel, as the caller's plan returns it. */
   record: unknown;
   plan: SheetPlan;
-  /** The owner of record reads like a person's estate or trust (the property pages' rule): not printed. */
-  owner_person_style?: boolean;
-  /** The linked entity's registry_get record, when the host read it. */
+  /**
+   * The linked entity's registry_get record, when the host read it and the property pages' rule lets
+   * its facts be shown (its sources may be republished). Only its name, status and registry number
+   * are printed, and none of them when its name reads like a person's.
+   */
   entity?: unknown;
 }
 
@@ -62,6 +73,7 @@ interface Rights {
   license?: string;
   attribution?: string;
   redistribution?: string;
+  ai_use?: string;
 }
 interface FactSource {
   document_id?: string;
@@ -153,7 +165,10 @@ function yearsInWords(years: number[]): string {
 const int = new Intl.NumberFormat("en-US");
 
 /** The next general protest deadline for a Texas parcel, from the rule (null when it does not run). */
-export function texasDeadline(now: number): {
+export function texasDeadline(
+  now: number,
+  run: typeof runTool = runTool,
+): {
   tax_year: number;
   deadline: string;
   moved: boolean;
@@ -163,7 +178,7 @@ export function texasDeadline(now: number): {
 } | null {
   const today = texasToday(new Date(now));
   const year = Number(today.slice(0, 4));
-  const out = runTool("rules_tx_property_tax_protest_deadline", {
+  const out = run("rules_tx_property_tax_protest_deadline", {
     tax_year: year,
     as_of: today,
   });
@@ -184,7 +199,9 @@ export function texasDeadline(now: number): {
       };
     }
   ).value;
-  const passed = v.status === "passed" && v.next_season !== null;
+  // A passed season with no next one gives no date to print: the sheet then has no deadline line.
+  if (v.status === "passed" && v.next_season === null) return null;
+  const passed = v.status === "passed";
   const taxYear = passed ? v.next_season!.tax_year : year;
   const deadline = passed ? v.next_season!.deadline : v.deadline;
   return {
@@ -262,6 +279,8 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
       const publisher = cut > 0 ? title.slice(0, cut) : title;
       const rights = f?.rights;
       const key = [
+        rights?.redistribution ?? "",
+        rights?.ai_use ?? "",
         publisher,
         rights?.license ?? "",
         rights?.attribution ?? "",
@@ -319,7 +338,9 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
   const ownerValue = text(ownerFact);
   const ownerRows: Raw[][] = [];
   const ownerNotes: string[] = [];
-  if (ownerValue && ownerFact && lookup.owner_person_style !== true) {
+  // The property pages' person rule, applied here too, so no build of the sheet prints one.
+  const personStyle = ownerValue !== null && ownerNamesAPerson(ownerValue);
+  if (ownerValue && ownerFact && !personStyle) {
     ownerRows.push(["Owner of record", ownerValue, factCite(ownerFact)]);
     const link = (rec.relationships ?? []).find(
       (r) =>
@@ -344,22 +365,26 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
       const number = efact("entity.registry_number");
       const jurisdiction =
         /^fl:entity:([a-z0-9-]+):/.exec(entityUrn)?.[1] ?? "";
-      ownerRows.push([
-        `Registered entity, the registry's match${method || conf ? ` (${[method ?? "", conf ? `confidence ${conf}` : ""].filter(Boolean).join(", ")})` : ""}`,
-        text(name) ?? entityUrn,
-        name ? factCite(name) : "",
-      ]);
-      if (text(status))
-        ownerRows.push(["Entity status", text(status), factCite(status!)]);
-      if (text(number))
+      const nameText = text(name);
+      if (!entity || !nameText || ownerNamesAPerson(nameText))
+        ownerNotes.push(ENTITY_NOT_PRINTED);
+      else {
         ownerRows.push([
-          `Registry number (${jurisdiction.replace(/^us-/, "").toUpperCase()})`,
-          text(number),
-          factCite(number!),
+          `Registered entity, the registry's match${method || conf ? ` (${[method ?? "", conf ? `confidence ${conf}` : ""].filter(Boolean).join(", ")})` : ""}`,
+          nameText,
+          name ? factCite(name) : "",
         ]);
+        if (text(status))
+          ownerRows.push(["Entity status", text(status), factCite(status!)]);
+        if (text(number))
+          ownerRows.push([
+            `Registry number (${jurisdiction.replace(/^us-/, "").toUpperCase()})`,
+            text(number),
+            factCite(number!),
+          ]);
+      }
     }
-  } else if (ownerValue && lookup.owner_person_style === true)
-    ownerNotes.push(OWNER_PERSON_STYLE);
+  } else if (personStyle) ownerNotes.push(OWNER_PERSON_STYLE);
   else
     ownerNotes.push(
       NO_OWNER_REGIONS.some((r) => r.test(region))
@@ -492,7 +517,7 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
     {
       t: "notice",
       text: region.startsWith("us-48")
-        ? `${SHEET_FACTS} ${TX_DISCLAIMER}`
+        ? `${SHEET_FACTS} ${TX_DISCLAIMER} ${SHEET_CONTACT_LINE}`
         : SHEET_BOUNDARY,
     },
     ...factTable("Parcel", [...idRows, ...factRows]),
@@ -573,11 +598,6 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
 
   blocks.push({ t: "subheading", text: "Sources" });
   const sourceRows: Raw[][] = [...groups.values()].map((g) => {
-    const r = g.rights ?? {};
-    const terms = [
-      r.attribution ? `Attribution: ${r.attribution}` : "",
-      r.license ? `Licence: ${r.license}` : "",
-    ].filter(Boolean);
     return [
       `[${g.n}]`,
       [
@@ -586,7 +606,7 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
         g.uris.size ? ` ${[...g.uris].sort().join(" ")}` : "",
       ].join(""),
       span(g.as_of, "dates") || "not stated",
-      terms.join(" ") || "Licence not recorded in this answer",
+      rightsText(g.rights as Record<string, string | undefined> | undefined),
     ];
   });
   blocks.push(
@@ -598,7 +618,11 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
             { header: "", fmt: "text", width: 0.3 },
             { header: "Publisher and file", fmt: "text", width: 2.5 },
             { header: "As of", fmt: "text", width: 1 },
-            { header: "Attribution or licence", fmt: "text", width: 2.1 },
+            {
+              header: "Rights as the publisher states them",
+              fmt: "text",
+              width: 2.1,
+            },
           ],
           rows: sourceRows,
         }
