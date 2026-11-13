@@ -11,15 +11,19 @@ const esc = (s) =>
     .replaceAll('"', "&quot;");
 const int = new Intl.NumberFormat("en-US");
 
-/** The two sentences llms.txt carries (both copies), and the coverage page's lead to its table. */
+/**
+ * What llms.txt says of field availability (both copies), and the coverage page's lead to its table. It points to the
+ * coverage page, which holds the table whatever the hosted pack carries.
+ */
 export const FIELDS_LEAD =
-  "Fields differ by region: Los Angeles and San Francisco have no owner of record, for example.";
-export const FIELDS_SENTENCES = `${FIELDS_LEAD} The share of parcels with each fact, and the roll years, per county: https://factlot.com/coverage/#fields and \`registry_coverage\`.`;
+  "Fields differ by county (Los Angeles and San Francisco have no owners).";
+export const FIELDS_SENTENCES =
+  "Fields differ by county (Los Angeles and San Francisco have no owners): shares and roll years at https://factlot.com/coverage/#fields.";
 
 /** Short column headings, in fields.json's group order. */
 export const SHORT = {
   owner_of_record: "Owner of record",
-  owner_mailing_address: "Mailing address",
+  owner_mailing_address: "Owner mailing address (organisations)",
   market_value: "Market value",
   appraised_value: "Appraised value",
   building_facts: "Building facts",
@@ -31,24 +35,40 @@ export const SHORT = {
   entity_links: "Company registry link",
 };
 
-const pct = (share) => Math.min(99, Math.max(1, Math.round(share * 100)));
+/** Sources whose roll years are each town's grand list year, so one county lists several. */
+export const TOWN_LIST_SOURCES = new Set(["ct-parcel-cama-layer"]);
 
-/** "yes" (every parcel, to the nearest half percent), "no", or "partial (64%)". */
-export function cellText(share) {
-  if (share <= 0) return "no";
-  if (share >= 0.995) return "yes";
-  return `partial (${pct(share)}%)`;
+/** Missing parcels up to which a part is said as "all but N parcels" rather than a percentage. */
+export const ALL_BUT_MAX = 10;
+
+/**
+ * How many of `total` parcels `n` is, for a part (0 < n < total): "all but 3 parcels", "<1%", "64%" or ">99%".
+ * A non-zero part is never rounded to 0% or 1% from below, nor to 100%.
+ */
+export function partText(n, total) {
+  const missing = total - n;
+  if (missing <= ALL_BUT_MAX)
+    return `all but ${missing} parcel${missing === 1 ? "" : "s"}`;
+  const share = n / total;
+  if (share < 0.01) return "<1%";
+  const p = Math.round(share * 100);
+  return p >= 100 ? ">99%" : `${p}%`;
 }
 
-/** The groups of several counties together: parcels with the group over all their parcels. */
-export function combinedShares(counties) {
+/** "yes" only when every parcel has it, "no" when none does, else "partial (64%)" and the like. */
+export function cellText(n, total) {
+  if (n <= 0) return "no";
+  if (n >= total) return "yes";
+  return `partial (${partText(n, total)})`;
+}
+
+/** The groups of several counties together: parcels with the group, and all their parcels. */
+export function combinedCounts(counties) {
   const total = counties.reduce((a, c) => a + c.parcels, 0);
   const out = {};
-  for (const g of Object.keys(counties[0]?.groups ?? {})) {
-    const n = counties.reduce((a, c) => a + c.groups[g].parcels, 0);
-    out[g] = total ? n / total : 0;
-  }
-  return out;
+  for (const g of Object.keys(counties[0]?.groups ?? {}))
+    out[g] = counties.reduce((a, c) => a + c.groups[g].parcels, 0);
+  return { total, counts: out };
 }
 
 const typeText = (types) =>
@@ -58,10 +78,17 @@ const typeText = (types) =>
       ? "market value only"
       : "appraised value only";
 
+/** Whether every roll year of a county comes from a town grand list source (Connecticut). */
+export const townListYears = (county) =>
+  county.roll_years.length > 0 &&
+  county.roll_years.every((y) =>
+    y.files.every((f) => TOWN_LIST_SOURCES.has(f.source_id)),
+  );
+
 /**
  * The roll years of a county in words: "2026: market and appraised value; 2022 to 2025: market value only".
- * Consecutive years with the same value types are joined; a year that covers fewer than 90% of the county's
- * parcels says its share; a preliminary year says so.
+ * Consecutive years with the same value types are joined; a year that fewer than 90% of the county's parcels have a
+ * value for says how many do; a preliminary year says so. Town grand list years (Connecticut) say what they are.
  */
 export function rollYearsText(county) {
   const years = county.roll_years;
@@ -72,7 +99,7 @@ export function rollYearsText(county) {
     note: [
       ...(y.preliminary ? ["preliminary roll"] : []),
       ...(y.parcels < 0.9 * county.parcels
-        ? [`${pct(y.parcels / county.parcels)}% of parcels`]
+        ? [`${partText(y.parcels, county.parcels)} of parcels`]
         : []),
     ].join(", "),
   }));
@@ -92,7 +119,7 @@ export function rollYearsText(county) {
     else
       runs.push({ from: it.year, to: it.year, text: it.text, note: it.note });
   }
-  return runs
+  const text = runs
     .map((r) => {
       const span =
         r.from === null
@@ -103,6 +130,9 @@ export function rollYearsText(county) {
       return `${span}: ${r.text}${r.note ? ` (${r.note})` : ""}`;
     })
     .join("; ");
+  return townListYears(county)
+    ? `town grand list years, each town's own (towns in a county list different years): ${text}`
+    : text;
 }
 
 /** "a or b", "a, b or c". */
@@ -122,28 +152,29 @@ const andList = (xs) =>
  * market page or a Texas county page. `labels`: fields.json's group labels by key.
  */
 export function placeFieldsText(name, counties, labels) {
-  const shares = combinedShares(counties);
+  const { total, counts } = combinedCounts(counties);
   const has = [];
   const lacks = [];
   const part = [];
   // Prose drops a label's parenthesis ("building facts (area, ...)" reads "building facts").
   const word = (g) => labels[g].replace(/ \(.*\)$/, "");
-  for (const [g, s] of Object.entries(shares)) {
-    if (s <= 0) lacks.push(word(g));
-    else if (s >= 0.995) has.push(word(g));
-    else part.push(`${word(g)} (${pct(s)}%)`);
+  for (const [g, n] of Object.entries(counts)) {
+    if (n <= 0) lacks.push(word(g));
+    else if (n >= total) has.push(word(g));
+    else part.push(`${word(g)} (${partText(n, total)})`);
   }
   const holds = [
     ...(has.length ? [`${andList(has)} for every parcel`] : []),
     ...(part.length ? [`${andList(part)} for part of its parcels`] : []),
   ];
   const rolls = [...new Set(counties.map((c) => rollYearsText(c)))];
-  const rollText =
-    rolls.length === 1
+  const rollText = counties.every(townListYears)
+    ? "Roll years held: each is a town's grand list year, and towns in one county list different years; the table on the coverage page lists them."
+    : rolls.length === 1
       ? `Roll years held: ${rolls[0]}.`
-      : `Roll years held differ by county; the table on the coverage page lists them.`;
+      : "Roll years held differ by county; the table on the coverage page lists them.";
   const owners =
-    shares.owner_of_record > 0
+    counts.owner_of_record > 0
       ? " Owners of record are kept for organisations only, so a parcel owned by a person shows none."
       : "";
   return [
@@ -165,7 +196,7 @@ export function hostedFieldsTable(data) {
     .map((c) => {
       const cells = groups
         .map((g) => {
-          const t = cellText(c.groups[g].share);
+          const t = cellText(c.groups[g].parcels, c.parcels);
           const cls = t === "yes" ? "f-yes" : t === "no" ? "f-no" : "f-part";
           return `<td class="${cls}">${esc(t)}</td>`;
         })
@@ -176,7 +207,7 @@ export function hostedFieldsTable(data) {
     .join("\n");
   return `<div class="covscroll"><table class="covtable fieldtable">
 <caption class="visually-hidden">Fact groups and roll years held for each hosted county</caption>
-<thead><tr><th scope="col">County</th><th scope="col">Parcels</th>${groups.map((g) => `<th scope="col">${esc(SHORT[g] ?? g)}</th>`).join("")}<th scope="col">Roll years held</th></tr></thead>
+<thead><tr><th scope="col">County</th><th scope="col">Parcels</th>${groups.map((g) => `<th scope="col">${esc(SHORT[g] ?? g)}</th>`).join("")}<th scope="col">Roll years held (parcels with a value, where under 90%)</th></tr></thead>
 <tbody>
 ${rows}
 </tbody>

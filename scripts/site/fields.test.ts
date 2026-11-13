@@ -7,8 +7,11 @@ import { describe, it } from "node:test";
 
 import { buildCoverageCatalog } from "./coverage-catalog.mjs";
 import {
+  ALL_BUT_MAX,
   FIELDS_SENTENCES,
   cellText,
+  partText,
+  townListYears,
   hostedFieldsTable,
   placeFieldsText,
   rollYearsText,
@@ -39,12 +42,38 @@ describe("field availability", () => {
   it("fields.json holds exactly the hosted counties, with the pack's parcel counts and dates", () => {
     assert.deepEqual(fieldsDifferences(fields, hosted), []);
   });
-  it("cells say yes, no or partial with the share", () => {
-    assert.equal(cellText(0), "no");
-    assert.equal(cellText(1), "yes");
-    assert.equal(cellText(0.996), "yes");
-    assert.equal(cellText(0.64), "partial (64%)");
-    assert.equal(cellText(0.001), "partial (1%)");
+  it("cells say yes only for every parcel, no for none, else how many", () => {
+    assert.equal(cellText(0, 1000), "no");
+    assert.equal(cellText(1000, 1000), "yes");
+    // Above 99.5% is not every parcel.
+    assert.equal(cellText(87462, 87717), "partial (>99%)");
+    assert.equal(cellText(997, 1000), "partial (all but 3 parcels)");
+    assert.equal(cellText(999, 1000), "partial (all but 1 parcel)");
+    assert.equal(cellText(640, 1000), "partial (64%)");
+    // A small non-zero share is never shown as 1%.
+    assert.equal(cellText(4, 1000), "partial (<1%)");
+    assert.equal(partText(12, 1000), "1%");
+    assert.equal(partText(10000 - ALL_BUT_MAX - 1, 10000), ">99%");
+    assert.equal(partText(1000 - ALL_BUT_MAX - 1, 1000), "99%");
+  });
+  it("Connecticut's roll years say they are town grand list years", () => {
+    const ct = fields.counties.filter((c) => c.fips.startsWith("09"));
+    assert.ok(ct.length > 0 && ct.every(townListYears));
+    for (const c of ct)
+      assert.match(rollYearsText(c), /^town grand list years, each town's own/);
+    assert.ok(!townListYears(row("48453")));
+    assert.match(
+      placeFieldsText("Connecticut", ct, labels),
+      /each is a town's grand list year/,
+    );
+    assert.ok(hostedFieldsTable(fields).includes("town grand list years"));
+  });
+  it("the public table labels the mailing address column as organisations' only", () => {
+    assert.ok(
+      hostedFieldsTable(fields).includes(
+        "Owner mailing address (organisations)",
+      ),
+    );
   });
   it("what llms.txt says of Los Angeles and San Francisco is what the data holds", () => {
     for (const fips of ["06037", "06075"])
@@ -65,6 +94,13 @@ describe("field availability", () => {
         row(fips).roll_years.map((y) => [y.tax_year, y.preliminary]),
         [[2027, true]],
       );
+  });
+  it("the place paragraph says every parcel only when every parcel has it", () => {
+    const harris = placeFieldsText("Harris County", [row("48201")], labels);
+    const g = row("48201").groups.market_value;
+    if (g.parcels < row("48201").parcels)
+      assert.doesNotMatch(harris, /market value[^;]*for every parcel/);
+    assert.match(harris, /market value \(/);
   });
   it("the place paragraph names what a place lacks", () => {
     const sf = placeFieldsText("San Francisco", [row("06075")], labels);

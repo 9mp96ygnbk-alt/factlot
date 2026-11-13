@@ -175,7 +175,7 @@
       "roll_years": [
         {
           "tax_year": 2025,
-          "parcels": 19048,
+          "parcels": 19035,
           "value_types": ["appraised"],
           "preliminary": false,
           "files": [
@@ -186,7 +186,7 @@
               "read_on": "2026-11-03",
               "dated": "file",
               "roll": null,
-              "parcels": 19048
+              "parcels": 19035
             }
           ]
         }
@@ -2485,7 +2485,7 @@
       "roll_years": [
         {
           "tax_year": null,
-          "parcels": 10953,
+          "parcels": 10955,
           "value_types": ["market", "appraised"],
           "preliminary": false,
           "files": [
@@ -2496,7 +2496,7 @@
               "read_on": "2026-11-06",
               "dated": "file",
               "roll": null,
-              "parcels": 10953
+              "parcels": 10955
             }
           ]
         }
@@ -3133,7 +3133,7 @@
       "roll_years": [
         {
           "tax_year": null,
-          "parcels": 14473,
+          "parcels": 14478,
           "value_types": ["market", "appraised"],
           "preliminary": false,
           "files": [
@@ -3144,7 +3144,7 @@
               "read_on": "2026-11-06",
               "dated": "file",
               "roll": null,
-              "parcels": 14473
+              "parcels": 14478
             }
           ]
         }
@@ -3206,7 +3206,7 @@
       "roll_years": [
         {
           "tax_year": 2026,
-          "parcels": 13296,
+          "parcels": 13294,
           "value_types": ["market"],
           "preliminary": false,
           "files": [
@@ -3217,7 +3217,7 @@
               "read_on": "2026-11-03",
               "dated": "file",
               "roll": null,
-              "parcels": 13296
+              "parcels": 13294
             }
           ]
         }
@@ -4335,7 +4335,7 @@
               "as_of": "2025-08-20",
               "read_on": "2026-11-08",
               "dated": "file",
-              "roll": "certified",
+              "roll": null,
               "parcels": 9160
             }
           ]
@@ -4352,7 +4352,7 @@
               "as_of": "2024-08-12",
               "read_on": "2026-11-07",
               "dated": "file",
-              "roll": "certified",
+              "roll": null,
               "parcels": 8674
             }
           ]
@@ -4592,7 +4592,7 @@
       "roll_years": [
         {
           "tax_year": 2026,
-          "parcels": 87717,
+          "parcels": 87462,
           "value_types": ["market", "appraised"],
           "preliminary": false,
           "files": [
@@ -4603,7 +4603,7 @@
               "read_on": "2026-11-02",
               "dated": "file",
               "roll": null,
-              "parcels": 87717
+              "parcels": 87462
             }
           ]
         },
@@ -4732,7 +4732,7 @@
       "roll_years": [
         {
           "tax_year": 2026,
-          "parcels": 9458,
+          "parcels": 9459,
           "value_types": ["market", "appraised"],
           "preliminary": false,
           "files": [
@@ -5147,7 +5147,7 @@
       "roll_years": [
         {
           "tax_year": 2026,
-          "parcels": 30555,
+          "parcels": 30556,
           "value_types": ["market", "appraised"],
           "preliminary": false,
           "files": [
@@ -5296,7 +5296,7 @@
       "roll_years": [
         {
           "tax_year": 2027,
-          "parcels": 11299,
+          "parcels": 10916,
           "value_types": ["market", "appraised"],
           "preliminary": true,
           "files": [
@@ -5307,7 +5307,7 @@
               "read_on": "2026-11-07",
               "dated": "read",
               "roll": "preliminary",
-              "parcels": 11299
+              "parcels": 10916
             }
           ]
         }

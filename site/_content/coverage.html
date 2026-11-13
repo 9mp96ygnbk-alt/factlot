@@ -84,12 +84,13 @@
 
 <h2 id="fields">What each hosted county has</h2>
 <p>
-  {{COV_FIELDS_LEAD}} A cell says yes when every parcel of the county has the
-  fact, no when none has it, and partial with the share of parcels that have it.
-  Owners of record are kept for organisations only, never natural persons, so no
-  county has an owner for every parcel. The roll years column gives the tax
-  years whose values the registry holds, with the value type of each;
-  <code>registry_coverage</code> returns the same per county.
+  {{COV_FIELDS_LEAD}} A cell says yes only when every parcel of the county has
+  the fact, no when none has it, and partial with how many have it otherwise.
+  Owners of record and their mailing addresses are kept for organisations only,
+  never natural persons, so no county has an owner for every parcel. The roll
+  years column gives the tax years whose values the registry holds, with the
+  value type of each, and how many parcels have a value for a year when fewer
+  than 90% do. In Connecticut each year is a town's grand list year.
 </p>
 {{COV_FIELDS_TABLE}} {{COV_MARKETS}} {{COV_NOTICES}}
 
