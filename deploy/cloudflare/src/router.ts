@@ -88,7 +88,7 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
-import { propertyPagesRoute } from "./property-pages.ts";
+import { propertyPagesRoute, type PagesEnv } from "./property-pages.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
 import {
@@ -1437,7 +1437,10 @@ async function route(
       lookupForSheet(urn, {
         plan: paid ? paid.record.plan : "free",
         registry: env.REGISTRY,
+        extraSources: (env as PagesEnv).PROPERTY_PAGES_EXTRA_SOURCES,
         callMcp: (body) => route(asCaller(request, url, body), env, api, opts),
+        // The same give-back the router uses for an unanswered lookup of this caller.
+        giveBack: (resetsAt) => giveBack(1, resetsAt),
       }),
     // A free key's reports also count against its address's month, the meter keyless reports use.
     ...(freeKey && !paid && !oauth

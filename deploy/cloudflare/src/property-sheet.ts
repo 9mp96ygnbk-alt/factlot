@@ -3,33 +3,68 @@
  * parcel, run as the caller's own call: the router sends it back through itself as an MCP
  * tools/call with the caller's credentials and address, so the call is metered, refunded and
  * gated exactly like any registry_get of theirs (one lookup; a free caller's answer keeps the
- * current roll year only). Nothing here reads the registry on the caller's behalf, except the
- * linked entity's name, status and registry number, read as the public property pages read them
- * (unmetered), and only when the owner of record may be printed.
+ * current roll year only). The report is reserved before this runs (reports.ts); when the sheet
+ * then cannot be built or stored, the lookup is given back through the router's own give-back.
+ *
+ * The linked entity is the one read the caller is not charged for, as the public property pages
+ * read it, and under the pages' rule: only when the owner of record may be printed, the entity's
+ * name does not read like a person's, and every source behind its name may be republished
+ * (recorded redistribution permitted, or the source listed in PROPERTY_PAGES_EXTRA_SOURCES), as
+ * the registry's /pages/sources says. Only its name, status and registry number are kept.
  *
  * A paid caller's call adds include_history, so the sheet can name the files behind the earlier
  * roll years; history is cut to the current facts for a free caller anyway, so a free caller's
  * call does not ask for it.
  */
-import { hostedWithheldCounties } from "@factlot/tools";
 import type { RegistryLookup, SheetPlan } from "@factlot/reports";
+import { hostedWithheldCounties, ownerNamesAPerson } from "@factlot/tools";
 
-import { ownerNamesAPerson } from "./property-pages.ts";
+import {
+  entityPageRefs,
+  parseSourceList,
+  refsAllowed,
+  type PageRecord,
+  type SourceRef,
+} from "../../registry/src/page-rules.ts";
+
+import { sourceIds } from "./property-pages.ts";
 import { registryRunner } from "./registry.ts";
 import type { Fetcher } from "./types.ts";
 
 type Json = Record<string, unknown>;
 
+/** The registry quota headers of the caller's lookup, passed on with the sheet's answer. */
+export const LOOKUP_QUOTA_HEADERS = [
+  "x-factlot-registry-quota-limit",
+  "x-factlot-registry-quota-remaining",
+  "x-factlot-registry-quota-reset",
+];
+
 export type SheetLookupOutcome =
-  | { ok: true; lookup: RegistryLookup }
-  | { ok: false; status: number; body: Json };
+  | {
+      ok: true;
+      lookup: RegistryLookup;
+      headers: Record<string, string>;
+      /** Give the caller's charged lookup back; true when it was. */
+      refundLookup: () => Promise<boolean>;
+    }
+  | {
+      ok: false;
+      status: number;
+      body: Json;
+      headers: Record<string, string>;
+    };
 
 export interface SheetLookupDeps {
   plan: SheetPlan;
   /** Send one MCP request as the caller (the router, re-entered with their credentials). */
   callMcp: (body: string) => Promise<Response>;
+  /** The router's give-back of one of this caller's lookups in the window ending at `resetsAt`. */
+  giveBack?: (resetsAt: string) => Promise<boolean>;
   /** The registry service binding, for the linked entity's record. */
   registry?: Fetcher;
+  /** PROPERTY_PAGES_EXTRA_SOURCES: source ids whose pages (and so entity lines) are allowed. */
+  extraSources?: string;
 }
 
 const WITHHELD = hostedWithheldCounties();
@@ -58,18 +93,27 @@ function statusOf(code: unknown): number {
   }
 }
 
-const UNAVAILABLE: SheetLookupOutcome = {
-  ok: false,
-  status: 503,
-  body: {
-    error: "ServiceUnavailable",
-    code: "ServiceUnavailable",
-    message:
-      "the registry lookup for this sheet did not answer, so nothing was charged; retry in a few seconds.",
-    retry_after_seconds: 5,
-    next: "retry after 5 seconds",
-  },
+const UNAVAILABLE_BODY: Json = {
+  error: "ServiceUnavailable",
+  code: "ServiceUnavailable",
+  message:
+    "the registry lookup for this sheet did not answer, so no lookup and no report were counted; retry in a few seconds.",
+  retry_after_seconds: 5,
+  next: "retry after 5 seconds",
 };
+
+/** The body for an answer that was counted as a lookup but is not one the sheet can read. */
+function unreadable(givenBack: boolean): Json {
+  return {
+    error: "LookupUnreadable",
+    code: "LookupUnreadable",
+    message: givenBack
+      ? "the registry answered with something that is not this parcel's record, so no sheet was made; the report and the lookup were given back."
+      : "the registry answered with something that is not this parcel's record, so no sheet was made; the report was given back, but the lookup could not be and stays counted.",
+    retry_after_seconds: 5,
+    next: `retry once; if it fails again, email contact@factlot.com`,
+  };
+}
 
 function parse(text: string): unknown {
   try {
@@ -95,7 +139,7 @@ export function asCaller(request: Request, url: URL, body: string): Request {
   return new Request(`${url.origin}/mcp`, { method: "POST", headers, body });
 }
 
-/** registry_get on the parcel as the caller, then the linked entity when the owner may be shown. */
+/** registry_get on the parcel as the caller, then the linked entity when the pages' rule allows it. */
 export async function lookupForSheet(
   urn: string,
   deps: SheetLookupDeps,
@@ -105,6 +149,7 @@ export async function lookupForSheet(
     return {
       ok: false,
       status: 404,
+      headers: {},
       body: {
         error: "NotFound",
         code: "CountyWithheld",
@@ -113,6 +158,12 @@ export async function lookupForSheet(
         issues: [],
       },
     };
+  const unavailable: SheetLookupOutcome = {
+    ok: false,
+    status: 503,
+    headers: {},
+    body: UNAVAILABLE_BODY,
+  };
   let res: Response;
   try {
     res = await deps.callMcp(
@@ -128,8 +179,31 @@ export async function lookupForSheet(
       }),
     );
   } catch {
-    return UNAVAILABLE;
+    return unavailable;
   }
+  const headers: Record<string, string> = {};
+  for (const h of LOOKUP_QUOTA_HEADERS) {
+    const v = res.headers.get(h);
+    if (v !== null) headers[h] = v;
+  }
+  // The router charges a 200 answer that is not a tool error (mcpCharges): only then is there a
+  // lookup to give back, in the window the quota headers name.
+  let refunded = false;
+  const refundLookup = async (): Promise<boolean> => {
+    const resetsAt = headers["x-factlot-registry-quota-reset"];
+    if (refunded) return true;
+    if (!deps.giveBack || !resetsAt) return false;
+    refunded = await deps.giveBack(resetsAt).catch(() => false);
+    if (refunded) {
+      const left = Number(headers["x-factlot-registry-quota-remaining"]);
+      const limit = Number(headers["x-factlot-registry-quota-limit"]);
+      if (Number.isFinite(left) && Number.isFinite(limit))
+        headers["x-factlot-registry-quota-remaining"] = String(
+          Math.min(limit, left + 1),
+        );
+    }
+    return refunded;
+  };
   const msg = parse(await res.text()) as
     | {
         result?: {
@@ -140,53 +214,63 @@ export async function lookupForSheet(
         error?: { message?: string; data?: Json };
       }
     | undefined;
-  if (res.status !== 200 || !msg || typeof msg !== "object") {
+  if (res.status !== 200) {
     if (msg?.error) {
       const body: Json = {
         ...(msg.error.data ?? {}),
         message: msg.error.message,
       };
-      return {
-        ok: false,
-        status: res.status >= 400 ? res.status : statusOf(body.code),
-        body,
-      };
+      return { ok: false, status: res.status, headers, body };
     }
-    return res.status >= 500 || res.status === 200
-      ? UNAVAILABLE
+    return res.status >= 500
+      ? { ...unavailable, headers }
       : {
           ok: false,
           status: res.status,
+          headers,
           body: {
             error: "LookupFailed",
             code: "LookupFailed",
-            message: `the registry lookup answered ${res.status}`,
+            message: `the registry lookup answered ${res.status}; no lookup and no report were counted`,
           },
         };
   }
+  if (!msg || typeof msg !== "object" || msg.error)
+    // A 200 the router could not read is counted as an answer: give it back.
+    return {
+      ok: false,
+      status: 502,
+      headers,
+      body: unreadable(await refundLookup()),
+    };
   const result = msg.result;
   const text = result?.content?.find((c) => c?.type === "text")?.text;
   const answer =
     result?.structuredContent ??
     (typeof text === "string" ? parse(text) : undefined);
-  if (!result || typeof answer !== "object" || answer === null)
-    return UNAVAILABLE;
-  if (result.isError) {
-    const body = answer as Json;
+  if (result?.isError) {
+    // A tool error is never charged.
+    const body = (
+      typeof answer === "object" && answer !== null ? answer : {}
+    ) as Json;
     const code = body.code ?? body.error;
-    if (code === "RegistryUnavailable") return UNAVAILABLE;
-    return { ok: false, status: statusOf(code), body };
+    if (code === "RegistryUnavailable") return { ...unavailable, headers };
+    return { ok: false, status: statusOf(code), headers, body };
   }
-  const record = answer as Json;
-  if (record.urn !== urn) return UNAVAILABLE;
+  const record = answer as Json | undefined;
+  if (!result || !record || typeof record !== "object" || record.urn !== urn)
+    return {
+      ok: false,
+      status: 502,
+      headers,
+      body: unreadable(await refundLookup()),
+    };
 
   // The owner and the linked entity, by the property pages' rule.
   const facts = (Array.isArray(record.facts) ? record.facts : []) as Json[];
   const owner = facts.find(
     (f) => f?.predicate === "ownership.owner_of_record",
   )?.value;
-  const personStyle = typeof owner === "string" && ownerNamesAPerson(owner);
-  let entity: unknown;
   const link = (
     (Array.isArray(record.relationships) ? record.relationships : []) as Json[]
   ).find(
@@ -196,25 +280,81 @@ export async function lookupForSheet(
       typeof r.from_urn === "string" &&
       r.from_urn.startsWith("fl:entity:"),
   );
-  if (!personStyle && typeof owner === "string" && link && deps.registry) {
-    try {
-      const got = await registryRunner(deps.registry)("registry_get", {
-        urn: link.from_urn,
-      });
-      if (got.ok) entity = keepEntityFacts(got.result);
-    } catch {
-      entity = undefined; // the sheet then names the entity by its FactLot ID only
-    }
-  }
+  let entity: unknown;
+  if (
+    typeof owner === "string" &&
+    !ownerNamesAPerson(owner) &&
+    link &&
+    deps.registry
+  )
+    entity = await allowedEntity(
+      deps.registry,
+      String(link.from_urn),
+      deps.extraSources,
+    );
   return {
     ok: true,
+    headers,
+    refundLookup,
     lookup: {
       record,
       plan: deps.plan,
-      ...(personStyle ? { owner_person_style: true } : {}),
       ...(entity !== undefined ? { entity } : {}),
     },
   };
+}
+
+/**
+ * The linked entity's record (name, status and registry number only) when the property pages would
+ * show it: a name that does not read like a person's, and every source behind the name may be
+ * republished. Anything else, a failed read included, gives undefined: the sheet then prints the
+ * owner of record and says the entity's details are not printed.
+ */
+export async function allowedEntity(
+  registry: Fetcher,
+  entityUrn: string,
+  extraSources: string | undefined,
+): Promise<unknown> {
+  try {
+    const got = await registryRunner(registry)("registry_get", {
+      urn: entityUrn,
+    });
+    if (!got.ok) return undefined;
+    const rec = got.result as PageRecord;
+    if (rec?.urn !== entityUrn) return undefined;
+    const name = (rec.facts ?? []).find(
+      (f) => f?.predicate === "entity.legal_name",
+    )?.value;
+    if (typeof name !== "string" || ownerNamesAPerson(name)) return undefined;
+    // The pages check the name's sources; the sheet also prints status and registry number, so
+    // their sources must pass the same rule.
+    const kept = keepEntityFacts(rec) as { facts: PageRecord["facts"] };
+    const refs: SourceRef[] = [
+      ...entityPageRefs(rec),
+      ...(kept.facts ?? [])
+        .filter((f) => f.predicate !== "entity.legal_name")
+        .flatMap((f) =>
+          (f.provenance?.sources?.length
+            ? f.provenance.sources
+            : [{ document_id: "" }]
+          ).map((s) => ({
+            document_id: s.document_id,
+            subject: entityUrn,
+            as_of: f.as_of ?? "",
+            rights: f.rights ?? null,
+          })),
+        ),
+    ];
+    const ids = await sourceIds(registry, refs);
+    const allowed = refsAllowed(
+      refs,
+      (r: SourceRef) => ids[r.document_id] ?? null,
+      parseSourceList(extraSources),
+    );
+    return allowed ? kept : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** The entity facts a sheet may print: its name, status and registry number. Nothing else is kept. */

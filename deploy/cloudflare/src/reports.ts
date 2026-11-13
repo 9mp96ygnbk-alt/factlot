@@ -209,12 +209,15 @@ export type ReportOutcome =
       quota: QuotaState;
       file: ReportFile;
       base64?: string;
+      /** A property sheet's registry quota headers (the lookup it used). */
+      headers?: Record<string, string>;
     }
   | {
       ok: false;
       status: number;
       body: Record<string, unknown>;
       quota?: QuotaState;
+      headers?: Record<string, string>;
     };
 
 const UNAVAILABLE: ReportOutcome = {
@@ -389,24 +392,8 @@ async function buildAndStore(
       return { ...inputError(err), quota: before } as ReportOutcome;
     throw err;
   }
-  // property_sheet: the caller's own registry_get of the parcel (one lookup, gated for their
-  // plan), after the month's room is known and before the report is charged. A lookup that
-  // fails is passed on as it is and charges no report.
-  const urn = registryUrn(prepared);
-  if (urn !== undefined) {
-    if (!caller.sheet) return { ...FAILED, quota: before };
-    const got = await caller.sheet(urn);
-    if (!got.ok)
-      return {
-        ok: false,
-        status: got.status,
-        body: got.body,
-        quota: before,
-      };
-    // An answer that is not this parcel is a fault on FactLot's side (500, nothing charged).
-    prepared = attachRegistry(prepared, got.lookup);
-  }
-  // Charge before building: a build the runtime kills is not free.
+  // Charge before building (a build the runtime kills is not free), and before a property
+  // sheet's lookup, so a lookup is never spent on a report that cannot be had.
   let charged = await infra(env.METER.consume(subject, spec));
   if (charged.granted >= 1 && charged.quota && alsoSubject !== undefined) {
     const shared = await infra(env.METER.consume(alsoSubject, spec));
@@ -441,11 +428,58 @@ async function buildAndStore(
       ...(charged.quota ? { quota: charged.quota } : {}),
     };
   const quota = charged.quota;
+  const restored = {
+    ...quota,
+    used: quota.used - 1,
+    remaining: quota.remaining + 1,
+  };
   // Give a report back on every meter it was charged to.
   const refundAll = async () => {
     await refundReport(env, subject, quota);
     if (alsoSubject !== undefined) await refundReport(env, alsoSubject, quota);
   };
+  // property_sheet: the caller's own registry_get of the parcel (one lookup, gated for their
+  // plan), with the report already reserved. A lookup that fails or misses is passed on as the
+  // lookup answered, and the report is given back.
+  let registryHeaders: Record<string, string> = {};
+  let refundLookup = async () => true;
+  const urn = registryUrn(prepared);
+  if (urn !== undefined) {
+    if (!caller.sheet) {
+      await refundAll();
+      return { ...FAILED, quota: restored };
+    }
+    let got: SheetLookupOutcome;
+    try {
+      got = await caller.sheet(urn);
+    } catch {
+      await refundAll();
+      throw new Unavailable("lookup");
+    }
+    registryHeaders = got.headers;
+    if (!got.ok) {
+      await refundAll();
+      return {
+        ok: false,
+        status: got.status,
+        body: got.body,
+        quota: restored,
+        headers: registryHeaders,
+      };
+    }
+    refundLookup = got.refundLookup;
+    try {
+      prepared = attachRegistry(prepared, got.lookup);
+    } catch {
+      // Not this parcel's record: a fault on FactLot's side.
+      await refundAll();
+      return {
+        ...lookupFault(await refundLookup()),
+        quota: restored,
+        headers: registryHeaders,
+      };
+    }
+  }
   let file: ReportFile;
   try {
     file = await renderReport(prepared, { now: o.now() });
@@ -453,15 +487,19 @@ async function buildAndStore(
       throw new ReportInputError("TooLarge", "the report is over 25 MiB");
   } catch (err) {
     await refundAll();
+    const back = await refundLookup();
     if (err instanceof ReportInputError)
       return {
         ...inputError(err),
-        quota: {
-          ...quota,
-          used: quota.used - 1,
-          remaining: quota.remaining + 1,
-        },
+        quota: restored,
+        headers: registryHeaders,
       } as ReportOutcome;
+    if (!back)
+      return {
+        ...lookupFault(false),
+        quota: restored,
+        headers: registryHeaders,
+      };
     throw err;
   }
   const token = randomToken();
@@ -483,8 +521,15 @@ async function buildAndStore(
       { expirationTtl: REPORT_TTL_SECONDS, metadata: meta },
     );
   } catch {
-    // Not stored: give the report back.
+    // Not stored: give the report (and a sheet's lookup) back.
     await refundAll();
+    if (!(await refundLookup()))
+      return {
+        ...lookupFault(false),
+        status: 503,
+        quota: restored,
+        headers: registryHeaders,
+      };
     throw new Unavailable("store");
   }
   const body: Record<string, unknown> = {
@@ -514,7 +559,39 @@ async function buildAndStore(
     if (file.bytes.byteLength < INLINE_MAX_BYTES) base64 = toBase64(file.bytes);
     else body.inline_omitted = "the file is 1 MiB or more; use download_url";
   }
-  return { ok: true, body, quota, file, ...(base64 ? { base64 } : {}) };
+  return {
+    ok: true,
+    body,
+    quota,
+    file,
+    headers: registryHeaders,
+    ...(base64 ? { base64 } : {}),
+  };
+}
+
+/**
+ * A property sheet that could not be built after its lookup was counted. The report is always
+ * given back; the lookup is given back through the router when it can be, and the body says
+ * plainly when it could not.
+ */
+function lookupFault(lookupGivenBack: boolean): {
+  ok: false;
+  status: number;
+  body: Record<string, unknown>;
+} {
+  return {
+    ok: false,
+    status: 500,
+    body: {
+      error: "ReportFailed",
+      code: "ReportFailed",
+      message: lookupGivenBack
+        ? "FactLot could not build this sheet (a fault on our side, not in the request). The report and the registry lookup were given back."
+        : "FactLot could not build this sheet (a fault on our side, not in the request). The report was given back; the registry lookup it used could not be given back and stays counted.",
+      next: `retry once; if it fails again, email ${CONTACT}`,
+      issues: [],
+    },
+  };
 }
 
 /** POST /v1/reports. */
@@ -561,7 +638,10 @@ export async function reportsRest(
     });
   }
   const out = await runReport(env, caller, body, o);
-  const headers = out.quota ? reportQuotaHeaders(out.quota) : {};
+  const headers = {
+    ...(out.headers ?? {}),
+    ...(out.quota ? reportQuotaHeaders(out.quota) : {}),
+  };
   if (!out.ok) {
     if (out.status === 429 || out.status === 503)
       headers["retry-after"] = String(out.body.retry_after_seconds ?? 60);

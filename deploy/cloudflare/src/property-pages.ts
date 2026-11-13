@@ -377,7 +377,7 @@ async function countyNames(
   return counties;
 }
 
-async function sourceIds(
+export async function sourceIds(
   registry: Fetcher,
   refs: SourceRef[],
 ): Promise<Record<string, string | null>> {

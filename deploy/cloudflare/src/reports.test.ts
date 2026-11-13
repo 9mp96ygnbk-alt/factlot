@@ -2,10 +2,24 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { SHEET_PRICING_URL, unzip } from "@factlot/reports";
+import {
+  ENTITY_NOT_PRINTED,
+  SHEET_CONTACT,
+  SHEET_PRICING_URL,
+  unzip,
+} from "@factlot/reports";
+import { PDFDocument, PDFRawStream } from "pdf-lib";
+import { inflateSync } from "node:zlib";
 import { runTool } from "@factlot/tools";
 
-import { generateKey, hashKey, writeKey, type KeyRecord } from "./keys.ts";
+import { CONTACT } from "./contact.ts";
+import {
+  generateKey,
+  hashKey,
+  keyId,
+  writeKey,
+  type KeyRecord,
+} from "./keys.ts";
 import {
   Meter,
   RateLimiterObject,
@@ -15,7 +29,8 @@ import {
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
 import { GATING_PRICING_URL, REPORTS_PER_MONTH } from "./plans.ts";
-import { lookupForSheet } from "./property-sheet.ts";
+import { renderPropertyPage } from "./property-pages.ts";
+import { lookupForSheet, type SheetLookupOutcome } from "./property-sheet.ts";
 import { REPORT_TTL_SECONDS, runReport } from "./reports.ts";
 import { handle } from "./router.ts";
 import type { Env, KV, RateLimit } from "./types.ts";
@@ -954,6 +969,10 @@ describe("property_sheet: registry_get as the caller's own call", () => {
     predicate: string,
     value: unknown,
     subject = URN,
+    doc = "fld_harris2026",
+    rights: Record<string, string> = {
+      license: "Public record; no licence stated by the publisher",
+    },
   ) => ({
     id,
     subject,
@@ -964,13 +983,13 @@ describe("property_sheet: registry_get as the caller's own call", () => {
       method: "extracted",
       sources: [
         {
-          document_id: "fld_harris2026",
+          document_id: doc,
           title: "Harris Central Appraisal District: Real property roll 2026",
           uri: "https://hcad.org/pdata/",
         },
       ],
     },
-    rights: { license: "Public record; no licence stated by the publisher" },
+    rights,
   });
   const record = (owner = "LOUISIANA TOWER HOLDINGS LLC") => ({
     urn: URN,
@@ -1026,19 +1045,28 @@ describe("property_sheet: registry_get as the caller's own call", () => {
     ],
     warnings: [],
   });
-  const entity = {
-    urn: ENTITY,
-    kind: "entity",
-    facts: [
-      fact("e1", "entity.legal_name", "LOUISIANA TOWER HOLDINGS LLC", ENTITY),
-      fact("e2", "entity.status", "Active", ENTITY),
-      fact("e3", "entity.registry_number", "32001234567", ENTITY),
-      fact("e4", "entity.mailing_address", "PO BOX 4 HOUSTON TX", ENTITY),
-    ],
+  /** The entity, its facts cited to the Comptroller's file with the recorded redistribution. */
+  const entityOf = (redistribution: string) => {
+    const e = (id: string, p: string, v: string) =>
+      fact(id, p, v, ENTITY, "fld_txsos", {
+        license: "Public record",
+        redistribution,
+        ai_use: "unknown",
+      });
+    return {
+      urn: ENTITY,
+      kind: "entity",
+      facts: [
+        e("e1", "entity.legal_name", "LOUISIANA TOWER HOLDINGS LLC"),
+        e("e2", "entity.status", "Active"),
+        e("e3", "entity.registry_number", "32001234567"),
+        e("e4", "entity.mailing_address", "PO BOX 4 HOUSTON TX"),
+      ],
+    };
   };
 
   /** The inner handler: registry_get answers `answer` (a record, or a tool error with isError). */
-  function registryApi(answer: unknown, isError = false) {
+  function registryApi(answer: unknown, isError = false, raw?: string) {
     const calls: { name: string; arguments: Record<string, unknown> }[] = [];
     const api = {
       fetch: async (r: Request) => {
@@ -1047,6 +1075,10 @@ describe("property_sheet: registry_get as the caller's own call", () => {
           params?: { name: string; arguments: Record<string, unknown> };
         };
         if (body.params) calls.push(body.params);
+        if (raw !== undefined)
+          return new Response(raw, {
+            headers: { "content-type": "application/json" },
+          });
         return new Response(
           JSON.stringify({
             jsonrpc: "2.0",
@@ -1063,35 +1095,60 @@ describe("property_sheet: registry_get as the caller's own call", () => {
     return { api, calls };
   }
   /** The registry service binding: the entity record, unmetered (as the property pages read it). */
-  function registryBinding() {
+  function registryBinding(redistribution: string) {
     const seen: unknown[] = [];
+    const json = (b: unknown) =>
+      new Response(JSON.stringify(b), {
+        headers: { "content-type": "application/json" },
+      });
     return {
       seen,
       fetch: async (r: Request) => {
-        const b = (await r.json()) as { tool: string; input: { urn: string } };
+        const b = (await r.json()) as {
+          tool?: string;
+          input?: { urn: string };
+          refs?: unknown[];
+        };
         seen.push(b);
-        return new Response(
-          JSON.stringify(
-            b.input.urn === ENTITY
-              ? { ok: true, result: entity }
-              : { ok: false, error: { error: "NotFound", message: "no" } },
-          ),
-          { headers: { "content-type": "application/json" } },
+        // The pages' source lookup: the Comptroller file's source id.
+        if (new URL(r.url).pathname === "/pages/sources")
+          return json({ sources: { fld_txsos: "tx-comptroller-entities" } });
+        return json(
+          b.input?.urn === ENTITY
+            ? { ok: true, result: entityOf(redistribution) }
+            : { ok: false, error: { error: "NotFound", message: "no" } },
         );
       },
     };
   }
-  function setup(answer: unknown = record(), isError = false) {
+  function setup(
+    answer: unknown = record(),
+    isError = false,
+    o: {
+      raw?: string;
+      redistribution?: string;
+      env?: Record<string, string>;
+    } = {},
+  ) {
     const t = env();
-    const binding = registryBinding();
-    Object.assign(t.e, { GATING_ENABLED: "true", REGISTRY: binding });
-    const { api, calls } = registryApi(answer, isError);
+    const binding = registryBinding(o.redistribution ?? "permitted");
+    Object.assign(t.e, {
+      GATING_ENABLED: "true",
+      REGISTRY: binding,
+      ...(o.env ?? {}),
+    });
+    const { api, calls } = registryApi(answer, isError, o.raw);
     const send = (
       path: string,
-      init: { body?: unknown; key?: string; method?: string } = {},
+      init: {
+        body?: unknown;
+        key?: string;
+        method?: string;
+        host?: string;
+      } = {},
     ) =>
       handle(
-        new Request(`https://api.factlot.com${path}`, {
+        new Request(`https://${init.host ?? "api.factlot.com"}${path}`, {
           method: init.method ?? "POST",
           body:
             init.method === "GET" ? undefined : JSON.stringify(init.body ?? {}),
@@ -1280,5 +1337,395 @@ describe("property_sheet: registry_get as the caller's own call", () => {
     });
     assert.equal(res.status, 400);
     assert.equal(calls.length, 0, "refused before the lookup");
+  });
+  /** The text a PDF draws (pdf-lib writes standard-font text as hex strings). */
+  async function pdfText(bytes: ArrayBuffer): Promise<string> {
+    const doc = await PDFDocument.load(new Uint8Array(bytes));
+    let text = "";
+    for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+      if (!(obj instanceof PDFRawStream)) continue;
+      let data: Buffer;
+      try {
+        data = obj.dict.toString().includes("FlateDecode")
+          ? inflateSync(obj.contents)
+          : Buffer.from(obj.contents);
+      } catch {
+        continue;
+      }
+      for (const m of data.toString("latin1").matchAll(/<([0-9A-Fa-f]*)> Tj/g))
+        text += Buffer.from(m[1]!, "hex").toString("latin1") + " ";
+    }
+    return text.replace(/\s+/g, " ");
+  }
+  const reportsUsed = async (t: ReturnType<typeof env>, subject?: string) =>
+    (
+      await t.e.METER.quota(
+        subject ?? (await addressSubject(IP, T0, undefined, "month")),
+        "month",
+        3,
+        "reports",
+      )
+    ).used;
+
+  // --- the charge at every failure point ------------------------------------------------------
+
+  it("an answer that is not JSON: no sheet, and the report and the lookup are both given back", async () => {
+    const { t, send } = setup(record(), false, { raw: "not json" });
+    const res = await send("/v1/reports", { body: sheet() });
+    assert.equal(res.status, 502);
+    const body = (await res.json()) as {
+      code: string;
+      billed: boolean;
+      message: string;
+    };
+    assert.equal(body.code, "LookupUnreadable");
+    assert.equal(body.billed, false);
+    assert.match(body.message, /the report and the lookup were given back/);
+    assert.ok(!/nothing was charged/i.test(body.message));
+    assert.equal(await reportsUsed(t), 0);
+    assert.equal(await lookupsUsed(t), 0);
+  });
+
+  it("a record for another parcel: no sheet, both given back", async () => {
+    const other = { ...record(), urn: "fl:parcel:us-48201:other" };
+    const { t, send } = setup(other);
+    const res = await send("/v1/reports", { body: sheet() });
+    assert.equal(res.status, 502);
+    assert.equal(await reportsUsed(t), 0);
+    assert.equal(await lookupsUsed(t), 0);
+  });
+
+  /** A caller whose lookup answers `record`, counting give-backs. */
+  function fakeCaller(rec: unknown, back = true) {
+    const state = { lookups: 0, refunds: 0 };
+    const caller = {
+      tier: "anonymous" as const,
+      subject: async () => "ipm:sheet-fault",
+      sheet: async (): Promise<SheetLookupOutcome> => {
+        state.lookups++;
+        return {
+          ok: true,
+          headers: {},
+          lookup: { record: rec, plan: "free" },
+          refundLookup: async () => {
+            state.refunds++;
+            return back;
+          },
+        };
+      },
+    };
+    return { caller, state };
+  }
+  const opts = { apiBase: "https://api.factlot.com", now: () => T0 };
+  const broken = () => {
+    const r = record();
+    // A fact whose sources are not a list: the build fails on FactLot's side.
+    (r.facts[0] as { provenance: unknown }).provenance = { sources: "x" };
+    return r;
+  };
+
+  it("a build that fails after the lookup gives back the report and the lookup, or says the lookup stays counted", async () => {
+    const t = env();
+    const error = console.error;
+    console.error = () => {};
+    try {
+      const a = fakeCaller(broken());
+      const out = await runReport(t.e, a.caller, sheet("pdf"), opts);
+      assert.ok(!out.ok && out.status === 500);
+      assert.equal(a.state.refunds, 1, "the lookup was given back");
+      assert.equal(
+        (await t.e.METER.quota("ipm:sheet-fault", "month", 3, "reports")).used,
+        0,
+      );
+      const b = fakeCaller(broken(), false);
+      const kept = await runReport(t.e, b.caller, sheet("pdf"), opts);
+      assert.ok(!kept.ok && kept.status === 500);
+      assert.match(
+        String(kept.body.message),
+        /could not be given back and stays counted/,
+      );
+      assert.equal(
+        (await t.e.METER.quota("ipm:sheet-fault", "month", 3, "reports")).used,
+        0,
+      );
+    } finally {
+      console.error = error;
+    }
+  });
+
+  it("a store that fails gives back the report and the lookup, or says the lookup stays counted", async () => {
+    for (const back of [true, false]) {
+      const t = env();
+      t.kv.put = async () => {
+        throw new Error("kv down");
+      };
+      const error = console.error;
+      console.error = () => {};
+      try {
+        const a = fakeCaller(record(), back);
+        const out = await runReport(t.e, a.caller, sheet(), opts);
+        assert.ok(!out.ok && out.status === 503);
+        assert.equal(a.state.refunds, 1);
+        assert.equal(
+          (await t.e.METER.quota("ipm:sheet-fault", "month", 3, "reports"))
+            .used,
+          0,
+        );
+        if (!back) assert.match(String(out.body.message), /stays counted/);
+        else assert.match(String(out.body.message), /nothing was charged/);
+      } finally {
+        console.error = error;
+      }
+    }
+  });
+
+  it("the report is reserved first: a full month, a full address month or a meter that fails runs no lookup", async () => {
+    const t = env();
+    const full = fakeCaller(record());
+    for (let i = 0; i < 3; i++)
+      await t.e.METER.consume("ipm:sheet-fault", {
+        kind: "month",
+        limit: 3,
+        n: 1,
+        counter: "reports",
+      });
+    assert.equal((await runReport(t.e, full.caller, sheet(), opts)).ok, false);
+    const shared = fakeCaller(record());
+    const out = await runReport(
+      t.e,
+      {
+        ...shared.caller,
+        subject: async () => "freemail:x",
+        also: { subject: async () => "ipm:sheet-fault", per: "IP address" },
+      },
+      sheet(),
+      opts,
+    );
+    assert.ok(!out.ok && out.status === 429);
+    const down = fakeCaller(record());
+    const meter = t.e.METER;
+    t.e.METER = {
+      ...meter,
+      quota: meter.quota.bind(meter),
+      consume: async () => {
+        throw new Error("meter down");
+      },
+    } as typeof meter;
+    const error = console.error;
+    console.error = () => {};
+    try {
+      const d = await runReport(
+        t.e,
+        { ...down.caller, subject: async () => "ipm:other" },
+        sheet(),
+        opts,
+      );
+      assert.ok(!d.ok && d.status === 503);
+    } finally {
+      console.error = error;
+      t.e.METER = meter;
+    }
+    assert.equal(
+      full.state.lookups + shared.state.lookups + down.state.lookups,
+      0,
+    );
+  });
+
+  it("two requests for the last report: one sheet, one refusal, one lookup", async () => {
+    const { t, calls, send } = setup();
+    const month = await addressSubject(IP, T0, undefined, "month");
+    for (let i = 0; i < 2; i++)
+      await t.e.METER.consume(month, {
+        kind: "month",
+        limit: 3,
+        n: 1,
+        counter: "reports",
+      });
+    const [a, b] = await Promise.all([
+      send("/v1/reports", { body: sheet() }),
+      send("/v1/reports", { body: sheet() }),
+    ]);
+    assert.deepEqual([a.status, b.status].sort(), [201, 429]);
+    await a.body?.cancel();
+    await b.body?.cancel();
+    assert.equal(calls.length, 1, "the refused one never looked up");
+    assert.equal(await lookupsUsed(t), 1);
+    assert.equal(await reportsUsed(t), 3);
+  });
+
+  it("passes the lookup's registry quota headers through, so a page's count stays current", async () => {
+    const { send } = setup();
+    const res = await send("/v1/reports", { body: sheet() });
+    assert.equal(res.status, 201);
+    assert.equal(res.headers.get("x-factlot-registry-quota-remaining"), "24");
+    assert.equal(res.headers.get("x-factlot-registry-quota-limit"), "25");
+    await res.body?.cancel();
+  });
+
+  // --- the linked entity, by the property pages' rule -----------------------------------------
+
+  it("the entity is printed only when its sources may be republished (pages off, source not allowed: the owner and one sentence)", async () => {
+    const { send } = setup(record(), false, { redistribution: "unknown" });
+    const res = await send("/v1/reports", { body: sheet() });
+    const x = await fileText(send, (await res.json()) as Created);
+    assert.ok(x.includes("LOUISIANA TOWER HOLDINGS LLC"), "the owner stays");
+    assert.ok(x.includes(ENTITY_NOT_PRINTED));
+    assert.ok(!x.includes("32001234567") && !x.includes("Active"));
+    // Listed in PROPERTY_PAGES_EXTRA_SOURCES, as the pages allow it: printed.
+    const listed = setup(record(), false, {
+      redistribution: "unknown",
+      env: { PROPERTY_PAGES_EXTRA_SOURCES: "tx-comptroller-entities" },
+    });
+    const ok = await listed.send("/v1/reports", { body: sheet() });
+    const y = await fileText(listed.send, (await ok.json()) as Created);
+    assert.ok(y.includes("32001234567") && y.includes("Active"));
+    assert.ok(!y.includes(ENTITY_NOT_PRINTED));
+  });
+
+  it("the PDF too: a trust-style owner is not printed, and no entity mailing address ever is", async () => {
+    for (const [owner, want] of [
+      ["SMITH FAMILY TRUST DTD 1999", false],
+      ["LOUISIANA TOWER HOLDINGS LLC", true],
+    ] as const) {
+      const { send } = setup(record(owner));
+      const res = await send("/v1/reports", { body: sheet("pdf") });
+      const created = (await res.json()) as Created;
+      const dl = await send(new URL(created.download_url).pathname, {
+        method: "GET",
+      });
+      const text = await pdfText(await dl.arrayBuffer());
+      assert.equal(text.includes("SMITH"), false);
+      assert.equal(text.includes("LOUISIANA TOWER HOLDINGS LLC"), want);
+      assert.ok(!text.includes("PO BOX"));
+    }
+  });
+
+  it("the boundary is the property pages' own sentences, with the same contact", () => {
+    assert.equal(SHEET_CONTACT, CONTACT);
+    const page = renderPropertyPage({
+      site: "https://factlot.com",
+      rec: { urn: "fl:parcel:us-11001:x", facts: [] },
+      place: { region: "us-11001", name: "District of Columbia", state: "DC" },
+      entity: null,
+      otherCount: null,
+      links: [],
+      sourceOf: () => null,
+    })
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ");
+    assert.ok(
+      page.includes(
+        `A record shown here is a public-record fact as its publisher released it. It is not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for checking the source. If a record names you as a person, or is wrong, email ${CONTACT} and we will remove or correct it.`,
+      ),
+    );
+  });
+
+  // --- callers ----------------------------------------------------------------------------------
+
+  it("a free key: one lookup on the key and on its address, one report on its email and its address month", async () => {
+    const { t, send } = setup();
+    (t.e as { FREE_KEY_ENABLED?: string }).FREE_KEY_ENABLED = "true";
+    const key = `fl_free_${"S".repeat(43)}`;
+    await t.e.KEYS.put(
+      `freekey:${await hashKey(key)}`,
+      JSON.stringify({
+        tier: "free",
+        email_hash: await hashKey("sheet-free-key"),
+        created: new Date(T0).toISOString(),
+      }),
+    );
+    const res = await send("/v1/reports", { body: sheet(), key });
+    assert.equal(res.status, 201, await res.clone().text());
+    await res.body?.cancel();
+    const day = await addressSubject(IP, T0, undefined);
+    assert.equal(
+      (await t.e.METER.quota(`freekey:${keyId(await hashKey(key))}`, "day", 25))
+        .used,
+      1,
+    );
+    assert.equal(
+      (await t.e.METER.quota(`freeaddr:${day}`, "day", 100)).used,
+      1,
+    );
+    assert.equal(
+      await reportsUsed(
+        t,
+        `freemail:${(await hashKey("sheet-free-key")).slice(0, 32)}`,
+      ),
+      1,
+    );
+    assert.equal(await reportsUsed(t), 1);
+  });
+
+  it("Team: every roll year, one report of the Team month", async () => {
+    const { t, send } = setup();
+    const key = await issue(t.e, "team");
+    const res = await send("/v1/reports", { body: sheet(), key });
+    assert.equal(res.status, 201);
+    const body = (await res.json()) as Created;
+    assert.equal(body.reports.limit, REPORTS_PER_MONTH.team);
+    const x = await fileText(send, body);
+    for (const v of EARLIER) assert.ok(x.includes(String(v)));
+  });
+
+  it("on the site host (factlot.com/v1/reports, as /try/ sends it): the same lookup and report", async () => {
+    const { t, calls, send } = setup();
+    const res = await send("/v1/reports", {
+      body: sheet(),
+      host: "factlot.com",
+    });
+    assert.equal(res.status, 201);
+    await res.body?.cancel();
+    assert.equal(calls.length, 1);
+    assert.equal(await lookupsUsed(t), 1);
+    assert.equal(await reportsUsed(t), 1);
+  });
+
+  it("the per-minute limit: exactly two units, both from the caller's own subject", async () => {
+    const { t, send } = setup();
+    const seen: [string, unknown][] = [];
+    const meter = t.e.METER;
+    const hit = meter.hit.bind(meter);
+    meter.hit = ((subject: string, perMinute: unknown, ...rest: unknown[]) => {
+      seen.push([subject, perMinute]);
+      return (hit as (...a: unknown[]) => unknown)(subject, perMinute, ...rest);
+    }) as typeof meter.hit;
+    const res = await send("/v1/reports", { body: sheet() });
+    assert.equal(res.status, 201);
+    await res.body?.cancel();
+    const day = await addressSubject(IP, T0, undefined);
+    const minute = seen.filter(([, n]) => typeof n === "number");
+    assert.deepEqual(minute, [
+      [day, 60],
+      [day, 60],
+    ]);
+  });
+
+  it("counts one lookup usage event, labelled registry_get", async () => {
+    const points: { blobs: string[] }[] = [];
+    const t2 = setup(record(), false, {
+      env: { USAGE_COUNTERS_ENABLED: "true" },
+    });
+    // The usage dataset, written once per event.
+    Object.assign(t2.t.e, {
+      USAGE: { writeDataPoint: (d: { blobs: string[] }) => points.push(d) },
+    });
+    const res = await t2.send("/v1/reports", { body: sheet() });
+    assert.equal(res.status, 201);
+    await res.body?.cancel();
+    const lookups = points.filter((p) => p.blobs[0] === "lookup");
+    assert.equal(lookups.length, 1);
+    assert.equal(lookups[0]!.blobs[1], "registry_get");
+  });
+
+  it("with gating turned off, a free sheet still shows the current roll year only", async () => {
+    const { send } = setup(record(), false, {
+      env: { GATING_ENABLED: "false" },
+    });
+    const res = await send("/v1/reports", { body: sheet() });
+    assert.equal(res.status, 201);
+    const x = await fileText(send, (await res.json()) as Created);
+    for (const v of EARLIER) assert.ok(!x.includes(String(v)), `leaks ${v}`);
+    assert.ok(x.includes("available with a Pro or Team key"));
   });
 });
