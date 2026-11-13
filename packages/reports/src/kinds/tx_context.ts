@@ -8,7 +8,8 @@ import { TX_EQUITY_STEPS } from "@factlot/tools";
 import { z } from "zod";
 
 const Code = z.string().min(1).max(64).nullable().optional();
-const Num = z.number().finite().nullable().optional();
+// Bounded, so the JSON schema is anyOf [number, null] rather than a type array (one type per schema).
+const Num = z.number().min(-1e15).max(1e15).nullable().optional();
 const Int = z.number().int().nullable().optional();
 
 /** One subject or candidate row of registry_tx_equity_candidates, as returned; other fields pass through unread. */

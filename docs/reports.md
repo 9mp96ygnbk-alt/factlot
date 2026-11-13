@@ -58,7 +58,15 @@ exactly as sent.
   publisher: relay to the recipient"; a cited document with no entry in `context.sources` says
   that its source and rights were not sent. Comparables without a citation, or cited without a
   document ID, are named below the table and stay in the grid: no comparable is left out
-  because of its source's rights.
+  because of its source's rights. When `context.candidates` carries the `subject` and
+  `candidates` of `registry_tx_equity_candidates`, a **Roll fields** table (in the PDF after the
+  grid, in the workbook on its own `Roll_fields` sheet) prints, for the subject and each
+  comparable matched by id, the account number, state property category, building class, local
+  use code, improvement and land area, year built, roll value, basis and roll value per SF, as the
+  tool returned them; a comparable with no row sent says "not sent". When `context.selection_rule`
+  carries that answer's `selection_rule`, a **Candidate rule as applied** block prints FactLot's
+  default rule word for word with the parameters, narrowing, step counts and tier counts sent.
+  Without either, the documents are as before.
 - **lease_abstract.** The documents in the order applied. Each current term comes with its quote,
   page and document, what it superseded, conflicts and open items. Then come the values that need
   review and any pending amendments.
@@ -177,7 +185,10 @@ values is one row with its count and first values, and the workbook's Inputs she
   comparable id (or `#1`, `#2`… for a comparable without one); a locator is at most 200 characters.
   And `sources` (up to 200): `registry_tx_equity_candidates`' `sources` entries as returned
   (`document_id`, `title`, `uri` as an http(s) URL, `as_of`, `rights`), printed in the Sources and
-  rights block; their text goes through the same advice filter as other caller text.
+  rights block; their text goes through the same advice filter as other caller text. And
+  `candidates` (up to 201) and `selection_rule`: `registry_tx_equity_candidates`' `subject` and
+  `candidates`, and its `selection_rule`, as returned (other fields pass through unread). Their ids
+  and codes go through the advice filter; a step name that is not the tool's own is refused.
 - `inline: true` also returns the file as base64 when it is under 1 MiB: `content_base64` over
   REST, an embedded resource over MCP.
 - `include_past: true` (`ics` only: `critical_dates` and `tx_protest_deadline`) keeps dates before
