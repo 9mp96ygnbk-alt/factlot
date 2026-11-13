@@ -17,7 +17,7 @@ import {
   txEquityWithheld,
 } from "../../../packages/tools/src/registry.ts";
 
-import { equityFromPack } from "./equity.ts";
+import { EQUITY_ROW_VERSION, equityFromPack } from "./equity.ts";
 import { MAX_LIMIT, getResult } from "./format.ts";
 import {
   hostedEntitiesMiss,
@@ -236,13 +236,40 @@ async function txEquity(pack: Pack, i: Input): Promise<unknown> {
       throw new InputIssue([{ path: k, message: "expected number" }]);
     return v;
   };
-  return equityFromPack(pack, urn, entry, {
+  // The narrowing parameters: absent from a call the catalog checked before they existed.
+  const flag = (k: string): boolean => {
+    const v = i[k];
+    if (v === undefined) return false;
+    if (typeof v !== "boolean")
+      throw new InputIssue([{ path: k, message: "expected boolean" }]);
+    return v;
+  };
+  const codes = i.local_use_codes;
+  if (
+    codes !== undefined &&
+    (!Array.isArray(codes) || codes.some((c) => typeof c !== "string"))
+  )
+    throw new InputIssue([
+      { path: "local_use_codes", message: "expected array of strings" },
+    ]);
+  const params = {
     area_band: num("area_band"),
     year_band: num("year_band"),
     min_matches: num("min_matches"),
     limit: num("limit"),
     ...(i.tax_year === undefined ? {} : { tax_year: num("tax_year") }),
-  });
+    same_building_class: flag("same_building_class"),
+    same_local_use_code: flag("same_local_use_code"),
+    ...(codes === undefined ? {} : { local_use_codes: codes as string[] }),
+  };
+  if (
+    (params.same_local_use_code || params.local_use_codes) &&
+    ((await pack.manifest()).equity?.rv ?? 1) < EQUITY_ROW_VERSION
+  )
+    throw new Unavailable(
+      "this registry build holds no local use codes for candidates; same_local_use_code and local_use_codes need the next registry build",
+    );
+  return equityFromPack(pack, urn, entry, params);
 }
 
 /** A tool error as runTool reports it, or undefined for an error that is not a tool outcome. */
@@ -269,6 +296,9 @@ const TX_EQUITY_PARAMS = [
   "min_matches",
   "limit",
   "tax_year",
+  "same_building_class",
+  "same_local_use_code",
+  "local_use_codes",
 ] as const;
 
 // registry_tx_equity_candidates_batch (catalog.ts): each subject through the single-subject path, with its own

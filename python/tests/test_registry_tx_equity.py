@@ -62,7 +62,8 @@ class TxEquity(unittest.TestCase):
     def test_tiers_order_and_effective_parameters(self):
         r = self.run_tool({"urn": SUBJECT, "tax_year": 2026})
         self.assertEqual(r["selection"]["parameters"],
-                         {"area_band": 0.35, "year_band": 15, "min_matches": 10, "limit": 50, "tax_year": 2026})
+                         {"area_band": 0.35, "year_band": 15, "min_matches": 10, "limit": 50, "tax_year": 2026,
+                          "same_building_class": False, "same_local_use_code": False, "local_use_codes": None})
         tiers = {t["tier"]: t for t in r["selection"]["tiers"]}
         self.assertEqual(tiers["neighborhood"]["ids"], ["fl:parcel:us-48997:1000002", "fl:parcel:us-48997:1000003"])
         # Same ZIP code: nearest area first, and a tie in area (40,000 and 60,000 sf) broken by URN.
@@ -83,9 +84,9 @@ class TxEquity(unittest.TestCase):
 
     def test_candidates_drop_into_the_calculator(self):
         r = self.run_tool({"urn": SUBJECT, "tax_year": 2026})
-        keys = {"id", "county_fips", "value", "value_basis", "market_value", "appraised_value", "improvement_area_sf",
-                "land_area_sf", "year_built", "state_property_category", "neighborhood_code", "building_class",
-                "situs_address", "tax_year", "citation"}
+        keys = {"id", "county_fips", "apn", "value", "value_basis", "value_per_sf", "market_value", "appraised_value",
+                "improvement_area_sf", "land_area_sf", "year_built", "state_property_category", "local_use_code",
+                "neighborhood_code", "building_class", "situs_address", "tax_year", "citation"}
         for c in r["candidates"]:
             self.assertEqual(set(c), keys)
             self.assertEqual(c["county_fips"], "997")
@@ -105,6 +106,68 @@ class TxEquity(unittest.TestCase):
         # A source that asks for no attribution says so (null), rather than leaving the field out.
         other = self.run_tool({"urn": "fl:parcel:us-48999:0004-000-0001"})["sources"]
         self.assertEqual({(s["source_id"], s["rights"]["attribution"]) for s in other}, {("test-roll", None)})
+
+    def test_roll_fields_steps_and_narrowing(self):
+        # Expected values worked by hand from build_fixture.py (the corrected 2026 roll of district 997).
+        r = self.run_tool({"urn": SUBJECT, "tax_year": 2026})
+        s = r["subject"]
+        self.assertEqual((s["apn"], s["local_use_code"], s["building_class"]), ("1000001", "4300", "B"))
+        self.assertEqual(s["value_per_sf"], 196)  # 9,800,000 / 50,000 sf
+        sel = r["selection"]
+        self.assertEqual(sel["subject_summary"], "the subject on the 2026 roll: state property category F1; building "
+                         "class B; local use code 4300; improvement area 50000 sf; year built 2005")
+        # 9 parcels on the roll with the category, an area and a value; 1000007 is outside the area band and
+        # 1000006 outside the year band.
+        self.assertEqual([st["left"] for st in sel["steps"]], [9, 8, 7])
+        self.assertEqual(sel["narrowing"], [])
+        self.assertEqual([(f["as_of"], f["before_certification_deadline"], f["subject_value"], f["candidate_values"])
+                          for f in sel["compared_files"]], [("2026-10-15", False, True, 7)])
+        self.assertEqual(r["selection_rule"]["steps"], sel["steps"])
+
+        r = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "same_local_use_code": True})
+        sel = r["selection"]
+        self.assertEqual(sel["narrowing"], [{"parameter": "same_local_use_code", "applied": True, "value": "4300",
+                                             "text": "only parcels whose local use code is exactly the subject's (4300)"}])
+        self.assertEqual([st["left"] for st in sel["steps"]], [9, 8, 7, 4])
+        self.assertEqual([(c["apn"], c["local_use_code"], c["value_per_sf"]) for c in r["candidates"]], [
+            ("1000002", "4300", 189.58),  # 9,100,000 / 48,000
+            ("1000014", "4300", 189.8),  # 9,300,000 / 49,000
+            ("1000005", "4300", 200),  # 12,000,000 / 60,000
+            ("1000009", "4300", 195.56),  # 8,800,000 / 45,000
+        ])
+        self.assertIn("3 of the 4 candidates have a building class other than the subject's (B) or none on the roll",
+                      r["warnings"])
+        self.assertEqual(r["selection_rule"]["narrowing"], sel["narrowing"])
+
+        r = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "same_building_class": True})
+        self.assertEqual([c["id"][-2:] for c in r["candidates"]], ["02"])
+        self.assertEqual([st["left"] for st in r["selection"]["steps"]], [9, 8, 7, 1])
+
+        # local_use_codes takes the place of same_local_use_code; limit 2 with 3 neighborhood and ZIP code matches.
+        r = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "same_local_use_code": True,
+                           "local_use_codes": ["4600", "4300"], "min_matches": 3, "limit": 2})
+        self.assertEqual([n["applied"] for n in r["selection"]["narrowing"]], [False, True])
+        self.assertIn("same_local_use_code not applied: local_use_codes was given and is used instead", r["warnings"])
+        self.assertEqual([st["left"] for st in r["selection"]["steps"]], [9, 8, 7, 6])
+        self.assertTrue(r["selection"]["truncated"])
+
+        # No class on the roll for 1000004: not applied, said so.
+        r = self.run_tool({"county_fips": "997", "apn": "1000004", "tax_year": 2026, "same_building_class": True})
+        self.assertFalse(r["selection"]["narrowing"][0]["applied"])
+        self.assertIn("same_building_class not applied: the subject has no building class on the 2026 roll",
+                      r["warnings"])
+
+        # The 2027 preliminary roll is dated before July 25, 2027.
+        r = self.run_tool({"urn": SUBJECT})
+        self.assertEqual([f["before_certification_deadline"] for f in r["selection"]["compared_files"]], [True])
+
+    def test_limit_warning_names_the_county_tier(self):
+        # min_matches 6: the neighborhood and ZIP code tiers hold 6, so 1000009 in the rest of the county is left out.
+        r = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "min_matches": 6, "limit": 45})
+        self.assertEqual(len(r["candidates"]), 6)
+        self.assertIn("6 candidates returned for limit 45: the neighborhood and ZIP code tiers hold 6, at least "
+                      "min_matches (6), so the rule does not include the 1 more that meet it in the rest of the county; "
+                      "a min_matches above 6 includes them", r["warnings"])
 
     def test_never_returns_owner_data(self):
         con = sqlite3.connect(self.db)

@@ -85,6 +85,7 @@ import {
 } from "../../packages/tools/src/index.ts";
 import {
   EQUITY_BUCKET_BYTES,
+  EQUITY_ROW_VERSION,
   buildList,
   byArea,
   decodeRow,
@@ -957,7 +958,7 @@ interface EquityState {
 }
 
 const newEquityState = (): EquityState => ({
-  equity: { docs: [], pools: 0 },
+  equity: { docs: [], pools: 0, rv: EQUITY_ROW_VERSION },
   docIndex: new Map(),
   poolNames: new Set(),
 });
@@ -1178,7 +1179,11 @@ class Combined {
   readonly addressRows: AddressRow[] = [];
   readonly nameRows: NameRow[] = [];
   readonly entityScope: Manifest["entity_scope"] = {};
-  readonly equity: EquityManifest = { docs: [], pools: 0 };
+  readonly equity: EquityManifest = {
+    docs: [],
+    pools: 0,
+    rv: EQUITY_ROW_VERSION,
+  };
   nameVersion: string | null | undefined;
   addressVersion: string | null | undefined;
   texas = 0;
@@ -1900,6 +1905,10 @@ export function seedPartsCache(
           manifest.equity?.pools !== r.part.equity_pools
         )
           return refuse("its candidate data is not the pack's");
+        if (manifest.equity?.rv !== EQUITY_ROW_VERSION)
+          return refuse(
+            `its candidate rows are row version ${String(manifest.equity?.rv ?? 1)}, not ${EQUITY_ROW_VERSION}`,
+          );
       }
       const paths = [
         ...listFiles(pack, `g/${k}`),

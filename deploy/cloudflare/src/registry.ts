@@ -34,6 +34,9 @@ const TX_EQUITY_PARAMS = [
   "min_matches",
   "limit",
   "tax_year",
+  "same_building_class",
+  "same_local_use_code",
+  "local_use_codes",
 ] as const;
 
 type Run = (name: string, input: unknown) => Promise<ToolOutcome>;

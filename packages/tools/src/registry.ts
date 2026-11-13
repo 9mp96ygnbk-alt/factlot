@@ -5,7 +5,7 @@
  */
 import { createRequire } from "node:module";
 
-import { fmtNum } from "@factlot/calc";
+import { fmtNum, round } from "@factlot/calc";
 import {
   FactLotIdError,
   addressTokens,
@@ -1671,6 +1671,7 @@ export function texasOnly(stateFips: string): string {
 /** The only predicates the candidate tool reads (never ownership.*), `PARCEL_PREDICATES` in Python. */
 export const TX_EQUITY_PREDICATES = [
   "parcel.tax_year",
+  "parcel.apn",
   "parcel.state_property_category",
   "parcel.market_value",
   "parcel.appraised_value",
@@ -1679,6 +1680,7 @@ export const TX_EQUITY_PREDICATES = [
   "parcel.year_built",
   "parcel.neighborhood_code",
   "parcel.building_class",
+  "parcel.local_use_code",
   "parcel.situs_address",
 ] as const;
 const EQUITY_IN = TX_EQUITY_PREDICATES.map((p) => `'${p}'`).join(", ");
@@ -1797,6 +1799,9 @@ export function txEquityCalcArgs(answer: Row): {
       },
       min_matches: parameters.min_matches,
       limit: parameters.limit,
+      subject_summary: selection.subject_summary ?? null,
+      narrowing: (selection.narrowing as Row[] | undefined) ?? [],
+      steps: (selection.steps as Row[] | undefined) ?? [],
       tiers: (selection.tiers as Row[]).map((t) => ({
         tier: t.tier,
         key: t.key,
@@ -1954,6 +1959,39 @@ function positive(v: unknown): number | null {
   return n !== null && n > 0 ? n : null;
 }
 
+/**
+ * A subject or candidate row in the answer's key order (`_shape` in Python), with `value_per_sf` computed: the
+ * roll's value (appraised where the roll gives one, else market, as `value_basis` says) divided by the roll's
+ * improvement area, rounded to the cent; null without both. Fields a row lacks (a row from a registry pack built
+ * before `apn` and `local_use_code` were kept) are null.
+ */
+export function equityShape(r: Row): Row {
+  const value = finite(r.value);
+  const area = positive(r.improvement_area_sf);
+  const orNull = (v: unknown) => (v === undefined ? null : v);
+  return {
+    id: r.id,
+    county_fips: r.county_fips,
+    apn: orNull(r.apn),
+    value: orNull(r.value),
+    value_basis: orNull(r.value_basis),
+    value_per_sf:
+      value !== null && area !== null ? round(value / area, 2) : null,
+    market_value: orNull(r.market_value),
+    appraised_value: orNull(r.appraised_value),
+    improvement_area_sf: orNull(r.improvement_area_sf),
+    land_area_sf: orNull(r.land_area_sf),
+    year_built: orNull(r.year_built),
+    state_property_category: orNull(r.state_property_category),
+    local_use_code: orNull(r.local_use_code),
+    neighborhood_code: orNull(r.neighborhood_code),
+    building_class: orNull(r.building_class),
+    situs_address: orNull(r.situs_address),
+    tax_year: orNull(r.tax_year),
+    citation: orNull(r.citation),
+  };
+}
+
 /** A parcel shaped as a `calc_tx_unequal_appraisal` subject or comparable; missing facts are null. */
 export function equityComparable(urn: string, facts: Map<string, Row>): Row {
   const val = (p: string) => rowValue(facts.get(p));
@@ -1968,9 +2006,10 @@ export function equityComparable(urn: string, facts: Map<string, Row>): Row {
           : "parcel.market_value",
       )
     : undefined;
-  return {
+  return equityShape({
     id: urn,
     county_fips: (urn.split(":")[2] ?? "").slice(5, 8),
+    apn: nonEmptyString(val("parcel.apn")),
     value: basis === "appraised" ? appraised : market,
     value_basis: basis,
     market_value: market,
@@ -1981,12 +2020,13 @@ export function equityComparable(urn: string, facts: Map<string, Row>): Row {
     state_property_category: nonEmptyString(
       val("parcel.state_property_category"),
     ),
+    local_use_code: nonEmptyString(val("parcel.local_use_code")),
     neighborhood_code: nonEmptyString(val("parcel.neighborhood_code")),
     building_class: nonEmptyString(val("parcel.building_class")),
     situs_address: nonEmptyString(val("parcel.situs_address")),
     tax_year: finite(val("parcel.tax_year")),
     citation: cited ? factCitation(cited) : null,
-  };
+  });
 }
 
 /** The snapshots the facts come from (document IDs, sorted, once each). */
@@ -2033,7 +2073,18 @@ export interface TxEquityParams {
   min_matches: number;
   limit: number;
   tax_year?: number;
+  /** Only candidates with exactly the subject's building class (when the subject has one). */
+  same_building_class?: boolean;
+  /** Only candidates with exactly the subject's local use code (when the subject has one). */
+  same_local_use_code?: boolean;
+  /** Only candidates whose local use code is one of these (exact match). */
+  local_use_codes?: string[];
 }
+
+/** The most candidates one answer returns: the input schema's bound on `limit` (`LIMIT_MAX` in Python). */
+export const TX_EQUITY_LIMIT_MAX = 200;
+/** Most codes in `local_use_codes` (`USE_CODES_MAX` in Python). */
+export const TX_EQUITY_USE_CODES_MAX = 50;
 
 /** The parcel URN a `registry_tx_equity_candidates` call names: its `urn`, or the URN of its APN under the file's rule. */
 export function txEquitySubjectUrn(
@@ -2069,6 +2120,10 @@ export interface EquityRule {
   yearBand: number;
   neighborhood: string | null;
   zip: string | null;
+  /** The building class a candidate must have (same_building_class, applied when the subject has one), or null. */
+  buildingClass: string | null;
+  /** The local use codes a candidate's must be one of (local_use_codes, or the subject's for same_local_use_code), or null. */
+  useCodes: string[] | null;
 }
 
 /** The facts the rule needs that the subject lacks (an improvement area must be positive). */
@@ -2091,6 +2146,8 @@ export function equityRule(
 ): EquityRule | null {
   if (equityMissing(subject).length) return null;
   const area = positive(subject.improvement_area_sf) as number;
+  const cls = subject.building_class as string | null;
+  const code = subject.local_use_code as string | null;
   return {
     urn,
     category: subject.state_property_category,
@@ -2102,7 +2159,24 @@ export function equityRule(
     yearBand: params.year_band,
     neighborhood: subject.neighborhood_code as string | null,
     zip: situsZip5(subject.situs_address),
+    buildingClass: params.same_building_class ? cls : null,
+    useCodes: params.local_use_codes?.length
+      ? [...params.local_use_codes]
+      : params.same_local_use_code && code !== null
+        ? [code]
+        : null,
   };
+}
+
+/** Whether a row passes the caller's narrowing (building class, local use codes); the rule's other tests aside. */
+function equityNarrowed(rule: EquityRule, c: Row): boolean {
+  if (rule.buildingClass !== null && c.building_class !== rule.buildingClass)
+    return false;
+  return (
+    rule.useCodes === null ||
+    (typeof c.local_use_code === "string" &&
+      rule.useCodes.includes(c.local_use_code))
+  );
 }
 
 /** Whether a comparable (not the subject itself) meets the rule's category, year, area, value and year-built tests. */
@@ -2116,11 +2190,63 @@ export function equityAccepts(rule: EquityRule, c: Row): boolean {
     c.value === null
   )
     return false;
-  return !(
+  if (
     rule.year !== null &&
     c.year_built !== null &&
     Math.abs((c.year_built as number) - rule.year) > rule.yearBand
-  );
+  )
+    return false;
+  return equityNarrowed(rule, c);
+}
+
+/**
+ * How many comparables of `pool` (the subject itself never) each step of the rule leaves, county-wide, before the
+ * tiers and `limit` (`_funnel` in Python): the same roll year and category code with a positive improvement area
+ * and a value; then the area band; then the year-built band; then, when applied, the building class and the local
+ * use codes.
+ */
+export function equityFunnel(
+  rule: EquityRule,
+  pool: Iterable<EquityCandidate>,
+): number[] {
+  const out = [0, 0, 0];
+  if (rule.buildingClass !== null) out.push(0);
+  if (rule.useCodes !== null) out.push(0);
+  for (const { urn, row: c } of pool) {
+    const cArea = positive(c.improvement_area_sf);
+    if (
+      urn === rule.urn ||
+      c.state_property_category !== rule.category ||
+      c.tax_year !== rule.taxYear ||
+      cArea === null ||
+      c.value === null
+    )
+      continue;
+    out[0]! += 1;
+    if (!(rule.lo <= cArea && cArea <= rule.hi)) continue;
+    out[1]! += 1;
+    if (
+      rule.year !== null &&
+      c.year_built !== null &&
+      Math.abs((c.year_built as number) - rule.year) > rule.yearBand
+    )
+      continue;
+    out[2]! += 1;
+    let k = 3;
+    if (rule.buildingClass !== null) {
+      if (c.building_class !== rule.buildingClass) continue;
+      out[k++]! += 1;
+    }
+    if (rule.useCodes !== null) {
+      if (
+        typeof c.local_use_code !== "string" ||
+        !rule.useCodes.includes(c.local_use_code)
+      )
+        continue;
+      out[k]! += 1;
+    }
+  }
+  return out;
 }
 
 /** The tier of an accepted comparable: 0 the subject's neighborhood, 1 its ZIP code, 2 the rest of the county. */
@@ -2195,8 +2321,87 @@ export interface TxEquityParts {
   warnings: string[];
   /** Matches per tier (0 when the subject lacks a fact the rule needs). */
   counts: number[];
+  /** equityFunnel's counts (empty when the subject lacks a fact the rule needs). */
+  funnel: number[];
   /** The first `limit` matches the rule includes, in `equityCompare` order. */
   returned: EquityMatch[];
+}
+
+/** The steps of equityFunnel, in its order (`STEPS` in Python). */
+export const TX_EQUITY_STEPS = {
+  base: "on the district's roll for the tax year, with exactly the subject's state property category code, a positive improvement area and an appraised or market value",
+  area: "improvement area within area_band of the subject's",
+  year: "year built within year_band years of the subject's, when both are known",
+  same_building_class:
+    "building class exactly the subject's (same_building_class)",
+  same_local_use_code:
+    "local use code exactly the subject's (same_local_use_code)",
+  local_use_codes: "local use code one of local_use_codes",
+} as const;
+
+/** A number written into an answer's text, as fmtNum writes it (`fmt_num` in Python). */
+const numText = (x: unknown): string =>
+  typeof x === "number" ? fmtNum(x) : "not on the roll";
+const codeText = (x: unknown): string =>
+  typeof x === "string" ? x : "not on the roll";
+
+/**
+ * The caller's narrowing parameters as the answer states them (`_narrowing` in Python): one entry per parameter
+ * asked for, whether it was applied, the value it compared, and in words what it did. A parameter that needs a
+ * subject field the subject lacks is not applied; local_use_codes takes the place of same_local_use_code.
+ */
+export function equityNarrowing(
+  subject: Row,
+  params: TxEquityParams,
+  yearUsed: number | null,
+  missing: boolean,
+): Row[] {
+  const roll = yearUsed === null ? "any roll" : `the ${fmtNum(yearUsed)} roll`;
+  const out: Row[] = [];
+  const entry = (parameter: string, value: unknown, text: string): Row => ({
+    parameter,
+    applied: value !== null && !missing,
+    value,
+    text: missing
+      ? `not applied: the subject lacks a fact the rule needs, so no candidates are selected`
+      : text,
+  });
+  if (params.same_building_class) {
+    const cls = subject.building_class as string | null;
+    out.push(
+      entry(
+        "same_building_class",
+        cls,
+        cls === null
+          ? `not applied: the subject has no building class on ${roll}`
+          : `only parcels whose building class is exactly the subject's (${cls})`,
+      ),
+    );
+  }
+  const codes = params.local_use_codes ?? [];
+  if (params.same_local_use_code) {
+    const code = subject.local_use_code as string | null;
+    out.push(
+      entry(
+        "same_local_use_code",
+        codes.length ? null : code,
+        codes.length
+          ? "not applied: local_use_codes was given and is used instead"
+          : code === null
+            ? `not applied: the subject has no local use code on ${roll}`
+            : `only parcels whose local use code is exactly the subject's (${code})`,
+      ),
+    );
+  }
+  if (codes.length)
+    out.push(
+      entry(
+        "local_use_codes",
+        [...codes],
+        `only parcels whose local use code is one of: ${codes.join(", ")}`,
+      ),
+    );
+  return out;
 }
 
 /** The `registry_tx_equity_candidates` result from its parts; `sources` gives each cited snapshot's entry. */
@@ -2232,6 +2437,12 @@ export function assembleTxEquity(
     zip: zip5,
   };
   const missing = equityMissing(subject);
+  const narrowing = equityNarrowing(
+    subject,
+    params,
+    yearUsed,
+    missing.length > 0,
+  );
   if (subject.value === null)
     warnings.push(
       "the subject has no current parcel.appraised_value or parcel.market_value fact",
@@ -2240,6 +2451,9 @@ export function assembleTxEquity(
     warnings.push(
       `no candidates selected: the subject has no current ${missing.join(", ")} fact (an improvement area must be positive), which the rule needs`,
     );
+  else
+    for (const n of narrowing)
+      if (!n.applied) warnings.push(`${String(n.parameter)} ${String(n.text)}`);
   const widened = equityWidened(counts, min_matches);
   const included = counts[0]! + counts[1]! + (widened ? counts[2]! : 0);
   const keys = [subject.neighborhood_code, zip5, subject.county_fips];
@@ -2253,10 +2467,32 @@ export function assembleTxEquity(
     ids: returned.filter((m) => m.tier === t).map((m) => m.urn),
   }));
   const candidates = returned.map((m) => m.row);
+  const stepNames: string[] = missing.length
+    ? []
+    : [TX_EQUITY_STEPS.base, TX_EQUITY_STEPS.area, TX_EQUITY_STEPS.year];
+  for (const n of narrowing)
+    if (n.applied)
+      stepNames.push(
+        TX_EQUITY_STEPS[n.parameter as keyof typeof TX_EQUITY_STEPS],
+      );
+  if (stepNames.length !== p.funnel.length)
+    throw new Error("the candidate steps and their counts disagree");
+  const steps = stepNames.map((step, i) => ({ step, left: p.funnel[i] }));
   if (!missing.length && included < min_matches)
     warnings.push(
       `${included} candidates meet the rule in the whole county, fewer than min_matches (${min_matches}); the statute does not define a reasonable number of comparables`,
     );
+  if (!missing.length && returned.length < limit) {
+    const near = counts[0]! + counts[1]!;
+    if (!widened && counts[2]! > 0)
+      warnings.push(
+        `${returned.length} candidates returned for limit ${limit}: the neighborhood and ZIP code tiers hold ${near}, at least min_matches (${min_matches}), so the rule does not include the ${counts[2]} more that meet it in the rest of the county; a min_matches above ${near} includes them`,
+      );
+    else if (included >= min_matches)
+      warnings.push(
+        `${returned.length} candidates returned for limit ${limit}: no other parcel meets the rule`,
+      );
+  }
   if (subject.value_basis !== null) {
     const other = candidates.filter(
       (c) => c.value_basis !== subject.value_basis,
@@ -2266,12 +2502,61 @@ export function assembleTxEquity(
         `${other} of the ${candidates.length} candidates have a value_basis other than the subject's (${String(subject.value_basis)}): compare like with like`,
       );
   }
+  for (const [field, words] of [
+    ["building_class", "a building class"],
+    ["local_use_code", "a local use code"],
+  ] as const) {
+    const mine = subject[field];
+    if (typeof mine !== "string") continue;
+    const other = candidates.filter((c) => c[field] !== mine).length;
+    if (other)
+      warnings.push(
+        `${other} of the ${candidates.length} candidates have ${words} other than the subject's (${mine}) or none on the roll`,
+      );
+  }
   // Every snapshot a returned fact comes from, with its source's rights.
   const docs = new Set<string>(p.subjectDocs);
   for (const m of returned) for (const doc of m.docs) docs.add(doc);
   for (const e of subject.value_history as Row[])
     for (const cite of Object.values(e.citations as Row))
       if (cite) docs.add(String((cite as Row).document_id));
+  const srcs = sources(docs);
+  // The files the compared values come from: each value citation's snapshot.
+  const citedBy = new Map<string, { subject: boolean; candidates: number }>();
+  const cite = (row: Row, isSubject: boolean) => {
+    const c = row.citation as Row | null;
+    if (!c) return;
+    const doc = String(c.document_id);
+    const e = citedBy.get(doc) ?? { subject: false, candidates: 0 };
+    if (isSubject) e.subject = true;
+    else e.candidates += 1;
+    citedBy.set(doc, e);
+  };
+  cite(subject, true);
+  for (const c of candidates) cite(c, false);
+  const certification = yearUsed === null ? null : `${fmtNum(yearUsed)}-07-25`;
+  const comparedFiles = srcs
+    .filter((s) => citedBy.has(String(s.document_id)))
+    .map((s) => ({
+      document_id: s.document_id,
+      source_id: s.source_id,
+      title: s.title,
+      as_of: s.as_of,
+      tax_year: yearUsed,
+      before_certification_deadline:
+        certification === null || typeof s.as_of !== "string"
+          ? null
+          : s.as_of < certification,
+      subject_value: citedBy.get(String(s.document_id))!.subject,
+      candidate_values: citedBy.get(String(s.document_id))!.candidates,
+    }));
+  const subjectSummary =
+    `the subject on ${yearUsed === null ? "no roll" : `the ${fmtNum(yearUsed)} roll`}: ` +
+    `state property category ${codeText(subject.state_property_category)}; ` +
+    `building class ${codeText(subject.building_class)}; ` +
+    `local use code ${codeText(subject.local_use_code)}; ` +
+    `improvement area ${area === null ? "not on the roll" : `${fmtNum(area)} sf`}; ` +
+    `year built ${numText(year)}`;
   return withTxEquityCalcArgs({
     subject,
     candidates,
@@ -2283,19 +2568,28 @@ export function assembleTxEquity(
         min_matches,
         limit,
         tax_year: taxYear,
+        same_building_class: params.same_building_class ?? false,
+        same_local_use_code: params.same_local_use_code ?? false,
+        local_use_codes: params.local_use_codes?.length
+          ? [...params.local_use_codes]
+          : null,
       },
       tax_year: yearUsed,
       available_tax_years: p.available,
       roll_sources: p.rolls,
       building_class_sources: p.companions,
+      compared_files: comparedFiles,
+      subject_summary: subjectSummary,
       criteria,
+      narrowing,
+      steps,
       tiers,
       widened_to_county: widened && !missing.length,
       matched: included,
       returned: returned.length,
       truncated: included > returned.length,
     },
-    sources: sources(docs),
+    sources: srcs,
     notice: TX_EQUITY_NOTICE,
     warnings,
   });
@@ -2379,29 +2673,28 @@ export function registryTxEquityCandidates(
     value_history: registryValueHistory(urn),
   };
   let matched: EquityMatch[] = [];
-  if (!equityMissing(subject).length) {
+  let funnel: number[] = [];
+  const rule = equityRule(urn, subject, params);
+  if (rule) {
     const q = equityPoolQuery(
       region,
       subjectFacts.get("parcel.state_property_category")!.value_json,
       rolls,
       companions,
     );
-    const pool = equityRowsBySubject(d.prepare(q.sql).all(...q.params));
-    matched = selectEquityCandidates(
-      urn,
-      subject,
-      (function* () {
-        for (const [candUrn, candRows] of pool) {
-          const facts = equityYearFacts(candRows, rolls, companions);
-          yield {
-            urn: candUrn,
-            row: equityComparable(candUrn, facts),
-            docs: equityFactDocs(facts),
-          };
-        }
-      })(),
-      params,
-    );
+    const pool: EquityCandidate[] = [];
+    for (const [candUrn, candRows] of equityRowsBySubject(
+      d.prepare(q.sql).all(...q.params),
+    )) {
+      const facts = equityYearFacts(candRows, rolls, companions);
+      pool.push({
+        urn: candUrn,
+        row: equityComparable(candUrn, facts),
+        docs: equityFactDocs(facts),
+      });
+    }
+    matched = selectEquityCandidates(urn, subject, pool, params);
+    funnel = equityFunnel(rule, pool);
   }
   const { counts, returned } = equityReturned(matched, params);
   return assembleTxEquity(
@@ -2415,6 +2708,7 @@ export function registryTxEquityCandidates(
       companions,
       warnings,
       counts,
+      funnel,
       returned,
     },
     (docs) => equitySources(d, docs),

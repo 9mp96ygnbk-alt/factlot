@@ -620,6 +620,32 @@ def _bounded(args: dict[str, Any], key: str, default: Any, lo: float, hi: float,
     return int(v) if integer else v
 
 
+def _flag(args: dict[str, Any], key: str) -> bool:
+    """An optional boolean, false when absent."""
+    if key not in args:
+        return False
+    if not isinstance(args[key], bool):
+        raise _InputError(key, "expected boolean")
+    return args[key]
+
+
+def _use_codes(args: dict[str, Any], most: int) -> list[str] | None:
+    """``local_use_codes``: 1 to ``most`` codes of 1 to 64 characters, or None when absent."""
+    if "local_use_codes" not in args:
+        return None
+    v = args["local_use_codes"]
+    if not isinstance(v, list):
+        raise _InputError("local_use_codes", "expected array")
+    if not 1 <= len(v) <= most:
+        raise _InputError("local_use_codes", f"expected at least 1 and at most {most} items")
+    for i, c in enumerate(v):
+        if not isinstance(c, str):
+            raise _InputError(f"local_use_codes.{i}", "expected string")
+        if not 1 <= len(c) <= 64:
+            raise _InputError(f"local_use_codes.{i}", "expected at least 1 and at most 64 characters")
+    return list(v)
+
+
 def _tx_equity_candidates(args: dict[str, Any]) -> dict[str, Any]:
     from .registry import tx_equity
 
@@ -632,6 +658,9 @@ def _tx_equity_candidates(args: dict[str, Any]) -> dict[str, Any]:
         "min_matches": _bounded(args, "min_matches", tx_equity.DEFAULTS["min_matches"], 1, 200, integer=True),
         "limit": _bounded(args, "limit", tx_equity.DEFAULTS["limit"], 1, 200, integer=True),
         "tax_year": _bounded(args, "tax_year", None, 1900, 2100, integer=True),
+        "same_building_class": _flag(args, "same_building_class"),
+        "same_local_use_code": _flag(args, "same_local_use_code"),
+        "local_use_codes": _use_codes(args, tx_equity.USE_CODES_MAX),
     }
     if "urn" in args:
         urn = _str(args, "urn")

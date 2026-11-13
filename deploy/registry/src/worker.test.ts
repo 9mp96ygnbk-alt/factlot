@@ -44,6 +44,7 @@ import {
   byArea,
   listCount,
   listNearest,
+  listRowsInArea,
   type EqRow,
   type EquityManifest,
   type PoolHeader,
@@ -180,6 +181,10 @@ const EQUITY_PARAMS: Record<string, unknown>[] = [
   { tax_year: 2026, area_band: 0.2 },
   { tax_year: 2027, min_matches: 50 },
   { tax_year: 2024 },
+  { same_building_class: true },
+  { tax_year: 2026, same_building_class: true, min_matches: 1 },
+  { tax_year: 2026, same_local_use_code: true, area_band: 1 },
+  { local_use_codes: ["4600"], same_building_class: true, limit: 2 },
 ];
 
 function getCalls(): Call[] {
@@ -652,6 +657,8 @@ test("candidate lists split into chunks count and order like the whole list", as
         `${i} Main St, Example TX 7700${i % 3}`,
         ["f" + i, 0, null, "2026-01-01"],
         [0],
+        String(100000 + i),
+        ["4300", "4600", null][i % 3]!,
       ]);
     }
     rowsOf.sort(byArea);
@@ -710,6 +717,23 @@ test("candidate lists split into chunks count and order like the whole list", as
         near.map((m) => m.urn),
         want.slice(0, params.limit).map((m) => m.urn),
         JSON.stringify(params),
+      );
+      // Narrowed by local use code: the rows read within the area band select what the SDK selects.
+      const narrowed = { ...params, local_use_codes: ["4600"] };
+      const nRule = equityRule(subject.urn, s, narrowed)!;
+      const band = (await listRowsInArea(pack, list, nRule)).map((r) => ({
+        urn: h.u + r[0],
+        row: decodeRow(h, docs, r),
+        docs: ["doc-0"],
+      }));
+      assert.deepEqual(
+        selectEquityCandidates(subject.urn, s, band, narrowed).map(
+          (m) => m.urn,
+        ),
+        selectEquityCandidates(subject.urn, s, pool, narrowed).map(
+          (m) => m.urn,
+        ),
+        `narrowed ${JSON.stringify(params)}`,
       );
     }
   }
