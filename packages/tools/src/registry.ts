@@ -15,7 +15,14 @@ import {
 } from "@factlot/id";
 
 import { countyName } from "./county_names.ts";
-import { fieldAvailability, rollOf, type RegistryFields } from "./fields.ts";
+import {
+  compactFields,
+  fieldAvailability,
+  labelValueHistory,
+  type CountyFields,
+  type RegistryFields,
+  type ValueFile,
+} from "./fields.ts";
 
 type Row = Record<string, unknown>;
 interface Statement {
@@ -503,86 +510,12 @@ function rowValue(row: Row | undefined): unknown {
   return row ? JSON.parse(String(row.value_json)) : null;
 }
 
-/** The snapshot a value-history entry is read from: what the entry says about its file. */
-interface SnapshotRow {
-  source_id: string;
-  filename: string | null;
-  as_of: string;
-  retrieved_at: string;
-}
-
-/**
- * What a value-history entry says about its roll (`value_roll` in Python): the rule of fields.ts `rollOf`.
- */
-function valueRoll(
-  sourceId: string,
-  filename: string | null,
-  taxYear: number | null,
-  asOf: string,
-): "preliminary" | "certified" | null {
-  return rollOf(sourceId, filename, taxYear, asOf);
-}
-
-/** "2023" or "2021 to 2023". */
-function yearSpan(a: number, b: number): string {
-  return a === b ? String(a) : `${a} to ${b}`;
-}
-
-/**
- * The notes of each entry (newest first), from what the entries and their files show (`value_history_notes` in
- * Python): a file whose as-of date is the day the registry read it, a file dated after the year following its roll
- * year, consecutive years both read-dated, and tax years with no value between two entries. Never a reason for a
- * change in value.
- */
-function valueHistoryNotes(entries: Row[]): void {
-  entries.forEach((e, i) => {
-    const notes: string[] = [];
-    const file = e.file as Row | null;
-    const ty = e.tax_year as number | null;
-    if (file && file.as_of === file.read_on)
-      notes.push(
-        `${String(file.as_of)} is the date the registry read this file, not a date the publisher gave for the roll.`,
-      );
-    if (file && ty !== null && Number(String(file.as_of).slice(0, 4)) > ty + 1)
-      notes.push(
-        `This ${ty} value comes from a file dated ${String(file.as_of)}, after the ${ty} roll year: it is the roll as the publisher held it on that date, which can differ from the roll as certified.`,
-      );
-    const older = entries
-      .slice(i + 1)
-      .find((x) => x.tax_year !== null && x.tax_year !== ty);
-    if (older && ty !== null) {
-      const oy = older.tax_year as number;
-      const of = older.file as Row | null;
-      if (oy < ty - 1)
-        notes.push(
-          `The registry holds no value of this parcel for ${yearSpan(oy + 1, ty - 1)}, between the ${oy} and ${ty} entries.`,
-        );
-      else if (
-        oy === ty - 1 &&
-        file &&
-        of &&
-        file.as_of === file.read_on &&
-        of.as_of === of.read_on
-      )
-        notes.push(
-          `The ${oy} and ${ty} values come from files dated ${String(of.as_of)} and ${String(file.as_of)}, the days the registry read them, so neither date is a certification date.`,
-        );
-    }
-    e.notes = notes;
-  });
-}
-
 /**
  * Value-history entries from fact rows ordered by `ORDER_VALUE_HISTORY` (`value_history_entries` in Python).
  * The rows of one snapshot make one entry; where a snapshot holds two facts for one predicate (a file that
- * lists a parcel twice) the first in that order is used. Each entry names its value types, its file (source,
- * file name, as-of date, the date the registry read it) and roll (valueRoll), and carries notes
- * (valueHistoryNotes).
+ * lists a parcel twice) the first in that order is used.
  */
-function valueHistoryEntries(
-  rows: Row[],
-  snapshot: (documentId: string) => SnapshotRow | undefined,
-): Row[] {
+function valueHistoryEntries(rows: Row[]): Row[] {
   const byDoc = new Map<string, Map<string, Row>>();
   for (const r of rows) {
     const doc = String(r.document_id);
@@ -609,10 +542,6 @@ function valueHistoryEntries(
     )
       continue;
     const first = (mv !== null ? market : appraised) as Row;
-    const snap = snapshot(String(first.document_id));
-    const types: string[] = [];
-    if (mv !== null) types.push("market");
-    if (av !== null) types.push("appraised");
     kept.push({
       tax_year: ty,
       market_value: mv,
@@ -622,29 +551,53 @@ function valueHistoryEntries(
         market_value: mv !== null ? factCitation(market as Row) : null,
         appraised_value: av !== null ? factCitation(appraised as Row) : null,
       },
-      value_types: types,
-      file: snap
-        ? {
-            source_id: snap.source_id,
-            filename: snap.filename,
-            as_of: snap.as_of,
-            read_on: snap.retrieved_at.slice(0, 10),
-          }
-        : null,
-      roll: snap
-        ? valueRoll(snap.source_id, snap.filename, ty, snap.as_of)
-        : null,
     });
   }
   // Snapshots are newest first already; a stable sort by tax year keeps that order within a year.
-  const out = kept.sort((a, b) => {
+  return kept.sort((a, b) => {
     const ya = a.tax_year as number | null;
     const yb = b.tax_year as number | null;
     if (ya === null || yb === null)
       return (ya === null ? 1 : 0) - (yb === null ? 1 : 0);
     return yb - ya;
   });
-  valueHistoryNotes(out);
+}
+
+/** The value-history file of a snapshot (fields.ts ValueFile), from the snapshots table. */
+function valueFileOf(
+  d: Database,
+): (documentId: string) => ValueFile | undefined {
+  const snap = d.prepare(
+    "SELECT source_id, filename, as_of, retrieved_at FROM snapshots WHERE document_id = ?",
+  );
+  return (doc) => {
+    const r = snap.get(doc);
+    return r
+      ? {
+          source_id: String(r.source_id),
+          filename: r.filename === null ? null : String(r.filename),
+          as_of: String(r.as_of),
+          read_on: String(r.retrieved_at).slice(0, 10),
+        }
+      : undefined;
+  };
+}
+
+/** Every snapshot of the configured file as value-history labels use it, by document ID (the pack's `value_files`). */
+export function registryValueFiles(): Record<string, ValueFile> {
+  const d = open();
+  const out: Record<string, ValueFile> = {};
+  for (const r of d
+    .prepare(
+      "SELECT document_id, source_id, filename, as_of, retrieved_at FROM snapshots ORDER BY document_id",
+    )
+    .all())
+    out[String(r.document_id)] = {
+      source_id: String(r.source_id),
+      filename: r.filename === null ? null : String(r.filename),
+      as_of: String(r.as_of),
+      read_on: String(r.retrieved_at).slice(0, 10),
+    };
   return out;
 }
 
@@ -653,29 +606,19 @@ function valueHistoryEntries(
  * from every snapshot (current and superseded; with `asOf`, those dated on or before it): one entry per
  * snapshot that recorded a value. A tax year a later snapshot restates with the same values is listed once,
  * cited to the newest; a tax year two snapshots value differently is listed once per value, newest snapshot
- * first. Ordered by tax year, newest first (an entry without a tax year last).
+ * first. Ordered by tax year, newest first (an entry without a tax year last). Each entry carries the labels of
+ * fields.ts labelValueHistory (value types, file, roll, notes), made from the snapshots table at answer time.
  */
 export function registryValueHistory(urn: string, asOf?: string): Row[] {
   const d = open();
   const sql = `SELECT * FROM facts WHERE subject = ? AND predicate IN (${VALUE_HISTORY_IN})${asOf === undefined ? "" : " AND as_of <= ?"}`;
-  const snap = d.prepare(
-    "SELECT source_id, filename, as_of, retrieved_at FROM snapshots WHERE document_id = ?",
-  );
-  return valueHistoryEntries(
-    d
-      .prepare(sql + ORDER_VALUE_HISTORY)
-      .all(...(asOf === undefined ? [urn] : [urn, asOf])),
-    (doc) => {
-      const r = snap.get(doc);
-      return r
-        ? {
-            source_id: String(r.source_id),
-            filename: r.filename === null ? null : String(r.filename),
-            as_of: String(r.as_of),
-            retrieved_at: String(r.retrieved_at),
-          }
-        : undefined;
-    },
+  return labelValueHistory(
+    valueHistoryEntries(
+      d
+        .prepare(sql + ORDER_VALUE_HISTORY)
+        .all(...(asOf === undefined ? [urn] : [urn, asOf])),
+    ),
+    valueFileOf(d),
   );
 }
 
@@ -1259,8 +1202,11 @@ function coverage(d: Database): RegistryCoverage {
   return summary;
 }
 
-/** What the configured registry file holds: counties, entity registries, crosswalk systems, as-of dates. */
-export function registryCoverage(): Row {
+/**
+ * What the configured registry file holds: counties, entity registries, crosswalk systems, as-of dates; with
+ * `fields`, each county's field availability (fields.ts compactFields), computed from the file.
+ */
+export function registryCoverage(fields = false): Row {
   const d = open();
   const versions = new Map(
     d
@@ -1270,26 +1216,44 @@ export function registryCoverage(): Row {
       .all()
       .map((r) => [String(r.key), String(r.value)]),
   );
-  return coverageReport(coverage(d), {
-    name_key_version: versions.get("name_key_version") ?? null,
-    address_key_version: versions.get("address_key_version") ?? null,
-  });
+  return coverageReport(
+    coverage(d),
+    {
+      name_key_version: versions.get("name_key_version") ?? null,
+      address_key_version: versions.get("address_key_version") ?? null,
+    },
+    fields
+      ? Object.fromEntries(
+          fieldAvailability(d).counties.map((c) => [c.region.slice(3), c]),
+        )
+      : undefined,
+  );
 }
 
-/** The `registry_coverage` answer for a coverage summary and the file's key versions (null: not set). */
+/**
+ * The `registry_coverage` answer for a coverage summary and the file's key versions (null: not set). With `fields`
+ * (5-digit FIPS → field availability), each county carries `fields` (compactFields, or null when not listed).
+ */
 export function coverageReport(
   cov: RegistryCoverage,
   versions: {
     name_key_version: string | null;
     address_key_version: string | null;
   },
+  fields?: Record<string, CountyFields>,
 ): Row {
   return {
     ...cov,
-    counties: cov.counties.map((c) => ({
-      ...c,
-      name: countyName(`${c.state_fips}${c.county_fips}`) ?? null,
-    })),
+    counties: cov.counties.map((c) => {
+      const fips = `${c.state_fips}${c.county_fips}`;
+      const f =
+        fields && Object.hasOwn(fields, fips) ? fields[fips] : undefined;
+      return {
+        ...c,
+        name: countyName(fips) ?? null,
+        ...(fields ? { fields: f ? compactFields(f) : null } : {}),
+      };
+    }),
     name_key_version: versions.name_key_version ?? "1",
     address_key_version: versions.address_key_version ?? "1",
     scope: REGISTRY_SCOPE,

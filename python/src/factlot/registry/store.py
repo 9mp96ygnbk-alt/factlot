@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass, field, replace
@@ -20,6 +19,7 @@ from typing import Any, Callable, Iterable
 
 from .._core import fmt_num
 from ..ids import FactLotIdError, _base32, entity_id, normalize_apn_v1, parcel_id, parse as parse_id, short_id
+from .fields import label_value_history
 from . import buildings as _buildings
 from . import coverage as _coverage
 from .normalize import (
@@ -444,62 +444,11 @@ def _number(v: Any) -> float | None:
     return v if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) != float("inf") else None
 
 
-def value_roll(source_id: str, filename: str | None, tax_year: float | None, as_of: str) -> str | None:
-    """What a value-history entry says about its roll (``valueRoll`` and ``rollOf`` in TypeScript).
-
-    "preliminary": "prelim" or "_current" in the file name, or a Texas file (source ID "tx-...") whose tax year is
-    later than the year of its as-of date (a Texas roll values property as of January 1 of its tax year and is
-    certified in that year); "certified": "certif", "certf" or "cert_" in the file name; else None.
-    """
-    name = filename or ""
-    if re.search(r"prelim|_current", name, re.I) or (
-            source_id.startswith("tx-") and tax_year is not None and tax_year > int(as_of[:4])):
-        return "preliminary"
-    if re.search(r"certif|certf|cert[_-]", name, re.I):
-        return "certified"
-    return None
-
-
-def _year_span(a: int, b: int) -> str:
-    return str(a) if a == b else f"{a} to {b}"
-
-
-def _year(v: float) -> int | str:
-    return int(v) if float(v).is_integer() else v
-
-
-def value_history_notes(entries: list[dict[str, Any]]) -> None:
-    """The notes of each entry, newest first (``valueHistoryNotes`` in TypeScript): a file whose as-of date is the day
-    the registry read it, a file dated after the year following its roll year, consecutive years both read-dated, and
-    tax years with no value between two entries. Never a reason for a change in value."""
-    for i, e in enumerate(entries):
-        notes: list[str] = []
-        file, ty = e["file"], e["tax_year"]
-        if file and file["as_of"] == file["read_on"]:
-            notes.append(f"{file['as_of']} is the date the registry read this file, not a date the publisher gave for the roll.")
-        if file and ty is not None and int(file["as_of"][:4]) > ty + 1:
-            notes.append(f"This {_year(ty)} value comes from a file dated {file['as_of']}, after the {_year(ty)} roll year: it is the "
-                         "roll as the publisher held it on that date, which can differ from the roll as certified.")
-        older = next((x for x in entries[i + 1:] if x["tax_year"] is not None and x["tax_year"] != ty), None)
-        if older is not None and ty is not None:
-            oy, of = older["tax_year"], older["file"]
-            if oy < ty - 1:
-                notes.append(f"The registry holds no value of this parcel for {_year_span(int(oy) + 1, int(ty) - 1)}, "
-                             f"between the {_year(oy)} and {_year(ty)} entries.")
-            elif oy == ty - 1 and file and of and file["as_of"] == file["read_on"] and of["as_of"] == of["read_on"]:
-                notes.append(f"The {_year(oy)} and {_year(ty)} values come from files dated {of['as_of']} and {file['as_of']}, "
-                             "the days the registry read them, so neither date is a certification date.")
-        e["notes"] = notes
-
-
-def value_history_entries(rows: Iterable[Any], snapshot: Any = None) -> list[dict[str, Any]]:
+def value_history_entries(rows: Iterable[Any]) -> list[dict[str, Any]]:
     """Value-history entries from fact rows ordered by ``_ORDER_VALUE_HISTORY`` (``valueHistoryEntries`` in TS).
 
     The rows of one snapshot make one entry; where a snapshot holds two facts for one predicate (a file that
-    lists a parcel twice) the first in that order is used. Each entry names its value types, its file (source, file
-    name, as-of date, the date the registry read it) and roll (``value_roll``), and carries notes
-    (``value_history_notes``). ``snapshot(document_id)`` returns the snapshot row (source_id, filename, as_of,
-    retrieved_at) or None.
+    lists a parcel twice) the first in that order is used.
     """
     by_doc: dict[str, dict[str, Any]] = {}
     for r in rows:
@@ -515,21 +464,13 @@ def value_history_entries(rows: Iterable[Any], snapshot: Any = None) -> list[dic
         if any(e["tax_year"] == ty and e["market_value"] == mv and e["appraised_value"] == av for e in kept):
             continue  # restated unchanged: the newer snapshot's entry stands
         first = market if mv is not None else appraised
-        snap = snapshot(first["document_id"]) if snapshot else None
-        types = (["market"] if mv is not None else []) + (["appraised"] if av is not None else [])
         kept.append({
             "tax_year": ty, "market_value": mv, "appraised_value": av, "as_of": first["as_of"],
             "citations": {"market_value": fact_citation(market) if mv is not None else None,
                           "appraised_value": fact_citation(appraised) if av is not None else None},
-            "value_types": types,
-            "file": ({"source_id": snap["source_id"], "filename": snap["filename"], "as_of": snap["as_of"],
-                      "read_on": snap["retrieved_at"][:10]} if snap else None),
-            "roll": value_roll(snap["source_id"], snap["filename"], ty, snap["as_of"]) if snap else None,
         })
     # Snapshots are newest first already; a stable sort by tax year keeps that order within a year.
-    out = sorted(kept, key=lambda e: (e["tax_year"] is None, -(e["tax_year"] or 0)))
-    value_history_notes(out)
-    return out
+    return sorted(kept, key=lambda e: (e["tax_year"] is None, -(e["tax_year"] or 0)))
 
 
 def _fact_id(subject: str, predicate: str, value_json: str, document_id: str) -> str:
@@ -1564,10 +1505,13 @@ class Registry:
         if as_of is not None:
             sql += " AND as_of <= ?"
             params += (as_of,)
-        def snapshot(document_id: str) -> Any:
-            return self.db.execute("SELECT source_id, filename, as_of, retrieved_at FROM snapshots WHERE document_id = ?",
-                                   (document_id,)).fetchone()
-        return value_history_entries(self.db.execute(sql + _ORDER_VALUE_HISTORY, params).fetchall(), snapshot)
+        def file_of(document_id: str) -> dict[str, Any] | None:
+            r = self.db.execute("SELECT source_id, filename, as_of, retrieved_at FROM snapshots WHERE document_id = ?",
+                                (document_id,)).fetchone()
+            return ({"source_id": r["source_id"], "filename": r["filename"], "as_of": r["as_of"],
+                     "read_on": str(r["retrieved_at"])[:10]} if r else None)
+        return label_value_history(value_history_entries(self.db.execute(sql + _ORDER_VALUE_HISTORY, params).fetchall()),
+                                   file_of)
 
     def snapshot(self, document_id: str) -> dict[str, Any] | None:
         """A source snapshot the registry cites, by its ``fl:document:sha256-…`` ID (``registrySnapshot`` in TS)."""

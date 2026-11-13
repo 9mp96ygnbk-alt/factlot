@@ -11,9 +11,11 @@ import { fileURLToPath } from "node:url";
 import {
   compactFields,
   computeRegistryFields,
+  displayFilename,
   configureRegistry,
   registryValueHistory,
   rollOf,
+  runTool,
   yearsText,
 } from "./index.ts";
 
@@ -93,6 +95,13 @@ function build(): string {
       "2026-10-31",
       "export.csv",
     ],
+    [
+      "doc-h",
+      "tx-x-cad",
+      "2026-11-12T10:00:00Z",
+      "2026-11-12",
+      "multi%20year.csv",
+    ],
   ];
   for (const [doc, source, read, asOf, file] of docs)
     snap.run(doc, source, read, asOf, file);
@@ -130,9 +139,16 @@ function build(): string {
   add(P1, "parcel.market_value", 950000, "doc-b");
   add(P1, "parcel.tax_year", 2023, "doc-c");
   add(P1, "parcel.market_value", 500000, "doc-c");
-  // P2: the current file only, market value only.
+  // P2: the current file, market value only; a tax year and no value in the 2027 file.
   add(P2, "parcel.tax_year", 2026, "doc-a");
   add(P2, "parcel.market_value", 300000, "doc-a");
+  add(P2, "parcel.tax_year", 2027, "doc-d");
+  // One file of two tax years: P1's 2022 with both values, P2's 2024 with market value only.
+  add(P1, "parcel.tax_year", 2022, "doc-h");
+  add(P1, "parcel.market_value", 400000, "doc-h");
+  add(P1, "parcel.appraised_value", 390000, "doc-h");
+  add(P2, "parcel.tax_year", 2024, "doc-h");
+  add(P2, "parcel.market_value", 250000, "doc-h");
   // P3: two read-dated files of consecutive years, and a recorded sale.
   add(P3, "parcel.tax_year", 2026, "doc-f");
   add(P3, "parcel.market_value", 200000, "doc-f");
@@ -148,24 +164,51 @@ function build(): string {
 }
 
 test("rollOf: file names, and the Texas tax-year rule", () => {
-  assert.equal(
-    rollOf("tx-a", "x_PRELIM.zip", 2026, "2026-05-01"),
-    "preliminary",
-  );
-  assert.equal(
-    rollOf("tx-a", "DCAD2027_CURRENT.zip", 2026, "2026-11-01"),
-    "preliminary",
-  );
-  assert.equal(rollOf("tx-a", "roll.csv", 2027, "2026-11-07"), "preliminary");
+  const roll = (
+    name: string | null,
+    year: number | null,
+    asOf: string,
+    id = "tx-a",
+  ) => rollOf(id, name, year, asOf);
+  assert.equal(roll("x_PRELIM.zip", 2026, "2026-05-01"), "preliminary");
+  assert.equal(roll("roll.csv", 2027, "2026-11-07"), "preliminary");
+  // "current" is not evidence of a preliminary roll: a post-certification export can be called current.
+  assert.equal(roll("DCAD2026_CURRENT.zip", 2026, "2026-11-01"), null);
   // Outside Texas a fiscal year ahead of the file's date is the usual roll year, not a preliminary one.
-  assert.equal(rollOf("ny-nyc-dof", "fy27.zip", 2027, "2026-05-15"), null);
-  assert.equal(
-    rollOf("tx-a", "2025-CERTIFIED-EXPORT.zip", 2025, "2025-08-01"),
-    "certified",
-  );
-  assert.equal(rollOf("tx-a", "x.zip", 2025, "2025-08-01"), null);
+  assert.equal(roll("fy27.zip", 2027, "2026-05-15", "ny-nyc-dof"), null);
+  for (const name of [
+    "2025-CERTIFIED-EXPORT.zip",
+    "DCAD2025_CERTIFIED_07242025.zip",
+    "Brazos-2016-Certified-Export.zip",
+    "2025-GCO-CERTF-APPR-ROLL-SUPP0.zip",
+  ])
+    assert.equal(roll(name, 2025, "2025-08-01"), "certified", name);
+  // Pre-certified, uncertified and estimate files, and a bare "cert", are never labelled certified.
+  for (const name of [
+    "UNCERTIFIED_2025.zip",
+    "PreCert_Export.zip",
+    "2025-Pre-Cert-Roll.zip",
+    "NonCertified.zip",
+    "Non-Certified.zip",
+    "2025_Certified_Estimate.zip",
+    "2024_Cert_Web_Export.zip",
+    "x.zip",
+    null,
+  ])
+    assert.equal(roll(name, 2025, "2025-08-01"), null, String(name));
+  // An as-of date that is not a date gives no label.
+  assert.equal(roll("x_PRELIM.zip", 2026, ""), null);
+  assert.equal(roll("2025-CERTIFIED.zip", 2025, "unknown"), null);
   assert.equal(yearsText([2025, 2022, 2023, 2024]), "2022 to 2025");
   assert.equal(yearsText([2016, 2020, 2018]), "2016, 2018 and 2020");
+  assert.equal(
+    displayFilename("2026%20Certified%20Supp%200.zip"),
+    "2026 Certified Supp 0.zip",
+  );
+  assert.equal(displayFilename("100%.zip"), "100%.zip");
+  assert.equal(displayFilename("%E0%A4%A.zip"), "%E0%A4%A.zip");
+  assert.equal(displayFilename("%FF.zip"), "%FF.zip");
+  assert.equal(displayFilename(null), null);
 });
 
 test("field availability: shares and roll years per county, computed from the file", () => {
@@ -206,10 +249,14 @@ test("field availability: shares and roll years per county, computed from the fi
         y.files.map((fl) => `${fl.as_of}/${fl.dated}/${fl.roll}`).join(" "),
       ]),
       [
+        // P2 has a 2027 tax year and no 2027 value: it is not counted.
         [2027, 1, "market+appraised", true, "2026-11-07/read/preliminary"],
         [2026, 2, "market+appraised", false, "2026-07-20/file/certified"],
         [2025, 1, "market", false, "2025-07-25/file/null"],
+        // The two-year file: 2024 has market value only, 2022 both.
+        [2024, 1, "market", false, "2026-11-12/read/null"],
         [2023, 1, "market", false, "2026-11-09/file/null"],
+        [2022, 1, "market+appraised", false, "2026-11-12/read/null"],
       ],
     );
     assert.equal(f.counties[0]!.groups.recorded_sales.share, 1);
@@ -225,44 +272,56 @@ test("field availability: shares and roll years per county, computed from the fi
   }
 });
 
+const READ = (d: string) =>
+  `${d}, this file's as-of date, is the day the registry read it.`;
+const LATE = (y: number, d: string) =>
+  `This ${y} value comes from a file dated ${d}, after the ${y} roll year: it is the roll as the publisher held it on that date, which can differ from the roll as certified.`;
+
+function pyJson(code: string, ...args: string[]): unknown {
+  return JSON.parse(
+    execFileSync("python3", ["-c", code, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, PYTHONPATH: python },
+    }),
+  ) as unknown;
+}
+
+type Entry = Record<string, unknown> & {
+  file: { as_of: string; read_on: string; filename: string | null } | null;
+  notes: string[];
+};
+
 test("value history: each year says its value types, file and roll, with notes of what the files show; Python agrees", () => {
   const path = build();
   configureRegistry(path);
-  let p1: Record<string, unknown>[];
-  let p3: Record<string, unknown>[];
+  let p1: Entry[];
+  let p3: Entry[];
   try {
-    p1 = registryValueHistory(P1);
-    p3 = registryValueHistory(P3);
+    p1 = registryValueHistory(P1) as Entry[];
+    p3 = registryValueHistory(P3) as Entry[];
   } finally {
     configureRegistry(undefined);
   }
   assert.deepEqual(
     p1.map((e) => [e.tax_year, e.value_types, e.roll, e.notes]),
     [
-      [
-        2027,
-        ["market", "appraised"],
-        "preliminary",
-        [
-          "2026-11-07 is the date the registry read this file, not a date the publisher gave for the roll.",
-        ],
-      ],
+      [2027, ["market", "appraised"], "preliminary", [READ("2026-11-07")]],
       [2026, ["market", "appraised"], "certified", []],
-      [
-        2025,
-        ["market"],
-        null,
-        [
-          "The registry holds no value of this parcel for 2024, between the 2023 and 2025 entries.",
-        ],
-      ],
+      [2025, ["market"], null, []],
       [
         2023,
         ["market"],
         null,
         [
-          "This 2023 value comes from a file dated 2026-11-09, after the 2023 roll year: it is the roll as the publisher held it on that date, which can differ from the roll as certified.",
+          LATE(2023, "2026-11-09"),
+          "The registry holds no value of this parcel for 2024, between this 2023 entry and the 2025 entry.",
         ],
+      ],
+      [
+        2022,
+        ["market", "appraised"],
+        null,
+        [READ("2026-11-12"), LATE(2022, "2026-11-12")],
       ],
     ],
   );
@@ -272,22 +331,90 @@ test("value history: each year says its value types, file and roll, with notes o
     as_of: "2026-11-09",
     read_on: "2026-11-12",
   });
-  assert.deepEqual(p3[0]!.notes, [
-    "2026-11-02 is the date the registry read this file, not a date the publisher gave for the roll.",
-    "The 2025 and 2026 values come from files dated 2026-11-02 and 2026-11-02, the days the registry read them, so neither date is a certification date.",
-  ]);
-  const py = JSON.parse(
-    execFileSync(
-      "python3",
-      [
-        "-c",
-        "import json, sys; from factlot.registry.store import Registry; r = Registry.open_readonly(sys.argv[1]); print(json.dumps([r.value_history(u) for u in sys.argv[2:]]))",
-        path,
-        P1,
-        P3,
-      ],
-      { encoding: "utf8", env: { ...process.env, PYTHONPATH: python } },
-    ),
-  ) as unknown;
+  // The file name is shown URL-decoded.
+  assert.equal(p1[4]!.file!.filename, "multi year.csv");
+  // Two read-dated files of consecutive years: each says only its own date.
+  assert.deepEqual(
+    p3.map((e) => e.notes),
+    [[READ("2026-11-02")], [READ("2026-11-02")]],
+  );
+  const py = pyJson(
+    "import json, sys; from factlot.registry.store import Registry; r = Registry.open_readonly(sys.argv[1]); print(json.dumps([r.value_history(u) for u in sys.argv[2:]]))",
+    path,
+    P1,
+    P3,
+  );
   assert.deepEqual(py, JSON.parse(JSON.stringify([p1, p3])));
+});
+
+test("value history: an entry's notes name no file or date of another entry", () => {
+  const path = build();
+  configureRegistry(path);
+  try {
+    for (const urn of [P1, P2, P3]) {
+      const h = registryValueHistory(urn) as Entry[];
+      h.forEach((e, i) => {
+        const own = [String(e.as_of), e.file?.as_of, e.file?.read_on];
+        const others = h
+          .filter((_, j) => j !== i)
+          .flatMap((x) => [String(x.as_of), x.file?.as_of ?? ""])
+          .filter((d) => d && !own.includes(d));
+        for (const n of e.notes)
+          for (const d of others)
+            assert.ok(!n.includes(d), `${urn} ${String(e.tax_year)}: ${n}`);
+      });
+    }
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
+test("registry_coverage with fields: each county's compact field availability; Python agrees", () => {
+  const path = build();
+  configureRegistry(path);
+  let ts: unknown;
+  try {
+    const r = runTool("registry_coverage", { fields: true });
+    assert.ok(r.ok);
+    ts = r.result;
+    const plain = runTool("registry_coverage", {});
+    assert.ok(plain.ok);
+    assert.ok(
+      (plain.result as { counties: Record<string, unknown>[] }).counties.every(
+        (c) => !("fields" in c),
+      ),
+    );
+  } finally {
+    configureRegistry(undefined);
+  }
+  const py = pyJson(
+    "import json, sys; from factlot.registry.store import Registry; from factlot.registry import coverage; r = Registry.open_readonly(sys.argv[1]); print(json.dumps(coverage.tool_result(r.db, r.coverage(), fields=True)))",
+    path,
+  );
+  assert.deepEqual(py, JSON.parse(JSON.stringify(ts)));
+  const x = (
+    ts as { counties: { region: string; fields: unknown }[] }
+  ).counties.find((c) => c.region === "us-48999")!;
+  assert.deepEqual(
+    (x.fields as { roll_years: { tax_year: number }[] }).roll_years.map(
+      (y) => y.tax_year,
+    ),
+    [2027, 2026, 2025, 2024, 2023, 2022],
+  );
+});
+
+test("field availability: Python computes the same", () => {
+  const path = build();
+  configureRegistry(path);
+  let ts: unknown;
+  try {
+    ts = computeRegistryFields().counties;
+  } finally {
+    configureRegistry(undefined);
+  }
+  const py = pyJson(
+    "import json, sqlite3, sys; from factlot.registry.fields import field_availability; print(json.dumps(field_availability(sqlite3.connect(sys.argv[1]))))",
+    path,
+  );
+  assert.deepEqual(py, JSON.parse(JSON.stringify(ts)));
 });
