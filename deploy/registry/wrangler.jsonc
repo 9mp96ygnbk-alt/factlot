@@ -17,4 +17,9 @@
     "run_worker_first": true,
   },
   "observability": { "enabled": true },
+  // The object-storage backend (deploy/registry/src/r2_pack.ts, docs/registry/README.md "Hosted pack storage"), not
+  // enabled: the pack is read from a bucket, the live pack named by packs/current.json, released with
+  // `npm run sync:registry -- <pack dir>`. To stage it, uncomment and name a bucket:
+  // "r2_buckets": [{ "binding": "PACK_BUCKET", "bucket_name": "<pack bucket>" }],
+  // "vars": { "PACK_BACKEND": "r2", "PACK_POINTER": "packs/current.json", "PACK_POINTER_TTL_SECONDS": "30" },
 }

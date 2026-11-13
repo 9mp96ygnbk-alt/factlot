@@ -36,6 +36,7 @@
     "deploy:cloudflare": "npm run build && npm run build:site && node scripts/site/indexnow.mjs save && cd deploy/cloudflare && npx -y wrangler@4 deploy && cd ../.. && node scripts/site/indexnow.mjs ping",
     "pack:registry": "node --experimental-strip-types --conditions=factlot-source scripts/registry/pack.ts",
     "deploy:registry": "npm run build && node --experimental-strip-types scripts/registry/deploy.ts",
+    "sync:registry": "node --experimental-strip-types scripts/registry/sync_pack.ts",
     "ops:usage": "node --experimental-strip-types scripts/ops/usage.mjs",
     "test:hosted": "node --experimental-strip-types scripts/e2e/hosted.ts",
     "test:connectors:live": "node --experimental-strip-types --conditions=factlot-source scripts/conformance/live.ts"

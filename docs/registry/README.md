@@ -448,6 +448,104 @@ address has a page marked `noindex` and is not in the sitemaps. Page views do no
 the free daily registry lookups; each address may open 120 pages a minute. To have a record
 removed or corrected (for example one that names a person), email contact@factlot.com.
 
+## Hosted pack storage
+
+The hosted registry Worker (`deploy/registry`) answers every registry tool from a precomputed pack
+(`scripts/registry/pack.ts`). It reads the pack from one of two backends, chosen by the Worker
+variable `PACK_BACKEND`:
+
+- **`assets`** (the default, unchanged): the pack is uploaded as the Worker's static assets
+  (`npm run deploy:registry -- <pack>`), so a release is a Worker deploy of every changed file in
+  one upload session, capped at 100,000 files per Worker version.
+- **`r2`**: the pack lives in an object-storage bucket (Cloudflare R2, binding `PACK_BUCKET`), and
+  a small pointer object names the live pack. A release uploads only the changed files, from any
+  machine, and goes live by rewriting the pointer; the Worker is not redeployed.
+
+Both backends give the same answers byte for byte: the Worker tests run every parity check against
+both (`deploy/registry/src/worker.test.ts`), and `check_pack.ts --backend r2-memory` (a pack
+released into an in-memory bucket) or `--backend r2` (the real bucket) compares a bucket's answers
+with the registry files the pack was built from. The runtime refusal of withheld counties is in the
+pack reader both backends share.
+
+**Layout in the bucket.** `packs/<pack id>/<path>` holds each pack whole, exactly as `pack.ts` wrote
+it. `packs/<pack id>/_sync/complete.json` is written by the sync tool only after every file is
+uploaded and verified (pack id, `built_at`, file count, bytes, the manifest's SHA-256 and a hash
+of the full listing). `packs/current.json` is the pointer: the same fields for the live pack, and
+the pack it replaced (`previous`). A pack directory a pointer names is never changed; a new pack
+gets a new id (by default the pack directory's name). Packs are stored whole rather than
+deduplicated by content hash: a deduplicated store would make every read a lookup through a
+per-pack index, and the per-file MD5s and listing hash recorded today are what such a store would
+key on if storage across releases ever matters.
+
+**How the Worker reads it.** Each isolate reads the pointer at most once per
+`PACK_POINTER_TTL_SECONDS` (default 30) and answers only from a pack whose completion record
+matches the pointer and whose manifest hashes to the pointer's `manifest_sha256` (checked when the
+pack is opened and again at each pointer read). A missing, malformed or inconsistent pointer, or a
+pack whose upload did not finish, answers `503 PackUnavailable` with the reason: it never serves a
+half-synced pack. A bucket error while re-reading the pointer keeps the pack already checked for up
+to five minutes. Each request takes one pack and reads all its files through it, so a pointer
+switch never mixes two packs within a request; requests after the switch read the new pack (and
+start with a cold file cache). `PACK_POINTER` names another pointer object, so a second Worker can
+serve a staging pointer from the same bucket.
+
+**Releasing.** The sync tool takes credentials from the environment only and never prints them:
+`R2_ACCOUNT_ID` (or `R2_ENDPOINT` for a jurisdiction endpoint), `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY` (an R2 API token with Object Read & Write on the pack bucket only) and
+`R2_BUCKET`.
+
+```sh
+# check, upload what changed, verify, record complete, switch the pointer
+npm run sync:registry -- <pack dir> [--id <pack id>] [--no-switch] [--dry-run] [--concurrency 16]
+npm run sync:registry -- --status            # the pointer and the packs in the bucket
+npm run sync:registry -- --switch <pack id>  # point at an uploaded, verified pack
+npm run sync:registry -- --rollback          # back to the pack the pointer replaced
+npm run sync:registry -- --prune 3 [--dry-run] [--prune-incomplete]
+```
+
+A sync first runs the deploy script's refusals (no manifest, a withheld county served or not
+recorded as withheld, a file over 25 MiB, a file that is not a pack file; not the static-assets
+file-count cap). It hashes every file, lists `packs/<id>/`, and uploads only files that are
+missing or whose MD5 (R2's etag) or size differ, at most `--concurrency` at a time with retries per
+file; an interrupted sync is resumed by running the same command again. The verification pass then
+compares the full listing (every key, size and etag, the count and total bytes), the stored
+manifest's SHA-256, and a sample of files read back. Only then are the completion record and the
+pointer written; the pointer write is conditional on the pointer read, so two releases at once
+cannot both switch. `--switch` and `--rollback` check the target's completion record and stored
+manifest (format, withheld counties) before they move the pointer. `--prune <N>` keeps the N most
+recently verified packs and never deletes the current or previous pack of any pointer under
+`packs/`; a pack without a completion record (an upload in progress or abandoned) is kept unless
+`--prune-incomplete`. `--dry-run` without credentials only checks and hashes the pack.
+
+**Operations per lookup.** On `r2` every pack file read is one R2 `GetObject` (a Class B
+operation) and one Worker subrequest; on `assets` the same reads go to the assets binding. The
+number of files a call reads is the same on both backends (`check_pack.ts` prints it as "files
+read max"): on the fixture pack `registry_get`, `registry_owned_by`, `registry_resolve_external`,
+`registry_resolve_parcel` and `registry_search_address` read 1 file, `registry_search_entities` 2,
+`registry_tx_equity_candidates` 3, a batch of 6 to 7 subjects answered in one request up to 11
+(the hosted API sends a batch one subject per request), `registry_coverage` none; on the Texas
+pack the largest call reads about 60. On top of that an isolate reads 3 small objects (pointer,
+completion record, manifest) when it opens a pack and again once per pointer TTL, and the
+entity-name gram counts once. Files already in the isolate's cache (48 parsed files) are not read
+again. Workers Paid allows 10,000 subrequests per request by default; the reads of one call are
+made one after another, so the six-connection limit does not apply, but each read adds R2's
+latency to the call. A release costs one `PutObject` (Class A) per changed file, two listings
+(one `ListObjectsV2` per 1,000 objects) and the sampled reads.
+
+**Moving the hosted Worker to `r2`, in stages.**
+
+1. Create the bucket and a token limited to it; `npm run sync:registry -- <current pack> --id
+<pack id>` uploads, verifies and points `packs/current.json` at the pack the assets backend
+   serves. Nothing reads the bucket yet.
+2. Run the registry Worker on `r2` under another script name (a copy of `wrangler.jsonc` with
+   another `name`, the `PACK_BUCKET` binding uncommented and `PACK_BACKEND` set to `r2`), with no
+   route, reached only by a test caller; check `/health` names the pack.
+3. Compare: `check_pack.ts --backend r2 --pack <the same pack dir> ...` against the registry files
+   (zero mismatches), and the same calls against the production Worker.
+4. Switch: set `PACK_BACKEND=r2` and the binding on `factlot-registry` and deploy. Rolling back is
+   setting `PACK_BACKEND=assets` (the assets stay in the Worker version) or deploying the previous
+   version. Later releases are `sync:registry` alone; a pack above 100,000 files also needs the
+   builder's file cap (`pack.ts`, `PACK_MAX_FILES`) raised for this backend.
+
 ## Next
 
 1. **Texas adapters.** Harris, then Dallas, then the Comptroller entity data. Each adapter is

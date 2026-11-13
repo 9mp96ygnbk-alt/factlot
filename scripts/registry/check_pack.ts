@@ -3,7 +3,7 @@
  *
  *   node --experimental-strip-types --conditions=factlot-source scripts/registry/check_pack.ts \
  *     --pack <dir> --scratch <dir> [--exclude-county <FIPS>]... [--samples 2000] [--equity 2000] [--seed 1] \
- *     [--part i/n] [--reuse] <db | name=db>...
+ *     [--part i/n] [--reuse] [--backend assets|r2-memory|r2 [--pointer <key>]] <db | name=db>...
  *
  * Filters the files as pack.ts does (the same --exclude-county; entities of a large registry kept only where they
  * own a served parcel) and merges them into <scratch>/merged.db (one registry file holding every served region, as
@@ -16,6 +16,12 @@
  * file. --part i/n checks every n-th call from the i-th (run n processes to share the work). Prints counts and
  * timings only (never a name or a record); mismatches go to <scratch>/mismatches[-i].jsonl. CPU times are per call
  * on a fresh pack reader (every file read and parsed) except the name gram counts, which a Worker isolate keeps.
+ *
+ * --backend picks how the Worker side reads the pack: "assets" (default: the pack directory, as the static-assets
+ * backend), "r2-memory" (the pack released by sync_pack.ts into an in-memory bucket, then read through the pointer
+ * as the object-storage backend reads it), or "r2" (the bucket of the R2_* environment, through the pointer
+ * --pointer, default packs/current.json; --pack is still the local copy the calls are drawn from). On the r2
+ * backends "files read" is also the number of bucket reads (R2 Class B operations, Worker subrequests) per call.
  */
 import {
   copyFileSync,
@@ -38,7 +44,21 @@ import {
 } from "../../packages/tools/src/index.ts";
 import { fileAssets } from "../../deploy/registry/src/file_assets.ts";
 import { hostedOutcome } from "../../deploy/registry/src/hosted.ts";
-import { Pack } from "../../deploy/registry/src/store.ts";
+import { MemoryBucket } from "../../deploy/registry/src/memory_bucket.ts";
+import {
+  POINTER_KEY,
+  bucketText,
+  objectSource,
+  openPointedPack,
+  type GetText,
+} from "../../deploy/registry/src/r2_pack.ts";
+import {
+  Pack,
+  assetsSource,
+  type PackSource,
+} from "../../deploy/registry/src/store.ts";
+import { bindingStore, s3StoreFromEnv } from "./object_store.ts";
+import { syncPack } from "./sync_pack.ts";
 import { hostedWithheldCounties } from "../../packages/tools/src/registry.ts";
 import { filterRegistry, readSuppression } from "./pack.ts";
 import { runRegistryTool } from "../../deploy/registry/src/tools.ts";
@@ -112,6 +132,33 @@ interface Options {
   reuse: boolean;
   /** The suppression file the pack was built with (pack.ts --suppress). */
   suppress?: string;
+  backend: "assets" | "r2-memory" | "r2";
+  pointer: string;
+}
+
+/** The pack source the Worker side reads: the directory, or the pack a bucket's pointer names (checked as the Worker checks it). */
+async function packSource(o: Options): Promise<PackSource> {
+  if (o.backend === "assets") return assetsSource(fileAssets(o.pack));
+  let get: GetText;
+  if (o.backend === "r2-memory") {
+    const bucket = new MemoryBucket();
+    await syncPack(bindingStore(bucket), o.pack, {
+      id: "check",
+      log: () => {},
+    });
+    get = bucketText(bucket);
+  } else {
+    const store = s3StoreFromEnv();
+    get = async (key) => {
+      const r = await store.get(key);
+      return r ? new TextDecoder().decode(r.body) : undefined;
+    };
+  }
+  const opened = await openPointedPack(get, o.pointer);
+  console.log(
+    `${o.backend}: pack ${opened.pointer.pack_id} (built ${opened.pointer.built_at}, ${opened.pointer.files} files)`,
+  );
+  return objectSource(get, opened.pointer.pack_id);
 }
 
 function main(argv: string[]): void {
@@ -123,6 +170,8 @@ function main(argv: string[]): void {
     exclude: [],
     part: [0, 1],
     reuse: false,
+    backend: "assets",
+    pointer: POINTER_KEY,
   };
   const files: { name: string; path: string }[] = [];
   for (let i = 0; i < argv.length; i++) {
@@ -135,7 +184,15 @@ function main(argv: string[]): void {
     else if (a === "--exclude-county") o.exclude.push(argv[++i]!);
     else if (a === "--suppress") o.suppress = resolve(argv[++i]!);
     else if (a === "--reuse") o.reuse = true;
-    else if (a === "--part") {
+    else if (a === "--pointer") o.pointer = argv[++i]!;
+    else if (a === "--backend") {
+      const b = argv[++i]!;
+      if (b !== "assets" && b !== "r2-memory" && b !== "r2") {
+        console.error("--backend is assets, r2-memory or r2");
+        process.exit(2);
+      }
+      o.backend = b;
+    } else if (a === "--part") {
       const [x, n] = argv[++i]!.split("/").map(Number);
       o.part = [x!, n!];
     } else {
@@ -189,10 +246,11 @@ async function run(
   merged: string,
   files: { name: string; path: string; served: string }[],
 ): Promise<void> {
-  const { pack: packDir, scratch, samples } = o;
+  const { scratch, samples } = o;
   const d = new DatabaseSync(merged, { readOnly: true });
   const all = (sql: string, ...p: unknown[]) => d.prepare(sql).all(...p);
-  const manifest = (await new Pack(fileAssets(packDir)).manifest()) as Manifest;
+  const source = await packSource(o);
+  const manifest = (await new Pack(source).manifest()) as Manifest;
   const calls: Call[] = [];
   // A seeded order, so every --part process draws the same calls.
   const shuffle = `((rowid * 1103515245 + ${seed}) % 2147483629)`;
@@ -548,7 +606,7 @@ async function run(
     }
     want = hostedOutcome(manifest, mergedCoverage, c.tool, c.args, want);
     // Cold: a fresh pack reader, so every file is read and parsed (the manifest read is excluded below).
-    const pack = new Pack(fileAssets(packDir), pinned);
+    const pack = new Pack(source, pinned);
     await pack.manifest();
     const before = pack.reads;
     const t0 = cpuUsage();
