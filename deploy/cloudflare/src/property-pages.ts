@@ -548,7 +548,11 @@ async function pageResponse(
     .filter((r) => refsAllowed(parcelPageRefs(r), sourceOf, extra))
     .map((r) => ({
       path: propertyPath(r.urn)!,
-      label: headingAddress(situsAddress(r)) ?? `Parcel ${apnOf(r) ?? r.urn}`,
+      label:
+        headingAddress(
+          situsAddress(r),
+          counties.get(regionOf(r.urn))?.state ?? "",
+        ) ?? `Parcel ${apnOf(r) ?? r.urn}`,
     }));
 
   const place = counties.get(region) ?? { name: region, state: "" };
@@ -629,14 +633,21 @@ function yearsInWords(years: number[]): string {
 const e = (v: unknown): string => escapeHtml(String(v));
 
 /**
- * A situs address as a heading: a nine-digit ZIP written without its dash after a state code
- * ("DALLAS TX 752165628") reads as ZIP+4 ("DALLAS TX 75216-5628"). Nothing else changes, and the
- * fact row shows the publisher's own text.
+ * A situs address as a heading: a nine-digit ZIP written without its dash after the record's own
+ * state code ("DALLAS TX 752165628" on a Texas record) reads as ZIP+4 ("DALLAS TX 75216-5628").
+ * `state`: the two-letter code of the county the parcel is in. Nine digits after any other word
+ * ("BLDG NO 123456789", "1 ST 123456789") are left alone, as is everything else, and the fact row
+ * shows the publisher's own text.
  */
-export function headingAddress(address: string | null): string | null {
-  return address === null
-    ? null
-    : address.replace(/\b([A-Z]{2},? +\d{5})(\d{4})$/, "$1-$2");
+export function headingAddress(
+  address: string | null,
+  state: string,
+): string | null {
+  if (address === null || !/^[A-Z]{2}$/.test(state)) return address;
+  return address.replace(
+    new RegExp(`\\b(${state},? +\\d{5})(\\d{4})$`),
+    "$1-$2",
+  );
 }
 
 /** The file a locator names first ("real_acct.txt acct 0011440000001" gives real_acct.txt), or "". */
@@ -730,7 +741,7 @@ export function renderPropertyPage(input: RenderInput): string {
       .join(" ");
 
   const one = (p: string) => factsOf(rec, [p])[0];
-  const address = headingAddress(situsAddress(rec));
+  const address = headingAddress(situsAddress(rec), place.state);
   const apn = one("parcel.apn");
   const placeText = [place.name, place.state].filter(Boolean).join(", ");
   const rows: string[] = [];

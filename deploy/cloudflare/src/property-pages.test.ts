@@ -1021,19 +1021,28 @@ describe("property pages: the owner's other parcels", () => {
         `<a href="${pathOf(Q2)}">2 Q ST NW WASHINGTON DC 20001-1234</a>`,
       ),
     );
-    assert.equal(headingAddress("DALLAS TX 752165628"), "DALLAS TX 75216-5628");
     assert.equal(
-      headingAddress("1 MAIN ST, DALLAS, TX 752165628"),
+      headingAddress("DALLAS TX 752165628", "TX"),
+      "DALLAS TX 75216-5628",
+    );
+    assert.equal(
+      headingAddress("1 MAIN ST, DALLAS, TX 752165628", "TX"),
       "1 MAIN ST, DALLAS, TX 75216-5628",
     );
-    for (const same of [
-      "900 G ST NW WASHINGTON DC 20001",
-      "1 MAIN ST, HOUSTON TX 77002-1234",
-      "ACCOUNT 123456789",
-      "752165628 MAIN ST DALLAS TX",
-    ])
-      assert.equal(headingAddress(same), same);
-    assert.equal(headingAddress(null), null);
+    // Only after the record's own state code: nine digits after any other word stay as written.
+    for (const [same, state] of [
+      ["100 MAIN ST BLDG NO 123456789", "TX"],
+      ["1 ST 123456789", "TX"],
+      ["DALLAS TX 752165628", "DC"],
+      ["DALLAS TX 752165628", ""],
+      ["DALLAS TX 752165628", "tx"],
+      ["900 G ST NW WASHINGTON DC 20001", "DC"],
+      ["1 MAIN ST, HOUSTON TX 77002-1234", "TX"],
+      ["ACCOUNT 123456789", "TX"],
+      ["752165628 MAIN ST DALLAS TX", "TX"],
+    ] as const)
+      assert.equal(headingAddress(same, state), same, `${same} (${state})`);
+    assert.equal(headingAddress(null, "TX"), null);
   });
 });
 
