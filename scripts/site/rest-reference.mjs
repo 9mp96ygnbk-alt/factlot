@@ -61,13 +61,14 @@ function pickExample(inputs) {
 
 /**
  * The reference entries, in the data file's order: { tool, title, method, path, required,
- * fields?, example }. `catalog`: the tools of tools.json; `reportSchema`: report_create's JSON
- * Schema; `vectors(tool)`: candidate example inputs; `validate(tool, body)`: an error message, or
- * undefined when the body is a valid input. Throws on an unknown tool or an invalid example.
+ * fields?, paid?, example }. `catalog`: the tools of tools.json; `reportSchema`: report_create's
+ * JSON Schema; `vectors(tool)`: candidate example inputs; `validate(tool, body)`: an error message,
+ * or undefined when the body is a valid input; `paidTools`: the tools that need a Pro or Team key
+ * whatever their arguments (paidToolsOf). Throws on an unknown tool or an invalid example.
  */
 export function restReference(
   data,
-  { catalog, reportSchema, vectors, validate },
+  { catalog, reportSchema, vectors, validate, paidTools = new Set() },
 ) {
   const byName = new Map(catalog.map((t) => [t.name, t]));
   return data.tools.map((entry) => {
@@ -98,9 +99,28 @@ export function restReference(
       path: t.path,
       required: t.input_schema?.required ?? [],
       ...(entry.fields ? { fields: entry.fields } : {}),
+      ...(paidTools.has(t.name) ? { paid: true } : {}),
       example,
     };
   });
+}
+
+/**
+ * The tools that need a Pro or Team key whatever their arguments, from the paid-only list
+ * (site/_data/plans.json `paid_only`, written from PAID_ONLY in plans.ts): every tool of an entry
+ * that takes no argument and leaves Free nothing of that tool (the batch tools, the model-backed
+ * and account tools), and a tool an entry names whole after "and" (registry_recorded_facts).
+ */
+export function paidToolsOf(paidOnly) {
+  const out = new Set();
+  for (const f of paidOnly) {
+    if (f.arg) continue;
+    if (f.id === "batch" || f.free === "not included")
+      for (const t of f.tools) out.add(t);
+    for (const t of f.tools)
+      if (new RegExp(`, and ${t}$`).test(f.what)) out.add(t);
+  }
+  return out;
 }
 
 /** The REST section of /connect/. */
@@ -112,7 +132,8 @@ export function restReferenceHtml(entries, api = "https://api.factlot.com") {
         : e.required.length
           ? e.required.map((f) => `<code>${esc(f)}</code>`).join(", ")
           : "none";
-      return `<li id="rest-${esc(e.tool)}"><strong>${esc(e.tool)}</strong>: <code>${esc(e.method)} ${esc(e.path)}</code>. Required: ${fields}.<br><code>${esc(JSON.stringify(e.example))}</code></li>`;
+      const paid = e.paid ? " Needs a Pro or Team key." : "";
+      return `<li id="rest-${esc(e.tool)}"><strong>${esc(e.tool)}</strong>: <code>${esc(e.method)} ${esc(e.path)}</code>. Required: ${fields}.${paid}<br><code>${esc(JSON.stringify(e.example))}</code></li>`;
     })
     .join("\n");
   const first = entries[0];
@@ -142,6 +163,7 @@ export function restReferenceJson(entries, api = "https://api.factlot.com") {
       url: `${api}${e.path}`,
       required: e.required,
       ...(e.fields ? { fields: e.fields } : {}),
+      ...(e.paid ? { needs: "a Pro or Team key" } : {}),
       example: e.example,
     })),
   };

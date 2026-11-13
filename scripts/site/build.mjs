@@ -33,6 +33,7 @@ import {
   texasMap,
 } from "./texas-pages.mjs";
 import {
+  paidToolsOf,
   restReference,
   restReferenceHtml,
   restReferenceJson,
@@ -523,6 +524,7 @@ const restEntries = restReference(readJson("site/_data/rest-reference.json"), {
   catalog: tools,
   reportSchema: reportRequestJsonSchema(),
   vectors: (tool) => vectorInputs(root, tool),
+  paidTools: paidToolsOf(readJson("site/_data/plans.json").paid_only),
   validate: (tool, body) => {
     const schema =
       tool === "report_create"

@@ -7,6 +7,7 @@
  */
 import { tools } from "@factlot/tools";
 
+import { RECORDED_TOOL, isBatchRegistryTool } from "./gating.ts";
 import { MODEL_PATHS } from "./model-tools.ts";
 import { REPORT_TOOL_NAME } from "./reports.ts";
 
@@ -49,6 +50,24 @@ const routes = (o: HintOptions): (Route & { name?: string })[] => [
   { method: "GET", path: "/v1/account/usage" },
   { method: "POST", path: "/v1/billing/checkout" },
 ];
+
+/**
+ * Routes that need a Pro or Team key whatever the arguments (PAID_ONLY in plans.ts): the registry
+ * batch tools, registry_recorded_facts, the model-backed tools and the account routes.
+ */
+const PAID_PATHS: ReadonlySet<string> = new Set([
+  ...tools
+    .filter((t) => isBatchRegistryTool(t.name) || t.name === RECORDED_TOOL)
+    .map((t) => t.path),
+  ...MODEL_PATHS.keys(),
+  "/v1/account",
+  "/v1/account/usage",
+]);
+
+/** Whether a route needs a Pro or Team key whatever its arguments. */
+export function isPaidRoute(path: string): boolean {
+  return PAID_PATHS.has(path);
+}
 
 /** A path or tool name with `/v1/`, case and separators (/ - _ .) normalised away. */
 export function routeKey(pathOrName: string): string {
@@ -111,11 +130,13 @@ export async function withRouteHint(
     return res;
   const b = body as Record<string, unknown>;
   const right = `${route.method} ${route.path}`;
+  const paid = isPaidRoute(route.path);
   const out = new Response(
     JSON.stringify({
       ...b,
-      message: `${typeof b.message === "string" ? `${b.message}. ` : ""}Did you mean ${right}? Every route: ${apiBase}/openapi.json`,
+      message: `${typeof b.message === "string" ? `${b.message}. ` : ""}Did you mean ${right}${paid ? " (it needs a Pro or Team key)" : ""}? Every route: ${apiBase}/openapi.json`,
       did_you_mean: right,
+      ...(paid ? { needs: "a Pro or Team key" } : {}),
       next: `${route.method} ${apiBase}${route.path}`,
     }),
     res,

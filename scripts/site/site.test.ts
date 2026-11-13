@@ -1622,6 +1622,7 @@ describe("REST reference on /connect/", async () => {
     reportSchema: reportRequestJsonSchema(),
     vectors: (tool: string) =>
       ref.vectorInputs(new URL(".", root).pathname, tool),
+    paidTools: ref.paidToolsOf(plansData().paid_only),
     validate: (tool: string, body: unknown) => {
       const schema =
         tool === "report_create"
@@ -1674,6 +1675,33 @@ describe("REST reference on /connect/", async () => {
       assert.equal(e.path, t.path);
       assert.deepEqual(e.required, t.input_schema.required ?? []);
     }
+  });
+
+  it("says which routes need a Pro or Team key, from PAID_ONLY, and what address search needs", () => {
+    assert.deepEqual(
+      [...ref.paidToolsOf(plansData().paid_only)].sort(),
+      [
+        ...PAID_ONLY.find((f) => f.id === "batch")!.tools,
+        ...PAID_ONLY.find((f) => f.id === "model_tools")!.tools,
+        ...PAID_ONLY.find((f) => f.id === "account_tools")!.tools,
+        "registry_recorded_facts",
+      ].sort(),
+    );
+    for (const e of entries)
+      assert.equal(
+        e.paid === true,
+        e.tool.endsWith("_batch") && e.tool.startsWith("registry_"),
+        e.tool,
+      );
+    const html = ref.restReferenceHtml(entries);
+    assert.match(
+      html,
+      /registry_lookup_batch<\/strong>: <code>POST \/v1\/registry\/lookup\/batch<\/code>\. Required: <code>items<\/code>\. Needs a Pro or Team key\./,
+    );
+    assert.match(
+      html,
+      /registry_search_address<\/strong>: <code>POST \/v1\/registry\/search_address<\/code>\. Required: query \(or address\)\./,
+    );
   });
 
   it("refuses an example that is not a valid input", () => {

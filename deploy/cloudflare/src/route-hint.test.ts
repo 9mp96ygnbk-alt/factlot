@@ -3,7 +3,12 @@ import { describe, it } from "node:test";
 
 import { tools } from "@factlot/tools";
 
-import { routeHint, routeKey, withRouteHint } from "./route-hint.ts";
+import {
+  isPaidRoute,
+  routeHint,
+  routeKey,
+  withRouteHint,
+} from "./route-hint.ts";
 
 const ON = { reports: true, model: true };
 
@@ -113,6 +118,36 @@ describe("withRouteHint", () => {
       did_you_mean: "POST /v1/registry/get",
       next: "POST https://api.factlot.com/v1/registry/get",
     });
+  });
+
+  it("says when the route it names needs a Pro or Team key", async () => {
+    const res = await withRouteHint(
+      notFound("/v1/registry_lookup_batch"),
+      "/v1/registry_lookup_batch",
+      "https://api.factlot.com",
+      ON,
+    );
+    const b = (await res.json()) as Record<string, string>;
+    assert.equal(b.did_you_mean, "POST /v1/registry/lookup/batch");
+    assert.equal(b.needs, "a Pro or Team key");
+    assert.match(b.message!, /\(it needs a Pro or Team key\)\?/);
+    for (const t of tools)
+      assert.equal(
+        isPaidRoute(t.path),
+        t.name.endsWith("_batch") && t.name.startsWith("registry_")
+          ? true
+          : t.name === "registry_recorded_facts",
+        t.name,
+      );
+    const free = (await (
+      await withRouteHint(
+        notFound("/v1/registry_get"),
+        "/v1/registry_get",
+        "https://x",
+        ON,
+      )
+    ).json()) as Record<string, string>;
+    assert.equal(free.needs, undefined);
   });
 
   it("leaves other answers alone: not a near miss, not a 404, not JSON", async () => {

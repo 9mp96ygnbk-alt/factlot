@@ -6,7 +6,8 @@
       "example": {
         "query": "1000 Louisiana St",
         "limit": 5
-      }
+      },
+      "fields": "query (or address)"
     },
     {
       "tool": "registry_get",
