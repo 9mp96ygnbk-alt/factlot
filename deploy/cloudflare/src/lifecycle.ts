@@ -27,7 +27,9 @@
  *   lcdue:<yyyymmddhh>:<kind>:<h>:<id>  one time-based message's due hour (A2, A4, B1, B2), written
  *                    with the consent record; empty value. The sweep lists this prefix in date
  *                    order, handles what is due and deletes it; KV deletes it on its own
- *                    DUE_UNTIL_DAYS + 2 days after it falls due, as a backstop.
+ *                    DUE_UNTIL_DAYS + 2 days after it falls due, as a backstop. Note: an entry
+ *                    keeps the address hash until then even after its record is deleted (the
+ *                    privacy notice says so).
  *   lcmark:<kind>:<h> which messages were sent (time) or failed ("failed:<time>"): ids and times
  *                    only, no address. A failed message is marked so it stops being due. Written
  *                    with a MARK_TTL_DAYS expiry (the once-only claims last as long), so a mark

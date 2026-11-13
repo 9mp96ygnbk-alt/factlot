@@ -257,6 +257,7 @@ function emptyAnswer(op: string, a: Args): unknown {
     case "digest_claim":
       return { claimed: false, email: null, alert_id: null, changes: [] };
     case "prune":
+    case "keys_seen":
       return { ok: true };
   }
   return undefined;
@@ -524,6 +525,7 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       };
     case "prune":
       prune(sql, nowOf(a));
+      if (a.keys_seen === true) deleteMeta(sql, "no_keys");
       return { ok: true };
     case "pending": {
       // Watched URNs not yet compared in check `seq` (and not given up for it), the oldest
@@ -643,12 +645,15 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       return { stored, skipped };
     }
     case "no_keys": {
-      // Distinct checks in a row that found no key record for the subscription.
+      // The current streak of checks that found no key record: distinct check numbers seen, and
+      // when the streak began. Any other outcome ends it (keys_seen).
       const seq = Number(a.seq);
-      const [last, n] = (getMeta(sql, "no_keys") ?? "0|0").split("|");
+      const now = nowOf(a);
+      const [last, n, first] = (getMeta(sql, "no_keys") ?? "0|0|").split("|");
       const count = Number(last) === seq ? Number(n) : Number(n) + 1;
-      setMeta(sql, "no_keys", `${seq}|${count}`);
-      return { count };
+      const firstAt = first ? Number(first) : now;
+      setMeta(sql, "no_keys", `${seq}|${count}|${firstAt}`);
+      return { count, since_ms: now - firstAt };
     }
     case "check_state": {
       // Subjects whose reads are failing, or were given up for check `seq`.
@@ -754,9 +759,23 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
         ).map(changeRow),
       };
     }
-    case "digest_release":
-      // The email could not be sent: a later run may try again.
-      deleteMeta(sql, `digest:${Number(a.seq)}`);
+    case "digest_release": {
+      // The email could not be sent: a later run may try again, up to maxFails times; then the
+      // digest is marked not sent for this check (its changes stay readable) and the check ends.
+      const seq = Number(a.seq);
+      const fails = Number(getMeta(sql, `digest_fails:${seq}`) ?? 0) + 1;
+      if (fails >= Number(a.maxFails ?? 5)) {
+        setMeta(sql, `digest:${seq}`, "not sent");
+        deleteMeta(sql, `digest_fails:${seq}`);
+        return { given_up: true };
+      }
+      setMeta(sql, `digest_fails:${seq}`, String(fails));
+      deleteMeta(sql, `digest:${seq}`);
+      return { given_up: false };
+    }
+    case "keys_seen":
+      // A key record was found (or the list could not be read): the no-key streak ends.
+      deleteMeta(sql, "no_keys");
       return { ok: true };
   }
   throw new Error(`unknown watch op ${op}`);

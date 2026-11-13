@@ -70,6 +70,8 @@ export const WATCH_CHECK = {
   leaseMs: 14 * 60_000,
   /** Failed reads in a row before a subject is given up for one check. */
   maxFails: 3,
+  /** Failed digest sends for one check before it is marked not sent. */
+  maxDigestFails: 5,
   /** Subjects watch_changes compares inline when the pack is newer. */
   inlineReads: 25,
   /** Changes listed in one email. */
@@ -586,13 +588,16 @@ export async function subscriptionPlan(
 }
 
 /**
- * Checks in a row that found no key record at all before a subscription's watch data is deleted.
  * A subscription cancelled while watch lists were off has no webhook left to delete it, and its
- * key records expire 365 days after it became inactive. KV staleness lasts seconds to a minute
- * and checks are a registry update apart (days), so three distinct checks with no record at all
- * cannot be a half-seen write.
+ * key records expire 365 days after it became inactive. Its watch data is deleted only after an
+ * unbroken streak of checks that found no key record at all, lasting BOTH at least
+ * NO_KEY_CHECKS_BEFORE_DELETE distinct check numbers AND at least NO_KEY_DAYS_BEFORE_DELETE days
+ * since the first of them: check numbers alone can come quickly when two packs alternate during
+ * a gradual registry deploy, and KV staleness lasts seconds to a minute. Any other outcome (a key
+ * record seen, an unreadable list) ends the streak.
  */
 export const NO_KEY_CHECKS_BEFORE_DELETE = 3;
+export const NO_KEY_DAYS_BEFORE_DELETE = 7;
 
 type Outcome = "done" | "later" | "budget";
 
@@ -607,13 +612,23 @@ async function checkSubscription(
   report: CheckReport,
 ): Promise<Outcome> {
   const plan = await subscriptionPlan(env, subscription);
-  if (plan === "skip") return "later";
+  if (plan === "skip") {
+    ctx.spend(1);
+    await watch.sub(subscription, "keys_seen", {});
+    return "later";
+  }
   if (plan === "none") {
     ctx.spend(1);
-    const n = await watch.sub<{ count: number }>(subscription, "no_keys", {
-      seq,
-    });
-    if (n.count < NO_KEY_CHECKS_BEFORE_DELETE) return "later";
+    const n = await watch.sub<{ count: number; since_ms: number }>(
+      subscription,
+      "no_keys",
+      { seq, now: ctx.now() },
+    );
+    if (
+      n.count < NO_KEY_CHECKS_BEFORE_DELETE ||
+      n.since_ms < NO_KEY_DAYS_BEFORE_DELETE * 86_400_000
+    )
+      return "later";
     ctx.spend(2);
     await forgetWatch(env, subscription);
     report.subscriptions_deleted++;
@@ -630,6 +645,7 @@ async function checkSubscription(
     ctx.spend(1);
     await watch.sub(subscription, "prune", {
       now: new Date(ctx.now()).toISOString(),
+      keys_seen: true,
     });
     return "done";
   }
@@ -694,9 +710,13 @@ async function checkSubscription(
       report.digests++;
     else {
       ctx.spend(1);
-      await watch.sub(subscription, "digest_release", { seq });
-      // Not done: a later run sends it.
-      return "later";
+      const rel = await watch.sub<{ given_up: boolean }>(
+        subscription,
+        "digest_release",
+        { seq, maxFails: WATCH_CHECK.maxDigestFails },
+      );
+      // Not done: a later run sends it (after maxDigestFails failures it is marked not sent).
+      if (!rel.given_up) return "later";
     }
   }
   return "done";

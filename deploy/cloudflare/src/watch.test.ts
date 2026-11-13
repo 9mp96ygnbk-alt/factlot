@@ -1879,22 +1879,125 @@ describe("watch lists: second review", () => {
     assert.deepEqual({ ...row }, { fails: 0, skipped_seq: 0 });
   });
 
-  it("W8: a subscription with no key record at all is deleted after three distinct checks", async () => {
-    const s = setup();
-    const key = await issue(s.env);
-    await s.call(rest("add", { urns: [P1] }, key));
+  /** Delete every key record and key list, as if they had expired long ago. */
+  const dropKeys = async (s: ReturnType<typeof setup>) => {
     for (const k of [...s.env.KEYS.data.keys()])
       if (k.startsWith("key:") || k.startsWith("sub:"))
         await s.env.KEYS.delete(k);
+  };
+  const weekly = async (s: ReturnType<typeof setup>, week: number) => {
+    s.clock.t = T0 + week * 7 * 86_400_000;
+    release(s, `pack-week-${week}`, () => {});
+    await runWatchCheck(s.env, { now: () => s.clock.t });
+    await runWatchCheck(s.env, { now: () => s.clock.t });
+  };
+
+  it("W8: no key record at all for three distinct checks and seven days: deleted, not before", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    await dropKeys(s);
     const tables = () =>
       s.space.object("watch:sub:sub_1").storage.tables().length;
-    for (const [n, day] of ["12", "19", "26"].entries()) {
-      release(s, `2026-11-${day}T00:00:00Z`, () => {});
-      // Several runs of one check count once.
-      await runWatchCheck(s.env);
-      await runWatchCheck(s.env);
-      if (n < 2) assert.ok(tables() > 0, `after check ${n + 1}`);
-    }
+    await weekly(s, 0);
+    await weekly(s, 1);
+    assert.ok(tables() > 0, "two checks are not enough");
+    await weekly(s, 2);
     assert.equal(tables(), 0);
+  });
+});
+
+describe("watch lists: third review", () => {
+  const dropKeys = async (s: ReturnType<typeof setup>) => {
+    for (const k of [...s.env.KEYS.data.keys()])
+      if (k.startsWith("key:") || k.startsWith("sub:"))
+        await s.env.KEYS.delete(k);
+  };
+  const tables = (s: ReturnType<typeof setup>) =>
+    s.space.object("watch:sub:sub_1").storage.tables().length;
+
+  it("6: packs alternating within an hour never delete a subscription with no key record", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    await dropKeys(s);
+    for (let i = 0; i < 8; i++) {
+      s.clock.t += 10 * 60_000;
+      release(s, i % 2 ? "pack-a" : "pack-b", () => {});
+      await runWatchCheck(s.env, { now: () => s.clock.t });
+    }
+    assert.ok(tables(s) > 0);
+  });
+
+  it("6: a key record seen between two no-key checks starts the streak again", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    const saved = new Map(
+      [...s.env.KEYS.data].filter(
+        ([k]) => k.startsWith("key:") || k.startsWith("sub:"),
+      ),
+    );
+    const week = async (n: number) => {
+      s.clock.t = T0 + n * 7 * 86_400_000;
+      release(s, `w${n}`, () => {});
+      await runWatchCheck(s.env, { now: () => s.clock.t });
+    };
+    await dropKeys(s);
+    await week(0);
+    await week(1);
+    // The keys are back for one check (a key record seen).
+    for (const [k, v] of saved) s.env.KEYS.data.set(k, v);
+    await week(2);
+    await dropKeys(s);
+    await week(3);
+    await week(4);
+    assert.ok(tables(s) > 0, "the streak restarted at week 3");
+    await week(5);
+    assert.equal(tables(s), 0);
+  });
+
+  it("7: watch_alerts without an address does not report an expired pending address", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(
+      rest("alerts", { enabled: true, email: "new@example.com" }, key),
+    );
+    s.clock.t += 25 * 3_600_000;
+    const res = await s.call(rest("alerts", { enabled: true }, key));
+    assert.equal(res.status, 400);
+    assert.match(
+      String(((await res.json()) as Rec).message),
+      /email is needed/,
+    );
+  });
+
+  it("8: a digest that keeps failing is marked not sent after five tries, and the check completes", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    await confirmAlerts(s, key, "owner@example.com");
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
+    );
+    let tries = 0;
+    s.email.binding.send = async () => {
+      tries++;
+      throw new Error("nope");
+    };
+    const orig = console.error;
+    console.error = () => {};
+    let last;
+    try {
+      for (let i = 0; i < 10; i++) last = await runWatchCheck(s.env);
+    } finally {
+      console.error = orig;
+    }
+    assert.equal(tries, 5);
+    assert.equal(last!.state, "done");
+    const c = (await (await s.call(rest("changes", {}, key))).json()) as {
+      changes: Rec[];
+    };
+    assert.equal(c.changes.length, 1, "the change stays readable");
   });
 });

@@ -10,6 +10,9 @@
  *   watch_changes    POST /v1/watch/changes    changes since a cursor
  *   watch_alerts     POST /v1/watch/alerts     turn the per-update email on (with an address) or off
  *
+ * Note: the per-request cap on watch_add and watch_changes counts only watch calls; other calls in
+ * the same MCP batch are limited by their own rules.
+ *
  * Only a Pro or Team key (or a paid OAuth connection) gets the tools listed; any other caller
  * gets PlanRequired, unmetered. With the variable off the tools are not listed, the REST paths
  * answer 404, the account page shows nothing and no check runs.
@@ -886,7 +889,7 @@ export async function setAlerts(
       "alert emails are not available on this server yet; watch_changes works without them.",
       "use watch_changes",
     );
-  const cur = await W.sub<AlertState>(c.subscription, "alerts_get");
+  const cur = await W.sub<AlertState>(c.subscription, "alerts_get", { now });
   let address: string;
   if (email === undefined || email === null || email === "") {
     if (!cur.email && !cur.pending_email)
