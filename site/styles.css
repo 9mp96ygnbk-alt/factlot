@@ -1945,11 +1945,6 @@ h3 > .cite {
   stroke-width: 1.5;
 }
 
-.audience .a-d {
-  stroke: var(--line-2);
-  stroke-dasharray: 3 3;
-}
-
 .audience h3 {
   margin: 0 0 0.75rem;
   font-size: 1.35rem;
