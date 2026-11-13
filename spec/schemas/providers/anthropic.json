@@ -6068,7 +6068,7 @@
     },
     {
       "name": "registry_search_address",
-      "description": "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. No match returns coverage: what this registry holds. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
+      "description": "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. After the first comma, give the city, state and ZIP code ('1200 Main St, Houston, TX 77002'): when they name a state (two letters or the full name) or a ZIP code, only parcels in that state (or the ZIP code's state) are returned, those with the ZIP code first, then those in the city, then the rest of the state, before the limit is applied; a part that cannot be read as a city, state or ZIP code is ignored. No match returns coverage: what this registry holds, in the named state when there is one. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -6076,7 +6076,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 500,
-            "description": "Street address, or a house number and street words, or a street name with its type."
+            "description": "Street address ('1200 Main St, Houston, TX 77002'), or a house number and street words, or a street name with its type; the city, state and ZIP code after the first comma narrow and order the matches."
           },
           "limit": {
             "default": 20,

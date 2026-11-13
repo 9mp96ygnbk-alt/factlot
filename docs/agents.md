@@ -228,7 +228,7 @@ carries this in `disclaimer` (it is not repeated in `warnings`); pass it on.
 | Step                      | Tool                                                                                                       |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | What is covered           | `registry_coverage`                                                                                        |
-| Find the subject's URN    | `registry_resolve_parcel`                                                                                  |
+| Find the subject's URN    | `registry_resolve_parcel` (account number), or `registry_search_address` with the city, state and ZIP code |
 | Subject's value history   | `registry_tx_equity_candidates` (`subject.value_history`)                                                  |
 | Candidate parcels         | `registry_tx_equity_candidates` (`candidates`)                                                             |
 | The comparison arithmetic | `calc_tx_unequal_appraisal`, on comparables and adjustments the user chose                                 |
@@ -241,6 +241,12 @@ carries this in `disclaimer` (it is not repeated in `warnings`); pass it on.
 (`FACTLOT_REGISTRY_DB`) answers the same tools for the districts it holds. For a county that is not
 covered, the user reads values from the appraisal district's own property search and passes them
 to the calculator directly.
+
+**Finding a parcel by address.** Give `registry_search_address` the whole address, as
+`"1200 Main St, Houston, TX 77002"`: the street line finds the matches, and the state (or the ZIP
+code's state) keeps only parcels in that state, those with the ZIP code first, then those in the
+city. A miss names what the registry holds in that state, so "no match in Massachusetts: only the
+City of Boston is loaded" is an answer, not a reason to retry without the state.
 
 ### Worked example: a Harris County parcel
 

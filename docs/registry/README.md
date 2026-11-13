@@ -354,6 +354,25 @@ St"). A city or state name, or part of a word, alone matches nothing ("Ontario" 
 "ONTARIO RD NW"), and the miss says what to send instead. `spec/registry/normalize.json`
 (`address_queries`) pins how a query is read in both languages. A query that finds nothing is searched once more with the ordinal endings of its street numbers dropped ("W 42nd St" as "W 42 St"), because some rolls write numbered streets bare; a match as written wins, and the first word of the query is left as it is.
 
+**The place after the street line.** The rest of the query (after its first comma) is read from
+its end: a 5-digit ZIP code (or ZIP+4), then a state (two letters, or the full name), then the
+city (the words left in that comma part, or the comma part before). A city is letters only and
+does not start with a unit word ("Suite 400" is not a city); "Washington" with nothing before it
+is the city, not the state; two letters after a unit word ("Unit CO") make the part unreadable.
+A query naming a ZIP code but no state is read as naming the ZIP code's state (by its first three
+digits). When the query names a state, only parcels in that state (from the parcel URN,
+`fl:parcel:us-<state FIPS><county FIPS>:…`) are returned, before the limit: first those whose
+situs address has the ZIP code, then those in the city, then the rest of the state, each group in
+the usual order (an exact address first, then by label). A city or ZIP code without a state orders
+the matches the same way without dropping any. A part that cannot be read, or a query without a
+comma, leaves the search as it was. When the street line matches only outside the named state,
+the answer is a miss whose `coverage` says what the registry holds in that state ("of MA this
+registry holds Suffolk County, MA (25025, … parcels)"; the hosted registry adds "only the City of
+Boston is loaded"), or that the state is not loaded. The ordinal retry keeps to the same state. A
+street type alone ("Loop, Houston, TX") is placed among its first 100 matching addresses only,
+because the hosted index keeps no more for a one-word query. `spec/registry/normalize.json`
+(`address_places`, `address_place_ranks`) pins the reading and the order in both languages.
+
 **Source snapshots over MCP.** Every registry fact cites a `document_id` (`fl:document:sha256-…`),
 the content hash of the source file. With a registry loaded, the MCP `fetch` tool returns that
 snapshot's publisher, dataset, source URL, retrieval and as-of dates, licence, AI-use and
