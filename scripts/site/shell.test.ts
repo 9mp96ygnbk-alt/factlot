@@ -25,6 +25,7 @@ import { connectBody, connectData, connectFigure } from "./connect.mjs";
 import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import { marketBody, marketCard, hostedMarkets } from "./market-pages.mjs";
 import * as shell from "./shell.mjs";
+import { published } from "./site-files.mjs";
 import {
   HOME_CONNECT,
   connectTile,
@@ -620,6 +621,33 @@ describe("the hand-written sources", () => {
       words(pricingSource.slice(from, to)).replace("$0", ""),
       /\d/,
       "a pricing plan card states a number by hand",
+    );
+  });
+
+  it("nothing named _* under site/ is published, at any depth, nor a Markdown note", () => {
+    for (const kept of [
+      "_content/pricing.html",
+      "_data/plans.json",
+      "_preview/index.html",
+      "_design",
+      "try/_notes/draft.html",
+      "fonts/_unused.woff2",
+      "README.md",
+      "try/NOTES.md",
+    ])
+      assert.equal(published(kept), false, kept);
+    for (const out of [
+      "",
+      "index.html",
+      "styles.css",
+      "try/try.js",
+      "fonts/OFL-GeistMono.txt",
+      "under_score.html",
+    ])
+      assert.equal(published(out), true, out);
+    assert.match(
+      read("scripts/site/build.mjs"),
+      /filter: \(src\) => published\(path\.relative\(path\.join\(root, "site"\), src\)\),/,
     );
   });
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds factlot.com into one folder: copies site/ (without its notes and _content/) and renders
+// Builds factlot.com into one folder: copies site/ (without its notes and anything named _*) and renders
 // the pages generated from the tool catalog and the shared vectors. Every number on a generated
 // page is computed here by the built packages and checked against a vector case, and the build
 // fails on a broken internal link, an external script or stylesheet, or JSON-LD that does not parse.
@@ -63,6 +63,7 @@ import {
 } from "./market-pages.mjs";
 import { FIELDS_LEAD, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
 import { headLinks, siteFooter, siteHeader } from "./shell.mjs";
+import { published } from "./site-files.mjs";
 import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import {
   indexBody,
@@ -1350,14 +1351,7 @@ ${Object.keys(byState)
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(root, "site"), out, {
   recursive: true,
-  filter: (src) => {
-    const rel = path.relative(path.join(root, "site"), src);
-    return (
-      !rel.startsWith("_content") &&
-      !rel.startsWith("_data") &&
-      !rel.endsWith(".md")
-    );
-  },
+  filter: (src) => published(path.relative(path.join(root, "site"), src)),
 });
 // The hand-written pages name the shell where it goes; the same header, footer and head links as
 // every generated page are put there. Nothing else in them is touched.
