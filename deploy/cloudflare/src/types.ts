@@ -10,6 +10,16 @@ export interface KV {
     options?: { expirationTtl?: number },
   ): Promise<void>;
   delete(key: string): Promise<void>;
+  /** Optional: list keys by prefix (the Workers KV binding has it; the lifecycle sweep uses it). */
+  list?(options: {
+    prefix?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<{
+    keys: { name: string }[];
+    list_complete: boolean;
+    cursor?: string;
+  }>;
 }
 
 export interface RateLimit {
@@ -186,4 +196,15 @@ export interface Env {
   USAGE_COUNTERS_ENABLED?: string;
   /** "true" opens the free API key by email (POST /v1/keys/free, /account/free-key). Anything else, or unset: off, the routes answer 404 and the form is not shown. */
   FREE_KEY_ENABLED?: string;
+  /**
+   * "true" turns the lifecycle emails on (lifecycle.ts): the optional-email consent boxes, the
+   * stop link, the optional notes and the checkout return link. Anything else, or unset: off, no
+   * lifecycle message is sent, the boxes are not shown and the stop route answers 404.
+   */
+  LIFECYCLE_EMAILS_ENABLED?: string;
+  /**
+   * The operator's postal address as one line, printed in the footer of every optional note.
+   * Without it no optional note is sent.
+   */
+  POSTAL_ADDRESS?: string;
 }
