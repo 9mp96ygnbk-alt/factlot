@@ -95,9 +95,8 @@ class Normalization(unittest.TestCase):
             self.assertEqual(address_place(raw), expected, raw)
         for query, urn, label, rank in vectors["address_place_ranks"]:
             self.assertEqual(address_place_rank(address_place(query), urn, label), rank, f"{query} / {label}")
-        self.assertEqual(zip_state("02150"), "MA")
-        self.assertEqual(zip_state("73301"), "TX")
-        self.assertEqual(zip_state("20500"), "DC")
+        for zip5, st in vectors["zip_states"]:
+            self.assertEqual(zip_state(zip5), st, zip5)
         self.assertIsNone(zip_state("09012"), "a military ZIP code has no state")
 
     def test_county_names_match_the_census_table(self):

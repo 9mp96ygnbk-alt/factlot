@@ -108,6 +108,9 @@ export async function searchAddress(
   if (mode === null) return [];
   const line = query.split(",")[0] ?? "";
   const place = addressPlace(query);
+  // A state the pack holds no parcel in: nothing can match there, so the list is not read.
+  if (place.state !== null && !m.coverage.totals.states.includes(place.state))
+    return [];
   const keys = addressSearchKeysFor(m.versions.address_key_version, line);
   if (keys.length !== 1)
     throw new Error("the pack holds version 1 address keys");

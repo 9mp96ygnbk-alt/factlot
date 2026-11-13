@@ -951,8 +951,9 @@ export function zipState(zip: string): string | null {
   return ZIP_PREFIX_STATES.find(([lo, hi]) => p >= lo && p <= hi)?.[2] ?? null;
 }
 
-/** Words that start a unit or mailbox, never a city ("Suite 400", "Apt B"). */
-const NOT_A_CITY: ReadonlySet<string> = new Set([
+/** Unit, floor, suite, box, room, building and number words: a comma part holding one is a unit, not a place. */
+const UNIT_WORDS: ReadonlySet<string> = new Set([
+  "#",
   "APT",
   "BLDG",
   "BOX",
@@ -960,8 +961,11 @@ const NOT_A_CITY: ReadonlySet<string> = new Set([
   "DEPT",
   "FL",
   "FLOOR",
+  "FLR",
   "LOT",
   "NO",
+  "NUM",
+  "NUMBER",
   "PO",
   "RM",
   "ROOM",
@@ -971,12 +975,38 @@ const NOT_A_CITY: ReadonlySet<string> = new Set([
   "SUITE",
   "UNIT",
 ]);
-const COUNTRY: ReadonlySet<string> = new Set([
-  "US",
-  "USA",
-  "UNITED STATES",
-  "UNITED STATES OF AMERICA",
-]);
+const ORDINAL_UNIT = /^[0-9]+(?:ST|ND|RD|TH)$/;
+const COUNTRY_TAILS: string[][] = [
+  ["UNITED", "STATES", "OF", "AMERICA"],
+  ["UNITED", "STATES"],
+  ["U", "S", "A"],
+  ["U", "S"],
+  ["USA"],
+  ["US"],
+];
+
+/** A unit word, or a floor ordinal ("12th" in "12th Fl"). */
+function isUnitWord(w: string): boolean {
+  return UNIT_WORDS.has(w) || ORDINAL_UNIT.test(w);
+}
+
+/** A city: one to five words of letters, none a unit word. */
+function isCityWords(w: string[] | undefined): boolean {
+  return (
+    !!w &&
+    w.length > 0 &&
+    w.length <= 5 &&
+    w.every((x) => /^[A-Z]+$/.test(x) && !isUnitWord(x))
+  );
+}
+
+function placeWords(part: string): string[] {
+  return part
+    .toUpperCase()
+    .replaceAll("#", " # ")
+    .split(/[^A-Z0-9#]+/)
+    .filter((w) => w !== "");
+}
 
 export interface AddressPlace {
   /** City words, upper case, one space apart ("LOS ANGELES"), or null. */
@@ -985,18 +1015,22 @@ export interface AddressPlace {
   state: string | null;
   /** 5-digit ZIP code, or null. */
   zip: string | null;
-  /** The state was read from the ZIP code, not named. */
+  /** The state is the ZIP code's: the query names none, or names one the ZIP code is not in. */
   state_from_zip: boolean;
 }
 
 /**
- * The place a `registry_search_address` query names after its street line (`address_place` in Python): the
- * part after the first comma, read from its end. A 5-digit ZIP code (or ZIP+4), then a two-letter state or
- * a state's full name, then the city: the words left before them in the same comma part, or the comma part
- * before. A city is letters only and does not start with a unit word ("Suite"); "Washington" with nothing
- * before it is read as the city, not the state, and two letters after a unit word ("Unit CO") make the tail
- * unreadable. A state the query does not name is the state of its ZIP code. What cannot be read this way is
- * ignored, and a query without a comma names no place.
+ * The place a `registry_search_address` query names after its street line (`address_place` in Python), read
+ * conservatively from the end of the part after the first comma:
+ * - a trailing country ("USA", "U.S.A.", "US", "United States") is dropped, and "D.C." is DC;
+ * - a ZIP code is a 5-digit number (or ZIP+4) that ends the query and does not follow a unit, suite, box, room,
+ *   building or number word ("Suite 12345" is not a ZIP code);
+ * - a state (two letters, or the full name) counts only when it follows a city, in its comma part or the one
+ *   before, or precedes the ZIP code, and never after a unit word or floor ordinal ("12th Fl", "Unit CO");
+ * - when the ZIP code is in another state than the one named, the ZIP code wins (a state's full name is then
+ *   read as the city: "Washington 20001" is Washington, DC);
+ * - the city is the comma part left at the end: one to five words of letters, none a unit word.
+ * A state the query does not name is the ZIP code's. Anything else is ignored; no comma, no place.
  */
 export function addressPlace(query: string): AddressPlace {
   const none: AddressPlace = {
@@ -1010,73 +1044,88 @@ export function addressPlace(query: string): AddressPlace {
   const parts = query
     .slice(comma + 1)
     .split(",")
-    .map((p) =>
-      p
-        .toUpperCase()
-        .split(/[^A-Z0-9]+/)
-        .filter((w) => w !== ""),
-    )
+    .map(placeWords)
     .filter((p) => p.length > 0);
-  if (parts.length && COUNTRY.has(parts[parts.length - 1]!.join(" ")))
-    parts.pop();
-  if (!parts.length) return none;
-  const words = (): string[] => parts[parts.length - 1]!;
+  const last = (): string[] | undefined => parts[parts.length - 1];
   const drop = (n: number) => {
-    words().splice(words().length - n, n);
-    if (!words().length) parts.pop();
+    const w = last()!;
+    w.splice(w.length - n, n);
+    if (!w.length) parts.pop();
   };
+  const tail = (w: string[], k: number) => w.slice(w.length - k).join(" ");
+  if (last()) {
+    const c = COUNTRY_TAILS.find(
+      (t) =>
+        last()!.length >= t.length && tail(last()!, t.length) === t.join(" "),
+    );
+    if (c) drop(c.length);
+  }
+  // "D.C." and "D C" are DC.
+  for (const w of parts)
+    for (let i = w.length - 2; i >= 0; i--)
+      if (w[i] === "D" && w[i + 1] === "C") w.splice(i, 2, "DC");
   let zip: string | null = null;
-  let w = words();
-  const n = w.length;
-  if (n >= 2 && /^[0-9]{5}$/.test(w[n - 2]!) && /^[0-9]{4}$/.test(w[n - 1]!)) {
-    zip = w[n - 2]!;
-    drop(2);
-  } else if (/^[0-9]{5}$/.test(w[n - 1]!)) {
-    zip = w[n - 1]!;
-    drop(1);
+  if (last()) {
+    const w = last()!;
+    const n = w.length;
+    const k =
+      n >= 2 && /^[0-9]{5}$/.test(w[n - 2]!) && /^[0-9]{4}$/.test(w[n - 1]!)
+        ? 2
+        : /^[0-9]{5}$/.test(w[n - 1]!)
+          ? 1
+          : 0;
+    if (k) {
+      const before = w[n - k - 1];
+      // "Suite 12345", "PO Box 12345": a unit's number, and the part is no place.
+      if (before !== undefined && before !== "FL" && isUnitWord(before))
+        return none;
+      zip = w[n - k]!;
+      drop(k);
+    }
   }
-  let state: string | null = null;
-  if (parts.length) {
-    w = words();
-    const last = w[w.length - 1]!;
-    // Not "Unit CO" or "Ste OK": a unit's letter.
-    if (last.length === 2 && STATES.has(last)) {
-      if (w.length >= 2 && NOT_A_CITY.has(w[w.length - 2]!)) return none;
-      state = last;
-      drop(1);
+  const zs = zip === null ? null : zipState(zip);
+  let named: string | null = null;
+  if (last()) {
+    const w = last()!;
+    let k = 0;
+    let st: string | null = null;
+    const end = w[w.length - 1]!;
+    if (end.length === 2 && STATES.has(end)) {
+      k = 1;
+      st = end;
     } else
-      for (let k = Math.min(3, w.length); k >= 1; k--) {
-        const name = w.slice(w.length - k).join(" ");
-        if (!Object.hasOwn(STATE_NAMES, name)) continue;
-        // "Washington" alone is the city (DC) more often than the state.
-        if (
-          name === "WASHINGTON" &&
-          zip === null &&
-          parts.length === 1 &&
-          w.length === 1
-        )
+      for (let j = Math.min(3, w.length); j >= 1; j--)
+        if (Object.hasOwn(STATE_NAMES, tail(w, j))) {
+          k = j;
+          st = STATE_NAMES[tail(w, j)]!;
           break;
-        state = STATE_NAMES[name]!;
-        drop(k);
-        break;
+        }
+    if (st !== null) {
+      const rest = w.slice(0, w.length - k);
+      const before = rest[rest.length - 1];
+      const city = rest.length
+        ? isCityWords(rest)
+        : isCityWords(parts[parts.length - 2]);
+      if (
+        (before === undefined || !isUnitWord(before)) &&
+        (zip !== null || city)
+      ) {
+        if (zs !== null && zs !== st) {
+          // A two-letter code the ZIP code contradicts is dropped; a full name stays, read as the city.
+          if (k === 1 && end.length === 2) drop(1);
+        } else {
+          named = st;
+          drop(k);
+        }
       }
+    }
   }
-  let city: string | null = null;
-  if (parts.length) {
-    const c = words();
-    if (
-      c.length <= 5 &&
-      c.every((x) => /^[A-Z]+$/.test(x)) &&
-      !NOT_A_CITY.has(c[0]!)
-    )
-      city = c.join(" ");
-  }
-  const fromZip = state === null && zip !== null && zipState(zip) !== null;
+  const c = last();
   return {
-    city,
-    state: state ?? (zip === null ? null : zipState(zip)),
+    city: isCityWords(c) ? c!.join(" ") : null,
+    state: named ?? zs,
     zip,
-    state_from_zip: fromZip,
+    state_from_zip: named === null && zs !== null,
   };
 }
 

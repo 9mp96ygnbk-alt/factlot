@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code; the state of a ZIP code the query names without a state). 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state).",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code; the ZIP code's state when the query names none or another), read conservatively: unit, floor and box text and a bare two-letter or full state name with no city and no ZIP code name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state). 'zip_states': the state of a ZIP code by its first three digits (null for none).",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -272,8 +272,8 @@
     [
       "1 Main St, New York",
       {
-        "city": null,
-        "state": "NY",
+        "city": "NEW YORK",
+        "state": null,
         "zip": null,
         "state_from_zip": false
       }
@@ -326,8 +326,8 @@
     [
       "1 Main St, district of columbia",
       {
-        "city": null,
-        "state": "DC",
+        "city": "DISTRICT OF COLUMBIA",
+        "state": null,
         "zip": null,
         "state_from_zip": false
       }
@@ -401,6 +401,807 @@
         "city": "TULSA",
         "state": "OK",
         "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "633 3rd St NW, Washington, DC",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "633 3rd St NW, Washington",
+      {
+        "city": "WASHINGTON",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Indiana, PA",
+      {
+        "city": "INDIANA",
+        "state": "PA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Indiana",
+      {
+        "city": "INDIANA",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Oregon, OH",
+      {
+        "city": "OREGON",
+        "state": "OH",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Delaware, OH",
+      {
+        "city": "DELAWARE",
+        "state": "OH",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1200 Main St, Suite 4, Houston, TX",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "10 Oak St, PO Box 5, LA",
+      {
+        "city": "LA",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "5 Elm St, Unit IN",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "12 Pine St, OR",
+      {
+        "city": "OR",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "100 Main St, ME",
+      {
+        "city": "ME",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Los Angeles, CA 90071-1234",
+      {
+        "city": "LOS ANGELES",
+        "state": "CA",
+        "zip": "90071",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "500 W 5th St, 78701",
+      {
+        "city": null,
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "500 W 5th St, 12345 Building",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "500 W 5th St, Suite 12345",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, PO Box 12345",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, New Mexico",
+      {
+        "city": "NEW MEXICO",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Albuquerque, North Carolina",
+      {
+        "city": "ALBUQUERQUE",
+        "state": "NC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, District of Columbia",
+      {
+        "city": "DISTRICT OF COLUMBIA",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Washington, District of Columbia",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Houston, TX 77002 USA",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": "77002",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Houston, TX 77002, USA",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": "77002",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Houston TX US",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Washington, D.C.",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Washington, D.C. 20001",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": "20001",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Kansas City, Missouri",
+      {
+        "city": "KANSAS CITY",
+        "state": "MO",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Salt Lake City, UT",
+      {
+        "city": "SALT LAKE CITY",
+        "state": "UT",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, HOUSTON, tx",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, houston, texas",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, ıstanbul, TX",
+      {
+        "city": "ISTANBUL",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Straße, TX",
+      {
+        "city": "STRASSE",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Ho uston, TX",
+      {
+        "city": "HO USTON",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St,Houston,TX",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, , TX",
+      {
+        "city": "TX",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, 78701-",
+      {
+        "city": null,
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "1 Main St, 787011234",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, TX 78701",
+      {
+        "city": null,
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Houston, 78701",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "1 Main St, Mt Pleasant, TX",
+      {
+        "city": "MT PLEASANT",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Winston-Salem, NC",
+      {
+        "city": "WINSTON SALEM",
+        "state": "NC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Washington 20001",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": "20001",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "1 Main St, WA",
+      {
+        "city": "WA",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Washington, WA",
+      {
+        "city": "WASHINGTON",
+        "state": "WA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Washington State",
+      {
+        "city": "WASHINGTON STATE",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Los Angeles, California USA",
+      {
+        "city": "LOS ANGELES",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Ste OK",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Apt 3, DC",
+      {
+        "city": "DC",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Santa Fe Springs, CA",
+      {
+        "city": "SANTA FE SPRINGS",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Rancho Santa Margarita, CA",
+      {
+        "city": "RANCHO SANTA MARGARITA",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, East Palo Alto, CA",
+      {
+        "city": "EAST PALO ALTO",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Dr, CA",
+      {
+        "city": "DR",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, N",
+      {
+        "city": "N",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Houston, TX, 77002",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": "77002",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, 77002, Houston, TX",
+      {
+        "city": "HOUSTON",
+        "state": "TX",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "Ave, Los Angeles, CA",
+      {
+        "city": "LOS ANGELES",
+        "state": "CA",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, VI",
+      {
+        "city": "VI",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, GU",
+      {
+        "city": "GU",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, PR",
+      {
+        "city": "PR",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1100 K St, 12th Fl",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "100 Park Ave, 5th Fl",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1100 K St NW, Suite 12345",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "100 Park Ave, Suite 12345",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "500 W 5th St, Suite 90210",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1100 K St, NE",
+      {
+        "city": "NE",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Broadway, LA",
+      {
+        "city": "LA",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, OR",
+      {
+        "city": "OR",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, ME",
+      {
+        "city": "ME",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, IN",
+      {
+        "city": "IN",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, OK",
+      {
+        "city": "OK",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, HI",
+      {
+        "city": "HI",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1100 K St, Washington 20001",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": "20001",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "1100 K St, Washington, 20001",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": "20001",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "1 Main St, Delaware",
+      {
+        "city": "DELAWARE",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Oregon",
+      {
+        "city": "OREGON",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Kansas",
+      {
+        "city": "KANSAS",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Florida",
+      {
+        "city": "FLORIDA",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1600 Pennsylvania Ave NW, Washington, D.C.",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1600 Pennsylvania Ave NW, Washington D C 20500",
+      {
+        "city": "WASHINGTON",
+        "state": "DC",
+        "zip": "20500",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Houston, U.S.A.",
+      {
+        "city": "HOUSTON",
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Austin, CA 78701",
+      {
+        "city": "AUSTIN",
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": true
+      }
+    ],
+    [
+      "1 Main St, Ste 5, TX 78701",
+      {
+        "city": null,
+        "state": "TX",
+        "zip": "78701",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, # 12345",
+      {
+        "city": null,
+        "state": null,
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Unit 5, Tampa FL 33601",
+      {
+        "city": "TAMPA",
+        "state": "FL",
+        "zip": "33601",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Tampa, FL",
+      {
+        "city": "TAMPA",
+        "state": "FL",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Brooklyn, New York",
+      {
+        "city": "BROOKLYN",
+        "state": "NY",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Charleston West Virginia",
+      {
+        "city": "CHARLESTON",
+        "state": "WV",
+        "zip": null,
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, Kansas City MO 64106",
+      {
+        "city": "KANSAS CITY",
+        "state": "MO",
+        "zip": "64106",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "1 Main St, 12th Fl, New York, NY 10001",
+      {
+        "city": "NEW YORK",
+        "state": "NY",
+        "zip": "10001",
+        "state_from_zip": false
+      }
+    ],
+    [
+      "500 Broadway, Chelsea, MA 02150 United States",
+      {
+        "city": "CHELSEA",
+        "state": "MA",
+        "zip": "02150",
         "state_from_zip": false
       }
     ]
@@ -502,5 +1303,47 @@
       "100 MAIN ST, SUITE 400",
       2
     ]
+  ],
+  "zip_states": [
+    ["90071", "CA"],
+    ["94105", "CA"],
+    ["96199", "CA"],
+    ["96200", null],
+    ["80202", "CO"],
+    ["81699", "CO"],
+    ["81700", null],
+    ["06103", "CT"],
+    ["05999", "VT"],
+    ["06000", "CT"],
+    ["06999", "CT"],
+    ["07000", "NJ"],
+    ["20001", "DC"],
+    ["20099", "DC"],
+    ["20100", "VA"],
+    ["20500", "DC"],
+    ["20599", "DC"],
+    ["20600", "MD"],
+    ["02150", "MA"],
+    ["02799", "MA"],
+    ["02800", "RI"],
+    ["01000", "MA"],
+    ["00999", "PR"],
+    ["21201", "MD"],
+    ["21999", "MD"],
+    ["22000", "VA"],
+    ["10036", "NY"],
+    ["14999", "NY"],
+    ["15000", "PA"],
+    ["77002", "TX"],
+    ["73301", "TX"],
+    ["73200", null],
+    ["73400", "OK"],
+    ["75000", "TX"],
+    ["79999", "TX"],
+    ["84111", "UT"],
+    ["84799", "UT"],
+    ["84800", null],
+    ["1234", null],
+    ["ABCDE", null]
   ]
 }

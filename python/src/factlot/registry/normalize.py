@@ -1074,10 +1074,15 @@ ZIP_PREFIX_STATES = (
     (850, 865, "AZ"), (870, 884, "NM"), (885, 885, "TX"), (889, 898, "NV"), (900, 961, "CA"), (967, 968, "HI"),
     (970, 979, "OR"), (980, 994, "WA"), (995, 999, "AK"),
 )
-_NOT_A_CITY = frozenset("APT BLDG BOX BUILDING DEPT FL FLOOR LOT NO PO RM ROOM SPACE SPC STE SUITE UNIT".split())
-_COUNTRY = frozenset({"US", "USA", "UNITED STATES", "UNITED STATES OF AMERICA"})
+# Unit, floor, suite, box, room, building and number words: a comma part holding one is a unit, not a place.
+_UNIT_WORDS = frozenset("# APT BLDG BOX BUILDING DEPT FL FLOOR FLR LOT NO NUM NUMBER PO RM ROOM SPACE SPC STE SUITE "
+                        "UNIT".split())
+_ORDINAL_UNIT = re.compile(r"[0-9]+(?:ST|ND|RD|TH)")
+_COUNTRY_TAILS = (("UNITED", "STATES", "OF", "AMERICA"), ("UNITED", "STATES"), ("U", "S", "A"), ("U", "S"), ("USA",),
+                  ("US",))
 _POSTAL = frozenset(s.upper() for s in STATE_BY_FIPS.values())
 _WORDS = re.compile(r"[^A-Z0-9]+")
+_PLACE_WORDS = re.compile(r"[^A-Z0-9#]+")
 # A street-type word alone ("Loop") is matched among this many matches only (after those whose address is that word
 # exactly) when the query names a place: the hosted index keeps no more (ADDRESS_ONE_WORD_CANDIDATES in TS).
 ADDRESS_ONE_WORD_CANDIDATES = 100
@@ -1095,67 +1100,95 @@ def _words(text: str) -> list[str]:
     return [w for w in _WORDS.split(text.upper()) if w]
 
 
+def _is_unit_word(w: str) -> bool:
+    """A unit word, or a floor ordinal ("12th" in "12th Fl")."""
+    return w in _UNIT_WORDS or bool(_ORDINAL_UNIT.fullmatch(w))
+
+
+def _is_city_words(w: list[str] | None) -> bool:
+    """A city: one to five words of letters, none a unit word."""
+    return bool(w) and len(w) <= 5 and all(re.fullmatch(r"[A-Z]+", x) and not _is_unit_word(x) for x in w)
+
+
 def address_place(query: str) -> dict[str, Any]:
     """The place an address query names after its street line (``addressPlace`` in TS):
-    ``{"city", "state", "zip", "state_from_zip"}``.
-
-    The part after the first comma, read from its end: a 5-digit ZIP code (or ZIP+4), then a two-letter state or a
-    state's full name, then the city: the words left before them in the same comma part, or the comma part before.
-    A city is letters only and does not start with a unit word ("Suite"); "Washington" with nothing before it is read
-    as the city, not the state, and two letters after a unit word ("Unit CO") make the tail unreadable. A state the
-    query does not name is the state of its ZIP code. What cannot be read this way is ignored, and a query without a
-    comma names no place.
+    ``{"city", "state", "zip", "state_from_zip"}``, read conservatively from the end of the part after the first
+    comma: a trailing country ("USA", "U.S.A.", "US", "United States") is dropped and "D.C." is DC; a ZIP code is a
+    5-digit number (or ZIP+4) that ends the query and does not follow a unit, suite, box, room, building or number
+    word; a state (two letters, or the full name) counts only when it follows a city, in its comma part or the one
+    before, or precedes the ZIP code, and never after a unit word or floor ordinal; when the ZIP code is in another
+    state than the one named, the ZIP code wins (a full name is then read as the city); the city is the comma part
+    left at the end. A state the query does not name is the ZIP code's. Anything else is ignored; no comma, no place.
     """
     none = {"city": None, "state": None, "zip": None, "state_from_zip": False}
     if "," not in query:
         return none
-    parts = [w for w in (_words(p) for p in query.split(",")[1:]) if w]
-    if parts and " ".join(parts[-1]) in _COUNTRY:
-        parts.pop()
-    if not parts:
-        return none
+    parts = [w for w in ([x for x in _PLACE_WORDS.split(p.upper().replace("#", " # ")) if x]
+                         for p in query.split(",")[1:]) if w]
 
     def drop(n: int) -> None:
         del parts[-1][len(parts[-1]) - n:]
         if not parts[-1]:
             parts.pop()
 
+    def tail(w: list[str], k: int) -> str:
+        return " ".join(w[len(w) - k:])
+
+    if parts:
+        c = next((t for t in _COUNTRY_TAILS if len(parts[-1]) >= len(t) and tail(parts[-1], len(t)) == " ".join(t)),
+                 None)
+        if c:
+            drop(len(c))
+    # "D.C." and "D C" are DC.
+    for w in parts:
+        for i in range(len(w) - 2, -1, -1):
+            if w[i] == "D" and w[i + 1] == "C":
+                w[i:i + 2] = ["DC"]
     zip5 = None
-    w = parts[-1]
-    if len(w) >= 2 and re.fullmatch(r"[0-9]{5}", w[-2]) and re.fullmatch(r"[0-9]{4}", w[-1]):
-        zip5 = w[-2]
-        drop(2)
-    elif re.fullmatch(r"[0-9]{5}", w[-1]):
-        zip5 = w[-1]
-        drop(1)
-    state = None
     if parts:
         w = parts[-1]
-        # Not "Unit CO" or "Ste OK": a unit's letter.
-        if len(w[-1]) == 2 and w[-1] in _POSTAL:
-            if len(w) >= 2 and w[-2] in _NOT_A_CITY:
-                return none
-            state = w[-1]
-            drop(1)
+        n = len(w)
+        if n >= 2 and re.fullmatch(r"[0-9]{5}", w[-2]) and re.fullmatch(r"[0-9]{4}", w[-1]):
+            k = 2
+        elif re.fullmatch(r"[0-9]{5}", w[-1]):
+            k = 1
         else:
-            for k in range(min(3, len(w)), 0, -1):
-                name = " ".join(w[len(w) - k:])
-                if name not in STATE_NAMES:
-                    continue
-                # "Washington" alone is the city (DC) more often than the state.
-                if name == "WASHINGTON" and zip5 is None and len(parts) == 1 and len(w) == 1:
-                    break
-                state = STATE_NAMES[name]
-                drop(k)
-                break
-    city = None
+            k = 0
+        if k:
+            before = w[n - k - 1] if n - k - 1 >= 0 else None
+            # "Suite 12345", "PO Box 12345": a unit's number, and the part is no place.
+            if before is not None and before != "FL" and _is_unit_word(before):
+                return none
+            zip5 = w[n - k]
+            drop(k)
+    zs = zip_state(zip5) if zip5 is not None else None
+    named = None
     if parts:
-        c = parts[-1]
-        if len(c) <= 5 and all(re.fullmatch(r"[A-Z]+", x) for x in c) and c[0] not in _NOT_A_CITY:
-            city = " ".join(c)
-    from_zip = state is None and zip5 is not None and zip_state(zip5) is not None
-    return {"city": city, "state": state if state is not None else (zip_state(zip5) if zip5 else None),
-            "zip": zip5, "state_from_zip": from_zip}
+        w = parts[-1]
+        k, st = 0, None
+        end = w[-1]
+        if len(end) == 2 and end in _POSTAL:
+            k, st = 1, end
+        else:
+            for j in range(min(3, len(w)), 0, -1):
+                if tail(w, j) in STATE_NAMES:
+                    k, st = j, STATE_NAMES[tail(w, j)]
+                    break
+        if st is not None:
+            rest = w[:len(w) - k]
+            before = rest[-1] if rest else None
+            city = _is_city_words(rest) if rest else (len(parts) >= 2 and _is_city_words(parts[-2]))
+            if (before is None or not _is_unit_word(before)) and (zip5 is not None or city):
+                if zs is not None and zs != st:
+                    # A two-letter code the ZIP code contradicts is dropped; a full name stays, read as the city.
+                    if k == 1 and len(end) == 2:
+                        drop(1)
+                else:
+                    named = st
+                    drop(k)
+    c = parts[-1] if parts else None
+    return {"city": " ".join(c) if _is_city_words(c) else None, "state": named if named is not None else zs,
+            "zip": zip5, "state_from_zip": named is None and zs is not None}
 
 
 _LABEL_ZIP_AFTER_COMMA = re.compile(r"(?:^|[^0-9A-Z_])([0-9]{5})(?:[- ]?[0-9]{1,4})?\s*$")

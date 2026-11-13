@@ -53,6 +53,7 @@ import { SharedPages, listPages, type Manifest } from "./format.ts";
 import { hostedOutcome, partialCounties, type HostedScope } from "./hosted.ts";
 import { addressListKey } from "./search.ts";
 import { Pack } from "./store.ts";
+import { runRegistryTool } from "./tools.ts";
 import { handle } from "./worker.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
@@ -314,15 +315,15 @@ function searchCalls(): Call[] {
     "9 nw industrial way",
     // The place after the street line (the fixture's second state is Maryland, county 24998).
     "300 Harbor Dr, Shoreville",
-    "300 Harbor Dr, MD",
+    "300 Harbor Dr, Shoreville, MD",
     "300 Harbor Dr, 77999",
     "Tower Ct, Shoreville, MD 21998",
     "Tower Ct, Bayside, Maryland",
     "Dr, Shoreville, MD",
-    "St, MD",
+    "St, Shoreville, MD",
     "Ct, Example City, TX 77999",
-    "8 W 9th St, MD",
-    "200 River Rd, MD",
+    "8 W 9th St, Shoreville, MD",
+    "200 River Rd, Shoreville, MD",
     "200 River Rd, 21999",
     "100 Main St, Suite 400",
     "100 Main St, New York, NY",
@@ -809,7 +810,7 @@ test("numbered streets written without the ordinal are found by a query that has
 
 test("a street-type word alone with a place is placed among the matches the pack keeps, like runTool", async () => {
   // 110 parcels on a Texas loop whose labels sort before the Maryland one ("8 W 9 Street"): the pack's "U:LOOP" list keeps the
-  // first 100 URNs, so "Loop, MD" finds nothing there, and the SDK places the query among the same 100.
+  // first 100 URNs, so "Loop, Shoreville, MD" finds nothing there, and the SDK places the query among the same 100.
   const x = join(dir, "one-word.db");
   copyFileSync(fixture, x);
   const d = new DatabaseSync(x);
@@ -831,10 +832,10 @@ test("a street-type word alone with a place is placed among the matches the pack
   const list: Call[] = [];
   for (const query of [
     "Loop",
-    "Loop, MD",
+    "Loop, Shoreville, MD",
     "Loop, TX",
     "Loop, Shoreville",
-    "B Loop, MD",
+    "B Loop, Shoreville, MD",
   ])
     for (const limit of [1, 20, 100])
       list.push({ tool: "registry_search_address", args: { query, limit } });
@@ -845,8 +846,78 @@ test("a street-type word alone with a place is placed among the matches the pack
         await worker(fileAssets(pack), "registry_search_address", { query }),
       ) as { result: { results: { urn: string }[] } }
     ).result.results.map((r) => r.urn);
-  assert.deepEqual(await found("Loop, MD"), []);
-  assert.deepEqual(await found("B Loop, MD"), ["fl:parcel:us-24998:20-0005"]);
+  assert.deepEqual(await found("Loop, Shoreville, MD"), []);
+  assert.deepEqual(await found("B Loop, Shoreville, MD"), [
+    "fl:parcel:us-24998:20-0005",
+  ]);
+});
+
+test("a same-ZIP match late in a long list comes first: the scan reads on while the top group is unfilled", async () => {
+  // 800 Texas parcels on Tower Ct in ZIP code 77999 whose labels sort first (two pages of the shared list), and
+  // one in 77001 whose label sorts last.
+  const x = join(dir, "late-zip.db");
+  copyFileSync(fixture, x);
+  const d = new DatabaseSync(x);
+  const values: string[] = [];
+  for (let i = 0; i < 800; i++) {
+    const n = `0${String(i).padStart(3, "0")}`;
+    const urn = `fl:parcel:us-48999:tower-${n}`;
+    d.exec(
+      `INSERT INTO subjects VALUES ('${urn}', 'parcel', 'tower${n}', '${n} Tower Ct, Example City TX 77999')`,
+    );
+    values.push(`('${n} TOWER CT EXAMPLE CITY TX 77999', '${urn}')`);
+  }
+  const late = "fl:parcel:us-48999:tower-late";
+  d.exec(
+    `INSERT INTO subjects VALUES ('${late}', 'parcel', 'towerlate', '99 Tower Ct, Example City TX 77001')`,
+  );
+  values.push(`('99 TOWER CT EXAMPLE CITY TX 77001', '${late}')`);
+  d.exec(`INSERT INTO address_index VALUES ${values.join(", ")}`);
+  d.close();
+  const pack = join(dir, "pack-late-zip");
+  buildPack([{ name: "x", path: x }], pack);
+  const list: Call[] = [];
+  for (const query of [
+    "Tower Ct, Example City, TX 77001",
+    "Tower Ct, 77001",
+    "Tower Ct, Example City, TX",
+    "Tower Ct, Shoreville, MD 21999",
+  ])
+    for (const limit of [1, 5, 100])
+      list.push({ tool: "registry_search_address", args: { query, limit } });
+  assert.deepEqual(await compare(pack, x, list), []);
+  const assets = fileAssets(pack);
+  const first = async (query: string) =>
+    (
+      JSON.parse(
+        await worker(assets, "registry_search_address", { query, limit: 1 }),
+      ) as { result: { results: { urn: string }[] } }
+    ).result.results[0]?.urn;
+  assert.equal(await first("Tower Ct, Example City, TX 77001"), late);
+  assert.equal(await first("Tower Ct, 77001"), late);
+  assert.notEqual(await first("Tower Ct, Example City, TX"), late);
+});
+
+test("a state the pack does not hold is answered without reading the address lists", async () => {
+  const pack = new Pack(fileAssets(join(dir, "pack")));
+  await pack.manifest();
+  const before = pack.reads;
+  const out = await runRegistryTool(pack, "registry_search_address", {
+    query: "1 Main St, Phoenix, AZ 85004",
+    limit: 20,
+  });
+  assert.equal(pack.reads, before, "no pack file read");
+  const r = (
+    out as {
+      ok: true;
+      result: { results: unknown[]; coverage: { message: string } };
+    }
+  ).result;
+  assert.deepEqual(r.results, []);
+  assert.match(
+    r.coverage.message,
+    /^no parcel matched: AZ is not loaded in this registry/,
+  );
 });
 
 test("every pack withholds Tarrant, even when --exclude-county is left out", async () => {

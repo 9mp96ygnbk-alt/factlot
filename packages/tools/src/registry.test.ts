@@ -195,7 +195,7 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       urns({ query: "300 Harbor Dr, Example City, TX" }),
       harborTx,
     );
-    assert.deepEqual(urns({ query: "300 Harbor Dr, MD" }), [md(2)]);
+    assert.deepEqual(urns({ query: "300 Harbor Dr, Shoreville, MD" }), [md(2)]);
     assert.deepEqual(urns({ query: "300 Harbor Dr, 77999" }), harborTx);
     assert.deepEqual(urns({ query: "300 Harbor Dr, Shoreville" }), [
       md(2),
@@ -222,7 +222,7 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       md(1),
     ]);
     // Matched only in another state: a miss that says what the named state holds.
-    const river = at({ query: "200 River Rd, MD" }) as {
+    const river = at({ query: "200 River Rd, Shoreville, MD" }) as {
       results: unknown[];
       coverage: { state: string; state_loaded: boolean; message: string };
     };
@@ -241,11 +241,68 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       String(at({ query: "100 Main St, Austin, CA" }).coverage?.message),
       /^no parcel matched: CA is not loaded in this registry/,
     );
+    // Unit, floor, box and quadrant text, a bare two-letter code and a bare state name name no state: the street
+    // line is searched as before, and a miss never says a state the caller did not clearly name "is not loaded".
+    for (const query of [
+      "1100 K St, 12th Fl",
+      "100 Park Ave, 5th Fl",
+      "1100 K St NW, Suite 12345",
+      "100 Park Ave, Suite 12345",
+      "500 W 5th St, Suite 90210",
+      "1 Main St, PO Box 12345",
+      "1100 K St, NE",
+      "1 Broadway, LA",
+      "10 Oak St, PO Box 5, LA",
+      "1 Main St, OR",
+      "1 Main St, ME",
+      "1 Main St, Indiana",
+      "1 Main St, Delaware",
+      "1 Main St, Oregon",
+      "1 Main St, Kansas",
+      "1 Main St, Florida",
+    ]) {
+      const r = at({ query }) as {
+        coverage?: { state: unknown; message: string };
+      };
+      assert.equal(r.coverage?.state, null, query);
+      assert.doesNotMatch(String(r.coverage?.message), /is not loaded/, query);
+    }
+    assert.equal(
+      urns({ query: "100 Main St, MD" })?.length,
+      2,
+      "a bare code filters nothing",
+    );
+    // A ZIP code beside a state it is not in wins: Washington 20001 is DC, and Example City 77999 is Texas.
+    for (const query of [
+      "1100 K St, Washington 20001",
+      "1100 K St, Washington, 20001",
+    ])
+      assert.match(
+        String(at({ query }).coverage?.message),
+        /^no parcel matched: ZIP code 20001 is in DC, which is not loaded/,
+        query,
+      );
+    assert.deepEqual(
+      urns({ query: "300 Harbor Dr, Example City, MD 77999" }),
+      harborTx,
+    );
+    // Country words and "D.C." after the place.
+    assert.deepEqual(urns({ query: "100 Main St, Shoreville, MD 21999 USA" }), [
+      md(1),
+    ]);
+    assert.equal(
+      (
+        at({ query: "200 River Rd, Shoreville MD" }).coverage as {
+          state?: string;
+        }
+      ).state,
+      "MD",
+    );
     // The ordinal retry keeps to the place: "8 W 9th St" matches as written in Texas only.
     const nine = "fl:parcel:us-48999:0005-000-0001";
     assert.deepEqual(urns({ query: "8 W 9th St" }), [nine]);
     assert.deepEqual(urns({ query: "8 W 9th St, Example City, TX" }), [nine]);
-    assert.deepEqual(urns({ query: "8 W 9th St, MD" }), [md(5)]);
+    assert.deepEqual(urns({ query: "8 W 9th St, Shoreville, MD" }), [md(5)]);
     // Recorded deeds, mortgages and satisfactions are many-valued too, newest first; an energy report is single-valued.
     const dates = (predicate: string) =>
       parcel.facts
@@ -536,6 +593,7 @@ test("name and address normalization match the Python vectors", () => {
     address_queries: [string, { mode: string | null; tokens: string[] }][];
     address_places: [string, Record<string, unknown>][];
     address_place_ranks: [string, string, string, number][];
+    zip_states: [string, string | null][];
   };
   for (const [input, expected] of v.names)
     assert.equal(normalizeName(input), expected, input);
@@ -553,10 +611,162 @@ test("name and address normalization match the Python vectors", () => {
       rank,
       `${query} / ${label}`,
     );
-  assert.equal(zipState("02150"), "MA");
-  assert.equal(zipState("73301"), "TX");
-  assert.equal(zipState("20500"), "DC");
+  for (const [zip, st] of v.zip_states) assert.equal(zipState(zip), st, zip);
   assert.equal(zipState("09012"), null, "a military ZIP code has no state");
+});
+
+test("address places and ranks: TypeScript matches Python on random queries", () => {
+  // A small seeded generator (mulberry32), so a failure reproduces.
+  let seed = 20261112;
+  const rand = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const pick = <T>(a: T[]): T => a[Math.floor(rand() * a.length)]!;
+  const words = [
+    "Houston",
+    "Los Angeles",
+    "Washington",
+    "New York",
+    "Kansas City",
+    "St. Louis",
+    "Shoreville",
+    "Example City",
+    "TX",
+    "CA",
+    "MD",
+    "DC",
+    "NE",
+    "LA",
+    "OR",
+    "ME",
+    "IN",
+    "OK",
+    "HI",
+    "FL",
+    "Fl",
+    "WA",
+    "XX",
+    "PR",
+    "GU",
+    "Texas",
+    "California",
+    "Washington",
+    "New York",
+    "Indiana",
+    "Florida",
+    "District of Columbia",
+    "West Virginia",
+    "77002",
+    "02150",
+    "20001",
+    "21999",
+    "90210",
+    "12345",
+    "09012",
+    "1234",
+    "6789",
+    "-1234",
+    "787011234",
+    "Suite",
+    "Ste",
+    "Unit",
+    "Apt",
+    "PO Box",
+    "Box",
+    "Rm",
+    "Bldg",
+    "#",
+    "No",
+    "Floor",
+    "12th",
+    "5th",
+    "3rd",
+    "USA",
+    "US",
+    "U.S.A.",
+    "U.S.",
+    "United States",
+    "D.C.",
+    "D C",
+    "ıstanbul",
+    "Straße",
+    "Dr",
+    "N",
+    "",
+  ];
+  const seps = [", ", ",", " ", " , ", ",, ", "-", ". "];
+  const lines = [
+    "1 Main St",
+    "Main St",
+    "100 Park Ave NW",
+    "Loop",
+    "1100 K St",
+  ];
+  const queries: string[] = [];
+  for (let i = 0; i < 6000; i++) {
+    let q = pick(lines);
+    const n = Math.floor(rand() * 6);
+    for (let j = 0; j < n; j++)
+      q += (j === 0 && rand() < 0.8 ? ", " : pick(seps)) + pick(words);
+    queries.push(rand() < 0.1 ? q.toLowerCase() : q);
+  }
+  const labels: [string, string][] = [
+    ["fl:parcel:us-48201:1", "1 MAIN ST, HOUSTON TX 77002"],
+    ["fl:parcel:us-11001:1", "1100 K ST NW WASHINGTON DC 20001-2604"],
+    ["fl:parcel:us-06037:1", "1 MAIN ST, LOS ANGELES CA 90210"],
+    ["fl:parcel:us-25025:1", "1 MAIN ST, CHELSEA MA 02150"],
+    ["fl:parcel:us-24998:1", "1 MAIN ST, SHOREVILLE, MD, 21999"],
+    ["fl:building:us-36061:10036:1-main-st", "1 MAIN ST, NEW YORK NY 10036"],
+    ["fl:parcel:us-48201:2", "1 Main Street, Suite 400"],
+  ];
+  const ts = queries.map((q) => {
+    const place = addressPlace(q);
+    return [
+      place,
+      labels.map(([urn, label]) => addressPlaceRank(place, urn, label)),
+    ];
+  });
+  const py = JSON.parse(
+    execFileSync(
+      "python3",
+      [
+        "-c",
+        "import json, sys; from factlot.registry.normalize import address_place, address_place_rank as r\n" +
+          "a = json.load(sys.stdin)\n" +
+          "print(json.dumps([[p, [r(p, u, l) for u, l in a['labels']]] for p in map(address_place, a['queries'])]))",
+      ],
+      {
+        encoding: "utf8",
+        input: JSON.stringify({ queries, labels }),
+        maxBuffer: 64 * 1024 * 1024,
+        env: {
+          ...process.env,
+          PYTHONPATH: fileURLToPath(
+            new URL("../../../python/src", import.meta.url),
+          ),
+        },
+      },
+    ),
+  ) as unknown[];
+  const bad = queries.filter(
+    (_, i) => JSON.stringify(ts[i]) !== JSON.stringify(py[i]),
+  );
+  assert.deepEqual(
+    bad.slice(0, 5),
+    [],
+    `${bad.length} of ${queries.length} differ`,
+  );
+  // The generator reaches every kind of answer.
+  const places = ts.map(
+    ([p]) => p as { state: unknown; zip: unknown; city: unknown },
+  );
+  assert.ok(places.some((p) => p.state !== null && p.zip === null));
+  assert.ok(places.some((p) => p.zip !== null));
+  assert.ok(places.some((p) => p.city !== null && p.state === null));
+  assert.ok(places.some((p) => p.state === null && p.city === null));
 });
 
 test("county names come from the Census table in spec/registry/county-names.tsv", () => {

@@ -396,7 +396,7 @@
   {
     "tool": "registry_search_address",
     "arguments": {
-      "query": "300 Harbor Dr, MD"
+      "query": "300 Harbor Dr, Shoreville, MD"
     }
   },
   {
@@ -444,7 +444,7 @@
   {
     "tool": "registry_search_address",
     "arguments": {
-      "query": "200 River Rd, MD"
+      "query": "200 River Rd, Shoreville, MD"
     }
   },
   {
@@ -468,7 +468,7 @@
   {
     "tool": "registry_search_address",
     "arguments": {
-      "query": "8 W 9th St, MD"
+      "query": "8 W 9th St, Shoreville, MD"
     }
   },
   {
@@ -488,6 +488,162 @@
     "arguments": {
       "query": "Tower Ct, Shoreville, MD",
       "limit": 1
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1100 K St, 12th Fl"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Park Ave, 5th Fl"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1100 K St NW, Suite 12345"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Park Ave, Suite 12345"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "500 W 5th St, Suite 90210"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, PO Box 12345"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1100 K St, NE"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Broadway, LA"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "10 Oak St, PO Box 5, LA"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, OR"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, ME"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1100 K St, Washington 20001"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1100 K St, Washington, 20001"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Indiana"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Delaware"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Oregon"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Kansas"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Florida"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Houston, TX 77002 USA"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Houston TX US"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1 Main St, Los Angeles, California USA"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "1600 Pennsylvania Ave NW, Washington, D.C."
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, MD"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "100 Main St, Shoreville, MD 21999 USA"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "300 Harbor Dr, Example City, MD 77999"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "200 River Rd, Shoreville MD"
     }
   },
   {
