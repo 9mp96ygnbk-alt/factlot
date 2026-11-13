@@ -27,7 +27,7 @@ import {
   type TxEquityParams,
 } from "../../../packages/tools/src/registry.ts";
 
-import { fnv1a, type GetEntry } from "./format.ts";
+import { fnv1a, labeledHistory, type GetEntry } from "./format.ts";
 import type { Pack } from "./store.ts";
 
 type Row = Record<string, unknown>;
@@ -426,7 +426,10 @@ export async function equityFromPack(
   const rolls = stored ? stored[1] : equityRolls(years, yearUsed);
   const subject: Row = {
     ...(stored ? stored[3] : equityComparable(urn, new Map())),
-    value_history: entry.r.value_history,
+    value_history:
+      manifest.value_files && Array.isArray(entry.r.value_history)
+        ? labeledHistory(entry.r.value_history as Row[], manifest.value_files)
+        : entry.r.value_history,
   };
   const rule = equityRule(urn, subject, params);
   let counts = [0, 0, 0];
