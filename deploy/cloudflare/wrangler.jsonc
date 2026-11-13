@@ -23,6 +23,11 @@
 // Needs the EMAIL binding and RECOVERY_SIGNING_SECRET below. Unset or any other value: POST
 // /v1/keys/free and /account/free-key answer 404 and /account shows no form; keys already issued
 // keep working. Publish the privacy notice and terms that describe it before setting it.
+// WATCH_LISTS_ENABLED (a variable, "true": watch lists are on; see README.md). Unset here, so the
+// watch_* tools are unlisted, /v1/watch/* answers 404 and no check runs. Turning it on needs no
+// new binding (storage is the LIMITER class and KV). Alert emails also need a cron trigger (the
+// commented "triggers" below), the EMAIL binding and RECOVERY_SIGNING_SECRET; optionally set
+// OPERATOR_POSTAL_ADDRESS (a variable) for the alert emails' foot.
 //
 // OAuth 2.1 for header-less MCP clients (src/oauth.ts) needs no new binding: its records live in
 // the KEYS namespace under the `oauth:` prefix. It does need `global_fetch_strictly_public`
@@ -73,6 +78,10 @@
     "bindings": [{ "name": "LIMITER", "class_name": "RateLimiterObject" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiterObject"] }],
+  // Watch-list check after each registry update (src/watch-check.ts). Example only: uncomment
+  // together with WATCH_LISTS_ENABLED. A run with no new pack is one registry and one Durable
+  // Object request.
+  // "triggers": { "crons": ["*/15 * * * *"] },
   // Email (welcome email after purchase, lost-key recovery links), through Cloudflare Email
   // Service: factlot.com is onboarded for Email Sending (Compute > Email Service > Email Sending;
   // the cf-bounce MX, SPF, DKIM and _dmarc records are managed there) and RECOVERY_SIGNING_SECRET

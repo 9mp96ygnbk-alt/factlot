@@ -72,6 +72,44 @@ Not counted: addresses, emails, keys, key hashes, URLs, query strings, URNs, add
 properties or document contents. A request's counters never leave the isolate except as the sums
 above.
 
+## Watch lists
+
+Off unless the variable `WATCH_LISTS_ENABLED` is exactly `"true"`. While off, the `watch_*` tools
+are not listed, `/v1/watch/*` and the alert stop links answer 404, the account page shows no
+watch section, and the scheduled handler returns at once.
+
+When on, a Pro or Team subscription keeps named lists of parcel, entity and building URNs
+(`WATCH_LIMITS` in `src/plans.ts`: 200 subjects and 20 lists on Pro, 5,000 and 100 on Team).
+Tools, on MCP and as `POST /v1/watch/<name>`: `watch_add`, `watch_remove`, `watch_list`,
+`watch_changes`, `watch_alerts`. Any other caller gets `PlanRequired`, unmetered. `watch_add`
+reads each new subject once (one registry lookup each; a subject already watched in another list,
+an invalid URN and a miss are not counted); nothing else counts.
+
+Storage: the `LIMITER` Durable Object class (SQLite), objects `watch:sub:<subscription>` and
+`watch:index` (`src/watch-store.ts`); KV `watchstop:<alert id>` maps a stop link to its
+subscription. No new binding or migration. Each subject keeps a fingerprint (`src/watch-print.ts`):
+the newest roll year's values, the owner-of-record values and owning entity URNs, one hash per
+recorded document with its date and amount, the entity status, and one hash per other predicate.
+Changes are kept 400 days, at most 10,000 per subscription.
+
+The check (`src/watch-check.ts`) runs from the Worker's `scheduled` handler when a cron trigger is
+configured (the example in `wrangler.jsonc` is commented out). Each run reads the registry's
+`/health`; when the pack's `built_at` is newer than the last completed check it compares each
+watched URN once (one registry request per URN, shared by subscriptions watching the same URN),
+within 400 subrequests per invocation, and resumes on the next run where it stopped. It is
+idempotent per `built_at`. Without a cron trigger, `watch_changes` compares up to 25 of the
+caller's own subjects inline when the pack is newer, so results are never older than the pack;
+alert emails need the cron trigger.
+
+Alerts: with `watch_alerts` on, one email per registry update that changed something watched, to
+the address the customer set, with a one-click stop link (`List-Unsubscribe` and
+`List-Unsubscribe-Post` headers; the link is signed with `RECOVERY_SIGNING_SECRET`). Needs the
+`EMAIL` binding and that secret; `OPERATOR_POSTAL_ADDRESS` (a variable) is printed at the foot.
+
+Deletion: removing a subject from its last list deletes its fingerprint and changes; stopping
+alerts deletes the address; a cancelled subscription (Stripe webhook, or found by the check)
+loses its whole watch object and stop-link record.
+
 ## Tokens in URL paths (what a request log can leak)
 
 Workers Logs keeps the request path (`redact_query_string` covers query strings only; see the
