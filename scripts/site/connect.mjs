@@ -107,7 +107,7 @@ export function connectBody(raw, version) {
 </p>
 <p>
   The local server (the standalone package and the Claude Desktop extension) is release
-  v${esc(version)}. Its next release brings what the hosted server already runs: the tools <code>registry_lookup_batch</code> and <code>registry_recorded_facts</code>, new inputs on existing tools (address search by <code>city</code>, <code>state</code>, <code>postal_code</code> and <code>county_fips</code>, <code>registry_coverage</code> <code>fields</code>, equity-candidate narrowing, <code>as_of</code> on the Texas deadline rule), and MCP resources and prompts. <code>report_create</code>, the account tools and the model-backed tools are hosted only.
+  v${esc(version)}. Its next release brings what the hosted server already runs: the tools <code>registry_lookup_batch</code> and <code>registry_recorded_facts</code>, new inputs on existing tools (<code>registry_search_address</code> <code>address</code>, <code>city</code>, <code>state</code>, <code>postal_code</code> and <code>county_fips</code>; <code>registry_coverage</code> <code>fields</code>; <code>same_building_class</code>, <code>same_local_use_code</code> and <code>local_use_codes</code> on the equity-candidate tools; <code>address</code> and <code>label</code> on the subject and comparables of <code>calc_tx_unequal_appraisal</code>; <code>as_of</code> on the Texas deadline rules), and MCP resources and prompts. <code>report_create</code>, the account tools and the model-backed tools are hosted only.
 </p>
 <h2 id="keys">Keys and sign-in</h2>
 <ul class="plain">

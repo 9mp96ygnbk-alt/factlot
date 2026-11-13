@@ -22,7 +22,7 @@ remote or HTTP MCP server; for example, Cursor's `.cursor/mcp.json`:
 ## Option 2: local stdio server (Node.js 22.6 or newer)
 
 The release build runs as a stdio server with its dependencies bundled. It makes no network calls.
-It is release v0.5.0. Its next release brings what the hosted server already runs: the tools `registry_lookup_batch` and `registry_recorded_facts`, new inputs on existing tools (address search by `city`, `state`, `postal_code` and `county_fips`, `registry_coverage` `fields`, equity-candidate narrowing, `as_of` on the Texas deadline rule), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only.
+It is release v0.5.0. Its next release brings what the hosted server already runs: the tools `registry_lookup_batch` and `registry_recorded_facts`, new inputs on existing tools (`registry_search_address` `address`, `city`, `state`, `postal_code` and `county_fips`; `registry_coverage` `fields`; `same_building_class`, `same_local_use_code` and `local_use_codes` on the equity-candidate tools; `address` and `label` on the subject and comparables of `calc_tx_unequal_appraisal`; `as_of` on the Texas deadline rules), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only.
 
 ```json
 {

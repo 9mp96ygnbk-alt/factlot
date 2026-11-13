@@ -11602,11 +11602,19 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
             }
           : {
               urn: "hist",
-              facts: [],
+              facts: [{ id: "f2", predicate: "parcel.market_value", value: 2 }],
               value_history: [
                 { tax_year: 2026, market_value: 2 },
                 { tax_year: 2025, market_value: 1 },
               ],
+              ...(b.include_history
+                ? {
+                    history: [
+                      { id: "f2", predicate: "parcel.market_value", value: 2 },
+                      { id: "f1", predicate: "parcel.market_value", value: 1 },
+                    ],
+                  }
+                : {}),
               coverage: { county_loaded: true },
             },
     "/v1/registry/owned_by": () => ({
@@ -11619,58 +11627,97 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
       const text = await r.text();
       const path = new URL(r.url).pathname;
       const body = (text ? JSON.parse(text) : {}) as Record<string, unknown>;
-      const answer = answers[path]?.(body) ?? {
-        ok: true,
-        coverage: { county_loaded: true },
-      };
+      // The open server's tool list holds no account tool; the router adds them for a paid key.
+      const answer =
+        path === "/mcp" && body.method === "tools/list"
+          ? { jsonrpc: "2.0", id: body.id, result: { tools: [] } }
+          : (answers[path]?.(body) ?? {
+              ok: true,
+              coverage: { county_loaded: true },
+            });
       return new Response(JSON.stringify(answer), {
         headers: { "content-type": "application/json" },
       });
     },
   };
   type J = Record<string, unknown>;
-  /** Free (no key) and Pro answers of one REST call. */
-  async function both(path: string, body: unknown) {
-    const e = env({ GATING_ENABLED: "true" });
-    const { key } = await issue(e);
-    const free = await call(e, api, path, { body });
-    const pro = await call(e, api, path, { body, key });
+  type Answer = { status: number; body: J };
+  /** A free key as freekey.ts stores it. */
+  async function freeKey(e: Env): Promise<string> {
+    const key = `fl_free_${"A".repeat(43)}`;
+    await e.KEYS.put(
+      `freekey:${await hashKey(key)}`,
+      JSON.stringify({
+        tier: "free",
+        email_hash: await hashKey("paid-only-audit"),
+        created: new Date(T0).toISOString(),
+      }),
+    );
+    return key;
+  }
+  /** The callers: a keyless one and a free key (the free tier), and a Pro key. */
+  async function callers() {
+    const e = env({
+      GATING_ENABLED: "true",
+      FREE_KEY_ENABLED: "true",
+      ANTHROPIC_API_KEY: "test-placeholder",
+    });
     return {
-      free: { status: free.status, body: (await free.json()) as J },
-      pro: { status: pro.status, body: (await pro.json()) as J },
+      e,
+      free: { keyless: undefined, "free key": await freeKey(e) } as Record<
+        string,
+        string | undefined
+      >,
+      pro: (await issue(e)).key,
     };
+  }
+  /** The free answers (by caller) and the Pro answer of one REST call. */
+  async function both(path: string, body: unknown) {
+    const c = await callers();
+    const free: Record<string, Answer> = {};
+    for (const [who, key] of Object.entries(c.free)) {
+      const r = await call(c.e, api, path, { body, ...(key ? { key } : {}) });
+      free[who] = { status: r.status, body: (await r.json()) as J };
+    }
+    const r = await call(c.e, api, path, { body, key: c.pro });
+    return { free, pro: { status: r.status, body: (await r.json()) as J } };
   }
   const refused = async (path: string, body: unknown) => {
     const r = await both(path, body);
-    assert.equal(r.free.status, 403, `${path} free`);
-    assert.equal(r.free.body.error, "PlanRequired", `${path} free`);
+    for (const [who, a] of Object.entries(r.free)) {
+      assert.equal(a.status, 403, `${path} ${who}`);
+      assert.equal(a.body.error, "PlanRequired", `${path} ${who}`);
+    }
     assert.equal(r.pro.status, 200, `${path} pro`);
   };
-  const mcpText = async (name: string, key?: string) => {
-    const e = env({
-      GATING_ENABLED: "true",
-      ANTHROPIC_API_KEY: "test-placeholder",
-    });
-    const k = key === "pro" ? (await issue(e)).key : undefined;
-    return (
+  const len = (x: unknown) => (x as unknown[]).length;
+  async function mcp(
+    e: ReturnType<typeof env>,
+    method: string,
+    params: unknown,
+    key?: string,
+  ) {
+    return (await (
       await call(e, api, "/mcp", {
-        body: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "tools/call",
-          params: { name, arguments: {} },
-        },
-        ...(k ? { key: k } : {}),
+        body: { jsonrpc: "2.0", id: 1, method, params },
+        ...(key ? { key } : {}),
       })
-    ).text();
-  };
+    ).json()) as { result: J };
+  }
 
   const scenarios: Record<string, () => Promise<void>> = {
     history: async () => {
-      const r = await both("/v1/registry/get", { urn: "hist" });
-      assert.equal((r.free.body.value_history as unknown[]).length, 1);
-      assert.equal(r.free.body.history_available, "pro");
-      assert.equal((r.pro.body.value_history as unknown[]).length, 2);
+      const r = await both("/v1/registry/get", {
+        urn: "hist",
+        include_history: true,
+      });
+      for (const [who, a] of Object.entries(r.free)) {
+        assert.equal(len(a.body.value_history), 1, who);
+        assert.equal(len(a.body.history), 1, `${who}: include_history cut`);
+        assert.equal(a.body.history_available, "pro", who);
+      }
+      assert.equal(len(r.pro.body.value_history), 2);
+      assert.equal(len(r.pro.body.history), 2);
     },
     dated_get: () =>
       refused("/v1/registry/get", { urn: "hist", as_of: "2025-01-01" }),
@@ -11682,17 +11729,21 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
     recorded: async () => {
       await refused("/v1/registry/recorded_facts", { urn: "x" });
       const r = await both("/v1/registry/get", { urn: "sales" });
-      assert.equal((r.free.body.facts as unknown[]).length, 1);
-      assert.ok(r.free.body.sales_withheld);
-      assert.equal((r.pro.body.facts as unknown[]).length, 2);
+      for (const [who, a] of Object.entries(r.free)) {
+        assert.equal(len(a.body.facts), 1, who);
+        assert.ok(a.body.sales_withheld, who);
+      }
+      assert.equal(len(r.pro.body.facts), 2);
     },
     portfolio: async () => {
       const owned = await both("/v1/registry/owned_by", { entity_urn: ENTITY });
-      assert.equal((owned.free.body.results as unknown[]).length, 3);
-      assert.equal((owned.pro.body.results as unknown[]).length, 5);
       const entity = await both("/v1/registry/get", { urn: ENTITY });
-      assert.equal((entity.free.body.relationships as unknown[]).length, 3);
-      assert.equal((entity.pro.body.relationships as unknown[]).length, 5);
+      for (const who of Object.keys(owned.free)) {
+        assert.equal(len(owned.free[who]!.body.results), 3, who);
+        assert.equal(len(entity.free[who]!.body.relationships), 3, who);
+      }
+      assert.equal(len(owned.pro.body.results), 5);
+      assert.equal(len(entity.pro.body.relationships), 5);
     },
     batch: async () => {
       await refused("/v1/registry/lookup/batch", { items: [{ urn: "x" }] });
@@ -11701,30 +11752,56 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
       });
     },
     model_tools: async () => {
+      const c = await callers();
       for (const name of MODEL_TOOLS) {
-        assert.match(await mcpText(name), /PlanRequired/, `${name} free`);
+        for (const [who, key] of Object.entries(c.free))
+          assert.match(
+            JSON.stringify(
+              await mcp(c.e, "tools/call", { name, arguments: {} }, key),
+            ),
+            /PlanRequired/,
+            `${name} ${who}`,
+          );
         assert.doesNotMatch(
-          await mcpText(name, "pro"),
+          JSON.stringify(
+            await mcp(c.e, "tools/call", { name, arguments: {} }, c.pro),
+          ),
           /PlanRequired/,
           `${name} pro`,
         );
       }
     },
     account_tools: async () => {
-      const e = env({ GATING_ENABLED: "true" });
-      const { key } = await issue(e);
-      const free = await call(e, api, "/v1/account", { method: "GET" });
-      assert.equal(free.status, 401);
-      await free.body?.cancel();
-      const pro = await call(e, api, "/v1/account", { method: "GET", key });
-      assert.equal(pro.status, 200);
-      await pro.body?.cancel();
-      // Without a paid key the hosted server does not answer them (they go to the open server,
-      // which has no account tools); with one it answers from the subscription.
-      for (const t of PAID_ONLY.find((f) => f.id === "account_tools")!.tools) {
-        assert.doesNotMatch(await mcpText(t), /"(plan|month)"/, `${t} free`);
-        assert.match(await mcpText(t, "pro"), /"(plan|month)"/, `${t} pro`);
+      const c = await callers();
+      const tools = PAID_ONLY.find((f) => f.id === "account_tools")!.tools;
+      for (const [who, key] of Object.entries(c.free)) {
+        // REST: refused with 401.
+        const r = await call(c.e, api, "/v1/account", {
+          method: "GET",
+          ...(key ? { key } : {}),
+        });
+        assert.equal(r.status, 401, who);
+        await r.body?.cancel();
+        // MCP: the router does not list them for a free caller.
+        const names = (
+          (await mcp(c.e, "tools/list", {}, key)).result.tools as {
+            name: string;
+          }[]
+        ).map((t) => t.name);
+        for (const t of tools) assert.ok(!names.includes(t), `${t} ${who}`);
       }
+      const ok = await call(c.e, api, "/v1/account", {
+        method: "GET",
+        key: c.pro,
+      });
+      assert.equal(ok.status, 200);
+      await ok.body?.cancel();
+      const names = (
+        (await mcp(c.e, "tools/list", {}, c.pro)).result.tools as {
+          name: string;
+        }[]
+      ).map((t) => t.name);
+      for (const t of tools) assert.ok(names.includes(t), `${t} pro`);
     },
   };
 
@@ -11735,7 +11812,7 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
     );
   });
   for (const f of PAID_ONLY)
-    it(`${f.id}: a free caller is refused or cut, a Pro key is not`, async () => {
+    it(`${f.id}: keyless and free-key callers are refused or cut, a Pro key is not`, async () => {
       await scenarios[f.id]!();
     });
 });

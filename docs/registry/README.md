@@ -358,7 +358,7 @@ reg.get(reg.resolve_external("tx-harris-cad-account", "0011440000001"))
 
 When a registry is available (a registry file configured with `FACTLOT_REGISTRY_DB`, or
 `configureRegistry()` / `configure_registry()`, or the hosted API's registry service), the catalog
-gains ten tools. They are served over MCP and REST, and in both SDKs:
+gains eleven tools. They are served over MCP and REST, and in both SDKs:
 
 - `registry_get`
 - `registry_resolve_parcel`
@@ -366,6 +366,7 @@ gains ten tools. They are served over MCP and REST, and in both SDKs:
 - `registry_search_address`
 - `registry_search_entities`
 - `registry_owned_by`
+- `registry_recorded_facts`
 - `registry_coverage`
 - `registry_tx_equity_candidates`
 - `registry_tx_equity_candidates_batch`

@@ -34,7 +34,7 @@ including Python's `urllib`, are accepted.
 > below lists the commands that work now first: from a clone, from git, or from the files
 > attached to each [GitHub release](https://github.com/9mp96ygnbk-alt/factlot/releases). The
 > `npx -y @factlot/mcp` and `pip install factlot` forms are marked **after first publish**.
-> The latest release is `v0.5.0`. The next release brings what the hosted server already runs: the tools `registry_lookup_batch` and `registry_recorded_facts`, new inputs on existing tools (address search by `city`, `state`, `postal_code` and `county_fips`, `registry_coverage` `fields`, equity-candidate narrowing, `as_of` on the Texas deadline rule), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only.
+> The latest release is `v0.5.0`. The next release brings what the hosted server already runs: the tools `registry_lookup_batch` and `registry_recorded_facts`, new inputs on existing tools (`registry_search_address` `address`, `city`, `state`, `postal_code` and `county_fips`; `registry_coverage` `fields`; `same_building_class`, `same_local_use_code` and `local_use_codes` on the equity-candidate tools; `address` and `label` on the subject and comparables of `calc_tx_unequal_appraisal`; `as_of` on the Texas deadline rules), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only.
 > On every release tag the release
 > workflows install each release file the way a user would and test it; the last hand-run pass
 > over every install path was made on version 0.1.0 (see

@@ -213,7 +213,7 @@ describe("home page", () => {
       assert.ok(top.includes(`href="${href}"`), href);
     assert.ok(/unequal-appraisal\s+arithmetic/.test(top));
     assert.ok(/Free, no key/.test(top));
-    assert.ok(/Every answer\s+cites the public record/.test(top));
+    assert.ok(/Every answer\s+cites\s+the\s+public\s+record/.test(top));
     assert.equal(html.split("<h1").length - 1, 1);
     // The developer material stays.
     for (const id of ["layers", "how", "connect", "agents", "pricing"])
@@ -1371,6 +1371,13 @@ describe("hand-typed counts", () => {
       conn.includes(`Serves ${core} tools plus ${registry} registry tools`),
     );
     assert.ok(conn.includes(`(${mcp} in all)`));
+    assert.ok(
+      flat("docs/registry/README.md").includes(
+        `the catalog gains ${WORDS[registry]} tools`,
+      ),
+    );
+    for (const n of catalogNames.filter((x) => x.startsWith("registry_")))
+      assert.ok(read("docs/registry/README.md").includes(`\`${n}\``), n);
     const fw = flat("connectors/frameworks/README.md");
     assert.ok(
       fw.includes(`lists ${rest} tools over REST`) &&
@@ -1412,9 +1419,32 @@ describe("hand-typed counts", () => {
           cwd: root,
           encoding: "utf8",
         }),
-      ) as { tools: { name: string }[] };
+      ) as { tools: { name: string; input_schema?: unknown }[] };
       const before = new Set(old.tools.map((t) => t.name));
       const added = catalogNames.filter((n) => !before.has(n));
+      // Every input added to a tool v${version} already had, by its own name (nested ones too).
+      type S = { properties?: Record<string, S>; items?: S };
+      const leaves = (x: S | undefined, at = ""): string[] =>
+        Object.entries(x?.properties ?? {}).flatMap(([k, v]) => [
+          `${at}${k}`,
+          ...leaves(v, `${at}${k}.`),
+          ...leaves(v.items, `${at}${k}[].`),
+        ]);
+      const now = tools as unknown as { name: string; input_schema?: S }[];
+      const inputs = new Set<string>();
+      for (const t of old.tools) {
+        const was = new Set(leaves(t.input_schema as S));
+        const is = now.find((x) => x.name === t.name);
+        for (const l of leaves(is?.input_schema))
+          if (!was.has(l))
+            inputs.add(
+              l
+                .split(/[.[\]]+/)
+                .filter(Boolean)
+                .at(-1)!,
+            );
+      }
+      assert.ok(inputs.size > 0);
       for (const f of [
         "README.md",
         "docs/getting-started.md",
@@ -1428,6 +1458,21 @@ describe("hand-typed counts", () => {
             read(f).includes(n),
             `${f} names ${n}, new since v${version}`,
           );
+      for (const f of [
+        "README.md",
+        "docs/getting-started.md",
+        "llms-install.md",
+        "site/index.html",
+        "site/_content/mcp.html",
+        "scripts/site/connect.mjs",
+      ]) {
+        const text = read(f);
+        for (const i of inputs)
+          assert.ok(
+            text.includes(`\`${i}\``) || text.includes(`<code>${i}</code>`),
+            `${f} names the input ${i}, new since v${version}`,
+          );
+      }
     },
   );
   it("the MCP page, README, llms.txt and the agent guide list every fixed resource", () => {

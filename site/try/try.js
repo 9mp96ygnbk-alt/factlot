@@ -897,7 +897,7 @@
     if (tx)
       card.appendChild(
         el("p", { class: "note try-texas" }, [
-          "For a Texas account the Texas tools go further: candidate comparables under a stated default rule for you to review, this account's values by roll year, the unequal-appraisal arithmetic on the comparables you choose, and the protest deadline. See ",
+          "For a Texas account the Texas tools go further: candidate comparables under a stated default rule for you to review, this account's values by roll year (earlier years with Pro or Team), the unequal-appraisal arithmetic on the comparables you choose, and the protest deadline. See ",
           el("a", { href: tx.href, text: tx.text }),
           ".",
         ]),

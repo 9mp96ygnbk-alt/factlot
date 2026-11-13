@@ -187,10 +187,10 @@
                 Texas property-tax consultants, attorneys and in-house tax staff
               </h2>
               <p>
-                A commercial account's roll values by year, candidate
-                comparables under a stated rule, and the unequal-appraisal
-                arithmetic in a workbook you can review and share. Each figure
-                is cited to the district's file.
+                A commercial account's roll values by year (earlier years with
+                Pro or Team), candidate comparables under a stated rule, and the
+                unequal-appraisal arithmetic in a workbook you can review and
+                share. Each figure is cited to the district's file.
               </p>
               <p>
                 <a class="button primary" href="/texas/">Texas tax evidence</a>
@@ -201,9 +201,9 @@
                 People building commercial real estate agents
               </h2>
               <p>
-                Make your agent's numbers checkable: audited calculators,
-                quote-on-page verification, and facts that cite their document
-                and licence. Free, no key.
+                Make your agent's numbers checkable: calculators with audit
+                trails, quote-on-page verification, and facts that cite their
+                document and licence. Free, no key.
               </p>
               <p>
                 <a class="button primary" href="/mcp-server/">MCP server</a>
@@ -215,9 +215,10 @@
                 People who use Claude or ChatGPT for commercial real estate
               </h2>
               <p>
-                Ask your assistant who owns a commercial building, what else
-                that owner holds and what it has been assessed at. Every answer
-                cites the public record.
+                Ask your assistant which company owns a commercial building, a
+                few of its other parcels (all of them with Pro or Team) and what
+                the building is assessed at. Every answer cites the public
+                record.
               </p>
               <p>
                 <a class="button primary" href="/try/">Try a lookup</a>
@@ -739,12 +740,17 @@
             release v0.5.0. Its next release brings what the hosted server
             already runs: the tools <code>registry_lookup_batch</code> and
             <code>registry_recorded_facts</code>, new inputs on existing tools
-            (address search by <code>city</code>, <code>state</code>,
-            <code>postal_code</code> and <code>county_fips</code>,
-            <code>registry_coverage</code> <code>fields</code>, equity-candidate
-            narrowing, <code>as_of</code> on the Texas deadline rule), and MCP
-            resources and prompts. <code>report_create</code>, the account tools
-            and the model-backed tools are hosted only.
+            (<code>registry_search_address</code> <code>address</code>,
+            <code>city</code>, <code>state</code>, <code>postal_code</code> and
+            <code>county_fips</code>; <code>registry_coverage</code>
+            <code>fields</code>; <code>same_building_class</code>,
+            <code>same_local_use_code</code> and <code>local_use_codes</code> on
+            the equity-candidate tools; <code>address</code> and
+            <code>label</code> on the subject and comparables of
+            <code>calc_tx_unequal_appraisal</code>; <code>as_of</code> on the
+            Texas deadline rules), and MCP resources and prompts.
+            <code>report_create</code>, the account tools and the model-backed
+            tools are hosted only.
           </p>
         </div>
       </section>
