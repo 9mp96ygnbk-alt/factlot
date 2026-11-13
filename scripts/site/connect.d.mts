@@ -33,6 +33,10 @@ export function vscodeLink(
   config: unknown,
 ): string;
 export function connectData(raw: unknown, version: string): ConnectData;
-export function connectJson(raw: unknown, version: string): string;
+export function connectJson(
+  raw: unknown,
+  version: string,
+  rest?: unknown,
+): string;
 export function connectBody(raw: unknown, version: string): string;
 export function connectFigure(raw: unknown, version: string): string;

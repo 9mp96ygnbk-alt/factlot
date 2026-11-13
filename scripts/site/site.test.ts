@@ -1174,10 +1174,11 @@ describe("connect page and connect.json", async () => {
       assert.ok(
         page.includes('<a href="/connect/" aria-current="page">Connect</a>'),
       );
-      assert.deepEqual(
-        JSON.parse(readFileSync(`${out}/connect.json`, "utf8")),
-        data,
-      );
+      const built = JSON.parse(readFileSync(`${out}/connect.json`, "utf8"));
+      const { rest, ...others } = built as { rest: { routes: unknown[] } };
+      assert.deepEqual(others, data);
+      assert.ok(rest.routes.length >= 15, "the REST reference is in it");
+      assert.ok(page.includes('<h2 id="rest">REST reference</h2>'));
       assert.ok(
         readFileSync(`${out}/sitemap.xml`, "utf8").includes(
           "<loc>https://factlot.com/connect/</loc>",
@@ -1565,5 +1566,105 @@ describe("hosted Texas counties come from the pack", () => {
         !/\b(sixteen|fifteen) (hosted )?Texas counties\b/i.test(read(f)),
         f,
       );
+  });
+});
+
+describe("REST reference on /connect/", async () => {
+  const { openApi31, tools: specs } = await import("@factlot/tools");
+  const { ReportRequest, reportRequestJsonSchema } =
+    await import("@factlot/reports");
+  const { withHostedOperations } =
+    await import("../../deploy/cloudflare/src/openapi-hosted.ts");
+  const ref = await import("./rest-reference.mjs");
+  const data = JSON.parse(read("site/_data/rest-reference.json")) as {
+    tools: { tool: string; example?: unknown; fields?: string }[];
+  };
+  const deps = {
+    catalog: tools as never,
+    reportSchema: reportRequestJsonSchema(),
+    vectors: (tool: string) =>
+      ref.vectorInputs(new URL(".", root).pathname, tool),
+    validate: (tool: string, body: unknown) => {
+      const schema =
+        tool === "report_create"
+          ? ReportRequest
+          : specs.find((t) => t.name === tool)?.input;
+      const r = schema?.safeParse(body);
+      return !r ? "no schema" : r.success ? undefined : r.error.message;
+    },
+  };
+  const entries = ref.restReference(data, deps);
+
+  it("lists the tools of the data file, each with a valid example", () => {
+    assert.deepEqual(
+      entries.map((e) => e.tool),
+      data.tools.map((t) => t.tool),
+    );
+    assert.ok(entries.length >= 15);
+    for (const e of entries)
+      assert.equal(deps.validate(e.tool, e.example), undefined, e.tool);
+  });
+
+  it("every listed path and method is in the OpenAPI document the API serves", async () => {
+    const inner = new Response(
+      JSON.stringify(openApi31({ filter: () => true })),
+      { headers: { "content-type": "application/json" } },
+    );
+    const doc = (await (
+      await withHostedOperations(inner, "3.1", false)
+    ).json()) as { paths: Record<string, Record<string, unknown>> };
+    for (const e of entries)
+      assert.ok(
+        doc.paths[e.path]?.[e.method.toLowerCase()],
+        `${e.method} ${e.path} (${e.tool})`,
+      );
+  });
+
+  it("takes method, path and required fields from the catalog, not from the data file", () => {
+    for (const e of entries) {
+      if (e.tool === "report_create") {
+        assert.equal(e.path, "/v1/reports");
+        continue;
+      }
+      const t = (
+        tools as unknown as {
+          name: string;
+          path: string;
+          input_schema: { required?: string[] };
+        }[]
+      ).find((x) => x.name === e.tool)!;
+      assert.equal(e.path, t.path);
+      assert.deepEqual(e.required, t.input_schema.required ?? []);
+    }
+  });
+
+  it("refuses an example that is not a valid input", () => {
+    assert.throws(
+      () =>
+        ref.restReference(
+          { tools: [{ tool: "registry_get", example: { id: "x" } }] },
+          deps,
+        ),
+      /not a valid input/,
+    );
+    assert.throws(
+      () => ref.restReference({ tools: [{ tool: "no_such_tool" }] }, deps),
+      /no tool no_such_tool/,
+    );
+  });
+
+  it("is on the page and in connect.json", () => {
+    const html = ref.restReferenceHtml(entries);
+    for (const e of entries) {
+      assert.ok(html.includes(`id="rest-${e.tool}"`), e.tool);
+      assert.ok(html.includes(`${e.method} ${e.path}`), e.tool);
+    }
+    assert.ok(html.includes("https://api.factlot.com/openapi.json"));
+    const json = ref.restReferenceJson(entries);
+    assert.equal(json.routes.length, entries.length);
+    assert.equal(
+      json.routes[0]!.url,
+      "https://api.factlot.com/v1/registry/search_address",
+    );
   });
 });

@@ -1,0 +1,126 @@
+{
+  "about": "The tools the REST reference on /connect/ lists, in order, and the example bodies no test vector supplies. scripts/site/rest-reference.mjs adds each tool's method, path and required fields from spec/schemas/tools.json, takes the other examples from the test vectors, and fails the build when an example is not a valid input.",
+  "tools": [
+    {
+      "tool": "registry_search_address",
+      "example": {
+        "query": "1000 Louisiana St",
+        "limit": 5
+      }
+    },
+    {
+      "tool": "registry_get",
+      "example": {
+        "urn": "fl:parcel:us-48201:0011440000001"
+      }
+    },
+    {
+      "tool": "registry_owned_by",
+      "example": {
+        "entity_urn": "fl:entity:us-tx:0801111111"
+      }
+    },
+    {
+      "tool": "registry_search_entities",
+      "example": {
+        "query": "Realty",
+        "limit": 5
+      }
+    },
+    {
+      "tool": "registry_resolve_parcel",
+      "example": {
+        "state_fips": "48",
+        "county_fips": "201",
+        "apn": "0011440000001"
+      }
+    },
+    {
+      "tool": "registry_coverage",
+      "example": {}
+    },
+    {
+      "tool": "registry_tx_equity_candidates",
+      "fields": "urn, or county_fips and apn",
+      "example": {
+        "urn": "fl:parcel:us-48201:0011440000001"
+      }
+    },
+    {
+      "tool": "registry_tx_equity_candidates_batch",
+      "example": {
+        "subjects": [
+          {
+            "id": "a",
+            "urn": "fl:parcel:us-48201:0011440000001"
+          },
+          {
+            "id": "b",
+            "county_fips": "113",
+            "apn": "42196540010020000"
+          }
+        ]
+      }
+    },
+    {
+      "tool": "registry_lookup_batch",
+      "example": {
+        "items": [
+          {
+            "urn": "fl:parcel:us-48201:0011440000001"
+          },
+          {
+            "address": "1130 E Arapaho Rd, Richardson, TX 75081"
+          }
+        ]
+      }
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline"
+    },
+    {
+      "tool": "rules_tx_property_tax_protest_deadline_batch",
+      "example": {
+        "items": [
+          {
+            "id": "c-01",
+            "tax_year": 2026,
+            "notice_delivered_date": "2026-04-10"
+          },
+          {
+            "id": "c-02",
+            "tax_year": 2027
+          }
+        ]
+      }
+    },
+    {
+      "tool": "report_create",
+      "example": {
+        "kind": "tx_protest_deadline",
+        "format": "ics",
+        "arguments": {
+          "tax_year": 2027
+        }
+      }
+    },
+    {
+      "tool": "calc_tx_unequal_appraisal"
+    },
+    {
+      "tool": "calc_npv"
+    },
+    {
+      "tool": "calc_irr"
+    },
+    {
+      "tool": "calc_direct_cap"
+    },
+    {
+      "tool": "calc_debt_sizing"
+    },
+    {
+      "tool": "id_parcel"
+    }
+  ]
+}

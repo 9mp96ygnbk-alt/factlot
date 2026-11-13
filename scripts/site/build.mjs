@@ -33,6 +33,12 @@ import {
   texasMap,
 } from "./texas-pages.mjs";
 import {
+  restReference,
+  restReferenceHtml,
+  restReferenceJson,
+  vectorInputs,
+} from "./rest-reference.mjs";
+import {
   connectBody,
   connectData,
   connectFigure,
@@ -94,8 +100,11 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
 const readJson = (rel) => JSON.parse(read(rel));
-const { runTool } = await import(
+const { runTool, tools: toolSpecs } = await import(
   pathToFileURL(path.join(root, "packages/tools/dist/index.js")).href
+);
+const { ReportRequest, reportRequestJsonSchema } = await import(
+  pathToFileURL(path.join(root, "packages/reports/dist/index.js")).href
 );
 
 const VERSION = readJson("packages/mcp/package.json").version;
@@ -509,6 +518,20 @@ ${["calc_*", "doc_*", "id_*", "fact_*", "rules_*", "registry_*", "report_create"
 // Both come from site/_data/connect.json (scripts/site/connect.mjs), so they cannot drift.
 
 const connectRaw = readJson("site/_data/connect.json");
+// The REST reference on /connect/ and in /connect.json (scripts/site/rest-reference.mjs).
+const restEntries = restReference(readJson("site/_data/rest-reference.json"), {
+  catalog: tools,
+  reportSchema: reportRequestJsonSchema(),
+  vectors: (tool) => vectorInputs(root, tool),
+  validate: (tool, body) => {
+    const schema =
+      tool === "report_create"
+        ? ReportRequest
+        : toolSpecs.find((t) => t.name === tool)?.input;
+    const r = schema?.safeParse(body);
+    return !r ? "no schema" : r.success ? undefined : r.error.message;
+  },
+});
 addPage(
   {
     urlPath: "/connect/",
@@ -519,12 +542,15 @@ addPage(
     h1: "Connect FactLot to your AI client",
     crumbs: [["/connect/", "Connect"]],
     figure: connectFigure(connectRaw, VERSION),
-    body: connectBody(connectRaw, VERSION),
+    body: connectBody(connectRaw, VERSION) + restReferenceHtml(restEntries),
   },
   [
     "site/_content/mcp.html",
     "site/_data/connect.json",
     "scripts/site/connect.mjs",
+    "site/_data/rest-reference.json",
+    "scripts/site/rest-reference.mjs",
+    "spec/schemas/tools.json",
   ],
 );
 
@@ -1535,7 +1561,7 @@ fs.writeFileSync(path.join(out, "coverage", "counties.json"), coverageJson);
 fs.writeFileSync(path.join(out, "coverage", "map-mini.svg"), coverageMini);
 fs.writeFileSync(
   path.join(out, "connect.json"),
-  connectJson(connectRaw, VERSION),
+  connectJson(connectRaw, VERSION, restReferenceJson(restEntries)),
 );
 
 // The catalog agents read: /coverage.json, from hosted.json, the source configs and the tool catalog.

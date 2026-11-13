@@ -55,8 +55,9 @@ export function connectData(raw, version) {
 }
 
 /** connect.json: the same data, with the generated install links. */
-export function connectJson(raw, version) {
-  return JSON.stringify(connectData(raw, version), null, 2) + "\n";
+export function connectJson(raw, version, rest) {
+  const d = connectData(raw, version);
+  return JSON.stringify(rest ? { ...d, rest } : d, null, 2) + "\n";
 }
 
 function authLines(a) {
