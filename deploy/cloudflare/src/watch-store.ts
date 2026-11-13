@@ -25,7 +25,9 @@
  *   w_changes  (id, urn, aspect, built_at, seq,          unique per (urn, aspect, seq)
  *               detected_at, body)
  *   w_meta     (name, value)                              alert_email, alert_id (confirmed),
- *                                                         pending_email, pending_id,
+ *                                                         pending_email (masked: the full
+ *                                                         address waits in KV, which deletes
+ *                                                         it after 24 hours), pending_id,
  *                                                         pending_expires, confirm_last,
  *                                                         confirm_day, digest:<seq>
  * Tables of the index object:
@@ -119,7 +121,7 @@ export interface AlertState {
   /** The confirmed address alerts go to, or null. */
   email: string | null;
   alert_id: string | null;
-  /** An address waiting for its confirmation link, or null. */
+  /** An address waiting for its confirmation link, masked (u•••r@example.com), or null. */
   pending_email: string | null;
   pending_id: string | null;
   pending_expires: string | null;
@@ -687,11 +689,11 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       if (
         s.pending_id === null ||
         s.pending_id !== a.pending_id ||
-        s.pending_email === null ||
+        typeof a.email !== "string" ||
         Date.parse(s.pending_expires ?? "") <= nowOf(a)
       )
         return { ok: false };
-      setMeta(sql, "alert_email", s.pending_email);
+      setMeta(sql, "alert_email", a.email);
       setMeta(sql, "alert_id", String(a.alert_id));
       for (const k of ["pending_email", "pending_id", "pending_expires"])
         deleteMeta(sql, k);
