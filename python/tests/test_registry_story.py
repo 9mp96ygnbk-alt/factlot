@@ -325,6 +325,17 @@ class StoryRefusals(unittest.TestCase):
             doc = story.generate(db, params())
             self.assertEqual([y["preliminary"] for y in doc["period"]["years"]], [False, False, True])
 
+    def test_a_current_working_file_name_marks_the_year_preliminary_but_a_source_title_does_not(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = make_db(tmp)
+            c = sqlite3.connect(db)
+            c.execute("UPDATE sources SET title = 'Appraisal data export (CAD<year>_CURRENT.ZIP), tax year 2023' WHERE source_id = 'tx-fixture-cad-2023'")
+            c.execute("UPDATE snapshots SET filename = 'CAD2022_CURRENT.zip' WHERE document_id = ?", (DOCS[2022],))
+            c.commit()
+            c.close()
+            doc = story.generate(db, params())
+            self.assertEqual([y["preliminary"] for y in doc["period"]["years"]], [True, False, False])
+
     def test_thresholds_and_years_are_validated(self):
         for bad in ("0", "-5", "abc", "1001", "1.234"):
             with self.assertRaises(StoryRefused, msg=bad):

@@ -145,10 +145,8 @@ export const indexDescription =
   "Short pages of figures computed from public appraisal roll files, each with its source file, as-of date and rule, and each re-checked by a second method before it is published.";
 
 const sourceLine = (s) => {
-  const year = s.tax_year
-    ? `tax year ${s.tax_year}${s.preliminary ? " (preliminary roll)" : ""}, `
-    : "";
-  return `${esc(s.attribution)}: ${esc(s.title)}, ${year}file <code>${esc(s.filename)}</code>, as of ${esc(longDate(s.as_of))}. Source id <code>${esc(s.source_id)}</code>.`;
+  const pre = s.preliminary ? "preliminary roll, " : "";
+  return `${esc(s.attribution)}: ${esc(s.title)}, ${pre}file <code>${esc(s.filename)}</code>, as of ${esc(longDate(s.as_of))}. Source id <code>${esc(s.source_id)}</code>.`;
 };
 
 const sentenceGroups = (story) => {

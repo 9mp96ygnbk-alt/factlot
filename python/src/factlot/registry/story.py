@@ -199,7 +199,7 @@ def source_record(db: sqlite3.Connection, key: str, document_id: str, tax_year: 
         "ai_use": ai_use, "terms_reviewed": reviewed,
     }
     if tax_year is not None:
-        hint = re.search(r"prelim|_current", f"{title} {filename}", re.I) is not None
+        hint = re.search(r"prelim|_current", str(filename or ""), re.I) is not None  # a file name, not the generic source title
         rec["tax_year"] = tax_year
         rec["preliminary"] = bool(tax_year in params.preliminary or hint or tax_year > int(str(as_of)[:4]))
     return rec
