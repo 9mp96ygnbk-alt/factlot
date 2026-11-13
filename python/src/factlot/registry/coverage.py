@@ -208,15 +208,14 @@ def _state_counties_summary(cov: dict[str, Any], st: str) -> str:
 
 
 def address_miss(cov: dict[str, Any], query: str) -> dict[str, Any]:
-    """A query with a comma is read by ``address_place`` (its state, or its ZIP code's); one without, by
+    """A query with a comma is read by ``address_place`` (the state it names after a city); one without, by
     ``query_state``."""
     place = address_place(query) if "," in query else None
     st = place["state"] if place else query_state(query)
     states = cov["totals"]["states"]
     loaded = st in states if st else None
-    named = f"ZIP code {place['zip']} is in {st}, which" if place and place["state_from_zip"] else st
     if st and not loaded:
-        message = f"no parcel matched: {named} is not loaded in this registry; loaded: {_counties_summary(cov)}"
+        message = f"no parcel matched: {st} is not loaded in this registry; loaded: {_counties_summary(cov)}"
     elif address_query(query)["mode"] is None:
         message = ("no parcel matched: address search matches whole words of the street address, so give a house "
                    'number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part '
@@ -229,8 +228,8 @@ def address_miss(cov: dict[str, Any], query: str) -> dict[str, Any]:
         else:
             why = ("it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel "
                    "is not found")
-        message = (f"no parcel matched in {st}: matches are kept to the state the query names (or its ZIP code's "
-                   f"state), and of {st} this registry holds {_state_counties_summary(cov, st)}; {why}")
+        message = (f"no parcel matched in {st}: matches are kept to the state the query names, "
+                   f"and of {st} this registry holds {_state_counties_summary(cov, st)}; {why}")
     else:
         message = (f"no parcel matched in this registry (loaded: {_counties_summary(cov)}); it holds commercial, "
                    "industrial and multifamily parcels only, searched by situs address: try the house number "

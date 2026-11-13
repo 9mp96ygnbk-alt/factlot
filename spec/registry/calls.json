@@ -647,6 +647,36 @@
     }
   },
   {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "302 Platts Mill Rd, Example Hills CT 67021-9150"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "302 Platts Mill Rd, Example Hills, CT, 67021"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "302 Platts Mill Rd, Example Hills, Connecticut 67021"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "40 Helmsley Rd, Shoreville MD 19406"
+    }
+  },
+  {
+    "tool": "registry_search_address",
+    "arguments": {
+      "query": "200 River Rd, 21999"
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"

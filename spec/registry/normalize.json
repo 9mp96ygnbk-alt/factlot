@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code; the ZIP code's state when the query names none or another), read conservatively: unit, floor and box text and a bare two-letter or full state name with no city and no ZIP code name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state). 'zip_states': the state of a ZIP code by its first three digits (null for none).",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code), read conservatively: only a state named after a city filters; a ZIP code and a city only order; unit, floor and box text and a bare two-letter or full state name name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state).",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -148,8 +148,7 @@
       {
         "city": "CHELSEA",
         "state": "MA",
-        "zip": "02150",
-        "state_from_zip": false
+        "zip": "02150"
       }
     ],
     [
@@ -157,8 +156,7 @@
       {
         "city": "HARTFORD",
         "state": "CT",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -166,8 +164,7 @@
       {
         "city": "LOS ANGELES",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -175,8 +172,7 @@
       {
         "city": "NEW YORK",
         "state": "NY",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -184,8 +180,7 @@
       {
         "city": "BOSTON",
         "state": "MA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -193,8 +188,7 @@
       {
         "city": "AUSTIN",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -202,8 +196,7 @@
       {
         "city": "DENVER",
         "state": "CO",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -211,8 +204,7 @@
       {
         "city": "SAN FRANCISCO",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -220,8 +212,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -229,8 +220,7 @@
       {
         "city": "CASA GRANDE",
         "state": "AZ",
-        "zip": "85122",
-        "state_from_zip": false
+        "zip": "85122"
       }
     ],
     [
@@ -238,8 +228,7 @@
       {
         "city": "EXAMPLE CITY",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -247,8 +236,7 @@
       {
         "city": "WASHINGTON",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -256,8 +244,7 @@
       {
         "city": "WASHINGTON",
         "state": "DC",
-        "zip": "20500",
-        "state_from_zip": false
+        "zip": "20500"
       }
     ],
     [
@@ -265,8 +252,7 @@
       {
         "city": "SEATTLE",
         "state": "WA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -274,8 +260,7 @@
       {
         "city": "NEW YORK",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -283,8 +268,7 @@
       {
         "city": "AUSTIN",
         "state": "TX",
-        "zip": "78701",
-        "state_from_zip": false
+        "zip": "78701"
       }
     ],
     [
@@ -292,17 +276,15 @@
       {
         "city": "AUSTIN",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
       "1 Main St, 78701",
       {
         "city": null,
-        "state": "TX",
-        "zip": "78701",
-        "state_from_zip": true
+        "state": null,
+        "zip": "78701"
       }
     ],
     [
@@ -310,8 +292,7 @@
       {
         "city": null,
         "state": null,
-        "zip": "09012",
-        "state_from_zip": false
+        "zip": "09012"
       }
     ],
     [
@@ -319,8 +300,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -328,8 +308,7 @@
       {
         "city": "DISTRICT OF COLUMBIA",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -337,8 +316,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -346,8 +324,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -355,8 +332,7 @@
       {
         "city": "SHOREVILLE",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -364,8 +340,7 @@
       {
         "city": "AUSTIN",
         "state": "TX",
-        "zip": "78701",
-        "state_from_zip": false
+        "zip": "78701"
       }
     ],
     [
@@ -373,8 +348,7 @@
       {
         "city": "ST LOUIS",
         "state": "MO",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -382,8 +356,7 @@
       {
         "city": "WINSTON SALEM",
         "state": "NC",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -391,8 +364,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -400,8 +372,7 @@
       {
         "city": "TULSA",
         "state": "OK",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -409,8 +380,7 @@
       {
         "city": "WASHINGTON",
         "state": "DC",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -418,8 +388,7 @@
       {
         "city": "WASHINGTON",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -427,8 +396,7 @@
       {
         "city": "INDIANA",
         "state": "PA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -436,8 +404,7 @@
       {
         "city": "INDIANA",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -445,8 +412,7 @@
       {
         "city": "OREGON",
         "state": "OH",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -454,8 +420,7 @@
       {
         "city": "DELAWARE",
         "state": "OH",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -463,8 +428,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -472,8 +436,7 @@
       {
         "city": "LA",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -481,8 +444,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -490,8 +452,7 @@
       {
         "city": "OR",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -499,8 +460,7 @@
       {
         "city": "ME",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -508,17 +468,15 @@
       {
         "city": "LOS ANGELES",
         "state": "CA",
-        "zip": "90071",
-        "state_from_zip": false
+        "zip": "90071"
       }
     ],
     [
       "500 W 5th St, 78701",
       {
         "city": null,
-        "state": "TX",
-        "zip": "78701",
-        "state_from_zip": true
+        "state": null,
+        "zip": "78701"
       }
     ],
     [
@@ -526,8 +484,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -535,8 +492,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -544,8 +500,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -553,8 +508,7 @@
       {
         "city": "NEW MEXICO",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -562,8 +516,7 @@
       {
         "city": "ALBUQUERQUE",
         "state": "NC",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -571,8 +524,7 @@
       {
         "city": "DISTRICT OF COLUMBIA",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -580,8 +532,7 @@
       {
         "city": "WASHINGTON",
         "state": "DC",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -589,8 +540,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": "77002",
-        "state_from_zip": false
+        "zip": "77002"
       }
     ],
     [
@@ -598,8 +548,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": "77002",
-        "state_from_zip": false
+        "zip": "77002"
       }
     ],
     [
@@ -607,8 +556,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -616,8 +564,7 @@
       {
         "city": "WASHINGTON",
         "state": "DC",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -625,8 +572,7 @@
       {
         "city": "WASHINGTON",
         "state": "DC",
-        "zip": "20001",
-        "state_from_zip": false
+        "zip": "20001"
       }
     ],
     [
@@ -634,8 +580,7 @@
       {
         "city": "KANSAS CITY",
         "state": "MO",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -643,8 +588,7 @@
       {
         "city": "SALT LAKE CITY",
         "state": "UT",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -652,8 +596,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -661,8 +604,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -670,8 +612,7 @@
       {
         "city": "ISTANBUL",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -679,8 +620,7 @@
       {
         "city": "STRASSE",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -688,8 +628,7 @@
       {
         "city": "HO USTON",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -697,8 +636,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -706,17 +644,15 @@
       {
         "city": "TX",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
       "1 Main St, 78701-",
       {
         "city": null,
-        "state": "TX",
-        "zip": "78701",
-        "state_from_zip": true
+        "state": null,
+        "zip": "78701"
       }
     ],
     [
@@ -724,26 +660,23 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
       "1 Main St, TX 78701",
       {
-        "city": null,
-        "state": "TX",
-        "zip": "78701",
-        "state_from_zip": false
+        "city": "TX",
+        "state": null,
+        "zip": "78701"
       }
     ],
     [
       "1 Main St, Houston, 78701",
       {
         "city": "HOUSTON",
-        "state": "TX",
-        "zip": "78701",
-        "state_from_zip": true
+        "state": null,
+        "zip": "78701"
       }
     ],
     [
@@ -751,8 +684,7 @@
       {
         "city": "MT PLEASANT",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -760,17 +692,15 @@
       {
         "city": "WINSTON SALEM",
         "state": "NC",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
       "1 Main St, Washington 20001",
       {
         "city": "WASHINGTON",
-        "state": "DC",
-        "zip": "20001",
-        "state_from_zip": true
+        "state": null,
+        "zip": "20001"
       }
     ],
     [
@@ -778,8 +708,7 @@
       {
         "city": "WA",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -787,8 +716,7 @@
       {
         "city": "WASHINGTON",
         "state": "WA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -796,8 +724,7 @@
       {
         "city": "WASHINGTON STATE",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -805,8 +732,7 @@
       {
         "city": "LOS ANGELES",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -814,8 +740,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -823,8 +748,7 @@
       {
         "city": "DC",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -832,8 +756,7 @@
       {
         "city": "SANTA FE SPRINGS",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -841,8 +764,7 @@
       {
         "city": "RANCHO SANTA MARGARITA",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -850,8 +772,7 @@
       {
         "city": "EAST PALO ALTO",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -859,8 +780,7 @@
       {
         "city": "DR",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -868,8 +788,7 @@
       {
         "city": "N",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -877,8 +796,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": "77002",
-        "state_from_zip": false
+        "zip": "77002"
       }
     ],
     [
@@ -886,8 +804,7 @@
       {
         "city": "HOUSTON",
         "state": "TX",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -895,8 +812,7 @@
       {
         "city": "LOS ANGELES",
         "state": "CA",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -904,8 +820,7 @@
       {
         "city": "VI",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -913,8 +828,7 @@
       {
         "city": "GU",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -922,8 +836,7 @@
       {
         "city": "PR",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -931,8 +844,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -940,8 +852,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -949,8 +860,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -958,8 +868,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -967,8 +876,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -976,8 +884,7 @@
       {
         "city": "NE",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -985,8 +892,7 @@
       {
         "city": "LA",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -994,8 +900,7 @@
       {
         "city": "OR",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1003,8 +908,7 @@
       {
         "city": "ME",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1012,8 +916,7 @@
       {
         "city": "IN",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1021,8 +924,7 @@
       {
         "city": "OK",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1030,26 +932,23 @@
       {
         "city": "HI",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
       "1100 K St, Washington 20001",
       {
         "city": "WASHINGTON",
-        "state": "DC",
-        "zip": "20001",
-        "state_from_zip": true
+        "state": null,
+        "zip": "20001"
       }
     ],
     [
       "1100 K St, Washington, 20001",
       {
         "city": "WASHINGTON",
-        "state": "DC",
-        "zip": "20001",
-        "state_from_zip": true
+        "state": null,
+        "zip": "20001"
       }
     ],
     [
@@ -1057,8 +956,7 @@
       {
         "city": "DELAWARE",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1066,8 +964,7 @@
       {
         "city": "OREGON",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1075,8 +972,7 @@
       {
         "city": "KANSAS",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1084,8 +980,7 @@
       {
         "city": "FLORIDA",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1093,8 +988,7 @@
       {
         "city": "WASHINGTON",
         "state": "DC",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1102,8 +996,7 @@
       {
         "city": "WASHINGTON",
         "state": "DC",
-        "zip": "20500",
-        "state_from_zip": false
+        "zip": "20500"
       }
     ],
     [
@@ -1111,26 +1004,23 @@
       {
         "city": "HOUSTON",
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
       "1 Main St, Austin, CA 78701",
       {
         "city": "AUSTIN",
-        "state": "TX",
-        "zip": "78701",
-        "state_from_zip": true
+        "state": "CA",
+        "zip": "78701"
       }
     ],
     [
       "1 Main St, Ste 5, TX 78701",
       {
-        "city": null,
-        "state": "TX",
-        "zip": "78701",
-        "state_from_zip": false
+        "city": "TX",
+        "state": null,
+        "zip": "78701"
       }
     ],
     [
@@ -1138,8 +1028,7 @@
       {
         "city": null,
         "state": null,
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1147,8 +1036,7 @@
       {
         "city": "TAMPA",
         "state": "FL",
-        "zip": "33601",
-        "state_from_zip": false
+        "zip": "33601"
       }
     ],
     [
@@ -1156,8 +1044,7 @@
       {
         "city": "TAMPA",
         "state": "FL",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1165,8 +1052,7 @@
       {
         "city": "BROOKLYN",
         "state": "NY",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1174,8 +1060,7 @@
       {
         "city": "CHARLESTON",
         "state": "WV",
-        "zip": null,
-        "state_from_zip": false
+        "zip": null
       }
     ],
     [
@@ -1183,8 +1068,7 @@
       {
         "city": "KANSAS CITY",
         "state": "MO",
-        "zip": "64106",
-        "state_from_zip": false
+        "zip": "64106"
       }
     ],
     [
@@ -1192,8 +1076,7 @@
       {
         "city": "NEW YORK",
         "state": "NY",
-        "zip": "10001",
-        "state_from_zip": false
+        "zip": "10001"
       }
     ],
     [
@@ -1201,8 +1084,63 @@
       {
         "city": "CHELSEA",
         "state": "MA",
-        "zip": "02150",
-        "state_from_zip": false
+        "zip": "02150"
+      }
+    ],
+    [
+      "302 Platts Mill Rd, Waterbury CT 67021-9150",
+      {
+        "city": "WATERBURY",
+        "state": "CT",
+        "zip": "67021"
+      }
+    ],
+    [
+      "302 Platts Mill Rd, Waterbury CT 67021",
+      {
+        "city": "WATERBURY",
+        "state": "CT",
+        "zip": "67021"
+      }
+    ],
+    [
+      "640 Upper Maple St, Killingly, CT, 62391",
+      {
+        "city": "KILLINGLY",
+        "state": "CT",
+        "zip": "62391"
+      }
+    ],
+    [
+      "640 Upper Maple St, Killingly, Connecticut 62391",
+      {
+        "city": "KILLINGLY",
+        "state": "CT",
+        "zip": "62391"
+      }
+    ],
+    [
+      "1 Main St, TX 77002",
+      {
+        "city": "TX",
+        "state": null,
+        "zip": "77002"
+      }
+    ],
+    [
+      "Helmsley Rd, Baltimore MD 19406",
+      {
+        "city": "BALTIMORE",
+        "state": "MD",
+        "zip": "19406"
+      }
+    ],
+    [
+      "200 E Broadway, Glendale CA 55480",
+      {
+        "city": "GLENDALE",
+        "state": "CA",
+        "zip": "55480"
       }
     ]
   ],
@@ -1283,7 +1221,7 @@
       "100 Main St, 21999",
       "fl:parcel:us-48999:1",
       "100 Main Street, Suite 400",
-      -1
+      2
     ],
     [
       "1 Market St, San Francisco, CA",
@@ -1302,48 +1240,30 @@
       "fl:parcel:us-48453:1",
       "100 MAIN ST, SUITE 400",
       2
+    ],
+    [
+      "302 Platts Mill Rd, Waterbury CT 67021-9150",
+      "fl:parcel:us-09009:1",
+      "302 PLATTS MILL RD, Waterbury CT 67021-9150",
+      0
+    ],
+    [
+      "200 E Broadway, Glendale CA 55480",
+      "fl:parcel:us-06037:1",
+      "200 E BROADWAY, GLENDALE CA 55480",
+      0
+    ],
+    [
+      "1100 K St, Washington 20001",
+      "fl:parcel:us-11001:1",
+      "1100 K ST NW WASHINGTON DC 20001",
+      0
+    ],
+    [
+      "1100 K St, Washington 20001",
+      "fl:parcel:us-53033:1",
+      "1100 K ST, WASHINGTON WA 98001",
+      1
     ]
-  ],
-  "zip_states": [
-    ["90071", "CA"],
-    ["94105", "CA"],
-    ["96199", "CA"],
-    ["96200", null],
-    ["80202", "CO"],
-    ["81699", "CO"],
-    ["81700", null],
-    ["06103", "CT"],
-    ["05999", "VT"],
-    ["06000", "CT"],
-    ["06999", "CT"],
-    ["07000", "NJ"],
-    ["20001", "DC"],
-    ["20099", "DC"],
-    ["20100", "VA"],
-    ["20500", "DC"],
-    ["20599", "DC"],
-    ["20600", "MD"],
-    ["02150", "MA"],
-    ["02799", "MA"],
-    ["02800", "RI"],
-    ["01000", "MA"],
-    ["00999", "PR"],
-    ["21201", "MD"],
-    ["21999", "MD"],
-    ["22000", "VA"],
-    ["10036", "NY"],
-    ["14999", "NY"],
-    ["15000", "PA"],
-    ["77002", "TX"],
-    ["73301", "TX"],
-    ["73200", null],
-    ["73400", "OK"],
-    ["75000", "TX"],
-    ["79999", "TX"],
-    ["84111", "UT"],
-    ["84799", "UT"],
-    ["84800", null],
-    ["1234", null],
-    ["ABCDE", null]
   ]
 }

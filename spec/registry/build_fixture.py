@@ -88,7 +88,19 @@ reg.ingest_parcels([
                  market_value=800000, tax_year=2026),
     ParcelRecord("998", "20-0005", "F1", account="M5", situs_address="8 W 9 Street, Shoreville MD 21999",
                  market_value=900000, tax_year=2026),
+    # A ZIP code from another state's range, as some published labels carry.
+    ParcelRecord("998", "20-0006", "F1", account="M6", situs_address="40 Helmsley Rd, Shoreville MD 19406",
+                 market_value=950000, tax_year=2026),
 ], md, state_fips="24", account_system="test-md-account", full_roll=True)
+# A third state (Connecticut, an invented county 998) whose label lost the leading zero of its ZIP code.
+reg.add_source(Source("test-roll-ct", "Example Hills Town Assessor (synthetic)", "Assessment roll",
+                      "https://example.invalid/ct-roll", "09", county_fips="998", license="Synthetic test data",
+                      ai_use="permitted", redistribution="permitted", terms_reviewed="2026-11-02"))
+ct = snap("test-roll-ct", "ct-roll-2026.txt", "synthetic third-state roll 2026", "2026-07-01")
+reg.ingest_parcels([
+    ParcelRecord("998", "30-0001", "F1", account="C1", situs_address="302 Platts Mill Rd, Example Hills CT 67021-9150",
+                 market_value=1100000, tax_year=2026),
+], ct, state_fips="09", account_system="test-ct-account", full_roll=True)
 # Enrichment sources add facts to parcels the roll holds: zoning (one value per predicate) and sales
 # (a predicate that holds many facts, returned newest first).
 reg.add_source(Source("test-zoning", "Example City Planning (synthetic)", "Zoning", "https://example.invalid/zoning", "48",

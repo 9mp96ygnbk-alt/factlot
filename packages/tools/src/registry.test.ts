@@ -26,7 +26,6 @@ import {
   normalizeName,
   runTool,
   withTxEquityCalcArgs,
-  zipState,
 } from "./index.ts";
 
 const spec = fileURLToPath(new URL("../../../spec/registry/", import.meta.url));
@@ -196,7 +195,11 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       harborTx,
     );
     assert.deepEqual(urns({ query: "300 Harbor Dr, Shoreville, MD" }), [md(2)]);
-    assert.deepEqual(urns({ query: "300 Harbor Dr, 77999" }), harborTx);
+    // A ZIP code alone orders and never filters.
+    assert.deepEqual(urns({ query: "300 Harbor Dr, 77999" }), [
+      ...harborTx,
+      md(2),
+    ]);
     assert.deepEqual(urns({ query: "300 Harbor Dr, Shoreville" }), [
       md(2),
       ...harborTx,
@@ -231,12 +234,11 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
     assert.equal(river.coverage.state_loaded, true);
     assert.equal(
       river.coverage.message,
-      "no parcel matched in MD: matches are kept to the state the query names (or its ZIP code's state), and of MD this registry holds county 24998 (MD, 5 parcels); it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel is not found",
+      "no parcel matched in MD: matches are kept to the state the query names, and of MD this registry holds county 24998 (MD, 6 parcels); it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel is not found",
     );
-    assert.match(
-      String(at({ query: "200 River Rd, 85122" }).coverage?.message),
-      /^no parcel matched: ZIP code 85122 is in AZ, which is not loaded in this registry/,
-    );
+    for (const query of ["200 River Rd, 85122", "200 River Rd, 21999"]) {
+      assert.equal(at({ query }).results?.length, 1, query);
+    }
     assert.match(
       String(at({ query: "100 Main St, Austin, CA" }).coverage?.message),
       /^no parcel matched: CA is not loaded in this registry/,
@@ -272,20 +274,28 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
       2,
       "a bare code filters nothing",
     );
-    // A ZIP code beside a state it is not in wins: Washington 20001 is DC, and Example City 77999 is Texas.
+    // "Washington" with no city before it is the city, and no state; a ZIP code never overrides a named state.
     for (const query of [
       "1100 K St, Washington 20001",
       "1100 K St, Washington, 20001",
-    ])
-      assert.match(
-        String(at({ query }).coverage?.message),
-        /^no parcel matched: ZIP code 20001 is in DC, which is not loaded/,
-        query,
-      );
+    ]) {
+      const r = at({ query }) as {
+        coverage?: { state: unknown; message: string };
+      };
+      assert.equal(r.coverage?.state, null, query);
+      assert.doesNotMatch(String(r.coverage?.message), /is not loaded/, query);
+    }
+    assert.deepEqual(urns({ query: "300 Harbor Dr, Example City, MD 77999" }), [
+      md(2),
+    ]);
+    // A label with a ZIP code that lost its leading zero, or from another state's range, finds itself.
     assert.deepEqual(
-      urns({ query: "300 Harbor Dr, Example City, MD 77999" }),
-      harborTx,
+      urns({ query: "302 Platts Mill Rd, Example Hills CT 67021-9150" }),
+      ["fl:parcel:us-09998:30-0001"],
     );
+    assert.deepEqual(urns({ query: "40 Helmsley Rd, Shoreville MD 19406" }), [
+      md(6),
+    ]);
     // Country words and "D.C." after the place.
     assert.deepEqual(urns({ query: "100 Main St, Shoreville, MD 21999 USA" }), [
       md(1),
@@ -593,7 +603,6 @@ test("name and address normalization match the Python vectors", () => {
     address_queries: [string, { mode: string | null; tokens: string[] }][];
     address_places: [string, Record<string, unknown>][];
     address_place_ranks: [string, string, string, number][];
-    zip_states: [string, string | null][];
   };
   for (const [input, expected] of v.names)
     assert.equal(normalizeName(input), expected, input);
@@ -611,8 +620,6 @@ test("name and address normalization match the Python vectors", () => {
       rank,
       `${query} / ${label}`,
     );
-  for (const [zip, st] of v.zip_states) assert.equal(zipState(zip), st, zip);
-  assert.equal(zipState("09012"), null, "a military ZIP code has no state");
 });
 
 test("address places and ranks: TypeScript matches Python on random queries", () => {
@@ -826,6 +833,40 @@ test("entity search uses the name keys the file was built with", () => {
       legacyNormalizeName("W.G.G. Properties LLC"),
       "W G G PROPERTIES LLC",
     );
+  } finally {
+    configureRegistry(undefined);
+  }
+});
+
+test("address search: every parcel label of the fixture, used as the query, finds its parcel", () => {
+  const db = fixtureDb("labels.db");
+  const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
+    DatabaseSync: new (p: string) => {
+      prepare(sql: string): { all(): Record<string, unknown>[] };
+    };
+  };
+  const rows = new DatabaseSync(db.path)
+    .prepare(
+      "SELECT urn, label FROM subjects WHERE kind = 'parcel' AND label IS NOT NULL",
+    )
+    .all();
+  assert.ok(rows.length > 30);
+  configureRegistry(db.path);
+  try {
+    const lost = rows.filter((r) => {
+      const out = runTool("registry_search_address", {
+        query: String(r.label),
+        limit: 100,
+      });
+      return (
+        out.ok &&
+        addressQuery(String(r.label)).mode !== null &&
+        !(out.result as { results: { urn: string }[] }).results.some(
+          (x) => x.urn === r.urn,
+        )
+      );
+    });
+    assert.deepEqual(lost, []);
   } finally {
     configureRegistry(undefined);
   }

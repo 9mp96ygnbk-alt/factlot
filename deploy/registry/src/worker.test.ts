@@ -479,7 +479,7 @@ test("HTTP: /run, /health and nothing else", async () => {
   };
   assert.equal(h.ok, true);
   assert.deepEqual(h.pack.regions, ["fixture"]);
-  assert.equal(h.pack.counts.parcels, 31);
+  assert.equal(h.pack.counts.parcels, 33);
   for (const path of ["/", "/manifest.json", "/g/0/0.json", "/run/x"])
     assert.equal((await req(path)).status, 404, path);
   assert.equal((await req("/run")).status, 405);
@@ -896,6 +896,26 @@ test("a same-ZIP match late in a long list comes first: the scan reads on while 
   assert.equal(await first("Tower Ct, Example City, TX 77001"), late);
   assert.equal(await first("Tower Ct, 77001"), late);
   assert.notEqual(await first("Tower Ct, Example City, TX"), late);
+});
+
+test("every parcel label of the fixture, used as the query, finds its parcel through the Worker", async () => {
+  const assets = fileAssets(join(dir, "pack"));
+  const lost: string[] = [];
+  const labels = rows(
+    "SELECT urn, label FROM subjects WHERE kind = 'parcel' AND label IS NOT NULL",
+  );
+  assert.ok(labels.some((r) => String(r.label).includes("CT 67021-9150")));
+  for (const r of labels) {
+    const out = JSON.parse(
+      await worker(assets, "registry_search_address", {
+        query: String(r.label),
+        limit: 100,
+      }),
+    ) as { result: { results: { urn: string }[] } };
+    if (!out.result.results.some((x) => x.urn === r.urn))
+      lost.push(String(r.label));
+  }
+  assert.deepEqual(lost, []);
 });
 
 test("a state the pack does not hold is answered without reading the address lists", async () => {

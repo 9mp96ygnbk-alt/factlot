@@ -19,7 +19,6 @@ from factlot.registry.normalize import (
     legacy_address_key,
     legacy_name_key,
     scrub_mailing_address,
-    zip_state,
 )
 from factlot.registry import (
     EntityRecord,
@@ -95,9 +94,6 @@ class Normalization(unittest.TestCase):
             self.assertEqual(address_place(raw), expected, raw)
         for query, urn, label, rank in vectors["address_place_ranks"]:
             self.assertEqual(address_place_rank(address_place(query), urn, label), rank, f"{query} / {label}")
-        for zip5, st in vectors["zip_states"]:
-            self.assertEqual(zip_state(zip5), st, zip5)
-        self.assertIsNone(zip_state("09012"), "a military ZIP code has no state")
 
     def test_county_names_match_the_census_table(self):
         tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "county-names.tsv"
