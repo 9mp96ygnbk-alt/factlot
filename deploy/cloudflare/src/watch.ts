@@ -629,7 +629,7 @@ function alertsView(env: Env, s: AlertState) {
     email: s.email ? maskEmail(s.email) : null,
     ...(s.pending_email
       ? {
-          pending_email: maskEmail(s.pending_email),
+          pending_email: s.pending_email,
           pending_expires_at: s.pending_expires,
         }
       : {}),
@@ -907,7 +907,8 @@ export async function setAlerts(
     retry_at?: string;
     previous_pending_id?: string | null;
   }>(c.subscription, "alerts_request", {
-    email: address,
+    // Only the masked form is kept here; the address itself waits in KV for 24 hours.
+    email: maskEmail(address),
     pending_id: pendingId,
     expires,
     now,
@@ -924,15 +925,17 @@ export async function setAlerts(
     );
   if (r.previous_pending_id)
     await env.KEYS.delete(`${CONFIRM_KV_PREFIX}${r.previous_pending_id}`);
-  await env.KEYS.put(`${CONFIRM_KV_PREFIX}${pendingId}`, c.subscription, {
-    expirationTtl: WATCH_CHECK.confirmHours * 3600,
-  });
+  await env.KEYS.put(
+    `${CONFIRM_KV_PREFIX}${pendingId}`,
+    JSON.stringify({ subscription: c.subscription, email: address }),
+    { expirationTtl: WATCH_CHECK.confirmHours * 3600 },
+  );
   // A pending address keeps the subscription in the index, so cancelling it reaches the address.
   await register(env, c);
   const sent = await sendConfirmation(env, address, pendingId);
   const view = alertsView(env, {
     ...cur,
-    pending_email: address,
+    pending_email: maskEmail(address),
     pending_id: pendingId,
     pending_expires: expires,
   });
@@ -1339,14 +1342,24 @@ export async function watchConfirmRoute(
       { error: "MethodNotAllowed", message: "GET or POST" },
       { allow: "GET, POST" },
     );
-  const subscription = await env.KEYS.get(`${CONFIRM_KV_PREFIX}${id}`);
-  if (!subscription) return gone();
+  const raw = await env.KEYS.get(`${CONFIRM_KV_PREFIX}${id}`);
+  const pending = ((): { subscription?: unknown; email?: unknown } => {
+    try {
+      return (JSON.parse(raw ?? "{}") ?? {}) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  })();
+  const subscription = pending.subscription;
+  if (typeof subscription !== "string" || typeof pending.email !== "string")
+    return gone();
   const alertId = randomToken();
   const r = await env.WATCH.sub<{
     ok: boolean;
     previous_alert_id?: string | null;
   }>(subscription, "alerts_confirm", {
     pending_id: id,
+    email: pending.email,
     alert_id: alertId,
     now: (deps.now ?? Date.now)(),
   });

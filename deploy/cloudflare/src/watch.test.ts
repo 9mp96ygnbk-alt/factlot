@@ -87,11 +87,13 @@ function fakeNamespace(clock: { t: number }) {
 
 class MemoryKV implements KV {
   readonly data = new Map<string, string>();
+  readonly ttl = new Map<string, number | undefined>();
   async get(k: string) {
     return this.data.get(k) ?? null;
   }
-  async put(k: string, v: string) {
+  async put(k: string, v: string, o?: { expirationTtl?: number }) {
     this.data.set(k, v);
+    this.ttl.set(k, o?.expirationTtl);
   }
   async delete(k: string) {
     this.data.delete(k);
@@ -1514,6 +1516,20 @@ describe("watch lists: alert address confirmation", () => {
       alerts: Rec;
     };
     assert.equal(l.alerts.state, "pending");
+    assert.equal(l.alerts.pending_email, "n•••w@example.com");
+    // The unconfirmed address is kept only in KV, which deletes it after 24 hours.
+    const stored = JSON.stringify(
+      s.space
+        .object("watch:sub:sub_1")
+        .storage.sql.exec("SELECT * FROM w_meta")
+        .toArray(),
+    );
+    assert.ok(!stored.includes("new@example.com"));
+    const kv = [...s.env.KEYS.data.entries()].filter(([k]) =>
+      k.startsWith("watchconfirm:"),
+    );
+    assert.equal(kv.length, 1);
+    assert.equal(s.env.KEYS.ttl.get(kv[0]![0]), 24 * 3600);
     assert.equal(l.alerts.enabled, false);
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
