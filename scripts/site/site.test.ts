@@ -17,6 +17,7 @@ import {
   OTHER_DISTRICTS,
   otherDistrictsTable,
   hubHostedTable,
+  tryTexasLinks,
   hubRollSentence,
   hubCountyLinks,
 } from "./texas-pages.mjs";
@@ -542,7 +543,10 @@ describe("/try/ page", () => {
   it("shows the API's history note as text with a link to /pricing/, only when present", () => {
     assert.match(js, /typeof record\.history_note === "string"/);
     assert.match(js, /class: "note try-history"/);
-    assert.match(js, /href: "\/pricing\/", text: "Plans and limits"/);
+    assert.match(
+      js,
+      /class: "button primary",\s+href: "\/pricing\/",\s+text: "Plans and limits"/,
+    );
     // The note is the same sentence the Worker writes, minus the trailing address.
     const note =
       "4 earlier roll years, 2022 to 2025, are available with a Pro or Team key: https://factlot.com/pricing/";
@@ -550,6 +554,33 @@ describe("/try/ page", () => {
       note.replace(/:\s*https?:\/\/\S+\s*$/, "."),
       "4 earlier roll years, 2022 to 2025, are available with a Pro or Team key.",
     );
+  });
+  it("says what the Texas tools do for a Texas record and links its worked example or the hub", () => {
+    assert.match(js, /\^fl:parcel:us-\(48\\d\{3\}\):/);
+    assert.match(js, /class: "note try-texas"/);
+    assert.ok(js.includes("#try-texas-links li[data-fips]"));
+    const data = JSON.parse(read("site/_data/texas-counties.json")) as {
+      counties: { slug: string; county_fips: string; rolls: unknown[] }[];
+    };
+    const links = tryTexasLinks(data.counties, ["harris", "dallas"]);
+    assert.ok(html.includes("{{TEXAS_LINKS}}"));
+    assert.ok(
+      links.includes(
+        '<li data-fips="48201"><a href="/texas/harris/example/">Harris County worked example</a></li>',
+      ),
+    );
+    assert.ok(links.includes('data-fips="48113"'));
+    // A county without an example points at the hub; one with no values has no entry.
+    assert.ok(
+      links.includes(
+        '<li data-fips="48453"><a href="/texas/">Texas tools</a></li>',
+      ),
+    );
+    const noValues = data.counties.filter((c) => c.rolls.length === 0);
+    assert.ok(noValues.length > 0);
+    for (const c of noValues)
+      assert.ok(!links.includes(`data-fips="48${c.county_fips}"`), c.slug);
+    assert.ok(links.startsWith('<ul id="try-texas-links" hidden>'));
   });
   it("prints a year without a thousands separator", () => {
     assert.match(

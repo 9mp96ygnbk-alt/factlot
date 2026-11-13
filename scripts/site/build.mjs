@@ -18,6 +18,7 @@ import {
   exampleDescription,
   exampleTitle,
   otherDistrictsTable,
+  tryTexasLinks,
   countWord,
   hubHostedTable,
   hubRollSentence,
@@ -357,10 +358,23 @@ addPage(
       "Look up a commercial property by address on FactLot's hosted free tier: parcel ID, situs address, roll values, building facts and the source citations, with the raw JSON an agent receives.",
     h1: "Try a lookup",
     crumbs: [["/try/", "Try a lookup"]],
-    body: read("site/_content/try.html"),
+    body: fill(read("site/_content/try.html"), {
+      TEXAS_LINKS: tryTexasLinks(
+        readJson("site/_data/texas-counties.json").counties,
+        readJson("site/_data/texas-examples.json").examples.map(
+          (e) => e.county,
+        ),
+      ),
+    }),
     scripts: ["/try/try.js", "/try/freekey.js"],
   },
-  ["site/_content/try.html", "site/try/try.js", "site/try/freekey.js"],
+  [
+    "site/_content/try.html",
+    "site/_data/texas-counties.json",
+    "scripts/site/texas-pages.mjs",
+    "site/try/try.js",
+    "site/try/freekey.js",
+  ],
 );
 
 // --- /pricing/ ------------------------------------------------------------------------------------

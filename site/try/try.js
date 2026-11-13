@@ -737,7 +737,11 @@
       box.appendChild(
         el("p", { class: "note try-history" }, [
           sentence + " ",
-          el("a", { href: "/pricing/", text: "Plans and limits" }),
+          el("a", {
+            class: "button primary",
+            href: "/pricing/",
+            text: "Plans and limits",
+          }),
         ]),
       );
     }
@@ -779,6 +783,20 @@
       : String((it && it.urn) || "");
   }
   // summary:end
+
+  // The page carries one hidden link per hosted Texas county (try-texas-links, written at build
+  // from the county data). A parcel's ID names its county by FIPS code: fl:parcel:us-48201:...
+  function texasLink(urn) {
+    var m = /^fl:parcel:us-(48\d{3}):/.exec(String(urn || ""));
+    if (!m) return null;
+    var items = document.querySelectorAll("#try-texas-links li[data-fips]");
+    for (var i = 0; i < items.length; i++)
+      if (items[i].getAttribute("data-fips") === m[1]) {
+        var a = items[i].querySelector("a");
+        if (a) return { href: a.getAttribute("href"), text: a.textContent };
+      }
+    return null;
+  }
 
   function render(record) {
     clear(results);
@@ -863,6 +881,15 @@
       warn.appendChild(wl);
       card.appendChild(warn);
     }
+    var tx = texasLink(record.urn);
+    if (tx)
+      card.appendChild(
+        el("p", { class: "note try-texas" }, [
+          "For a Texas account the Texas tools go further: candidate comparables under a stated default rule for you to review, this account's values by roll year, the unequal-appraisal arithmetic on the comparables you choose, and the protest deadline. See ",
+          el("a", { href: tx.href, text: tx.text }),
+          ".",
+        ]),
+      );
     card.appendChild(
       sourceBlock(parcelFacts.concat(ownerLine.name ? owner : [])),
     );

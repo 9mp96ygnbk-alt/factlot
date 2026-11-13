@@ -336,3 +336,22 @@ ${counties
   .join("\n")}
 </ul>`;
 }
+
+/**
+ * The links /try/ shows after a Texas parcel loads, one entry per hosted county that holds values:
+ * the county's worked example where one exists, otherwise the Texas hub. try.js reads them by the
+ * county's five-digit FIPS code (the parcel's ID carries it), so no county is named in the script.
+ */
+export function tryTexasLinks(counties, exampleSlugs) {
+  return `<ul id="try-texas-links" hidden>
+${counties
+  .filter(hasValues)
+  .map((c) => {
+    const example = exampleSlugs.includes(c.slug);
+    const href = example ? `/texas/${c.slug}/example/` : "/texas/";
+    const text = example ? `${c.name} County worked example` : "Texas tools";
+    return `  <li data-fips="48${esc(c.county_fips)}"><a href="${href}">${esc(text)}</a></li>`;
+  })
+  .join("\n")}
+</ul>`;
+}
