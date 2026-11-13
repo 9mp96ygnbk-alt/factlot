@@ -1352,6 +1352,39 @@ describe("router", () => {
     assert.match(await res.text(), /User-agent: \*\nAllow: \//);
   });
 
+  it("redirects retired site addresses permanently and serves every other page as before", async () => {
+    const { api } = innerApi();
+    const get = (u: string, init?: RequestInit) =>
+      handle(new Request(u, init), env({ ASSETS: assets }), api);
+    for (const [from, to] of [
+      ["https://factlot.com/markets/houston/zip/77002", "/texas/harris/"],
+      ["https://factlot.com/markets/phoenix?x=1", "/coverage/"],
+      ["https://factlot.com/questions/office-rent-in-el-paso", "/texas/"],
+      ["https://factlot.com/buildings/fl:building:us-48201:abc", "/coverage/"],
+    ] as const) {
+      const res = await get(from);
+      assert.equal(res.status, 301, from);
+      assert.equal(res.headers.get("location"), `https://factlot.com${to}`);
+    }
+    for (const live of [
+      "https://factlot.com/pricing/",
+      "https://factlot.com/texas/",
+      "https://factlot.com/account",
+    ])
+      assert.notEqual((await get(live)).status, 301, live);
+    assert.equal((await get("https://factlot.com/pricing/")).status, 200);
+    // Not a page request: a POST, or the API host.
+    assert.notEqual(
+      (await get("https://factlot.com/markets/houston", { method: "POST" }))
+        .status,
+      301,
+    );
+    assert.notEqual(
+      (await get("https://api.factlot.com/markets/houston")).status,
+      301,
+    );
+  });
+
   it("answers a browser's GET /mcp with a page, and keeps the JSON-RPC 405 for other GETs", async () => {
     const rpc405 = JSON.stringify({
       jsonrpc: "2.0",

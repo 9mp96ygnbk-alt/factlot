@@ -88,6 +88,7 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
+import { legacyRedirect } from "./legacy-paths.ts";
 import {
   lifecycleEnabled,
   lifecycleRoute,
@@ -970,6 +971,15 @@ async function route(
   if (!isApiHost(host)) {
     const property = await propertyPagesRoute(request, env, path, opts);
     if (property) return property;
+  }
+
+  // Retired site addresses (/buildings/…, /markets/…, /questions/…) go to the nearest live page.
+  if (
+    !isApiHost(host) &&
+    (request.method === "GET" || request.method === "HEAD")
+  ) {
+    const moved = legacyRedirect(url.pathname);
+    if (moved) return Response.redirect(new URL(moved, url), 301);
   }
 
   // Landing page on the apex and www hosts.
