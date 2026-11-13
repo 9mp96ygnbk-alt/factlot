@@ -560,15 +560,94 @@ const LEGAL_TEXT = {
   "terms.html":
     "69dc7f239adb8cc551578ce895d20fc2b188f49a0f25c07c7be426a9813b92e1",
 };
+// The same pages' <main>, byte for byte: every tag, attribute and link target as well as the
+// words. Only the chrome outside <main> was meant to change when the pages took the shell.
+const LEGAL_MAIN = {
+  "privacy.html":
+    "3ac270934e42e456f034fc74db23ea81513da71e30c5c49c2b12f1c75cb7f05b",
+  "terms.html":
+    "0c9354188888ecc9046ad6dfb5fde579437776f5ccda0f6a156baf54da7bc17d",
+};
 const mainOf = (html: string) =>
   /<main\b[^>]*>([\s\S]*?)<\/main>/.exec(html)![1]!;
 const textOf = (html: string) => mainOf(html).replace(/<[^>]*>/g, "");
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
+// These read source files only, so they run on every `npm test`, built packages or not.
+describe("the hand-written sources", () => {
+  it("the legal pages' text and markup inside <main> are the recorded ones", () => {
+    for (const file of Object.keys(LEGAL_TEXT) as (keyof typeof LEGAL_TEXT)[]) {
+      const source = read(`site/${file}`);
+      assert.equal(
+        sha256(textOf(source)),
+        LEGAL_TEXT[file],
+        `${file}: the text changed`,
+      );
+      assert.equal(
+        sha256(mainOf(source)),
+        LEGAL_MAIN[file],
+        `${file}: the markup inside <main> changed`,
+      );
+    }
+  });
+
+  it("the home page and the pricing page type no plan number in a plan card or a limits sentence", () => {
+    const homeSource = read("site/index.html");
+    assert.ok(homeSource.includes("<dd>{{CALC_COUNT}}</dd>"));
+    const cards = /<div class="plans">[\s\S]*?<div class="fine">/.exec(
+      homeSource,
+    )![0];
+    for (const id of ["plan-free", "plan-pro", "plan-team"]) {
+      const at = cards.indexOf(`id="${id}"`);
+      assert.ok(at > 0, id);
+      assert.doesNotMatch(
+        words(cards.slice(at).split("</article>")[0]!).replace("$0", ""),
+        /\d/,
+        `${id} states a number by hand`,
+      );
+    }
+    assert.doesNotMatch(
+      homeSource.replace(/\s+/g, " "),
+      /\d[\d,]* (?:requests a minute|registry lookups|reports a month|a day free|a month on (?:Pro|Team))/,
+    );
+    const pricingSource = read("site/_content/pricing.html");
+    const from = pricingSource.indexOf('<div class="plans">');
+    const to = pricingSource.indexOf('<table class="stack">');
+    assert.ok(from > 0 && to > from);
+    assert.doesNotMatch(
+      words(pricingSource.slice(from, to)).replace("$0", ""),
+      /\d/,
+      "a pricing plan card states a number by hand",
+    );
+  });
+
+  it("the home page takes the Texas sentence from the Texas page and does not type it", () => {
+    const texasPage = read("site/_content/texas.html");
+    const sentence = texasSoftwareSentence(texasPage);
+    assert.equal(
+      sentence,
+      "FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152, does not prepare, file or advise on protests, and does not represent owners before an appraisal review board.",
+    );
+    assert.ok(words(texasPage).includes(sentence));
+    const homeSource = read("site/index.html");
+    assert.ok(homeSource.includes("{{TEXAS_SOFTWARE_SENTENCE}}"));
+    assert.ok(!homeSource.includes("Occupations Code"));
+  });
+});
+
+// The tests of the built pages need the built packages (packages/*/dist). `npm test` skips them
+// when those are missing; `npm run test:built`, which CI and `npm run check` run after the build,
+// sets FACTLOT_REQUIRE_BUILD so they cannot be skipped there.
+const needsBuild = {
+  skip:
+    process.env.FACTLOT_REQUIRE_BUILD !== "1" &&
+    !existsSync(new URL("packages/tools/dist/index.js", root)),
+};
+
 describe("the built site", () => {
   it(
     "gives every page the shell, the font preload and a table box, and writes the map file",
-    { skip: !existsSync(new URL("packages/tools/dist/index.js", root)) },
+    needsBuild,
     () => {
       const out = mkdtempSync(`${tmpdir()}/factlot-site-`);
       execFileSync("node", ["scripts/site/build.mjs", out], {
@@ -625,11 +704,15 @@ describe("the built site", () => {
         /process\.argv\[2\] \?\? path\.join\(root, "deploy\/cloudflare\/public"\)/,
       );
       // The hand-written pages: the shell around them, and not a byte of their own text changed.
-      for (const [file, hash] of Object.entries(LEGAL_TEXT)) {
+      for (const file of Object.keys(LEGAL_TEXT)) {
         const source = read(`site/${file}`);
         const built = readFileSync(`${out}/${file}`, "utf8");
-        assert.equal(sha256(textOf(source)), hash, `${file}: the text changed`);
         assert.equal(mainOf(built), mainOf(source), `${file}: main differs`);
+        assert.equal(
+          sha256(mainOf(built)),
+          LEGAL_MAIN[file as keyof typeof LEGAL_MAIN],
+          file,
+        );
         assert.ok(
           built.includes(
             shell.siteHeader({ current: `/${file.replace(".html", "")}` }),
@@ -672,7 +755,6 @@ describe("the built site", () => {
           slug,
         );
       // The home page: the shell, and every figure and plan number from the data, none typed.
-      const homeSource = read("site/index.html");
       const home = readFileSync(`${out}/index.html`, "utf8");
       assert.ok(
         home.includes(shell.siteHeader({ current: "/", brandHref: "#top" })),
@@ -698,30 +780,11 @@ describe("the built site", () => {
         home,
         new RegExp(`<dt>Calculators</dt>\\s*<dd>${calculators}</dd>`),
       );
-      assert.ok(homeSource.includes("<dd>{{CALC_COUNT}}</dd>"));
-      // The plan cards and the sentences that give a plan's limits carry no number of their own.
       const plans = json<{
         free: Record<string, number>;
         paid: Record<string, number>[];
       }>("site/_data/plans.json");
       const n = (v: number | undefined) => (v ?? NaN).toLocaleString("en-US");
-      const cards = /<div class="plans">[\s\S]*?<div class="fine">/.exec(
-        homeSource,
-      )![0];
-      for (const id of ["plan-free", "plan-pro", "plan-team"]) {
-        const card = cards
-          .slice(cards.indexOf(`id="${id}"`))
-          .split("</article>")[0]!;
-        assert.doesNotMatch(
-          words(card).replace("$0", ""),
-          /\d/,
-          `${id} states a number by hand`,
-        );
-      }
-      assert.doesNotMatch(
-        homeSource.replace(/\s+/g, " "),
-        /\d[\d,]* (?:requests a minute|registry lookups|reports a month|a day free|a month on (?:Pro|Team))/,
-      );
       const homeText = words(home);
       const [pro, team] = plans.paid as [
         Record<string, number>,
@@ -739,14 +802,11 @@ describe("the built site", () => {
       ])
         assert.ok(homeText.includes(t), t);
       // What FactLot is not in Texas: the Texas page's own sentence, taken from it at build.
-      const sentence = texasSoftwareSentence(read("site/_content/texas.html"));
-      assert.equal(
-        sentence,
-        "FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152, does not prepare, file or advise on protests, and does not represent owners before an appraisal review board.",
+      assert.ok(
+        homeText.includes(
+          texasSoftwareSentence(read("site/_content/texas.html")),
+        ),
       );
-      assert.ok(homeText.includes(sentence));
-      assert.ok(words(read("site/_content/texas.html")).includes(sentence));
-      assert.ok(!homeSource.includes("Occupations Code"));
       // The connect tiles: each path's own name and what that client is given, from connect.json.
       const connect = connectData(json("site/_data/connect.json"), version);
       const everyPath = connect.surfaces.flatMap((x) => x.paths);
@@ -868,23 +928,12 @@ describe("the built site", () => {
       );
       // The pricing page: the plan cards above the comparison, their numbers from plans.json, and
       // a comparison whose every cell carries its plan's name for the phone layout.
-      const pricingSource = read("site/_content/pricing.html");
       const pricing = readFileSync(`${out}/pricing/index.html`, "utf8");
       const cardsAt = pricing.indexOf('<div class="plans">');
       const tableAt = pricing.indexOf(
         '<div class="tablewrap stacks"><table class="stack">',
       );
       assert.ok(cardsAt > 0 && tableAt > cardsAt);
-      assert.doesNotMatch(
-        words(
-          pricingSource.slice(
-            pricingSource.indexOf('<div class="plans">'),
-            pricingSource.indexOf('<table class="stack">'),
-          ),
-        ).replace("$0", ""),
-        /\d/,
-        "a plan card states a number by hand",
-      );
       const pricingText = words(pricing.slice(cardsAt, tableAt));
       for (const t of [
         `Requests a minute ${n(plans.free.requests_per_minute)} per IP address Registry lookups ${n(plans.free.registry_lookups_per_day)} a day per IP address Reports ${n(plans.free.reports_per_month)} a month per IP address`,
