@@ -12,7 +12,7 @@ import {
 import { PLANS, WATCH_LIMITS } from "./plans.ts";
 import { handle } from "./router.ts";
 import { hmacSha256Hex } from "./stripe.ts";
-import { resetUsageForTests } from "./usage.ts";
+import { resetUsageForTests, snapshot } from "./usage.ts";
 import type { Env, KV, RateLimit } from "./types.ts";
 import {
   STOP_PATH,
@@ -205,36 +205,62 @@ function entity(urn: string, status: string, s = "a"): Rec {
   };
 }
 
-/** The registry Worker: /health and /run registry_get over a mutable pack. */
+/** The registry Worker: /health, /run registry_get and /get-many over a mutable pack. */
 function fakeRegistry() {
   const pack = {
     built_at: "2026-11-05T00:00:00Z",
     records: new Map<string, Rec>(),
+    /** Every call answers 503. */
     down: false,
+    /** No /get-many (an older registry Worker). */
+    noGetMany: false,
+    /** URNs whose read fails: /run answers 500, /get-many with one of them answers 500. */
+    broken: new Set<string>(),
+    /** URNs whose outcome is an error other than NotFound. */
+    errors: new Set<string>(),
   };
-  const calls = { health: 0, get: 0 };
+  /** health: /health calls; get: subjects read; binding: every service-binding call. */
+  const calls = { health: 0, get: 0, binding: 0 };
+  const outcome = (urn: string) => {
+    if (pack.errors.has(urn))
+      return { ok: false, error: { error: "InternalError", message: "x" } };
+    const rec = pack.records.get(urn);
+    return rec
+      ? { ok: true, result: rec }
+      : {
+          ok: false,
+          error: {
+            error: "NotFound",
+            message: `no registry record for ${urn}: county not loaded`,
+          },
+        };
+  };
   const fetcher = {
     fetch: async (r: Request) => {
+      calls.binding++;
       const url = new URL(r.url);
       if (pack.down) return new Response("down", { status: 503 });
       if (url.pathname === "/health") {
         calls.health++;
         return Response.json({ ok: true, pack: { built_at: pack.built_at } });
       }
+      if (url.pathname === "/get-many") {
+        if (pack.noGetMany) return new Response("no", { status: 404 });
+        const b = (await r.json()) as { urns: string[] };
+        assert.ok(b.urns.length <= 50);
+        if (b.urns.some((u) => pack.broken.has(u)))
+          return new Response("boom", { status: 500 });
+        calls.get += b.urns.length;
+        return Response.json({
+          built_at: pack.built_at,
+          outcomes: b.urns.map(outcome),
+        });
+      }
       const b = (await r.json()) as { tool: string; input: { urn: string } };
+      if (pack.broken.has(b.input.urn))
+        return new Response("boom", { status: 500 });
       calls.get++;
-      const rec = pack.records.get(b.input.urn);
-      return Response.json(
-        rec
-          ? { ok: true, result: rec }
-          : {
-              ok: false,
-              error: {
-                error: "NotFound",
-                message: `no registry record for ${b.input.urn}: county not loaded`,
-              },
-            },
-      );
+      return Response.json(outcome(b.input.urn));
     },
   };
   return { pack, calls, fetcher };
@@ -377,6 +403,36 @@ function release(
   s.registry.pack.built_at = builtAt;
   change(s.registry.pack.records);
   resetWatchHealthCache();
+}
+
+/** Run the same check again from the start (as a crashed or overlapping run would). */
+function forceRerun(s: ReturnType<typeof setup>) {
+  const idx = s.space.object("watch:index").storage.sql;
+  idx.exec(
+    "DELETE FROM w_meta WHERE name = 'done_seq' OR name = 'lease_until'",
+  );
+  idx.exec("UPDATE w_owners SET done_seq = 0");
+}
+
+/** Turn alerts on and open the confirmation link. */
+async function confirmAlerts(
+  s: ReturnType<typeof setup>,
+  key: string,
+  email: string,
+) {
+  const res = await s.call(rest("alerts", { enabled: true, email }, key));
+  assert.equal(res.status, 202);
+  const m = s.email.sent.at(-1)!;
+  assert.equal(m.to, email);
+  const link =
+    /https:\/\/factlot\.com(\/account\/watch-alerts\/confirm\/\S+)/.exec(
+      m.text,
+    )![1]!;
+  const ok = await s.call(
+    new Request(`https://factlot.com${link}`, { method: "POST" }),
+  );
+  assert.equal(ok.status, 200);
+  return link;
 }
 
 // --- Fingerprints and comparison ---------------------------------------------------------------
@@ -759,14 +815,11 @@ describe("watch check", () => {
       changes: Rec[];
     };
     assert.equal(next.changes.length, 0);
-    // A forced re-run of the same pack stores nothing twice.
-    s.space.object("watch:index").storage.sql.exec("DELETE FROM w_meta");
-    s.space
-      .object("watch:index")
-      .storage.sql.exec("UPDATE w_owners SET done_built_at = ''");
+    // A forced re-run of the same check stores nothing twice.
+    forceRerun(s);
     s.space
       .object("watch:sub:sub_1")
-      .storage.sql.exec("UPDATE w_prints SET built_at = 'x'");
+      .storage.sql.exec("UPDATE w_prints SET seq = 0");
     r = await runWatchCheck(s.env, { now: () => s.clock.t });
     assert.equal(r.changes, 0);
     const all = (await (await s.call(rest("changes", {}, key))).json()) as {
@@ -813,6 +866,10 @@ describe("watch check", () => {
       subscription: "sub_2",
       customer: "cus_2",
     });
+    const keyC = await issue(s.env, {
+      subscription: "sub_3",
+      customer: "cus_3",
+    });
     const urns: string[] = [];
     for (let i = 0; i < 30; i++) {
       const urn = `fl:parcel:us-48201:${String(2_000_000 + i).padStart(13, "0")}`;
@@ -821,32 +878,36 @@ describe("watch check", () => {
     }
     await s.call(rest("add", { urns }, keyA));
     await s.call(rest("add", { urns: urns.slice(0, 10) }, keyB));
+    await s.call(rest("add", { urns: urns.slice(5, 25) }, keyC));
     release(s, "2026-11-12T00:00:00Z", (recs) => {
       for (const u of urns)
         recs.set(u, parcel(u, { year: 2026, idSuffix: "n" }));
     });
     const reads = s.registry.calls.get;
-    const budget = 25;
+    const budget = 12;
     const runs = [];
     for (let i = 0; i < 10; i++) {
       const r = await runWatchCheck(s.env, { budget, now: () => s.clock.t });
       runs.push(r);
-      assert.ok(r.subrequests <= budget, `run ${i} used ${r.subrequests}`);
+      assert.ok(r.invocations <= budget, `run ${i} used ${r.invocations}`);
       if (r.state === "done") break;
     }
     assert.ok(runs.length > 2);
     assert.equal(runs.at(-1)!.state, "done");
-    // Each URN read once per pack while a run lasts; at most once more after a resume.
-    assert.ok(s.registry.calls.get - reads <= 40);
-    for (const key of [keyA, keyB]) {
+    // Each watched subject read at most once per subscription per pack (once per run when shared).
+    assert.ok(s.registry.calls.get - reads <= 60);
+    for (const key of [keyA, keyB, keyC]) {
       const c = (await (
         await s.call(rest("changes", { limit: 200 }, key))
       ).json()) as {
         changes: Rec[];
       };
-      assert.equal(c.changes.length, key === keyA ? 30 : 10);
+      assert.equal(
+        c.changes.length,
+        key === keyA ? 30 : key === keyB ? 10 : 20,
+      );
     }
-    assert.ok(WATCH_CHECK.subrequests <= 1000);
+    assert.ok(WATCH_CHECK.invocations < 32);
   });
 
   it("watch_changes compares a newer pack inline, a few subjects at a time", async () => {
@@ -897,15 +958,10 @@ describe("watch alerts and deletion", () => {
     const s = setup();
     const key = await issue(s.env);
     await s.call(rest("add", { urns: [P1] }, key));
-    const on = (await (
-      await s.call(
-        rest("alerts", { enabled: true, email: "owner@example.com" }, key),
-      )
-    ).json()) as Rec;
-    assert.deepEqual(on, { enabled: true, email: "o•••r@example.com" });
-    // No change, no email.
+    await confirmAlerts(s, key, "owner@example.com");
+    // No change, no email (only the confirmation went out).
     await runWatchCheck(s.env);
-    assert.equal(s.email.sent.length, 0);
+    assert.equal(s.email.sent.length, 1);
     release(s, "2026-11-12T00:00:00Z", (recs) =>
       recs.set(
         P1,
@@ -913,13 +969,10 @@ describe("watch alerts and deletion", () => {
       ),
     );
     await runWatchCheck(s.env);
-    s.space.object("watch:index").storage.sql.exec("DELETE FROM w_meta");
-    s.space
-      .object("watch:index")
-      .storage.sql.exec("UPDATE w_owners SET done_built_at = ''");
+    forceRerun(s);
     await runWatchCheck(s.env);
-    assert.equal(s.email.sent.length, 1);
-    const m = s.email.sent[0]!;
+    assert.equal(s.email.sent.length, 2);
+    const m = s.email.sent[1]!;
     assert.equal(m.to, "owner@example.com");
     assert.match(m.subject, /1 change in the 2026-11-12 registry update/);
     assert.match(
@@ -1000,7 +1053,9 @@ describe("watch alerts and deletion", () => {
     assert.equal(res.status, 200);
     assert.deepEqual(s.space.object("watch:sub:sub_1").storage.tables(), []);
     assert.ok(
-      ![...s.env.KEYS.data.keys()].some((k) => k.startsWith("watchstop:")),
+      ![...s.env.KEYS.data.keys()].some(
+        (k) => k.startsWith("watchstop:") || k.startsWith("watchconfirm:"),
+      ),
     );
     assert.equal(
       (await s.env.WATCH!.index<{ owners: number }>("state")).owners,
@@ -1041,15 +1096,16 @@ describe("watch alerts and deletion", () => {
     try {
       const key = await issue(s.env);
       await s.call(rest("add", { urns: [P1] }, key));
-      await s.call(
-        rest("alerts", { enabled: true, email: "owner@example.com" }, key),
-      );
+      await confirmAlerts(s, key, "owner@example.com");
       release(s, "2026-11-12T00:00:00Z", (recs) =>
         recs.set(P1, parcel(P1, { owner: "X LLC", idSuffix: "n" })),
       );
       s.email.binding.send = async () => {
         throw Object.assign(new Error("nope"), { code: "E_X" });
       };
+      await s.call(
+        rest("alerts", { enabled: true, email: "other@example.com" }, key),
+      );
       await runWatchCheck(s.env);
       await s.call(rest("add", { urns: [P2] }));
     } finally {
@@ -1058,6 +1114,7 @@ describe("watch alerts and deletion", () => {
     const all = lines.join("\n") + JSON.stringify(s.points);
     assert.ok(all.includes("email failed"));
     assert.ok(!all.includes("owner@example.com"));
+    assert.ok(!all.includes("other@example.com"));
     assert.ok(!all.includes("fl_live_"));
   });
 
@@ -1065,9 +1122,13 @@ describe("watch alerts and deletion", () => {
     const r = fakeRegistry();
     const reader = registryReader(r.fetcher);
     assert.equal(await reader.builtAt(), "2026-11-05T00:00:00Z");
-    assert.deepEqual((await reader.get(P1)).found, false);
+    const one = await reader.getMany([P1], 1);
+    assert.deepEqual(one.reads[0], {
+      found: false,
+      message: `no registry record for ${P1}: county not loaded`,
+    });
     r.pack.down = true;
-    await assert.rejects(reader.get(P1));
+    await assert.rejects(reader.getMany([P1], 1));
   });
 
   it("the account page shows the section and its forms work", async () => {
@@ -1089,12 +1150,542 @@ describe("watch alerts and deletion", () => {
     html = await (
       await post({ action: "watch_alerts_on", email: "owner@example.com" })
     ).text();
-    assert.match(html, /Alert emails are on/);
+    assert.match(html, /A confirmation link is on its way/);
+    assert.match(html, /Waiting for confirmation/);
     html = await (await post({ action: "watch_alerts_off" })).text();
-    assert.match(html, /Alert emails are off and the address is deleted/);
+    assert.match(html, /Alert emails are off and the addresses are deleted/);
     html = await (
       await post({ action: "watch_remove_list", list: "default" })
     ).text();
     assert.match(html, /The list is removed/);
+  });
+});
+
+// --- Review fixes ------------------------------------------------------------------------------
+
+/** A signed Stripe webhook for subscription sub_1's cancellation. */
+async function cancelled(sub = "sub_1") {
+  const t = Math.floor(T0 / 1000);
+  const body = JSON.stringify({
+    id: "evt_1",
+    type: "customer.subscription.deleted",
+    created: t,
+    data: { object: { id: sub, status: "canceled", customer: "cus_1" } },
+  });
+  const sig = await hmacSha256Hex("whsec_x", `${t}.${body}`);
+  return new Request("https://api.factlot.com/v1/billing/webhook", {
+    method: "POST",
+    body,
+    headers: { "stripe-signature": `t=${t},v1=${sig}` },
+  });
+}
+
+const parcelUrn = (n: number) =>
+  `fl:parcel:us-48201:${String(3_000_000 + n).padStart(13, "0")}`;
+
+describe("watch lists: deletion is never a guess", () => {
+  it("a key rotation seen half-way, or an empty key list, deletes nothing", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    const hash = JSON.parse((await s.env.KEYS.get("sub:sub_1"))!)[0] as string;
+    const rec = JSON.parse((await s.env.KEYS.get(`key:${hash}`))!) as KeyRecord;
+    // The old key replaced; the new key's hash not yet in the (stale) list.
+    await writeKey(s.env.KEYS, hash, { ...rec, replaced_by: "abc123" }, T0);
+    release(s, "2026-11-12T00:00:00Z", () => {});
+    let r = await runWatchCheck(s.env);
+    assert.equal(r.subscriptions_deleted, 0);
+    await s.env.KEYS.put("sub:sub_1", "[]");
+    r = await runWatchCheck(s.env);
+    assert.equal(r.subscriptions_deleted, 0);
+    await s.env.KEYS.delete("sub:sub_1");
+    r = await runWatchCheck(s.env);
+    assert.equal(r.subscriptions_deleted, 0);
+    assert.ok(s.space.object("watch:sub:sub_1").storage.tables().length > 0);
+  });
+
+  it("the webhook deletes a subscription that is not in the index, and answers 503 when it cannot", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await confirmAlerts(s, key, "owner@example.com");
+    await s.env.WATCH!.index("unregister", { owner: "sub:sub_1" });
+    assert.equal((await s.call(await cancelled())).status, 200);
+    assert.deepEqual(s.space.object("watch:sub:sub_1").storage.tables(), []);
+    assert.ok(![...s.env.KEYS.data.keys()].some((k) => k.startsWith("watch")));
+    // Storage down: 503, so Stripe sends the event again.
+    const t = setup();
+    const k2 = await issue(t.env);
+    await t.call(rest("add", { urns: [P1] }, k2));
+    const real = t.env.WATCH!;
+    t.env.WATCH = {
+      ...real,
+      sub: async () => {
+        throw new Error("down");
+      },
+    };
+    assert.equal((await t.call(await cancelled())).status, 503);
+  });
+
+  it("with the variable off the webhook calls no watch storage and counts no watch tool label", async () => {
+    const s = setup("false");
+    const key = await issue(s.env);
+    assert.equal((await s.call(await cancelled())).status, 200);
+    assert.ok(![...s.space.objects.keys()].some((n) => n.startsWith("watch:")));
+    await s.call(
+      mcp(
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "watch_add", arguments: { urns: [P1] } },
+        },
+        key,
+      ),
+    );
+    assert.ok(!JSON.stringify(snapshot().counters).includes("watch_add"));
+  });
+});
+
+describe("watch lists: failures stay contained", () => {
+  it("a registry 5xx stops the run without recording a removed record", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1, P2] }, key));
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
+    );
+    // Health answers, then the registry goes down for the reads.
+    const realFetch = s.registry.fetcher.fetch;
+    let n = 0;
+    s.registry.fetcher.fetch = async (r: Request) => {
+      if (n++ > 0) return new Response("down", { status: 503 });
+      return realFetch(r);
+    };
+    const r = await runWatchCheck(s.env);
+    assert.equal(r.stopped, true);
+    assert.equal(r.changes, 0);
+    s.registry.fetcher.fetch = realFetch;
+    await runWatchCheck(s.env);
+    const c = (await (await s.call(rest("changes", {}, key))).json()) as {
+      changes: Rec[];
+    };
+    assert.deepEqual(
+      c.changes.map((x) => x.aspect),
+      ["value"],
+    );
+    const l = (await (await s.call(rest("list", {}, key))).json()) as {
+      subjects: Rec[];
+    };
+    assert.ok(l.subjects.every((x) => x.status === "current"));
+  });
+
+  it("a subject that keeps failing is given up for the check, and other subscriptions are checked", async () => {
+    const s = setup();
+    const k1 = await issue(s.env);
+    const k2 = await issue(s.env, { subscription: "sub_2", customer: "cus_2" });
+    const BAD = parcelUrn(1);
+    s.registry.pack.records.set(BAD, parcel(BAD));
+    await s.call(rest("add", { urns: [BAD, P1] }, k1));
+    await s.call(rest("add", { urns: [P2] }, k2));
+    release(s, "2026-11-12T00:00:00Z", (recs) => {
+      recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" }));
+      recs.set(P2, parcel(P2, { year: 2026, idSuffix: "n" }));
+    });
+    // The bad subject breaks every call it is in.
+    s.registry.pack.broken.add(BAD);
+    const first = await runWatchCheck(s.env);
+    assert.equal(first.stopped, undefined);
+    const two = (await (await s.call(rest("changes", {}, k2))).json()) as {
+      changes: Rec[];
+    };
+    assert.deepEqual(
+      two.changes.map((x) => x.aspect),
+      ["value"],
+    );
+    for (let i = 0; i < 5; i++) await runWatchCheck(s.env);
+    const one = (await (await s.call(rest("changes", {}, k1))).json()) as {
+      changes: Rec[];
+      check: Rec;
+    };
+    assert.deepEqual(
+      one.changes.map((x) => x.urn),
+      [P1],
+    );
+    assert.deepEqual(
+      (one.check.not_compared as Rec[]).map((x) => x.urn),
+      [BAD],
+    );
+    assert.equal((await s.env.WATCH!.index<Rec>("state")).done_seq, 2);
+    // Next pack it is read again.
+    s.registry.pack.broken.clear();
+    release(s, "2026-11-19T00:00:00Z", () => {});
+    await runWatchCheck(s.env);
+    const l = (await (await s.call(rest("list", {}, k1))).json()) as {
+      subjects: Rec[];
+    };
+    assert.ok(l.subjects.every((x) => x.read_error === undefined));
+  });
+
+  it("an error answer for one subject is counted for that subject only", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1, P2] }, key));
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(P2, parcel(P2, { year: 2026, idSuffix: "n" })),
+    );
+    s.registry.pack.errors.add(P1);
+    await runWatchCheck(s.env);
+    const l = (await (await s.call(rest("list", {}, key))).json()) as {
+      subjects: Rec[];
+    };
+    const byUrn = new Map(l.subjects.map((x) => [x.urn, x]));
+    assert.equal(byUrn.get(P1)!.read_error, "InternalError");
+    assert.equal(byUrn.get(P2)!.read_error, undefined);
+  });
+});
+
+describe("watch lists: service-binding calls", () => {
+  it("a run stays within 30 registry and Durable Object calls, reading 50 subjects per registry call", async () => {
+    const s = setup();
+    const keys = [];
+    for (let k = 0; k < 4; k++)
+      keys.push(
+        await issue(s.env, { subscription: `sub_${k}`, customer: `cus_${k}` }),
+      );
+    for (let i = 0; i < 150; i++)
+      s.registry.pack.records.set(parcelUrn(i), parcel(parcelUrn(i)));
+    for (const [k, key] of keys.entries())
+      for (let i = 0; i < 150; i += 50) {
+        const before = s.registry.calls.binding;
+        const urns = Array.from({ length: 50 }, (_, j) =>
+          parcelUrn((i + j + k * 7) % 150),
+        );
+        const res = await s.call(rest("add", { urns }, key));
+        assert.equal(res.status, 200);
+        // One health read (cached afterwards) and one /get-many for 50 subjects.
+        assert.ok(s.registry.calls.binding - before <= 2);
+      }
+    release(s, "2026-11-12T00:00:00Z", (recs) => {
+      for (let i = 0; i < 150; i++)
+        recs.set(
+          parcelUrn(i),
+          parcel(parcelUrn(i), { year: 2026, idSuffix: "n" }),
+        );
+    });
+    let runs = 0;
+    for (;;) {
+      const before = s.registry.calls.binding;
+      const r = await runWatchCheck(s.env);
+      runs++;
+      assert.ok(r.invocations <= WATCH_CHECK.invocations);
+      assert.ok(s.registry.calls.binding - before <= WATCH_CHECK.invocations);
+      if (r.state === "done" || runs > 20) break;
+    }
+    assert.ok(runs < 20);
+    for (const key of keys) {
+      const c = (await (
+        await s.call(rest("changes", { limit: 200 }, key))
+      ).json()) as {
+        changes: Rec[];
+      };
+      assert.equal(c.changes.length, 150);
+    }
+  });
+
+  it("falls back to one call per subject against a registry without /get-many, within the budget", async () => {
+    const s = setup();
+    s.registry.pack.noGetMany = true;
+    const key = await issue(s.env);
+    const res = await s.call(rest("add", { urns: [P1, P2, E1] }, key));
+    assert.equal(((await res.json()) as Rec).lookups_charged, 3);
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(E1, entity(E1, "Forfeited", "n")),
+    );
+    const r = await runWatchCheck(s.env);
+    assert.ok(r.invocations <= WATCH_CHECK.invocations);
+    const c = (await (await s.call(rest("changes", {}, key))).json()) as {
+      changes: Rec[];
+    };
+    assert.deepEqual(
+      c.changes.map((x) => x.aspect),
+      ["entity_status"],
+    );
+  });
+});
+
+describe("watch lists: watch_add bookkeeping", () => {
+  it("storage failing after the charge gives every lookup back", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    const real = s.env.WATCH!;
+    s.env.WATCH = {
+      ...real,
+      sub: async <T>(
+        sub: string,
+        op: string,
+        args?: Record<string, unknown>,
+      ) => {
+        if (op === "add") throw new Error("down");
+        return real.sub<T>(sub, op, args);
+      },
+    };
+    const res = await s.call(rest("add", { urns: [P1, P2] }, key));
+    assert.equal(res.status, 503);
+    assert.equal(await lookupsUsed(s.env), 0);
+  });
+
+  it("registers before storing, and watch_list and watch_changes register again", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    const owners = async () =>
+      (await s.env.WATCH!.index<{ owners: number }>("state")).owners;
+    assert.equal(await owners(), 1);
+    await s.env.WATCH!.index("unregister", { owner: "sub:sub_1" });
+    await s.call(rest("list", {}, key));
+    assert.equal(await owners(), 1);
+    await s.env.WATCH!.index("unregister", { owner: "sub:sub_1" });
+    await s.call(rest("changes", {}, key));
+    assert.equal(await owners(), 1);
+  });
+
+  it("the same new URN added to two lists at once costs one lookup", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    const [a, b] = await Promise.all([
+      s.call(rest("add", { urns: [P1], list: "a" }, key)),
+      s.call(rest("add", { urns: [P1], list: "b" }, key)),
+    ]);
+    assert.equal(a.status, 200);
+    assert.equal(b.status, 200);
+    assert.equal(await lookupsUsed(s.env), 1);
+  });
+
+  it("subjects beyond a downgraded plan's limit are reported as not checked", async () => {
+    const s = setup();
+    const key = await issue(s.env, { plan: "team" });
+    for (let i = 0; i < 201; i++)
+      s.registry.pack.records.set(parcelUrn(i), parcel(parcelUrn(i)));
+    for (let i = 0; i < 201; i += 50)
+      await s.call(
+        rest(
+          "add",
+          {
+            urns: Array.from({ length: Math.min(50, 201 - i) }, (_, j) =>
+              parcelUrn(i + j),
+            ),
+          },
+          key,
+        ),
+      );
+    const hash = JSON.parse((await s.env.KEYS.get("sub:sub_1"))!)[0] as string;
+    const rec = JSON.parse((await s.env.KEYS.get(`key:${hash}`))!) as KeyRecord;
+    await writeKey(s.env.KEYS, hash, { ...rec, plan: "pro" }, T0);
+    const l = (await (
+      await s.call(rest("list", { limit: 500 }, key))
+    ).json()) as {
+      watched: Rec;
+      subjects: Rec[];
+    };
+    assert.equal(l.watched.not_checked, 1);
+    assert.match(
+      String(l.watched.note),
+      /1 watched subject is beyond the plan's 200/,
+    );
+    assert.equal(l.subjects.filter((x) => x.checked === false).length, 1);
+  });
+});
+
+describe("watch lists: alert address confirmation", () => {
+  it("an unconfirmed address gets the confirmation email and nothing else", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    const res = await s.call(
+      rest("alerts", { enabled: true, email: "new@example.com" }, key),
+    );
+    assert.equal(res.status, 202);
+    const b = (await res.json()) as Rec;
+    assert.equal(b.state, "pending");
+    assert.equal(s.email.sent.length, 1);
+    assert.match(s.email.sent[0]!.subject, /Confirm FactLot watch-list alerts/);
+    assert.ok(!s.email.sent[0]!.text.includes("stop/"));
+    let l = (await (await s.call(rest("list", {}, key))).json()) as {
+      alerts: Rec;
+    };
+    assert.equal(l.alerts.state, "pending");
+    assert.equal(l.alerts.enabled, false);
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
+    );
+    await runWatchCheck(s.env);
+    assert.equal(s.email.sent.length, 1);
+    // Rate limited per subscription, one pending address at a time.
+    const again = await s.call(
+      rest("alerts", { enabled: true, email: "other@example.com" }, key),
+    );
+    assert.equal(again.status, 429);
+    s.clock.t += 11 * 60_000;
+    const firstLink = /(\/account\/watch-alerts\/confirm\/\S+)/.exec(
+      s.email.sent[0]!.text,
+    )![1]!;
+    assert.equal(
+      (
+        await s.call(
+          rest("alerts", { enabled: true, email: "other@example.com" }, key),
+        )
+      ).status,
+      202,
+    );
+    // The first link no longer works; the second does.
+    assert.equal(
+      (
+        await s.call(
+          new Request(`https://factlot.com${firstLink}`, { method: "POST" }),
+        )
+      ).status,
+      404,
+    );
+    const second = /(\/account\/watch-alerts\/confirm\/\S+)/.exec(
+      s.email.sent[1]!.text,
+    )![1]!;
+    const get = await s.call(new Request(`https://factlot.com${second}`));
+    assert.match(await get.text(), /Confirm/);
+    assert.equal(
+      (
+        await s.call(
+          new Request(`https://factlot.com${second}`, { method: "POST" }),
+        )
+      ).status,
+      200,
+    );
+    l = (await (await s.call(rest("list", {}, key))).json()) as { alerts: Rec };
+    assert.equal(l.alerts.state, "confirmed");
+    assert.equal(l.alerts.email, "o•••r@example.com");
+  });
+
+  it("a confirmation link expires", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(
+      rest("alerts", { enabled: true, email: "new@example.com" }, key),
+    );
+    const link = /(\/account\/watch-alerts\/confirm\/\S+)/.exec(
+      s.email.sent[0]!.text,
+    )![1]!;
+    s.clock.t += 25 * 3_600_000;
+    assert.equal(
+      (
+        await s.call(
+          new Request(`https://factlot.com${link}`, { method: "POST" }),
+        )
+      ).status,
+      404,
+    );
+  });
+
+  it("a failed digest is released and sent by a later run; a claimed one never twice", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    await confirmAlerts(s, key, "owner@example.com");
+    release(s, "2026-11-12T00:00:00Z", (recs) =>
+      recs.set(P1, parcel(P1, { year: 2026, idSuffix: "n" })),
+    );
+    const send = s.email.binding.send;
+    s.email.binding.send = async () => {
+      throw new Error("nope");
+    };
+    await runWatchCheck(s.env);
+    s.email.binding.send = send;
+    forceRerun(s);
+    await runWatchCheck(s.env);
+    forceRerun(s);
+    await runWatchCheck(s.env);
+    assert.equal(
+      s.email.sent.filter((m) => /registry update/.test(m.subject)).length,
+      1,
+    );
+  });
+});
+
+describe("watch lists: storage", () => {
+  it("has indexes on subjects by URN and changes by built_at, and a status column", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    const sql = s.space.object("watch:sub:sub_1").storage.sql;
+    const names = sql
+      .exec("SELECT name FROM sqlite_master WHERE type = 'index'")
+      .toArray()
+      .map((r) => r.name);
+    assert.ok(names.includes("w_subjects_urn"));
+    assert.ok(names.includes("w_changes_built_at"));
+    assert.equal(
+      sql.exec("SELECT status FROM w_prints").toArray()[0]!.status,
+      "current",
+    );
+  });
+
+  it("old changes go after 400 days even for an unpaid subscription, and on reads", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    const sql = s.space.object("watch:sub:sub_1").storage.sql;
+    const old = new Date(T0 - 401 * 86_400_000).toISOString();
+    sql.exec(
+      "INSERT INTO w_changes (urn, aspect, built_at, seq, detected_at, body) VALUES (?, 'value', 'x', 99, ?, '{}')",
+      P1,
+      old,
+    );
+    await s.call(rest("list", {}, key));
+    assert.equal(
+      sql.exec("SELECT COUNT(*) AS n FROM w_changes").toArray()[0]!.n,
+      0,
+    );
+    sql.exec(
+      "INSERT INTO w_changes (urn, aspect, built_at, seq, detected_at, body) VALUES (?, 'value', 'x', 99, ?, '{}')",
+      P1,
+      old,
+    );
+    const hash = JSON.parse((await s.env.KEYS.get("sub:sub_1"))!)[0] as string;
+    const rec = JSON.parse((await s.env.KEYS.get(`key:${hash}`))!) as KeyRecord;
+    await writeKey(s.env.KEYS, hash, { ...rec, stripe_status: "unpaid" }, T0);
+    release(s, "2026-11-12T00:00:00Z", () => {});
+    await runWatchCheck(s.env, { now: () => s.clock.t });
+    assert.equal(
+      sql.exec("SELECT COUNT(*) AS n FROM w_changes").toArray()[0]!.n,
+      0,
+    );
+  });
+
+  it("a pack rolled back and deployed again is compared again", async () => {
+    const s = setup();
+    const key = await issue(s.env);
+    await s.call(rest("add", { urns: [P1] }, key));
+    const A = parcel(P1);
+    const B = parcel(P1, { year: 2026, idSuffix: "n" });
+    const builtA = s.registry.pack.built_at;
+    release(s, "2026-11-12T00:00:00Z", (recs) => recs.set(P1, B));
+    await runWatchCheck(s.env);
+    release(s, builtA, (recs) => recs.set(P1, A));
+    await runWatchCheck(s.env);
+    release(s, "2026-11-12T00:00:00Z", (recs) => recs.set(P1, B));
+    await runWatchCheck(s.env);
+    const c = (await (await s.call(rest("changes", {}, key))).json()) as {
+      changes: Rec[];
+    };
+    assert.equal(c.changes.length, 3);
+  });
+
+  it("recorded-document hashes are keyed by a server secret; a new key re-baselines them", async () => {
+    const rec = parcel(P1, { deeds: [{ date: "2026-10-01", price: 9 }] });
+    const plain = await fingerprint(rec);
+    const keyed = await fingerprint(rec, "k".repeat(64));
+    const other = await fingerprint(rec, "z".repeat(64));
+    assert.equal(plain.dk, "sha256");
+    assert.notEqual(keyed.dk, other.dk);
+    assert.notEqual(keyed.documents.items[0]!.h, plain.documents.items[0]!.h);
+    assert.deepEqual(compare(keyed, other, new Set(ASPECTS)), []);
   });
 });

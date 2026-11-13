@@ -12,8 +12,11 @@
  *   other          one short hash per remaining predicate and relationship type
  *
  * Values are compared, not fact ids: a fact restated by a newer file of the same source gets a
- * new id but is not a change. Recorded-document values can carry party names, so only a hash of
- * each is kept, with its date and amount. A record that is gone (a retired parcel, a withheld
+ * new id but is not a change. Recorded-document values can carry party names, so only a keyed hash
+ * of each is kept (HMAC-SHA-256 under a key derived from a server secret, so the hashes cannot be
+ * matched against guessed values), with its date and amount. Each fingerprint names its key
+ * (`dk`): after the secret changes, the first comparison re-baselines the documents instead of
+ * reporting them all as changed. A record that is gone (a retired parcel, a withheld
  * county) or no longer in the latest snapshot is reported as a change of aspect `record`, whatever
  * the caller watches.
  */
@@ -85,6 +88,8 @@ export interface Print {
     citation: Citation | null;
   } | null;
   documents: { count: number; items: DocumentMark[] };
+  /** Which key hashed the documents ("sha256" without a secret). */
+  dk: string;
   entity_status: { value: string | null; citation: Citation | null } | null;
   /** predicate (or `rel:<type>`) to 16 hex characters. */
   other: Record<string, string>;
@@ -98,6 +103,49 @@ export interface ChangeBody {
   old: unknown;
   new: unknown;
   citation?: Citation | Citation[] | null;
+}
+
+const hex16 = (d: ArrayBuffer) =>
+  [...new Uint8Array(d).slice(0, 8)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+type HmacKey = Awaited<ReturnType<typeof crypto.subtle.importKey>>;
+
+const docKeys = new Map<string, Promise<{ key: HmacKey; id: string }>>();
+
+/** The documents' HMAC key, derived from `secret`, and its id. */
+function docKey(secret: string): Promise<{ key: HmacKey; id: string }> {
+  let k = docKeys.get(secret);
+  if (!k) {
+    k = (async () => {
+      const root = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(secret),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
+      const raw = await crypto.subtle.sign(
+        "HMAC",
+        root,
+        new TextEncoder().encode("factlot-watch-documents"),
+      );
+      const key = await crypto.subtle.importKey(
+        "raw",
+        raw,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
+      const id = hex16(
+        await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("id")),
+      );
+      return { key, id };
+    })();
+    docKeys.set(secret, k);
+  }
+  return k;
 }
 
 async function hash16(text: string): Promise<string> {
@@ -148,7 +196,22 @@ function ownerName(v: unknown): string {
 }
 
 /** The fingerprint of a registry_get answer (the record as a Pro or Team caller sees it). */
-export async function fingerprint(record: Json): Promise<Print> {
+export async function fingerprint(
+  record: Json,
+  /** The server secret the documents' key is derived from (RECOVERY_SIGNING_SECRET). */
+  secret?: string,
+): Promise<Print> {
+  const dkey = secret ? await docKey(secret) : undefined;
+  const docHash = async (text: string) =>
+    dkey
+      ? hex16(
+          await crypto.subtle.sign(
+            "HMAC",
+            dkey.key,
+            new TextEncoder().encode(text),
+          ),
+        )
+      : hash16(text);
   const urn = str(record.urn) ?? "";
   const kind = str(record.kind) ?? "";
   const facts = (Array.isArray(record.facts) ? record.facts : []) as Json[];
@@ -207,7 +270,7 @@ export async function fingerprint(record: Json): Promise<Print> {
     if (!DOCUMENT_PREDICATES.has(predicate)) continue;
     const v = (f.value ?? {}) as Json;
     docs.push({
-      h: await hash16(`${predicate}|${canonical(f.value)}`),
+      h: await docHash(`${predicate}|${canonical(f.value)}`),
       predicate,
       date: str(v.date) ?? str(v.reporting_period_end) ?? str(f.as_of),
       amount_usd:
@@ -273,6 +336,7 @@ export async function fingerprint(record: Json): Promise<Print> {
       count: uniqueDocs.length,
       items: uniqueDocs.slice(0, MAX_DOCUMENTS),
     },
+    dk: dkey ? dkey.id : "sha256",
     entity_status,
     other,
     newest_as_of: dates.length ? dates.sort().at(-1)! : null,
@@ -369,7 +433,8 @@ export function compare(
       });
   }
 
-  if (aspects.has("documents")) {
+  // Documents hashed under another key cannot be compared: the new ones become the baseline.
+  if (aspects.has("documents") && old.dk === cur.dk) {
     const before = new Set(old.documents.items.map((d) => d.h));
     const after = new Set(cur.documents.items.map((d) => d.h));
     const added = cur.documents.items.filter((d) => !before.has(d.h));

@@ -36,19 +36,22 @@ import { EMAIL_RE } from "./recovery.ts";
 import type { Env } from "./types.ts";
 import { countEvent, type CallerKind } from "./usage.ts";
 import {
+  CONFIRM_PATH,
   STOP_PATH,
   WATCH_CHECK,
   alertsReady,
-  compareBatch,
+  compareItems,
+  confirmTokenId,
   newContext,
   registryReader,
+  sendConfirmation,
   stopTokenId,
   type PendingItem,
   type RegistryReader,
 } from "./watch-check.ts";
-import { STOP_KV_PREFIX } from "./watch-forget.ts";
+import { CONFIRM_KV_PREFIX, STOP_KV_PREFIX } from "./watch-forget.ts";
 import { ASPECTS, fingerprint, parseAspects } from "./watch-print.ts";
-import type { StoredChange } from "./watch-store.ts";
+import type { AlertState, StoredChange } from "./watch-store.ts";
 
 export { watchEnabled };
 
@@ -173,7 +176,7 @@ export const WATCH_TOOLS = [
   tool(
     "watch_changes",
     "What changed on watched records",
-    "Hosted FactLot tool (Pro and Team). Returns the changes found on watched subjects since `since` (the cursor of an earlier answer; omit it for every change kept), oldest first: the subject, the aspect, the registry update it came with, old and new values, and the citation of the new fact. Pass the answer's cursor next time. Changes are kept 400 days. When the registry has an update not yet compared, up to 25 of your subjects are compared first; check.unchecked says how many remain. Never counts as a lookup.",
+    "Hosted FactLot tool (Pro and Team). Returns the changes found on watched subjects since `since` (the cursor of an earlier answer; omit it for every change kept), oldest first: the subject, the aspect, the registry update it came with, old and new values, and the citation of the new fact. Pass the answer's cursor next time. Changes are kept 400 days. When the registry has an update not yet compared, up to 25 of your subjects are compared first; check.unchecked says how many remain, and check.not_compared lists subjects the registry could not read. Never counts as a lookup.",
     {
       since: {
         type: "string",
@@ -193,7 +196,7 @@ export const WATCH_TOOLS = [
   tool(
     "watch_alerts",
     "Watch-list alert email",
-    "Hosted FactLot tool (Pro and Team). enabled: true with an email address sends one email to that address after each registry update that changed something the subscription watches (a short list of changes and a one-click stop link); enabled: false stops them and deletes the stored address. Never counts as a lookup.",
+    "Hosted FactLot tool (Pro and Team). enabled: true with an email address sends that address one confirmation email; once its link is opened, one email goes there after each registry update that changed something the subscription watches (a short list of changes and a one-click stop link). Until then nothing else is sent to it, and the current confirmed address (if any) keeps receiving alerts. enabled: false stops them and deletes the stored addresses. watch_list shows whether the address is pending or confirmed. Never counts as a lookup.",
     {
       enabled: { type: "boolean" },
       email: {
@@ -305,23 +308,32 @@ function listArg(v: unknown, required = true): string | undefined | ToolAnswer {
 const isAnswer = (v: unknown): v is ToolAnswer =>
   typeof v === "object" && v !== null && "status" in v && "body" in v;
 
-async function mapLimit<T, R>(
-  items: T[],
-  limit: number,
-  fn: (t: T) => Promise<R>,
-): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) {
-        const k = next++;
-        out[k] = await fn(items[k]!);
-      }
-    }),
-  );
-  return out;
+const ownerOf = (c: WatchCaller) => `sub:${c.subscription}`;
+
+/** Put the subscription in the check's index (idempotent). */
+const register = (env: Env, c: WatchCaller) =>
+  env.WATCH!.index("register", { owner: ownerOf(c) });
+
+/** The check number of the registry's current pack (0 when the registry does not say). */
+async function currentCheck(
+  env: Env,
+  reader: RegistryReader | undefined,
+): Promise<{ builtAt: string; seq: number }> {
+  let builtAt = "";
+  try {
+    if (reader) builtAt = (await reader.builtAt()) ?? "";
+  } catch {
+    builtAt = "";
+  }
+  if (!builtAt) return { builtAt, seq: 0 };
+  const { seq } = await env.WATCH!.index<{ seq: number }>("seq", {
+    built_at: builtAt,
+  });
+  return { builtAt, seq };
 }
+
+/** Registry calls watch_add may make when the registry Worker has no /get-many (an older one). */
+const ADD_MAX_CALLS = 10;
 
 async function addTool(
   env: Env,
@@ -407,6 +419,10 @@ async function addTool(
   const reader = readerFor(env, deps);
   if (toRead.length > 0 && !reader) return unavailable();
 
+  // In the check's index before anything is stored or charged, so a stored subject is always
+  // checked (registering twice is harmless).
+  if (room.fresh.length > 0) await register(env, c);
+
   // One registry lookup per subject read, taken first, given back for each one not added.
   let quota:
     | { used: number; limit: number; remaining: number; resets_at: string }
@@ -430,11 +446,13 @@ async function addTool(
       );
     }
   }
+  let charged = toRead.length;
   const giveBack = async (n: number) => {
     if (n > 0 && quota) {
       await env.METER.refund(c.meter, "month", n, quota.resets_at).catch(() => {
         console.error(JSON.stringify({ msg: "quota refund failed" }));
       });
+      charged -= n;
       quota = {
         ...quota,
         used: quota.used - n,
@@ -442,110 +460,119 @@ async function addTool(
       };
     }
   };
-  let builtAt = "";
   try {
-    if (reader) builtAt = (await reader.builtAt()) ?? "";
-  } catch {
-    builtAt = "";
-  }
-  const reads = await mapLimit(toRead, 4, async (urn) => {
-    try {
-      return { urn, outcome: await reader!.get(urn) };
-    } catch {
-      return { urn, outcome: undefined };
+    const check =
+      toRead.length > 0 || room.known.length > 0
+        ? await currentCheck(env, reader)
+        : { builtAt: "", seq: 0 };
+    let reads: (
+      | { found: true; record: Record<string, unknown> }
+      | { found: false; message: string }
+      | { error: string }
+      | undefined
+    )[] = [];
+    let callFailed = false;
+    if (toRead.length > 0) {
+      try {
+        reads = (await reader!.getMany(toRead, ADD_MAX_CALLS)).reads;
+      } catch {
+        callFailed = true;
+      }
     }
-  });
-  const items: {
-    urn: string;
-    label: string | null;
-    print: string;
-    built_at: string;
-  }[] = [];
-  for (const r of reads) {
-    if (!r.outcome)
-      errors.push({
-        urn: r.urn,
-        error: "RegistryUnavailable",
-        message:
-          "the registry did not answer for this subject; not added, not counted",
-      });
-    else if (!r.outcome.found)
-      errors.push({
-        urn: r.urn,
-        error: "NotFound",
-        message: r.outcome.message,
-      });
-    else
-      items.push({
-        urn: r.urn,
-        label:
-          typeof r.outcome.record.label === "string"
-            ? r.outcome.record.label
-            : null,
-        print: JSON.stringify(await fingerprint(r.outcome.record)),
-        built_at: builtAt,
-      });
-  }
-  if (
-    toRead.length > 0 &&
-    items.length === 0 &&
-    reads.every((r) => !r.outcome)
-  ) {
-    await giveBack(toRead.length);
-    return unavailable();
-  }
-  const added = await W.sub<{
-    added: string[];
-    refused: string[];
-    total: number;
-  }>(c.subscription, "add", {
-    list,
-    aspects,
-    items,
-    known: [...known],
-    maxSubjects: limits.subjects,
-    maxLists: limits.lists,
-    now: new Date(now()).toISOString(),
-  });
-  const read = new Set(items.map((i) => i.urn));
-  const charged = added.added.filter((u) => read.has(u));
-  await giveBack(toRead.length - charged.length);
-  for (const u of added.refused)
-    errors.push({
-      urn: u,
-      error: "WatchLimitReached",
-      message: `the subscription reached ${limits.subjects.toLocaleString("en-US")} watched subjects; not added, not counted`,
-    });
-  if (added.added.length > 0)
-    await W.index("register", {
-      owner: `sub:${c.subscription}`,
-      built_at: builtAt,
-    });
-  if (charged.length > 0)
-    await env.METER.record(
-      c.meter,
-      charged.map((urn) => ({
-        tool: "watch_add",
-        region: regionOf("registry_get", { urn }),
-      })),
-    ).catch(() => {});
-  const labels = new Map(items.map((i) => [i.urn, i.label]));
-  return {
-    status: 200,
-    body: {
+    if (callFailed) {
+      await giveBack(charged);
+      return unavailable();
+    }
+    const items: {
+      urn: string;
+      label: string | null;
+      print: string;
+      status: string;
+      built_at: string;
+    }[] = [];
+    for (const [k, urn] of toRead.entries()) {
+      const read = reads[k];
+      if (!read || "error" in read)
+        errors.push({
+          urn,
+          error: "RegistryUnavailable",
+          message:
+            "the registry did not answer for this subject; not added, not counted",
+        });
+      else if (!read.found)
+        errors.push({ urn, error: "NotFound", message: read.message });
+      else {
+        const print = await fingerprint(
+          read.record,
+          env.RECOVERY_SIGNING_SECRET,
+        );
+        items.push({
+          urn,
+          label:
+            typeof read.record.label === "string" ? read.record.label : null,
+          print: JSON.stringify(print),
+          status: print.status,
+          built_at: check.builtAt,
+        });
+      }
+    }
+    const added = await W.sub<{
+      added: string[];
+      refused: string[];
+      reused: string[];
+      total: number;
+    }>(c.subscription, "add", {
       list,
       aspects,
-      added: added.added.map((urn) => ({
-        urn,
-        label: labels.get(urn) ?? null,
-      })),
-      already_watched: room.already,
-      errors,
-      lookups_charged: charged.length,
-      watched: { subjects: added.total, limit: limits.subjects },
-      ...(quota ? { quota } : {}),
-    },
-  };
+      items,
+      known: [...known],
+      seq: check.seq,
+      maxSubjects: limits.subjects,
+      maxLists: limits.lists,
+      now: new Date(now()).toISOString(),
+    });
+    // Charged: subjects read here and stored here. A subject another call stored meanwhile
+    // (the same new URN added to two lists at once) is not charged twice.
+    const read = new Set(items.map((i) => i.urn));
+    const reused = new Set(added.reused);
+    const kept = added.added.filter((u) => read.has(u) && !reused.has(u));
+    await giveBack(charged - kept.length);
+    for (const u of added.refused)
+      errors.push({
+        urn: u,
+        error: "WatchLimitReached",
+        message: `the subscription reached ${limits.subjects.toLocaleString("en-US")} watched subjects; not added, not counted`,
+      });
+    if (kept.length > 0)
+      await env.METER.record(
+        c.meter,
+        kept.map((urn) => ({
+          tool: "watch_add",
+          region: regionOf("registry_get", { urn }),
+        })),
+      ).catch(() => {});
+    const labels = new Map(items.map((i) => [i.urn, i.label]));
+    return {
+      status: 200,
+      body: {
+        list,
+        aspects,
+        added: added.added.map((urn) => ({
+          urn,
+          label: labels.get(urn) ?? null,
+        })),
+        already_watched: room.already,
+        errors,
+        lookups_charged: kept.length,
+        watched: { subjects: added.total, limit: limits.subjects },
+        ...(quota ? { quota } : {}),
+      },
+    };
+  } catch (err) {
+    // Storage failed after the lookups were taken: give them all back.
+    await giveBack(charged);
+    throw err;
+  }
 }
 
 async function removeTool(
@@ -574,13 +601,14 @@ async function removeTool(
     removed: number;
     forgotten: number;
     total: number;
+    alerts: boolean;
   }>(c.subscription, "remove", {
     list,
     all,
     urns: all ? [] : (urns as string[]).map((u) => u.trim()),
   });
-  if (r.total === 0)
-    await env.WATCH!.index("unregister", { owner: `sub:${c.subscription}` });
+  if (r.total === 0 && !r.alerts)
+    await env.WATCH!.index("unregister", { owner: ownerOf(c) });
   return {
     status: 200,
     body: {
@@ -593,26 +621,48 @@ async function removeTool(
   };
 }
 
+/** The alert setting as callers see it: off, pending (waiting for its confirmation) or on. */
+function alertsView(env: Env, s: AlertState) {
+  return {
+    state: s.email ? "confirmed" : s.pending_email ? "pending" : "off",
+    enabled: s.email !== null,
+    email: s.email ? maskEmail(s.email) : null,
+    ...(s.pending_email
+      ? {
+          pending_email: maskEmail(s.pending_email),
+          pending_expires_at: s.pending_expires,
+        }
+      : {}),
+    available: alertsReady(env),
+  };
+}
+
 async function listTool(
   env: Env,
   c: WatchCaller,
   a: Record<string, unknown>,
+  deps: WatchDeps = {},
 ): Promise<ToolAnswer> {
   const list = listArg(a.list, false);
   if (isAnswer(list)) return list;
+  const limits = WATCH_LIMITS[c.plan];
   const r = await env.WATCH!.sub<{
     lists: unknown[];
     subjects: unknown[];
     total: number;
-    matching: number;
+    distinct: number;
+    over_limit: number;
     next_offset: number | null;
-    alerts: { email: string | null };
+    alerts: AlertState;
     last_built_at: string | null;
   }>(c.subscription, "list", {
     list,
     offset: typeof a.offset === "number" ? a.offset : 0,
     limit: typeof a.limit === "number" ? a.limit : 100,
+    maxSubjects: limits.subjects,
+    now: new Date((deps.now ?? Date.now)()).toISOString(),
   });
+  if (r.total > 0) await register(env, c);
   return {
     status: 200,
     body: {
@@ -621,18 +671,28 @@ async function listTool(
       next_offset: r.next_offset,
       watched: {
         subjects: r.total,
-        limit: WATCH_LIMITS[c.plan].subjects,
+        limit: limits.subjects,
         lists: r.lists.length,
-        lists_limit: WATCH_LIMITS[c.plan].lists,
+        lists_limit: limits.lists,
+        ...(r.over_limit > 0
+          ? {
+              not_checked: r.over_limit,
+              note: `${r.over_limit} watched subject${r.over_limit === 1 ? " is" : "s are"} beyond the plan's ${limits.subjects.toLocaleString("en-US")} and not compared after registry updates (the newest added are left out; they show checked: false). Remove subjects or change plan.`,
+            }
+          : {}),
       },
-      alerts: {
-        enabled: r.alerts.email !== null,
-        email: r.alerts.email ? maskEmail(r.alerts.email) : null,
-        available: alertsReady(env),
-      },
+      alerts: alertsView(env, r.alerts),
       last_registry_update_compared: r.last_built_at,
     },
   };
+}
+
+interface CheckView {
+  built_at: string | null;
+  unchecked: number;
+  failing: number;
+  skipped: { urn: string; reason: string }[];
+  note?: string;
 }
 
 /** Compare up to WATCH_CHECK.inlineReads pending subjects when the pack is newer. */
@@ -640,46 +700,62 @@ async function catchUp(
   env: Env,
   c: WatchCaller,
   deps: WatchDeps,
-): Promise<{ built_at: string | null; unchecked: number; note?: string }> {
+): Promise<CheckView> {
+  const view: CheckView = {
+    built_at: null,
+    unchecked: 0,
+    failing: 0,
+    skipped: [],
+  };
   const reader = readerFor(env, deps);
-  if (!reader) return { built_at: null, unchecked: 0 };
-  let builtAt: string | undefined;
-  try {
-    builtAt = await reader.builtAt();
-  } catch {
+  if (!reader) return view;
+  const check = await currentCheck(env, reader);
+  if (!check.builtAt)
     return {
-      built_at: null,
-      unchecked: 0,
+      ...view,
       note: "the registry did not say which update it holds; changes are as of the last check",
     };
+  view.built_at = check.builtAt;
+  const p = await env.WATCH!.sub<{
+    items: PendingItem[];
+    remaining: number;
+    total: number;
+  }>(c.subscription, "pending", {
+    seq: check.seq,
+    max: WATCH_CHECK.inlineReads,
+    maxSubjects: WATCH_LIMITS[c.plan].subjects,
+    now: new Date((deps.now ?? Date.now)()).toISOString(),
+  });
+  if (p.total > 0) await register(env, c);
+  let settled = 0;
+  if (p.items.length > 0) {
+    try {
+      settled = (
+        await compareItems(
+          env.WATCH!,
+          c.subscription,
+          check.seq,
+          check.builtAt,
+          p.items,
+          newContext(reader, deps.now, () => {}, env.RECOVERY_SIGNING_SECRET),
+          2,
+        )
+      ).settled;
+    } catch {
+      view.note =
+        "the registry did not answer, so the newest update is not compared yet; ask again in a minute";
+    }
   }
-  if (!builtAt) return { built_at: null, unchecked: 0 };
-  const p = await env.WATCH!.sub<{ items: PendingItem[]; remaining: number }>(
-    c.subscription,
-    "pending",
-    {
-      built_at: builtAt,
-      max: WATCH_CHECK.inlineReads,
-      maxSubjects: WATCH_LIMITS[c.plan].subjects,
-    },
-  );
-  if (p.items.length === 0) return { built_at: builtAt, unchecked: 0 };
-  try {
-    await compareBatch(
-      env.WATCH!,
-      c.subscription,
-      builtAt,
-      p.items,
-      newContext(reader, deps.now),
-    );
-  } catch {
-    return {
-      built_at: builtAt,
-      unchecked: p.remaining,
-      note: "the registry did not answer, so the newest update is not compared yet; ask again in a minute",
-    };
-  }
-  return { built_at: builtAt, unchecked: p.remaining - p.items.length };
+  const s = await env.WATCH!.sub<{
+    failing: number;
+    skipped: { urn: string; reason: string }[];
+  }>(c.subscription, "check_state", { seq: check.seq });
+  return {
+    ...view,
+    unchecked: Math.max(0, p.remaining - settled),
+    failing: s.failing,
+    skipped: s.skipped,
+  };
 }
 
 const publicChange = (ch: StoredChange) => ({
@@ -722,6 +798,7 @@ async function changesTool(
     since: a.since === undefined ? 0 : Number(a.since),
     list,
     limit: typeof a.limit === "number" ? a.limit : 50,
+    now: new Date((deps.now ?? Date.now)()).toISOString(),
   });
   return {
     status: 200,
@@ -733,20 +810,33 @@ async function changesTool(
         registry_update: check.built_at,
         complete: check.unchecked === 0 && !check.note,
         unchecked: check.unchecked,
+        ...(check.failing > 0 || check.skipped.length > 0
+          ? {
+              read_failures: check.failing,
+              not_compared: check.skipped,
+              failure_note: `Subjects the registry could not read are tried again; after ${WATCH_CHECK.maxFails} failures in a row one is left out of this update's comparison (not_compared) and compared again after the next.`,
+            }
+          : {}),
         ...(check.note ? { note: check.note } : {}),
       },
     },
   };
 }
 
-/** Turn alerts on (with an address) or off; returns the answer. */
+/**
+ * Alerts on: the address gets one confirmation email and nothing else until its link is opened
+ * (single purpose, expires, at most one every WATCH_CHECK.confirmGapMs and confirmPerDay a day per
+ * subscription, one pending address at a time). Off: both addresses are deleted.
+ */
 export async function setAlerts(
   env: Env,
   c: WatchCaller,
   enabled: unknown,
   email: unknown,
+  deps: WatchDeps = {},
 ): Promise<ToolAnswer> {
   const W = env.WATCH!;
+  const now = (deps.now ?? Date.now)();
   if (typeof enabled !== "boolean")
     return fail(
       400,
@@ -755,14 +845,26 @@ export async function setAlerts(
       '{"enabled": true, "email": "you@example.com"}',
     );
   if (!enabled) {
-    const r = await W.sub<{ previous_alert_id: string | null }>(
-      c.subscription,
-      "alerts_set",
-      {},
-    );
+    const r = await W.sub<{
+      previous_alert_id: string | null;
+      previous_pending_id: string | null;
+      total: number;
+    }>(c.subscription, "alerts_off", {});
     if (r.previous_alert_id)
       await env.KEYS.delete(`${STOP_KV_PREFIX}${r.previous_alert_id}`);
-    return { status: 200, body: { enabled: false, email: null } };
+    if (r.previous_pending_id)
+      await env.KEYS.delete(`${CONFIRM_KV_PREFIX}${r.previous_pending_id}`);
+    if (r.total === 0) await W.index("unregister", { owner: ownerOf(c) });
+    return {
+      status: 200,
+      body: alertsView(env, {
+        email: null,
+        alert_id: null,
+        pending_email: null,
+        pending_id: null,
+        pending_expires: null,
+      }),
+    };
   }
   if (!alertsReady(env))
     return fail(
@@ -771,20 +873,17 @@ export async function setAlerts(
       "alert emails are not available on this server yet; watch_changes works without them.",
       "use watch_changes",
     );
-  let address: string | undefined;
+  const cur = await W.sub<AlertState>(c.subscription, "alerts_get");
+  let address: string;
   if (email === undefined || email === null || email === "") {
-    const cur = await W.sub<{ email: string | null }>(
-      c.subscription,
-      "alerts_get",
-    );
-    if (!cur.email)
+    if (!cur.email && !cur.pending_email)
       return fail(
         400,
         "InvalidInput",
         "email is needed to turn alerts on",
         '{"enabled": true, "email": "you@example.com"}',
       );
-    address = cur.email;
+    return { status: 200, body: alertsView(env, cur) };
   } else if (
     typeof email !== "string" ||
     email.trim().length > 254 ||
@@ -797,19 +896,62 @@ export async function setAlerts(
       "send one address, e.g. you@example.com",
     );
   else address = email.trim();
-  const alertId = randomToken();
-  await env.KEYS.put(`${STOP_KV_PREFIX}${alertId}`, c.subscription);
-  const r = await W.sub<{ previous_alert_id: string | null }>(
-    c.subscription,
-    "alerts_set",
-    {
-      email: address,
-      alert_id: alertId,
-    },
-  );
-  if (r.previous_alert_id)
-    await env.KEYS.delete(`${STOP_KV_PREFIX}${r.previous_alert_id}`);
-  return { status: 200, body: { enabled: true, email: maskEmail(address) } };
+  if (cur.email === address) return { status: 200, body: alertsView(env, cur) };
+  const pendingId = randomToken();
+  const expires = new Date(
+    now + WATCH_CHECK.confirmHours * 3_600_000,
+  ).toISOString();
+  const r = await W.sub<{
+    ok: boolean;
+    limited?: string;
+    retry_at?: string;
+    previous_pending_id?: string | null;
+  }>(c.subscription, "alerts_request", {
+    email: address,
+    pending_id: pendingId,
+    expires,
+    now,
+    minGapMs: WATCH_CHECK.confirmGapMs,
+    maxPerDay: WATCH_CHECK.confirmPerDay,
+  });
+  if (!r.ok)
+    return fail(
+      429,
+      "AlertsRateLimited",
+      `a confirmation email was sent recently for this subscription (at most one every ${WATCH_CHECK.confirmGapMs / 60_000} minutes and ${WATCH_CHECK.confirmPerDay} a day); try again after ${r.retry_at}.`,
+      `retry after ${r.retry_at}`,
+      { retry_at: r.retry_at },
+    );
+  if (r.previous_pending_id)
+    await env.KEYS.delete(`${CONFIRM_KV_PREFIX}${r.previous_pending_id}`);
+  await env.KEYS.put(`${CONFIRM_KV_PREFIX}${pendingId}`, c.subscription, {
+    expirationTtl: WATCH_CHECK.confirmHours * 3600,
+  });
+  // A pending address keeps the subscription in the index, so cancelling it reaches the address.
+  await register(env, c);
+  const sent = await sendConfirmation(env, address, pendingId);
+  const view = alertsView(env, {
+    ...cur,
+    pending_email: address,
+    pending_id: pendingId,
+    pending_expires: expires,
+  });
+  return {
+    status: sent ? 202 : 503,
+    body: sent
+      ? {
+          ...view,
+          next: "open the confirmation link sent to that address; alerts start once it is confirmed",
+        }
+      : {
+          ...view,
+          error: "EmailFailed",
+          code: "EmailFailed",
+          message:
+            "the confirmation email could not be sent; try again in a few minutes.",
+          next: "retry later",
+        },
+  };
 }
 
 /** Run one watch tool for this caller. */
@@ -838,11 +980,11 @@ export async function runWatchTool(
       case "watch_remove":
         return await removeTool(env, caller, a);
       case "watch_list":
-        return await listTool(env, caller, a);
+        return await listTool(env, caller, a, deps);
       case "watch_changes":
         return await changesTool(env, caller, a, deps);
       case "watch_alerts":
-        return await setAlerts(env, caller, a.enabled, a.email);
+        return await setAlerts(env, caller, a.enabled, a.email, deps);
     }
   } catch (err) {
     console.error(
@@ -993,7 +1135,12 @@ export async function watchAccountSection(
   const b = l.body as {
     lists: { name: string; subjects: number }[];
     watched: { subjects: number; limit: number };
-    alerts: { enabled: boolean; email: string | null; available: boolean };
+    alerts: {
+      state: string;
+      email: string | null;
+      pending_email?: string;
+      available: boolean;
+    };
   };
   const lists = b.lists.length
     ? `<ul class="plain">${b.lists
@@ -1011,11 +1158,16 @@ export async function watchAccountSection(
         )
         .join("")}</ul>`
     : "";
-  const alerts = b.alerts.enabled
-    ? `<p>Alert emails go to ${escapeHtml(b.alerts.email ?? "")} after each registry update that changes something you watch.</p><div class="buttons">${form(key, "watch_alerts_off", "Stop alert emails")}</div>`
-    : b.alerts.available
-      ? `<p>Alert emails are off.</p>${form(key, "watch_alerts_on", "Email me changes", `<label>Email <input type="email" name="email" maxlength="254" required></label> `)}`
-      : `<p>Alert emails are not available yet; the <code>watch_changes</code> tool shows every change.</p>`;
+  const pending = b.alerts.pending_email
+    ? `<p>Waiting for confirmation: open the link sent to ${escapeHtml(b.alerts.pending_email)}. Nothing else is sent there until then.</p>`
+    : "";
+  const alerts = b.alerts.email
+    ? `<p>Alert emails go to ${escapeHtml(b.alerts.email)} after each registry update that changes something you watch.</p>${pending}<div class="buttons">${form(key, "watch_alerts_off", "Stop alert emails")}</div>`
+    : pending
+      ? `${pending}<div class="buttons">${form(key, "watch_alerts_off", "Cancel")}</div>`
+      : b.alerts.available
+        ? `<p>Alert emails are off.</p>${form(key, "watch_alerts_on", "Email me changes", `<label>Email <input type="email" name="email" maxlength="254" required></label> `)}`
+        : `<p>Alert emails are not available yet; the <code>watch_changes</code> tool shows every change.</p>`;
   return `<section class="step" id="watch" aria-labelledby="h-watch"><h2 id="h-watch">Watch lists</h2>
 <p>${b.watched.subjects.toLocaleString("en-US")} of ${b.watched.limit.toLocaleString("en-US")} subjects watched. After each registry update FactLot compares them and keeps what changed: value, owner of record, recorded documents, entity status.</p>
 ${lists}
@@ -1082,7 +1234,7 @@ export async function watchAccountAction(
         kind,
         deps,
       ),
-      "Alert emails are on.",
+      "A confirmation link is on its way to that address. Alerts start once it is opened.",
     );
   if (action === "watch_alerts_off")
     return say(
@@ -1094,7 +1246,7 @@ export async function watchAccountAction(
         kind,
         deps,
       ),
-      "Alert emails are off and the address is deleted.",
+      "Alert emails are off and the addresses are deleted.",
     );
   return "Unknown action.";
 }
@@ -1137,7 +1289,15 @@ export async function watchStopRoute(
     subscription,
     "alerts_get",
   );
-  if (cur.alert_id === id) await env.WATCH.sub(subscription, "alerts_set", {});
+  if (cur.alert_id === id) {
+    const r = await env.WATCH.sub<{ previous_pending_id: string | null }>(
+      subscription,
+      "alerts_off",
+      {},
+    );
+    if (r.previous_pending_id)
+      await env.KEYS.delete(`${CONFIRM_KV_PREFIX}${r.previous_pending_id}`);
+  }
   await env.KEYS.delete(`${STOP_KV_PREFIX}${id}`);
   return messagePage(
     200,
@@ -1146,4 +1306,61 @@ export async function watchStopRoute(
   );
 }
 
-export { STOP_PATH };
+// --- The confirmation link --------------------------------------------------------------------
+
+/** GET shows one button; POST confirms the pending address (once, before it expires). */
+export async function watchConfirmRoute(
+  request: Request,
+  env: Env,
+  path: string,
+  deps: WatchDeps = {},
+): Promise<Response> {
+  const token = path.slice(CONFIRM_PATH.length);
+  const secret = env.RECOVERY_SIGNING_SECRET;
+  const id = secret ? await confirmTokenId(secret, token) : undefined;
+  const gone = () =>
+    messagePage(
+      404,
+      "Link not valid",
+      "This confirmation link is not valid, has expired or was already used. Turn alerts on again to get a new one.",
+    );
+  if (!id || !env.WATCH) return gone();
+  if (request.method === "GET" || request.method === "HEAD")
+    return page(
+      "Confirm watch-list emails",
+      `<h1>Confirm watch-list emails</h1>
+<p class="lead">Press the button to receive FactLot's watch-list alert emails at this address: one email after each registry update that changes something the subscription watches, each with a one-click stop link.</p>
+<form method="post" action="${escapeHtml(CONFIRM_PATH + token)}"><div class="buttons"><button type="submit" class="button primary">Confirm</button></div></form>`,
+      { formAction: "'self'" },
+    );
+  if (request.method !== "POST")
+    return json(
+      405,
+      { error: "MethodNotAllowed", message: "GET or POST" },
+      { allow: "GET, POST" },
+    );
+  const subscription = await env.KEYS.get(`${CONFIRM_KV_PREFIX}${id}`);
+  if (!subscription) return gone();
+  const alertId = randomToken();
+  const r = await env.WATCH.sub<{
+    ok: boolean;
+    previous_alert_id?: string | null;
+  }>(subscription, "alerts_confirm", {
+    pending_id: id,
+    alert_id: alertId,
+    now: (deps.now ?? Date.now)(),
+  });
+  await env.KEYS.delete(`${CONFIRM_KV_PREFIX}${id}`);
+  if (!r.ok) return gone();
+  await env.KEYS.put(`${STOP_KV_PREFIX}${alertId}`, subscription);
+  if (r.previous_alert_id)
+    await env.KEYS.delete(`${STOP_KV_PREFIX}${r.previous_alert_id}`);
+  await env.WATCH.index("register", { owner: `sub:${subscription}` });
+  return messagePage(
+    200,
+    "Alerts confirmed",
+    "Watch-list alert emails will go to this address after each registry update that changes something the subscription watches. Every email has a one-click stop link.",
+  );
+}
+
+export { CONFIRM_PATH, STOP_PATH };

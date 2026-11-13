@@ -48,6 +48,7 @@ import {
   isPlanId,
   planForLookupKey,
   priceText,
+  watchEnabled,
   type PlanId,
 } from "./plans.ts";
 import { StripeError, stripeClient, verifyStripeSignature } from "./stripe.ts";
@@ -767,11 +768,10 @@ export async function handleWebhook(
           revoked++;
         }
       }
-      // Watch lists of a cancelled subscription are deleted (watch-forget.ts).
-      if (stripeStatusIsTerminal(state.stripe_status))
-        await forgetWatch(env, sub).catch(() => {
-          console.error(JSON.stringify({ msg: "watch delete failed" }));
-        });
+      // Watch lists of a cancelled subscription are deleted (watch-forget.ts). A failure
+      // answers 503, so Stripe sends the event again. Nothing is called while watch lists are off.
+      if (watchEnabled(env) && stripeStatusIsTerminal(state.stripe_status))
+        await forgetWatch(env, sub);
       if (created)
         await kv.put(`subevt:${sub}`, String(created), {
           expirationTtl: INACTIVE_RETENTION_SECONDS,

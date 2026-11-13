@@ -164,6 +164,7 @@ import type {
   QuotaState,
 } from "./types.ts";
 import {
+  CONFIRM_PATH,
   STOP_PATH,
   WATCH_PATHS,
   WATCH_TOOL_NAMES,
@@ -172,6 +173,7 @@ import {
   watchAccountAction,
   watchAccountSection,
   watchCaller,
+  watchConfirmRoute,
   watchEnabled,
   watchRestRoute,
   watchStopRoute,
@@ -205,6 +207,10 @@ const USAGE_TOOL_NAMES: ReadonlySet<string> = new Set([
   REPORT_TOOL.name,
   "doc_extract_lease",
   "report_narrative",
+]);
+/** The same, with the watch-list tools (only while WATCH_LISTS_ENABLED is on). */
+const USAGE_TOOL_NAMES_WATCH: ReadonlySet<string> = new Set([
+  ...USAGE_TOOL_NAMES,
   ...WATCH_TOOL_NAMES,
 ]);
 
@@ -869,14 +875,19 @@ async function route(
   if (path === "/account/recover" || path.startsWith("/account/recover/"))
     return recoverRoute(request, env, url, path, opts);
   if (path === "/account") return accountRoute(request, env, url, api, opts);
-  // Watch-list alert stop links (watch.ts); dark unless WATCH_LISTS_ENABLED is "true".
-  if (watchEnabled(env) && path.startsWith(STOP_PATH)) {
+  // Watch-list alert stop and confirmation links (watch.ts); dark unless WATCH_LISTS_ENABLED is "true".
+  if (
+    watchEnabled(env) &&
+    (path.startsWith(STOP_PATH) || path.startsWith(CONFIRM_PATH))
+  ) {
     const ok = await metered(
       env.RL_ANON.limit({ key: `watchstop:${await addressKey()}` }),
     );
     if (!ok.success)
       return rateLimited(path, ANONYMOUS_REQUESTS_PER_MINUTE, "anonymous");
-    return watchStopRoute(request, env, path);
+    return path.startsWith(STOP_PATH)
+      ? watchStopRoute(request, env, path)
+      : watchConfirmRoute(request, env, path, { now });
   }
   if (path === "/v1/billing/webhook") {
     if (request.method !== "POST")
@@ -1269,7 +1280,12 @@ async function route(
       });
     mcpBatch = Array.isArray(mcpBody);
     const items: unknown[] = Array.isArray(mcpBody) ? mcpBody : [mcpBody];
-    countToolCalls(env, items, kind, USAGE_TOOL_NAMES);
+    countToolCalls(
+      env,
+      items,
+      kind,
+      watchEnabled(env) ? USAGE_TOOL_NAMES_WATCH : USAGE_TOOL_NAMES,
+    );
     // Answers are matched to calls by id when lookups are charged, so two requests with one id
     // would let an error answer stand for a real one. JSON-RPC ids must be unique in a batch.
     if (mcpBatch && hasDuplicateIds(items))

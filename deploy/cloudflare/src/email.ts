@@ -172,3 +172,19 @@ export function watchDigestMessage(o: {
     ]),
   };
 }
+
+/** The one message a new watch-list alert address gets before it is confirmed. */
+export function watchConfirmMessage(
+  url: string,
+  hours: number,
+): { subject: string; text: string; html: string } {
+  return {
+    subject: "Confirm FactLot watch-list alerts",
+    ...body([
+      "This is a transactional message: someone (we hope you) asked FactLot to send watch-list alerts for a FactLot subscription to this address. Nothing will be sent to it unless you confirm.",
+      `Open this link and press the button to confirm:\n${url}`,
+      `The link works once and expires in ${hours} hours. If you did not ask for it, ignore this email: this address gets nothing more.`,
+      `Questions: reply to this email or write to ${CONTACT}.`,
+    ]),
+  };
+}

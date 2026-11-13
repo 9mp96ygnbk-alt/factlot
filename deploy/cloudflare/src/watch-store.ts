@@ -4,23 +4,33 @@
  *
  *   watch:sub:<subscription>   one subscription's lists, subjects, fingerprints, changes, alert
  *                              settings
- *   watch:index                the subscriptions that watch at least one subject, and the
- *                              progress of the check of the current registry pack
+ *   watch:index                the subscriptions that watch something (or have an alert address),
+ *                              and the progress of the check of the current registry pack
  *
  * These objects never set an alarm, so the meter's alarm (which wipes an object whose counters are
  * all spent) never runs on them. Every request is one synchronous run of SQL statements, so each
  * operation applies whole or not at all.
  *
+ * Checks are numbered: the index gives each new pack `built_at` it sees a new sequence number
+ * (`seq`), so a pack that is rolled back and deployed again is compared again, and its changes are
+ * stored under the new number instead of being taken for ones already stored.
+ *
  * Tables of a subscription object:
  *   w_lists    (name, created_at)
- *   w_subjects (list, urn, aspects, added_at)                 one row per list membership
- *   w_prints   (urn, label, print, built_at, checked_at)      one fingerprint per watched URN
- *   w_changes  (id, urn, aspect, built_at, detected_at, body) unique per (urn, aspect, built_at)
- *   w_meta     (name, value)                                  alert_email, alert_id,
- *                                                             digest:<built_at>
+ *   w_subjects (list, urn, aspects, added_at)            one row per list membership
+ *   w_prints   (urn, label, print, status, built_at,      one fingerprint per watched URN; `seq` is
+ *               seq, checked_at, fails, skipped_seq,      the check it was compared in, `fails` the
+ *               last_error)                               failed reads in a row, `skipped_seq` a
+ *                                                         check it was given up for
+ *   w_changes  (id, urn, aspect, built_at, seq,          unique per (urn, aspect, seq)
+ *               detected_at, body)
+ *   w_meta     (name, value)                              alert_email, alert_id (confirmed),
+ *                                                         pending_email, pending_id,
+ *                                                         pending_expires, confirm_last,
+ *                                                         confirm_day, digest:<seq>
  * Tables of the index object:
- *   w_owners   (owner, done_built_at)
- *   w_meta     built_at, done_built_at, lease_until
+ *   w_owners   (owner, done_seq)
+ *   w_meta     seq, built_at, done_seq, lease_until
  */
 import type { Aspect, ChangeBody } from "./watch-print.ts";
 
@@ -39,16 +49,21 @@ export interface WatchStorage {
 /** Changes kept per subscription: newest first, at most this many, none older than 400 days. */
 export const MAX_CHANGES_KEPT = 10_000;
 export const CHANGE_RETENTION_DAYS = 400;
+const DAY_MS = 86_400_000;
 
 const SUB_SCHEMA = [
   "CREATE TABLE IF NOT EXISTS w_lists (name TEXT PRIMARY KEY, created_at TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS w_subjects (list TEXT NOT NULL, urn TEXT NOT NULL, aspects TEXT NOT NULL, added_at TEXT NOT NULL, PRIMARY KEY (list, urn))",
-  "CREATE TABLE IF NOT EXISTS w_prints (urn TEXT PRIMARY KEY, label TEXT, print TEXT NOT NULL, built_at TEXT NOT NULL, checked_at TEXT NOT NULL)",
-  "CREATE TABLE IF NOT EXISTS w_changes (id INTEGER PRIMARY KEY AUTOINCREMENT, urn TEXT NOT NULL, aspect TEXT NOT NULL, built_at TEXT NOT NULL, detected_at TEXT NOT NULL, body TEXT NOT NULL, UNIQUE (urn, aspect, built_at))",
+  "CREATE INDEX IF NOT EXISTS w_subjects_urn ON w_subjects (urn)",
+  "CREATE TABLE IF NOT EXISTS w_prints (urn TEXT PRIMARY KEY, label TEXT, print TEXT NOT NULL, status TEXT NOT NULL, built_at TEXT NOT NULL, seq INTEGER NOT NULL, checked_at TEXT NOT NULL, fails INTEGER NOT NULL DEFAULT 0, skipped_seq INTEGER NOT NULL DEFAULT 0, last_error TEXT)",
+  "CREATE TABLE IF NOT EXISTS w_changes (id INTEGER PRIMARY KEY AUTOINCREMENT, urn TEXT NOT NULL, aspect TEXT NOT NULL, built_at TEXT NOT NULL, seq INTEGER NOT NULL, detected_at TEXT NOT NULL, body TEXT NOT NULL, UNIQUE (urn, aspect, seq))",
+  "CREATE INDEX IF NOT EXISTS w_changes_built_at ON w_changes (built_at)",
+  "CREATE INDEX IF NOT EXISTS w_changes_seq ON w_changes (seq)",
+  "CREATE INDEX IF NOT EXISTS w_changes_detected ON w_changes (detected_at)",
   "CREATE TABLE IF NOT EXISTS w_meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)",
 ];
 const INDEX_SCHEMA = [
-  "CREATE TABLE IF NOT EXISTS w_owners (owner TEXT PRIMARY KEY, done_built_at TEXT NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS w_owners (owner TEXT PRIMARY KEY, done_seq INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS w_meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)",
 ];
 
@@ -69,6 +84,8 @@ function setMeta(sql: SqlLike, name: string, value: string): void {
 function deleteMeta(sql: SqlLike, name: string): void {
   sql.exec("DELETE FROM w_meta WHERE name = ?", name);
 }
+const count = (sql: SqlLike, q: string, ...b: (string | number | null)[]) =>
+  Number(rows(sql, q, ...b)[0]?.n ?? 0);
 
 /** Whether the object holds any table yet (a read that creates nothing). */
 function hasTables(sql: SqlLike): boolean {
@@ -86,16 +103,8 @@ export interface NewSubject {
   urn: string;
   label: string | null;
   print: string;
-  built_at: string;
-}
-
-export interface WatchedSubject {
-  urn: string;
-  label: string | null;
-  aspects: Aspect[];
-  added_at: string;
-  checked_built_at: string;
   status: string;
+  built_at: string;
 }
 
 export interface StoredChange extends ChangeBody {
@@ -106,16 +115,20 @@ export interface StoredChange extends ChangeBody {
   detected_at: string;
 }
 
-export interface Alerts {
+export interface AlertState {
+  /** The confirmed address alerts go to, or null. */
   email: string | null;
   alert_id: string | null;
+  /** An address waiting for its confirmation link, or null. */
+  pending_email: string | null;
+  pending_id: string | null;
+  pending_expires: string | null;
 }
 
 type Args = Record<string, unknown>;
 
-function subjectCount(sql: SqlLike): number {
-  return Number(rows(sql, "SELECT COUNT(*) AS n FROM w_subjects")[0]?.n ?? 0);
-}
+const subjectCount = (sql: SqlLike) =>
+  count(sql, "SELECT COUNT(*) AS n FROM w_subjects");
 
 function changeRow(r: Record<string, unknown>): StoredChange {
   return {
@@ -127,6 +140,9 @@ function changeRow(r: Record<string, unknown>): StoredChange {
     ...(JSON.parse(String(r.body)) as ChangeBody),
   };
 }
+
+const CHANGE_COLUMNS =
+  "c.id, c.urn, c.aspect, c.built_at, c.detected_at, c.body, p.label";
 
 /** Aspects of every list a URN is in, together. */
 function unionAspects(sql: SqlLike, urn: string): Aspect[] {
@@ -142,9 +158,9 @@ function unionAspects(sql: SqlLike, urn: string): Aspect[] {
 
 /** Drop fingerprints and changes of URNs no longer in any list; the count of URNs dropped. */
 function dropOrphans(sql: SqlLike): number {
-  const orphans = rows(
+  const n = count(
     sql,
-    "SELECT urn FROM w_prints WHERE urn NOT IN (SELECT urn FROM w_subjects)",
+    "SELECT COUNT(*) AS n FROM w_prints WHERE urn NOT IN (SELECT urn FROM w_subjects)",
   );
   sql.exec(
     "DELETE FROM w_changes WHERE urn NOT IN (SELECT urn FROM w_subjects)",
@@ -152,8 +168,52 @@ function dropOrphans(sql: SqlLike): number {
   sql.exec(
     "DELETE FROM w_prints WHERE urn NOT IN (SELECT urn FROM w_subjects)",
   );
-  return orphans.length;
+  return n;
 }
+
+/** Retention: the newest MAX_CHANGES_KEPT changes, none older than CHANGE_RETENTION_DAYS. */
+function prune(sql: SqlLike, now: number): void {
+  const cutoff = new Date(now - CHANGE_RETENTION_DAYS * DAY_MS).toISOString();
+  sql.exec("DELETE FROM w_changes WHERE detected_at < ?", cutoff);
+  sql.exec(
+    "DELETE FROM w_changes WHERE id <= (SELECT MAX(id) FROM w_changes) - ?",
+    MAX_CHANGES_KEPT,
+  );
+}
+
+const nowOf = (a: Args) =>
+  typeof a.now === "string"
+    ? Date.parse(a.now)
+    : typeof a.now === "number"
+      ? a.now
+      : Date.now();
+
+/** URNs checked under the plan: the first `max` by their first membership (a downgrade keeps the oldest). */
+function checkedUrns(sql: SqlLike, max: number): string[] {
+  return rows(
+    sql,
+    "SELECT urn FROM (SELECT urn, MIN(added_at) AS first FROM w_subjects GROUP BY urn ORDER BY first, urn LIMIT ?)",
+    max,
+  ).map((r) => String(r.urn));
+}
+
+function alertState(sql: SqlLike): AlertState {
+  return {
+    email: getMeta(sql, "alert_email") ?? null,
+    alert_id: getMeta(sql, "alert_id") ?? null,
+    pending_email: getMeta(sql, "pending_email") ?? null,
+    pending_id: getMeta(sql, "pending_id") ?? null,
+    pending_expires: getMeta(sql, "pending_expires") ?? null,
+  };
+}
+
+const NO_ALERTS: AlertState = {
+  email: null,
+  alert_id: null,
+  pending_email: null,
+  pending_id: null,
+  pending_expires: null,
+};
 
 /** The answer of a read on an empty object, or undefined for an operation that writes. */
 function emptyAnswer(op: string, a: Args): unknown {
@@ -171,9 +231,11 @@ function emptyAnswer(op: string, a: Args): unknown {
         lists: [],
         subjects: [],
         total: 0,
+        distinct: 0,
+        over_limit: 0,
         matching: 0,
         next_offset: null,
-        alerts: { email: null },
+        alerts: NO_ALERTS,
         last_built_at: null,
       };
     case "changes":
@@ -185,11 +247,15 @@ function emptyAnswer(op: string, a: Args): unknown {
     case "recent":
       return { changes: [] };
     case "pending":
-      return { items: [], remaining: 0 };
+      return { items: [], remaining: 0, total: 0 };
+    case "check_state":
+      return { failing: 0, skipped: [] };
     case "alerts_get":
-      return { email: null, alert_id: null };
-    case "digest":
-      return { sent: false, email: null, alert_id: null, changes: [] };
+      return NO_ALERTS;
+    case "digest_claim":
+      return { claimed: false, email: null, alert_id: null, changes: [] };
+    case "prune":
+      return { ok: true };
   }
   return undefined;
 }
@@ -210,9 +276,7 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       const urns = a.urns as string[];
       const listExists =
         rows(sql, "SELECT 1 AS x FROM w_lists WHERE name = ?", list).length > 0;
-      const lists = Number(
-        rows(sql, "SELECT COUNT(*) AS n FROM w_lists")[0]?.n ?? 0,
-      );
+      const lists = count(sql, "SELECT COUNT(*) AS n FROM w_lists");
       const already = new Set(
         rows(sql, "SELECT urn FROM w_subjects WHERE list = ?", list).map((r) =>
           String(r.urn),
@@ -233,17 +297,17 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
     case "add": {
       const list = String(a.list);
       const now = String(a.now);
+      const seq = Number(a.seq ?? 0);
       const aspects = (a.aspects as string[]).join(",");
       const items = a.items as NewSubject[];
-      const lists = Number(
-        rows(sql, "SELECT COUNT(*) AS n FROM w_lists")[0]?.n ?? 0,
-      );
+      const lists = count(sql, "SELECT COUNT(*) AS n FROM w_lists");
       const listExists =
         rows(sql, "SELECT 1 AS x FROM w_lists WHERE name = ?", list).length > 0;
       if (!listExists && lists >= Number(a.maxLists))
         return {
           added: [],
           refused: items.map((i) => i.urn),
+          reused: [],
           total: subjectCount(sql),
         };
       sql.exec(
@@ -253,6 +317,8 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       );
       const added: string[] = [];
       const refused: string[] = [];
+      // Read for this call, but stored meanwhile by another call: its lookup is given back.
+      const reused: string[] = [];
       for (const item of [
         ...items,
         ...((a.known as string[] | undefined) ?? []).map((urn) => ({ urn })),
@@ -264,7 +330,10 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
             list,
             item.urn,
           ).length > 0;
-        if (inList) continue;
+        if (inList) {
+          if (item.print !== undefined) reused.push(item.urn);
+          continue;
+        }
         if (subjectCount(sql) >= Number(a.maxSubjects)) {
           refused.push(item.urn);
           continue;
@@ -276,41 +345,47 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
           aspects,
           now,
         );
-        if (item.print !== undefined)
-          sql.exec(
-            "INSERT INTO w_prints (urn, label, print, built_at, checked_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(urn) DO NOTHING",
-            item.urn,
-            item.label,
-            item.print,
-            item.built_at,
-            now,
-          );
+        if (item.print !== undefined) {
+          const had =
+            rows(sql, "SELECT 1 AS x FROM w_prints WHERE urn = ?", item.urn)
+              .length > 0;
+          if (had) reused.push(item.urn);
+          else
+            sql.exec(
+              "INSERT INTO w_prints (urn, label, print, status, built_at, seq, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              item.urn,
+              item.label,
+              item.print,
+              item.status,
+              item.built_at,
+              seq,
+              now,
+            );
+        }
         added.push(item.urn);
       }
-      return { added, refused, total: subjectCount(sql) };
+      return { added, refused, reused, total: subjectCount(sql) };
     }
     case "remove": {
       const list = String(a.list);
       let removed: number;
       if (a.all === true) {
-        removed = Number(
-          rows(
-            sql,
-            "SELECT COUNT(*) AS n FROM w_subjects WHERE list = ?",
-            list,
-          )[0]?.n ?? 0,
+        removed = count(
+          sql,
+          "SELECT COUNT(*) AS n FROM w_subjects WHERE list = ?",
+          list,
         );
         sql.exec("DELETE FROM w_subjects WHERE list = ?", list);
         sql.exec("DELETE FROM w_lists WHERE name = ?", list);
       } else {
         removed = 0;
         for (const urn of a.urns as string[]) {
-          removed += rows(
+          removed += count(
             sql,
-            "SELECT 1 AS x FROM w_subjects WHERE list = ? AND urn = ?",
+            "SELECT COUNT(*) AS n FROM w_subjects WHERE list = ? AND urn = ?",
             list,
             urn,
-          ).length;
+          );
           sql.exec(
             "DELETE FROM w_subjects WHERE list = ? AND urn = ?",
             list,
@@ -319,24 +394,31 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
         }
       }
       const forgotten = dropOrphans(sql);
-      return { removed, forgotten, total: subjectCount(sql) };
+      const s = alertState(sql);
+      return {
+        removed,
+        forgotten,
+        total: subjectCount(sql),
+        alerts: s.email !== null || s.pending_email !== null,
+      };
     }
     case "list": {
+      prune(sql, nowOf(a));
       const lists = rows(
         sql,
-        "SELECT l.name, l.created_at, COUNT(s.urn) AS n, MAX(s.aspects) AS aspects FROM w_lists l LEFT JOIN w_subjects s ON s.list = l.name GROUP BY l.name ORDER BY l.name",
+        "SELECT l.name, l.created_at, COUNT(s.urn) AS n FROM w_lists l LEFT JOIN w_subjects s ON s.list = l.name GROUP BY l.name ORDER BY l.name",
       ).map((r) => ({
         name: String(r.name),
         created_at: String(r.created_at),
         subjects: Number(r.n),
-        aspects: r.aspects ? String(r.aspects).split(",") : [],
       }));
       const filter = typeof a.list === "string" ? a.list : null;
       const offset = Math.max(0, Number(a.offset ?? 0));
       const limit = Math.min(500, Math.max(1, Number(a.limit ?? 100)));
+      const checked = new Set(checkedUrns(sql, Number(a.maxSubjects)));
       const subjects = rows(
         sql,
-        `SELECT s.list, s.urn, s.aspects, s.added_at, p.label, p.built_at, p.print FROM w_subjects s LEFT JOIN w_prints p ON p.urn = s.urn ${filter === null ? "" : "WHERE s.list = ?"} ORDER BY s.list, s.added_at, s.urn LIMIT ? OFFSET ?`,
+        `SELECT s.list, s.urn, s.aspects, s.added_at, p.label, p.built_at, p.status, p.skipped_seq, p.seq, p.last_error, p.fails FROM w_subjects s LEFT JOIN w_prints p ON p.urn = s.urn ${filter === null ? "" : "WHERE s.list = ?"} ORDER BY s.list, s.added_at, s.urn LIMIT ? OFFSET ?`,
         ...(filter === null ? [] : [filter]),
         limit,
         offset,
@@ -348,33 +430,41 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
         aspects: String(r.aspects).split(","),
         added_at: String(r.added_at),
         checked_built_at: r.built_at ? String(r.built_at) : null,
-        status: r.print
-          ? String((JSON.parse(String(r.print)) as { status?: unknown }).status)
-          : "unknown",
+        status: r.status ? String(r.status) : "unknown",
+        checked: checked.has(String(r.urn)),
+        ...(Number(r.fails ?? 0) > 0 ||
+        (Number(r.skipped_seq ?? 0) > 0 &&
+          Number(r.skipped_seq) >= Number(r.seq ?? 0))
+          ? { read_error: r.last_error ? String(r.last_error) : "read failed" }
+          : {}),
       }));
-      const matching = Number(
-        rows(
-          sql,
-          `SELECT COUNT(*) AS n FROM w_subjects ${filter === null ? "" : "WHERE list = ?"}`,
-          ...(filter === null ? [] : [filter]),
-        )[0]?.n ?? 0,
+      const distinct = count(
+        sql,
+        "SELECT COUNT(DISTINCT urn) AS n FROM w_subjects",
+      );
+      const matching = count(
+        sql,
+        `SELECT COUNT(*) AS n FROM w_subjects ${filter === null ? "" : "WHERE list = ?"}`,
+        ...(filter === null ? [] : [filter]),
       );
       return {
         lists,
         subjects,
         total: subjectCount(sql),
+        distinct,
+        over_limit: Math.max(0, distinct - checked.size),
         matching,
         next_offset:
           offset + subjects.length < matching ? offset + subjects.length : null,
-        alerts: { email: getMeta(sql, "alert_email") ?? null },
+        alerts: alertState(sql),
         last_built_at: getMeta(sql, "last_built_at") ?? null,
       };
     }
     case "changes": {
+      prune(sql, nowOf(a));
       const since = Math.max(0, Number(a.since ?? 0));
       const limit = Math.min(200, Math.max(1, Number(a.limit ?? 50)));
       const filter = typeof a.list === "string" ? a.list : null;
-      const builtAt = typeof a.built_at === "string" ? a.built_at : null;
       const watched =
         filter === null
           ? null
@@ -394,9 +484,8 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       for (;;) {
         const page = rows(
           sql,
-          `SELECT c.id, c.urn, c.aspect, c.built_at, c.detected_at, c.body, p.label FROM w_changes c LEFT JOIN w_prints p ON p.urn = c.urn WHERE c.id > ?${builtAt === null ? "" : " AND c.built_at = ?"} ORDER BY c.id LIMIT 500`,
+          `SELECT ${CHANGE_COLUMNS} FROM w_changes c LEFT JOIN w_prints p ON p.urn = c.urn WHERE c.id > ? ORDER BY c.id LIMIT 500`,
           cursor,
-          ...(builtAt === null ? [] : [builtAt]),
         ).map(changeRow);
         for (const c of page) {
           if (out.length >= limit) {
@@ -420,46 +509,55 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
       return {
         changes: rows(
           sql,
-          "SELECT c.id, c.urn, c.aspect, c.built_at, c.detected_at, c.body, p.label FROM w_changes c LEFT JOIN w_prints p ON p.urn = c.urn ORDER BY c.id DESC LIMIT ?",
+          `SELECT ${CHANGE_COLUMNS} FROM w_changes c LEFT JOIN w_prints p ON p.urn = c.urn ORDER BY c.id DESC LIMIT ?`,
           Math.min(50, Math.max(1, Number(a.limit ?? 10))),
         ).map(changeRow),
       };
+    case "prune":
+      prune(sql, nowOf(a));
+      return { ok: true };
     case "pending": {
-      // Watched URNs not yet compared with pack `built_at`, oldest membership first; only the
-      // first maxSubjects memberships are checked (a plan downgraded below its count).
-      const builtAt = String(a.built_at);
+      // Watched URNs not yet compared in check `seq` (and not given up for it), the oldest
+      // membership first; only the first maxSubjects URNs are checked (a downgraded plan).
+      prune(sql, nowOf(a));
+      const seq = Number(a.seq);
       const max = Math.max(0, Number(a.max));
-      const allowed = rows(
-        sql,
-        "SELECT urn FROM (SELECT urn, MIN(added_at) AS first FROM w_subjects GROUP BY urn ORDER BY first, urn LIMIT ?)",
-        Number(a.maxSubjects),
-      ).map((r) => String(r.urn));
-      const pending: { urn: string; aspects: Aspect[]; print: string }[] = [];
+      const pending: {
+        urn: string;
+        aspects: Aspect[];
+        print: string;
+        fails: number;
+      }[] = [];
       let remaining = 0;
-      for (const urn of allowed) {
+      for (const urn of checkedUrns(sql, Number(a.maxSubjects))) {
         const p = rows(
           sql,
-          "SELECT print, built_at FROM w_prints WHERE urn = ?",
+          "SELECT print, seq, fails, skipped_seq FROM w_prints WHERE urn = ?",
           urn,
         )[0];
-        if (p && String(p.built_at) === builtAt) continue;
+        if (p && (Number(p.seq) === seq || Number(p.skipped_seq) === seq))
+          continue;
         remaining++;
         if (pending.length < max)
           pending.push({
             urn,
             aspects: unionAspects(sql, urn),
             print: p ? String(p.print) : "",
+            fails: p ? Number(p.fails) : 0,
           });
       }
-      return { items: pending, remaining };
+      return { items: pending, remaining, total: subjectCount(sql) };
     }
     case "apply": {
+      const seq = Number(a.seq);
       const builtAt = String(a.built_at);
       const now = String(a.now);
-      const results = a.results as {
+      const maxFails = Number(a.maxFails ?? 3);
+      const results = (a.results ?? []) as {
         urn: string;
         label?: string | null;
         print: string;
+        status: string;
         changes: ChangeBody[];
       }[];
       let stored = 0;
@@ -476,154 +574,251 @@ export function subscriptionOp(sql: SqlLike, op: string, a: Args): unknown {
         for (const c of r.changes) {
           const before = rows(
             sql,
-            "SELECT 1 AS x FROM w_changes WHERE urn = ? AND aspect = ? AND built_at = ?",
+            "SELECT 1 AS x FROM w_changes WHERE urn = ? AND aspect = ? AND seq = ?",
             r.urn,
             c.aspect,
-            builtAt,
+            seq,
           ).length;
           sql.exec(
-            "INSERT INTO w_changes (urn, aspect, built_at, detected_at, body) VALUES (?, ?, ?, ?, ?) ON CONFLICT(urn, aspect, built_at) DO NOTHING",
+            "INSERT INTO w_changes (urn, aspect, built_at, seq, detected_at, body) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(urn, aspect, seq) DO NOTHING",
             r.urn,
             c.aspect,
             builtAt,
+            seq,
             now,
             JSON.stringify(c),
           );
           if (!before) stored++;
         }
         sql.exec(
-          "INSERT INTO w_prints (urn, label, print, built_at, checked_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(urn) DO UPDATE SET label = COALESCE(excluded.label, w_prints.label), print = excluded.print, built_at = excluded.built_at, checked_at = excluded.checked_at",
+          "INSERT INTO w_prints (urn, label, print, status, built_at, seq, checked_at, fails, last_error) VALUES (?, ?, ?, ?, ?, ?, ?, 0, NULL) ON CONFLICT(urn) DO UPDATE SET label = COALESCE(excluded.label, w_prints.label), print = excluded.print, status = excluded.status, built_at = excluded.built_at, seq = excluded.seq, checked_at = excluded.checked_at, fails = 0, last_error = NULL",
           r.urn,
           r.label ?? null,
           r.print,
+          r.status,
           builtAt,
+          seq,
           now,
         );
       }
+      // Failed reads: the fingerprint stays as it was and is read again next run; after
+      // maxFails in a row the URN is given up for this check (and tried again in the next).
+      let skipped = 0;
+      for (const f of (a.failed ?? []) as { urn: string; reason: string }[]) {
+        const p = rows(
+          sql,
+          "SELECT fails FROM w_prints WHERE urn = ?",
+          f.urn,
+        )[0];
+        if (!p) continue;
+        const fails = Number(p.fails) + 1;
+        if (fails >= maxFails) {
+          skipped++;
+          sql.exec(
+            "UPDATE w_prints SET fails = 0, skipped_seq = ?, last_error = ? WHERE urn = ?",
+            seq,
+            f.reason.slice(0, 200),
+            f.urn,
+          );
+        } else
+          sql.exec(
+            "UPDATE w_prints SET fails = ?, last_error = ? WHERE urn = ?",
+            fails,
+            f.reason.slice(0, 200),
+            f.urn,
+          );
+      }
       setMeta(sql, "last_built_at", builtAt);
-      // Retention: the newest MAX_CHANGES_KEPT, none older than CHANGE_RETENTION_DAYS.
-      const cutoff = new Date(
-        Date.parse(now) - CHANGE_RETENTION_DAYS * 86_400_000,
-      ).toISOString();
-      sql.exec("DELETE FROM w_changes WHERE detected_at < ?", cutoff);
-      sql.exec(
-        "DELETE FROM w_changes WHERE id <= (SELECT MAX(id) FROM w_changes) - ?",
-        MAX_CHANGES_KEPT,
-      );
-      return { stored };
+      prune(sql, Date.parse(now));
+      return { stored, skipped };
+    }
+    case "check_state": {
+      // Subjects whose reads are failing, or were given up for check `seq`.
+      const seq = Number(a.seq);
+      return {
+        failing: count(
+          sql,
+          "SELECT COUNT(*) AS n FROM w_prints WHERE fails > 0 AND seq <> ?",
+          seq,
+        ),
+        skipped: rows(
+          sql,
+          "SELECT urn, last_error FROM w_prints WHERE skipped_seq = ? AND seq <> ? ORDER BY urn LIMIT 20",
+          seq,
+          seq,
+        ).map((r) => ({
+          urn: String(r.urn),
+          reason: r.last_error ? String(r.last_error) : "read failed",
+        })),
+      };
     }
     case "alerts_get":
-      return {
-        email: getMeta(sql, "alert_email") ?? null,
-        alert_id: getMeta(sql, "alert_id") ?? null,
-      } satisfies Alerts;
-    case "alerts_set": {
-      const previous = getMeta(sql, "alert_id") ?? null;
-      if (typeof a.email === "string" && typeof a.alert_id === "string") {
-        setMeta(sql, "alert_email", a.email);
-        setMeta(sql, "alert_id", a.alert_id);
-      } else {
-        deleteMeta(sql, "alert_email");
-        deleteMeta(sql, "alert_id");
-      }
-      return { previous_alert_id: previous };
+      return alertState(sql);
+    case "alerts_request": {
+      // One pending address at a time; a confirmation email at most every minGapMs and
+      // maxPerDay a UTC day per subscription.
+      const now = nowOf(a);
+      const last = Number(getMeta(sql, "confirm_last") ?? 0);
+      if (now - last < Number(a.minGapMs))
+        return {
+          ok: false,
+          limited: "gap",
+          retry_at: new Date(last + Number(a.minGapMs)).toISOString(),
+        };
+      const day = new Date(now).toISOString().slice(0, 10);
+      const [d, n] = (getMeta(sql, "confirm_day") ?? "|0").split("|");
+      const sent = d === day ? Number(n) : 0;
+      if (sent >= Number(a.maxPerDay))
+        return {
+          ok: false,
+          limited: "day",
+          retry_at: new Date(Date.parse(day) + DAY_MS).toISOString(),
+        };
+      const previous = getMeta(sql, "pending_id") ?? null;
+      setMeta(sql, "confirm_last", String(now));
+      setMeta(sql, "confirm_day", `${day}|${sent + 1}`);
+      setMeta(sql, "pending_email", String(a.email));
+      setMeta(sql, "pending_id", String(a.pending_id));
+      setMeta(sql, "pending_expires", String(a.expires));
+      return { ok: true, previous_pending_id: previous };
     }
-    case "digest": {
-      // What one release's digest would hold, and whether it went already.
-      const builtAt = String(a.built_at);
+    case "alerts_confirm": {
+      const s = alertState(sql);
+      if (
+        s.pending_id === null ||
+        s.pending_id !== a.pending_id ||
+        s.pending_email === null ||
+        Date.parse(s.pending_expires ?? "") <= nowOf(a)
+      )
+        return { ok: false };
+      setMeta(sql, "alert_email", s.pending_email);
+      setMeta(sql, "alert_id", String(a.alert_id));
+      for (const k of ["pending_email", "pending_id", "pending_expires"])
+        deleteMeta(sql, k);
+      return { ok: true, previous_alert_id: s.alert_id };
+    }
+    case "alerts_off": {
+      const s = alertState(sql);
+      for (const k of [
+        "alert_email",
+        "alert_id",
+        "pending_email",
+        "pending_id",
+        "pending_expires",
+      ])
+        deleteMeta(sql, k);
       return {
-        sent: getMeta(sql, `digest:${builtAt}`) !== undefined,
+        previous_alert_id: s.alert_id,
+        previous_pending_id: s.pending_id,
+        total: subjectCount(sql),
+      };
+    }
+    case "digest_claim": {
+      // Claimed before the email is sent, so two runs (or a retry after a failed write) never
+      // send one check's digest twice.
+      const seq = Number(a.seq);
+      if (getMeta(sql, `digest:${seq}`) !== undefined)
+        return { claimed: false, email: null, alert_id: null, changes: [] };
+      for (const r of rows(
+        sql,
+        "SELECT name FROM w_meta WHERE name LIKE 'digest:%' ORDER BY CAST(substr(name, 8) AS INTEGER) DESC LIMIT -1 OFFSET 11",
+      ))
+        deleteMeta(sql, String(r.name));
+      setMeta(sql, `digest:${seq}`, String(a.now));
+      return {
+        claimed: true,
         email: getMeta(sql, "alert_email") ?? null,
         alert_id: getMeta(sql, "alert_id") ?? null,
         changes: rows(
           sql,
-          "SELECT c.id, c.urn, c.aspect, c.built_at, c.detected_at, c.body, p.label FROM w_changes c LEFT JOIN w_prints p ON p.urn = c.urn WHERE c.built_at = ? ORDER BY c.id",
-          builtAt,
+          `SELECT ${CHANGE_COLUMNS} FROM w_changes c LEFT JOIN w_prints p ON p.urn = c.urn WHERE c.seq = ? ORDER BY c.id`,
+          seq,
         ).map(changeRow),
       };
     }
-    case "digest_sent": {
-      // Keep the marks of the last few releases only.
-      for (const r of rows(
-        sql,
-        "SELECT name FROM w_meta WHERE name LIKE 'digest:%' ORDER BY name DESC LIMIT -1 OFFSET 11",
-      ))
-        deleteMeta(sql, String(r.name));
-      setMeta(sql, `digest:${String(a.built_at)}`, String(a.now));
+    case "digest_release":
+      // The email could not be sent: a later run may try again.
+      deleteMeta(sql, `digest:${Number(a.seq)}`);
       return { ok: true };
-    }
   }
   throw new Error(`unknown watch op ${op}`);
 }
 
 // --- The index object --------------------------------------------------------------------------
 
+/** The check number of pack `built_at`: a pack different from the last one seen gets a new one. */
+function ensureSeq(sql: SqlLike, builtAt: string): number {
+  const seq = Number(getMeta(sql, "seq") ?? 0);
+  if (getMeta(sql, "built_at") === builtAt && seq > 0) return seq;
+  setMeta(sql, "seq", String(seq + 1));
+  setMeta(sql, "built_at", builtAt);
+  return seq + 1;
+}
+
 export function indexOp(sql: SqlLike, op: string, a: Args): unknown {
   for (const q of INDEX_SCHEMA) sql.exec(q);
   switch (op) {
     case "register":
       sql.exec(
-        "INSERT INTO w_owners (owner, done_built_at) VALUES (?, ?) ON CONFLICT(owner) DO NOTHING",
+        "INSERT INTO w_owners (owner, done_seq) VALUES (?, 0) ON CONFLICT(owner) DO NOTHING",
         String(a.owner),
-        typeof a.built_at === "string" ? a.built_at : "",
       );
       return { ok: true };
     case "unregister":
       sql.exec("DELETE FROM w_owners WHERE owner = ?", String(a.owner));
       return { ok: true };
+    case "seq":
+      return { seq: ensureSeq(sql, String(a.built_at)) };
     case "begin": {
       // Start or resume the check of pack `built_at`: refused while another run holds the lease.
-      const builtAt = String(a.built_at);
+      const seq = ensureSeq(sql, String(a.built_at));
       const now = Number(a.now);
-      if (getMeta(sql, "done_built_at") === builtAt)
-        return { state: "done", owners: [] };
+      if (Number(getMeta(sql, "done_seq") ?? 0) === seq)
+        return { state: "done", seq, owners: [] };
       const lease = Number(getMeta(sql, "lease_until") ?? 0);
-      if (lease > now) return { state: "busy", owners: [] };
+      if (lease > now) return { state: "busy", seq, owners: [] };
       setMeta(sql, "lease_until", String(now + Number(a.lease_ms)));
-      setMeta(sql, "built_at", builtAt);
       return {
         state: "run",
+        seq,
         owners: rows(
           sql,
-          "SELECT owner FROM w_owners WHERE done_built_at <> ? ORDER BY owner",
-          builtAt,
+          "SELECT owner FROM w_owners WHERE done_seq <> ? ORDER BY owner",
+          seq,
         ).map((r) => String(r.owner)),
       };
     }
     case "done":
       sql.exec(
-        "UPDATE w_owners SET done_built_at = ? WHERE owner = ?",
-        String(a.built_at),
+        "UPDATE w_owners SET done_seq = ? WHERE owner = ?",
+        Number(a.seq),
         String(a.owner),
       );
       return { ok: true };
     case "end": {
-      // Release the lease; the pack is done when no owner is left for it.
-      const builtAt = String(a.built_at);
+      // Release the lease; the check is done when no owner is left for it.
+      const seq = Number(a.seq);
       deleteMeta(sql, "lease_until");
-      const left = Number(
-        rows(
-          sql,
-          "SELECT COUNT(*) AS n FROM w_owners WHERE done_built_at <> ?",
-          builtAt,
-        )[0]?.n ?? 0,
+      const left = count(
+        sql,
+        "SELECT COUNT(*) AS n FROM w_owners WHERE done_seq <> ?",
+        seq,
       );
-      if (left === 0) setMeta(sql, "done_built_at", builtAt);
+      if (left === 0) setMeta(sql, "done_seq", String(seq));
       return { left };
     }
     case "state":
       return {
+        seq: Number(getMeta(sql, "seq") ?? 0),
         built_at: getMeta(sql, "built_at") ?? null,
-        done_built_at: getMeta(sql, "done_built_at") ?? null,
-        owners: Number(
-          rows(sql, "SELECT COUNT(*) AS n FROM w_owners")[0]?.n ?? 0,
-        ),
+        done_seq: Number(getMeta(sql, "done_seq") ?? 0),
+        owners: count(sql, "SELECT COUNT(*) AS n FROM w_owners"),
       };
   }
   throw new Error(`unknown watch index op ${op}`);
 }
 
-/** The `/watch` request of the Durable Object: `{object, op, args}`. */
+/** The `/watch` request of the Durable Object: `{kind, op, args}`. */
 export async function watchObjectFetch(
   storage: WatchStorage,
   request: Request,
@@ -637,11 +832,13 @@ export async function watchObjectFetch(
   if (b.op === "forget") {
     // Delete everything, creating nothing on an object that never held data.
     const had = hasTables(storage.sql);
-    const alerts = had
-      ? (subscriptionOp(storage.sql, "alerts_get", {}) as Alerts)
-      : { alert_id: null };
+    const alerts = had ? alertState(storage.sql) : NO_ALERTS;
     if (had) await storage.deleteAll();
-    result = { forgotten: had, alert_id: alerts.alert_id };
+    result = {
+      forgotten: had,
+      alert_id: alerts.alert_id,
+      pending_id: alerts.pending_id,
+    };
   } else
     result =
       b.kind === "index"

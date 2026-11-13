@@ -292,7 +292,7 @@ export const WATCH_RULES = {
   checks:
     "After each registry update every watched subject is compared with the new data once; changes stay readable with watch_changes for 400 days (at most 10,000 per subscription).",
   alerts:
-    "With alerts on, one email per registry update that changed something the subscription watches, to the address set with watch_alerts; every email has a one-click stop link.",
+    "watch_alerts sends a new address one confirmation email; once confirmed, one email per registry update that changed something the subscription watches, each with a one-click stop link.",
 };
 
 /** The watch-lists block of /v1/plans. */
