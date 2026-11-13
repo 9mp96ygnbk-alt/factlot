@@ -24,16 +24,27 @@ from . import buildings as _buildings
 from . import coverage as _coverage
 from .normalize import (
     ADDRESS_KEY_VERSION,
+    ADDRESS_CARD_PREDICATES,
     ADDRESS_ONE_WORD_CANDIDATES,
+    ADDRESS_STREET_HINT_ROWS,
     NAME_KEY_VERSION,
     NAME_OVERLAP_WEIGHT,
     NAME_RATIO_WEIGHT,
-    address_place,
+    address_card,
+    address_forms,
+    address_hint_streets,
+    address_match_key,
     address_place_rank,
     address_place_top,
+    address_place_with,
     address_query,
+    address_query_with_place,
+    address_result_rows,
+    address_row_tier,
     address_state,
-    address_words_without_ordinals,
+    address_street_hint_from,
+    address_unit,
+    address_window_end,
     distinctive_tokens,
     scrub_mailing_address,
     entity_standing,
@@ -1541,23 +1552,95 @@ class Registry:
             (f"%{key}%", key, limit)).fetchall()
         return [dict(r) for r in rows]
 
-    def search_address(self, address: str, limit: int = 20) -> list[dict[str, Any]]:
+    def search_address(self, address: str, limit: int = 20, where: dict[str, str] | None = None) -> list[dict[str, Any]]:
         """Parcels whose situs address holds the query's words (``address_query``): with a house number, an
         address starting with it and holding every other word; otherwise the words in a row, including a
-        street type. A query with neither finds nothing. A query that found nothing is searched once more with
-        the ordinal endings of its street numbers dropped ("W 42nd St" as "W 42 St"), for rolls that write
-        numbered streets bare."""
+        street type. A query with neither finds nothing. Every spelling of the street line is searched
+        (``address_search_forms``: "Fifth Avenue", "5th Ave" and "5 Ave" are one street), and with a house number every
+        parcel whose house-number range holds it (``address_range_matches``). ``where`` holds the call's place
+        parameters (``address_place_with``). Each result carries its search card (``address_card``)."""
+        return self.search_address_hint(address, limit, where, hint=False)[0]
+
+    def search_address_hint(self, address: str, limit: int = 20, where: dict[str, str] | None = None,
+                            hint: bool = True) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+        """``search_address``, and when nothing matched what the search found on the query's street
+        (``address_street_hint_from``) for the miss."""
+        # The unit as asked: rebuilding a query without a comma leaves the unit out of its street line.
+        unit = address_unit(address)
+        asked = address
+        address = address_query_with_place(address)
         mode = address_query(address)["mode"]
         if mode is None:
-            return []
-        place = address_place(address)
+            return [], None
+        place = address_place_with(address, where)
         runs = [k.split(" ") for k in self._address_search_keys(address.split(",")[0])]
-        found = self._search_address_runs(mode, runs, limit, place)
-        if found:
-            return found
-        # Nothing matched: once more with ordinal endings dropped, for rolls that write numbered streets bare.
-        bare = [w for w in map(address_words_without_ordinals, runs) if w is not None]
-        return self._search_address_runs(mode, bare, limit, place) if bare else found
+        if mode == "street" and all(len(w) == 1 for w in runs):
+            rows = self._search_address_runs(mode, runs, limit, place)
+            return [{**r, **self._address_card(r["urn"], r["label"])} for r in rows], None
+        # A query rebuilt with a comma still finds the address it was, exactly, first.
+        forms = address_forms(runs, [] if address == asked else self._address_search_keys(asked.split(",")[0]))
+        ordered = self._address_matches(mode, forms, place, unit)
+        end = address_window_end(ordered, limit)
+        results = address_result_rows([(m, self._address_card(m["urn"], m["label"])) for m in ordered[:end]], limit)
+        if results or not hint:
+            return results, None
+        number = forms["first"][0][0] if forms["first"] and forms["first"][0] else ""
+        lists = []
+        for street, lst in address_hint_streets(mode, forms):
+            pair = f"% {lst[2:]} %"
+            count = self.db.execute("SELECT COUNT(*) FROM address_index a WHERE (' ' || a.key || ' ') LIKE ?",
+                                    (pair,)).fetchone()[0]
+            rows = None if count > ADDRESS_STREET_HINT_ROWS else [
+                (r["urn"], r["label"], r["key"]) for r in self.db.execute(
+                    "SELECT a.urn, s.label, a.key FROM address_index a JOIN subjects s ON s.urn = a.urn "
+                    "WHERE (' ' || a.key || ' ') LIKE ?", (pair,))]
+            lists.append((street, count, rows))
+        return results, (address_street_hint_from(number, place, lists) if number.isdigit() and number.isascii()
+                         else None)
+
+    def _address_card(self, urn: str, label: Any) -> dict[str, Any]:
+        """A parcel's search card from its current facts (``registry_get``'s first fact of each predicate)."""
+        q = ",".join("?" * len(ADDRESS_CARD_PREDICATES))
+        rows = self.db.execute(
+            f"SELECT predicate, value_json FROM current_facts WHERE subject = ? AND predicate IN ({q}) "
+            "ORDER BY predicate, as_of DESC, fact_id", (urn, *ADDRESS_CARD_PREDICATES)).fetchall()
+        return address_card(label, [{"predicate": r["predicate"], "value": json.loads(r["value_json"])} for r in rows])
+
+    def _address_matches(self, mode: str, forms: dict[str, list[list[str]]], place: dict[str, Any],
+                         unit: str | None = None) -> list[dict[str, Any]]:
+        """Every parcel a search matches (each spelling, and with a house number each range holding it), in its place's
+        state (and county) only, sorted by ``address_match_key``."""
+        where, params = [], []
+        for words in forms["first"] + forms["other"]:
+            if mode == "street":
+                where.append("(' ' || a.key || ' ') LIKE ?")
+                params.append(f"% {' '.join(words)} %")
+                continue
+            where.append("(" + " AND ".join(["(a.key || ' ') LIKE ?"]
+                                            + ["(' ' || a.key || ' ') LIKE ?" for _ in words[1:]]) + ")")
+            params += [f"{words[0]} %", *(f"% {w} %" for w in words[1:])]
+            # A number inside a house-number range ("350" in "338-350 5 AVENUE").
+            if len(words) > 1 and words[0].isascii() and words[0].isdigit():
+                where.append("(a.key GLOB '[0-9]*' AND substr(a.key, instr(a.key, ' ') + 1, 1) GLOB '[0-9]' AND "
+                             + " AND ".join("(' ' || a.key || ' ') LIKE ?" for _ in words[1:]) + ")")
+                params += [f"% {w} %" for w in words[1:]]
+        by_urn: dict[str, dict[str, Any]] = {}
+        for r in self.db.execute("SELECT a.key, s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn "
+                                 f"WHERE {' OR '.join(where)}", params):
+            urn, label = r["urn"], r["label"]
+            t = address_row_tier(mode, forms, urn, label, r["key"])
+            if t is None:
+                continue
+            rank = address_place_rank(place, urn, label)
+            if rank < 0:
+                continue
+            m = by_urn.get(urn)
+            if m is None or t[0] < m["tier"]:
+                by_urn[urn] = {"urn": urn, "label": label, "rank": rank, "tier": t[0], "exact": t[1],
+                               "unit": unit is not None and address_unit(label) == unit}
+            elif t[0] == m["tier"] and t[1]:
+                m["exact"] = True
+        return sorted(by_urn.values(), key=address_match_key)
 
     def _search_address_runs(self, mode: str, runs: list[list[str]], limit: int,
                              place: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1578,7 +1661,7 @@ class Registry:
         sql = (f"SELECT s.urn, s.label, MAX({exact}) AS x FROM address_index a JOIN subjects s ON s.urn = a.urn "
                f"WHERE {' OR '.join(where)} GROUP BY s.urn ORDER BY x DESC, s.label, s.urn")
         top = address_place_top(place)
-        if top == 2 and place["state"] is None:
+        if top == 2 and place["state"] is None and place.get("county") is None:
             rows = self.db.execute(f"{sql} LIMIT ?", (*keys, *params, limit)).fetchall()
             return [{"urn": r["urn"], "label": r["label"]} for r in rows]
         groups: list[list[dict[str, Any]]] = [[], [], []]

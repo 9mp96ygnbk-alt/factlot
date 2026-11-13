@@ -567,7 +567,7 @@ test("HTTP: /run, /health and nothing else", async () => {
   };
   assert.equal(h.ok, true);
   assert.deepEqual(h.pack.regions, ["fixture"]);
-  assert.equal(h.pack.counts.parcels, 33);
+  assert.equal(h.pack.counts.parcels, 40);
   for (const path of ["/", "/manifest.json", "/g/0/0.json", "/run/x"])
     assert.equal((await req(path)).status, 404, path);
   assert.equal((await req("/run")).status, 405);
@@ -862,7 +862,7 @@ test("long lists share pages and read back whole", async () => {
   }
 });
 
-test("numbered streets written without the ordinal are found by a query that has it, like runTool", async () => {
+test("numbered streets match however the roll writes them, as written first, like runTool", async () => {
   const x = join(dir, "numbered-streets.db");
   copyFileSync(fixture, x);
   const d = new DatabaseSync(x);
@@ -905,14 +905,20 @@ test("numbered streets written without the ordinal are found by a query that has
   const cafe = "fl:parcel:us-48999:0004-000-0001";
   assert.deepEqual(await found("136 W 42nd St"), [cafe]);
   assert.deepEqual(await found("W 42nd St"), [cafe]);
+  // "350 5 AVE" spelled another way, and the lot "338-350 Fifth Avenue" whose range holds 350.
   assert.deepEqual(await found("350 Fifth Avenue"), [
     "fl:parcel:us-48999:0004-000-0002",
+    "fl:parcel:us-48999:0006-000-0001",
   ]);
-  // A match as written wins: the bare form is searched only when nothing matched.
+  // Both spellings are one street: the match as written comes first.
   assert.deepEqual(await found("9 5th St"), [
     "fl:parcel:us-48999:0003-000-0001",
+    "fl:parcel:us-48999:0001-000-0002",
   ]);
-  assert.deepEqual(await found("9 5 St"), ["fl:parcel:us-48999:0001-000-0002"]);
+  assert.deepEqual(await found("9 5 St"), [
+    "fl:parcel:us-48999:0001-000-0002",
+    "fl:parcel:us-48999:0003-000-0001",
+  ]);
   assert.deepEqual(await found("136 W 43rd St"), []);
 });
 
@@ -1013,16 +1019,17 @@ test("every parcel label of the fixture, used as the query, finds its parcel thr
     "SELECT urn, label FROM subjects WHERE kind = 'parcel' AND label IS NOT NULL",
   );
   assert.ok(labels.some((r) => String(r.label).includes("CT 67021-9150")));
-  for (const r of labels) {
-    const out = JSON.parse(
-      await worker(assets, "registry_search_address", {
-        query: String(r.label),
-        limit: 100,
-      }),
-    ) as { result: { results: { urn: string }[] } };
-    if (!out.result.results.some((x) => x.urn === r.urn))
-      lost.push(String(r.label));
-  }
+  for (const limit of [5, 20, 100])
+    for (const r of labels) {
+      const out = JSON.parse(
+        await worker(assets, "registry_search_address", {
+          query: String(r.label),
+          limit,
+        }),
+      ) as { result: { results: { urn: string }[] } };
+      if (!out.result.results.some((x) => x.urn === r.urn))
+        lost.push(`${limit}: ${String(r.label)}`);
+    }
   assert.deepEqual(lost, []);
 });
 
@@ -1261,7 +1268,7 @@ test("regions outside Texas: entity registry served in part, crosswalk systems, 
   assert.equal(chelseaCov.state_loaded, true);
   assert.match(
     String(chelseaCov.message),
-    /^no parcel matched in MA: .* of MA this registry holds Suffolk County, MA \(25025, \d+ parcels\);.*\. Of Suffolk County, MA, only the City of Boston is loaded: Chelsea, Revere and Winthrop/,
+    /^no parcel matched in MA: .*\. Of MA this registry holds Suffolk County, MA \(25025, \d+ parcels\)\. Of Suffolk County, MA, only the City of Boston is loaded: Chelsea, Revere and Winthrop/,
   );
   const inNy = await call("registry_search_address", {
     query: "300 Harbor Dr, New York, NY",
@@ -1849,4 +1856,94 @@ test("parts cache: the code version covers every file a part is made by", () => 
     assert.notEqual(edited.version, v.version, f);
   }
   assert.equal(codeVersion(read, true).version, v.version, "stable");
+});
+
+test("a pack built before house-number range lists: the Worker answers every call, and a number inside a range matches nothing there", async () => {
+  // The Worker is deployed before a pack with "R:" lists exists: on such a pack every other rule holds (spellings,
+  // cards, place parameters, misses), and a number inside a range finds what it found before.
+  const old = join(dir, "pack-no-ranges");
+  buildPack([{ name: "fixture", path: fixture }], old);
+  let stripped = 0;
+  for (const f of readdirSync(join(old, "a"))) {
+    if (!f.endsWith(".json")) continue;
+    const p = join(old, "a", f);
+    const shard = JSON.parse(readFileSync(p, "utf8")) as Row;
+    for (const k of Object.keys(shard))
+      if (k.startsWith("R:")) {
+        delete shard[k];
+        stripped++;
+      }
+    writeFileSync(p, JSON.stringify(shard));
+  }
+  assert.ok(stripped > 0, "the fixture's pack lists a range");
+  const inRange = (c: { tool: string; arguments: Row }) =>
+    c.tool === "registry_search_address" &&
+    /^3[0-9]{2} (?:5|5th|fifth) /i.test(
+      String(c.arguments.query ?? c.arguments.address ?? ""),
+    );
+  assert.deepEqual(
+    await compare(
+      old,
+      fixture,
+      calls
+        .filter((c) => !inRange(c))
+        .map((c) => ({ tool: c.tool, args: c.arguments })),
+    ),
+    [],
+  );
+  const lot = "fl:parcel:us-48999:0006-000-0001";
+  const found = async (pack: string, query: string) =>
+    (
+      JSON.parse(
+        await worker(fileAssets(pack), "registry_search_address", { query }),
+      ) as { result: { results: { urn: string }[] } }
+    ).result.results.map((r) => r.urn);
+  assert.deepEqual(await found(old, "344 5th Avenue"), []);
+  assert.deepEqual(await found(old, "338 Fifth Avenue"), [lot]);
+  assert.deepEqual(await found(join(dir, "pack"), "344 5th Avenue"), [lot]);
+});
+
+test("parcels sharing one label: a search reads at most twice its limit of records", async () => {
+  const x = join(dir, "one-label.db");
+  copyFileSync(fixture, x);
+  const d = new DatabaseSync(x);
+  // Forty parcels at one address, as a condominium building's unit lots are.
+  for (let i = 0; i < 40; i++) {
+    const urn = `fl:parcel:us-48999:0009-000-${String(i).padStart(4, "0")}`;
+    d.exec(
+      `INSERT INTO subjects (urn, kind, short, label) VALUES ('${urn}', 'parcel', 'one-label-${i}', '900 Tower Court, Example City TX 77999'); ` +
+        `INSERT INTO address_index VALUES ('900 TOWER CT EXAMPLE CITY TX 77999', '${urn}')`,
+    );
+  }
+  d.close();
+  const pack = join(dir, "pack-one-label");
+  buildPack([{ name: "x", path: x }], pack);
+  for (const limit of [1, 5, 20]) {
+    const p = new Pack(fileAssets(pack));
+    const entry = p.entry.bind(p);
+    let records = 0;
+    p.entry = (urn: string) => {
+      records++;
+      return entry(urn);
+    };
+    const out = (await runRegistryTool(p, "registry_search_address", {
+      query: "900 Tower Ct",
+      limit,
+    })) as { ok: boolean; result: { results: unknown[] } };
+    assert.equal(out.result.results.length, limit);
+    assert.ok(records <= 2 * limit, `limit ${limit}: ${records} records read`);
+  }
+  assert.deepEqual(
+    await compare(pack, x, [
+      {
+        tool: "registry_search_address",
+        args: { query: "900 Tower Ct", limit: 1 },
+      },
+      {
+        tool: "registry_search_address",
+        args: { query: "900 Tower Ct", limit: 7 },
+      },
+    ]),
+    [],
+  );
 });

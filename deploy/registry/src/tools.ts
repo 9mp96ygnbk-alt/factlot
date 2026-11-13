@@ -10,6 +10,7 @@ import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
   TX_EQUITY_WHICH_PARCEL,
+  addressWhereOf,
   externalMiss,
   parcelUrnForRule,
   texasOnly,
@@ -155,11 +156,20 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
         : { urn: null, coverage: externalMiss(cov, system, id) };
     }
     case "registry_search_address": {
-      const query = str(i, "query");
-      const results = await searchAddress(pack, query, limitOf(i));
+      const query = typeof i.query === "string" ? i.query : str(i, "address");
+      const where = addressWhereOf(i);
+      const { results, hint } = await searchAddress(
+        pack,
+        query,
+        limitOf(i),
+        where,
+      );
       return results.length
         ? { results }
-        : { results, coverage: hostedAddressMiss(m, cov, query) };
+        : {
+            results,
+            coverage: hostedAddressMiss(m, cov, query, where, hint),
+          };
     }
     case "registry_search_entities": {
       const results = await searchEntities(pack, str(i, "query"), limitOf(i));

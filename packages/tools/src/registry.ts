@@ -14,6 +14,7 @@ import {
   parse,
 } from "@factlot/id";
 
+import { placeCounties } from "./address_places.ts";
 import { countyName } from "./county_names.ts";
 import {
   compactFields,
@@ -856,14 +857,535 @@ const ORDINAL_WORD = /^([0-9]+)(?:ST|ND|RD|TH)$/;
  * more this way. The first word is left alone: there it is a house number or the query's leading word.
  */
 export function addressWordsWithoutOrdinals(words: string[]): string[] | null {
+  return ordinalsDropped(words, 1);
+}
+
+function ordinalsDropped(words: string[], from: number): string[] | null {
   let changed = false;
   const out = words.map((w, i) => {
-    const m = i > 0 ? ORDINAL_WORD.exec(w) : null;
+    const m = i >= from ? ORDINAL_WORD.exec(w) : null;
     if (!m) return w;
     changed = true;
     return m[1]!;
   });
   return changed ? out : null;
+}
+
+// --- other spellings of a query's street line ------------------------------------------------------
+
+const TENS_WORDS: Record<string, number> = {
+  TWENTY: 20,
+  THIRTY: 30,
+  FORTY: 40,
+  FOURTY: 40,
+  FIFTY: 50,
+  SIXTY: 60,
+  SEVENTY: 70,
+  EIGHTY: 80,
+  NINETY: 90,
+};
+const TENS_ORDINAL_WORDS: Record<string, number> = {
+  THIRTIETH: 30,
+  FORTIETH: 40,
+  FOURTIETH: 40,
+  FIFTIETH: 50,
+  SIXTIETH: 60,
+  SEVENTIETH: 70,
+  EIGHTIETH: 80,
+  NINETIETH: 90,
+};
+const DIGIT_WORDS: Record<string, number> = {
+  ONE: 1,
+  TWO: 2,
+  THREE: 3,
+  FOUR: 4,
+  FIVE: 5,
+  SIX: 6,
+  SEVEN: 7,
+  EIGHT: 8,
+  NINE: 9,
+};
+
+/** "5TH", "42ND", "101ST" (`ordinal_of` in Python). */
+export function ordinalOf(n: number): string {
+  const teen = n % 100 >= 11 && n % 100 <= 13;
+  const end = teen
+    ? "TH"
+    : n % 10 === 1
+      ? "ST"
+      : n % 10 === 2
+        ? "ND"
+        : n % 10 === 3
+          ? "RD"
+          : "TH";
+  return `${n}${end}`;
+}
+
+function ordinalValue(w: string | undefined): number | null {
+  if (w === undefined) return null;
+  const m = ORDINAL_WORD.exec(w);
+  if (m) return Number(m[1]);
+  return Object.hasOwn(TENS_ORDINAL_WORDS, w) ? TENS_ORDINAL_WORDS[w]! : null;
+}
+
+/**
+ * The words of a street line with a numbered street written in words made one ordinal ("FORTY 2ND ST", from
+ * "Forty-Second Street", → "42ND ST"; "ONE HUNDRED TWENTY 5TH" → "125TH"; "FORTIETH" → "40TH"), or null when there
+ * is none (`address_words_numbered` in Python). The address index spells "First" to "Twentieth" as "1ST" to "20TH"
+ * already (`addressTokens`), so only the compound forms are joined here.
+ */
+export function addressWordsNumbered(words: string[]): string[] | null {
+  const out: string[] = [];
+  let changed = false;
+  for (let i = 0; i < words.length;) {
+    const w = words[i]!;
+    let j = i;
+    let hundreds = 0;
+    if (Object.hasOwn(DIGIT_WORDS, w) && words[i + 1] === "HUNDRED") {
+      hundreds = DIGIT_WORDS[w]! * 100;
+      j = i + 2;
+      if (words[j] === "AND") j++;
+    }
+    const tens = Object.hasOwn(TENS_WORDS, words[j] ?? "")
+      ? TENS_WORDS[words[j]!]!
+      : 0;
+    const k = tens ? j + 1 : j;
+    const ord = ordinalValue(words[k]);
+    let value: number | null = null;
+    if (
+      tens &&
+      ord !== null &&
+      ord >= 1 &&
+      ord <= 9 &&
+      ORDINAL_WORD.test(words[k]!)
+    )
+      value = hundreds + tens + ord;
+    else if (!tens && hundreds && ord !== null && ord < 100)
+      value = hundreds + ord;
+    else if (!tens && !hundreds && Object.hasOwn(TENS_ORDINAL_WORDS, w))
+      value = TENS_ORDINAL_WORDS[w]!;
+    if (value === null) {
+      out.push(w);
+      i++;
+      continue;
+    }
+    out.push(ordinalOf(value));
+    changed = true;
+    i = k + 1;
+  }
+  return changed ? out : null;
+}
+
+/**
+ * The words of a street line with each bare street number before a street type given its ordinal ending
+ * ("350 5 AVE" → "350 5TH AVE"), or null when there is none (`address_words_with_ordinals` in Python). The first
+ * word is left alone: there it is a house number.
+ */
+export function addressWordsWithOrdinals(words: string[]): string[] | null {
+  let changed = false;
+  const out = words.map((w, i) => {
+    if (i === 0 || !/^[0-9]+$/.test(w) || !STREET_TYPES.has(words[i + 1] ?? ""))
+      return w;
+    changed = true;
+    return ordinalOf(Number(w));
+  });
+  return changed ? out : null;
+}
+
+/**
+ * The spellings a street line is searched by (`address_search_forms` in Python): the words as written first,
+ * then a numbered street written in words as one ordinal, and the street numbers with and without their ordinal
+ * endings ("FIFTH AVE", "5TH AVE" and "5 AVE" are one street). Rolls write numbered streets either way. Two names
+ * the registry's rolls write their own way are searched by them too: Sixth Avenue and the Avenue of the Americas as
+ * "AVE OF THE AMER" and "AVE OF THE AMERICAS" (Manhattan), Eye Street as "I ST" (Washington, DC), and the 1st to
+ * 9th streets with a leading zero ("03RD ST", San Francisco).
+ */
+export function addressSearchForms(words: string[]): string[][] {
+  const forms = [words];
+  const seen = new Set([words.join(" ")]);
+  const add = (w: string[] | null) => {
+    if (!w || seen.has(w.join(" "))) return;
+    seen.add(w.join(" "));
+    forms.push(w);
+  };
+  const n = addressWordsNumbered(words) ?? words;
+  add(n);
+  // Manhattan's Sixth Avenue is "AVENUE OF THE AMERICAS" on the roll, mostly cut to "AVENUE OF THE AMER".
+  const aoa = n.findIndex(
+    (w, i) =>
+      w === "AVE" &&
+      n[i + 1] === "OF" &&
+      n[i + 2] === "THE" &&
+      n[i + 3] === "AMERICAS",
+  );
+  if (aoa >= 0) add([...n.slice(0, aoa + 3), "AMER", ...n.slice(aoa + 4)]);
+  const six = n.findIndex(
+    (w, i) =>
+      (w === "6" || w === "6TH") &&
+      n[i + 1] === "AVE" &&
+      (i > 0 || !/^[0-9]/.test(words[0] ?? "")),
+  );
+  if (six >= 0)
+    for (const end of ["AMER", "AMERICAS"])
+      add([...n.slice(0, six), "AVE", "OF", "THE", end, ...n.slice(six + 2)]);
+  // "Eye Street" is also written "I Street" (Washington, DC writes I).
+  if (n.some((w, i) => w === "EYE" && STREET_TYPES.has(n[i + 1] ?? "")))
+    add(
+      n.map((w, i) =>
+        w === "EYE" && STREET_TYPES.has(n[i + 1] ?? "") ? "I" : w,
+      ),
+    );
+  // San Francisco writes "03RD ST" for 3rd Street.
+  const padded = n.map((w, i) =>
+    (i > 0 || !/^[0-9]/.test(words[0] ?? "")) &&
+    /^[1-9](?:ST|ND|RD|TH)$/.test(w)
+      ? `0${w}`
+      : w,
+  );
+  if (padded.some((w, i) => w !== n[i])) add(padded);
+  // Without a house number, the first word may be the street number itself ("42ND ST").
+  add(ordinalsDropped(n, /^[0-9]/.test(words[0] ?? "") ? 1 : 0));
+  const ord = addressWordsWithOrdinals(n);
+  add(ord);
+  // A bare street number ("3 ST") is also searched as San Francisco writes it ("03RD ST").
+  if (ord)
+    add(
+      ord.map((w, i) =>
+        i > 0 && /^[1-9](?:ST|ND|RD|TH)$/.test(w) && w !== n[i] ? `0${w}` : w,
+      ),
+    );
+  return forms;
+}
+
+function upperAscii(s: string): string {
+  return s.replace(/[a-z]+/g, (x) => x.toUpperCase());
+}
+
+/**
+ * Whether an address key matches the words of a query under `mode` (`address_key_matches` in Python): the
+ * SQL of the search, which matches with LIKE (ASCII case-folding) on whole words. With a house number, a key
+ * whose first word is that number and that holds every other word; otherwise the words in a row.
+ */
+export function addressKeyMatches(
+  mode: "house_number" | "street",
+  words: string[],
+  key: string,
+): boolean {
+  const k = upperAscii(key);
+  const spaced = ` ${k} `;
+  if (mode === "street") return spaced.includes(` ${words.join(" ")} `);
+  if (!`${k} `.startsWith(`${words[0]} `)) return false;
+  for (let i = 1; i < words.length; i++)
+    if (!spaced.includes(` ${words[i]} `)) return false;
+  return true;
+}
+
+const DIRECTIONAL_WORDS: ReadonlySet<string> = new Set([
+  "N",
+  "S",
+  "E",
+  "W",
+  "NE",
+  "NW",
+  "SE",
+  "SW",
+]);
+
+/**
+ * Counties whose hyphenated house numbers are one number, never a range: Queens, NY writes "37-20 80 Street"
+ * for house 20 on the block of 37th Avenue.
+ */
+export const HYPHENATED_HOUSE_NUMBER_COUNTIES: ReadonlySet<string> = new Set([
+  "36081",
+]);
+
+const LABEL_RANGE = /^\s*([0-9]+)-([0-9]+)\s/;
+
+/**
+ * A label range spanning this many house numbers or more is not read as a range: in the registry's rolls these are
+ * typing slips ("749-7570 GRANT AV") or a whole street's worth of numbers (11 lots), while the widest ranges below it
+ * are whole-block lots (at most 452 numbers).
+ */
+export const ADDRESS_RANGE_MAX_SPAN = 500;
+
+/**
+ * The house-number range of a parcel (`address_range` in Python): [low, high, one side] when its label starts
+ * with "low-high " (low below high) and its key with those two numbers, outside the counties whose hyphenated
+ * numbers are one number; else null. "One side": both ends are odd or both even, so the lot holds the numbers of
+ * that parity only (one side of the street: about 99% of the ranges in the registry's rolls); ends of differing
+ * parity hold every number between them. A range spanning ADDRESS_RANGE_MAX_SPAN numbers or more is none.
+ */
+export function addressRange(
+  urn: string,
+  label: unknown,
+  key: string,
+): [number, number, boolean] | null {
+  if (typeof label !== "string") return null;
+  const m = LABEL_RANGE.exec(label);
+  if (!m) return null;
+  const county = /^fl:[a-z]+:us-([0-9]{5}):/.exec(urn)?.[1];
+  if (county !== undefined && HYPHENATED_HOUSE_NUMBER_COUNTIES.has(county))
+    return null;
+  const k = upperAscii(key).split(" ");
+  if (k[0] !== m[1] || k[1] !== m[2]) return null;
+  const lo = Number(m[1]);
+  const hi = Number(m[2]);
+  return lo < hi && hi - lo < ADDRESS_RANGE_MAX_SPAN
+    ? [lo, hi, lo % 2 === hi % 2]
+    : null;
+}
+
+/**
+ * Whether a query with a house number falls inside a parcel's house-number range (`address_range_matches` in
+ * Python): the number is above the range's low end (the low end itself matches as the key's first word), at most
+ * its high end, of its side's parity, the street's first word (past a directional) is the key's after the range, and
+ * every other word of the query is among the key's words after the range.
+ */
+export function addressRangeMatches(
+  words: string[],
+  urn: string,
+  label: unknown,
+  key: string,
+): boolean {
+  const first = words[0];
+  if (words.length < 2 || first === undefined || !/^[0-9]+$/.test(first))
+    return false;
+  const r = addressRange(urn, label, key);
+  if (!r) return false;
+  const [lo, hi, side] = r;
+  const n = Number(first);
+  if (n <= lo || n > hi || (side && n % 2 !== lo % 2)) return false;
+  const k = upperAscii(key).split(" ");
+  // The street starts with the same word (the hosted index lists a range under it).
+  if (addressRangeListKey(words, 1) !== addressRangeListKey(k, 2)) return false;
+  const rest = ` ${k.slice(2).join(" ")} `;
+  return words.slice(1).every((w) => rest.includes(` ${w} `));
+}
+
+/**
+ * The hosted index's list of house-number ranges a row or query belongs to: "R:" and the first word from
+ * `from` that is not a directional ("338 350 5 AVE ..." from 2 and "350 5 AVE" from 1 are both "R:5"), or null.
+ */
+export function addressRangeListKey(
+  words: string[],
+  from: number,
+): string | null {
+  for (let i = from; i < words.length; i++)
+    if (!DIRECTIONAL_WORDS.has(words[i]!) && words[i] !== "")
+      return `R:${words[i]}`;
+  return null;
+}
+
+/** The spellings of a search: as written (one per address key version the file is searched by), and the others. */
+export interface AddressForms {
+  first: string[][];
+  other: string[][];
+  /** Keys that also count as exact for the words as written: the street line of a query without a comma as asked. */
+  exact: string[];
+}
+
+/** `addressSearchForms` of each key version's words, the written ones first (`address_forms` in Python). */
+export function addressForms(
+  runs: string[][],
+  asked: string[] = [],
+): AddressForms {
+  const first = runs;
+  const exact = asked.filter((k) => !first.some((w) => w.join(" ") === k));
+  const seen = new Set(first.map((w) => w.join(" ")));
+  const other: string[][] = [];
+  for (const run of runs)
+    for (const f of addressSearchForms(run).slice(1))
+      if (!seen.has(f.join(" "))) {
+        seen.add(f.join(" "));
+        other.push(f);
+      }
+  return { first, other, exact };
+}
+
+/**
+ * How one index row matches a search (`address_row_tier` in Python): [0, exact] when it matches the words as
+ * written, [1, exact] when it matches only another spelling, [2, false] when it only falls inside a house-number
+ * range, else null. Exact: the row's key is one of that tier's spellings exactly.
+ */
+export function addressRowTier(
+  mode: "house_number" | "street",
+  forms: AddressForms,
+  urn: string,
+  label: unknown,
+  key: string,
+): [0 | 1 | 2, boolean] | null {
+  for (const w of forms.first)
+    if (addressKeyMatches(mode, w, key))
+      return [
+        0,
+        forms.first.some((x) => x.join(" ") === key) ||
+          forms.exact.includes(key),
+      ];
+  if (forms.other.some((w) => addressKeyMatches(mode, w, key)))
+    return [1, forms.other.some((x) => x.join(" ") === key)];
+  if (
+    mode === "house_number" &&
+    [...forms.first, ...forms.other].some((w) =>
+      addressRangeMatches(w, urn, label, key),
+    )
+  )
+    return [2, false];
+  return null;
+}
+
+/**
+ * The street of a query with a house number (`address_street_words` in Python): the words after the number up to
+ * its first street type, with a directional right after it ("NEW YORK AVE NW"), when there are at least two;
+ * else null.
+ */
+export function addressStreetWords(words: string[]): string[] | null {
+  if (!/^[0-9]+$/.test(words[0] ?? "")) return null;
+  for (let i = 1; i < words.length; i++)
+    if (STREET_TYPES.has(words[i]!)) {
+      const end =
+        i + 1 < words.length && DIRECTIONAL_WORDS.has(words[i + 1]!)
+          ? i + 2
+          : i + 1;
+      const street = words.slice(1, end);
+      return street.length >= 2 ? street : null;
+    }
+  return null;
+}
+
+/**
+ * A query with a house number and no comma whose street line goes on after its street type with a city the city
+ * table knows and its state ("6700 Bissonnet St Houston TX 77074"), with a comma put before the city, so the place is
+ * read as one (`address_query_with_place` in Python); any other query unchanged. The street line is rebuilt from its
+ * address words, which leave out a unit designator and its value: the search reads the unit from the query as asked.
+ */
+export function addressQueryWithPlace(query: string): string {
+  if (query.includes(",")) return query;
+  const q = addressQuery(query);
+  if (q.mode !== "house_number") return query;
+  const street = addressStreetWords(q.tokens);
+  if (!street) return query;
+  const end = 1 + street.length;
+  const rest = q.tokens.slice(end);
+  // The place starts at the first word from which a city the city table knows in the state read after it begins;
+  // words before it (a bare unit number, "633 E FERNHURST DR 1102 KATY TX 77450") stay in the street line.
+  let at = -1;
+  for (let i = 0; i < rest.length && at < 0; i++) {
+    const p = addressPlace(`x, ${rest.slice(i).join(" ")}`);
+    if (
+      p.state !== null &&
+      p.city !== null &&
+      placeCounties(p.state, p.city) !== null
+    )
+      at = i;
+  }
+  if (at < 0) return query;
+  return `${q.tokens.slice(0, end + at).join(" ")}, ${rest.slice(at).join(" ")}`;
+}
+
+// --- what tells parcels at one address apart ------------------------------------------------------
+
+/** The facts an address search result carries, from the parcel's current facts. */
+export const ADDRESS_CARD_PREDICATES = [
+  "parcel.apn",
+  "parcel.state_property_category",
+  "parcel.local_use_code",
+  "parcel.improvement_area_sf",
+  "parcel.year_built",
+] as const;
+
+export interface AddressCard {
+  /** The district's account or lot number (`parcel.apn`). */
+  account: string | null;
+  property_category: string | null;
+  use_code: string | null;
+  improvement_area_sf: number | null;
+  /**
+   * False when the roll records an improvement for the parcel (an improvement area above 0, or a year built); true
+   * when it records an improvement area of 0 and no year built; null when it records neither, so the record cannot
+   * tell (some rolls carry no improvement area or year built at all).
+   */
+  land_only: boolean | null;
+  /** The unit, suite or apartment its label names after a designator ("Unit 101"), or null. */
+  unit: string | null;
+}
+
+// A designator, an optional "NO" or "NUMBER", and the value, with a lone letter after it ("UNIT 1 A").
+const LABEL_UNIT =
+  /(?:^|\s)(?:#|STE|SUITE|UNIT|APT|APARTMENT|ROOM|SPC)(?:\.|(?=[\s#]))\s*(?:(?:NO|NUMBER)\.?\s+)?#?\s*([A-Z0-9][A-Z0-9-]*(?: [A-Z](?=\s|$))?)/;
+
+function cardText(v: unknown): string | null {
+  return typeof v === "string" && v !== ""
+    ? v
+    : typeof v === "number" && Number.isFinite(v)
+      ? String(v)
+      : null;
+}
+
+/**
+ * The unit a label or query names after its designators ("Unit 101", "#103"; "BLDG #M UNIT 4" is "M 4"), anywhere in
+ * it, or null (`address_unit` in Python).
+ */
+export function addressUnit(text: unknown): string | null {
+  if (typeof text !== "string") return null;
+  const t = upperAscii(text).replaceAll(",", " ").replaceAll("#", " # ");
+  const values = [...t.matchAll(new RegExp(LABEL_UNIT.source, "g"))].map(
+    (m) => m[1]!,
+  );
+  return values.length ? values.join(" ") : null;
+}
+
+/**
+ * What tells a search result apart from others at the same address (`address_card` in Python), from its label and
+ * its current facts (the first fact of each predicate, as registry_get lists them). Never an owner.
+ */
+export function addressCard(
+  label: unknown,
+  facts: { predicate: unknown; value: unknown }[],
+): AddressCard {
+  const first = new Map<string, unknown>();
+  for (const f of facts) {
+    const p = String(f.predicate);
+    if (!first.has(p)) first.set(p, f.value);
+  }
+  const area = first.get("parcel.improvement_area_sf");
+  const improvement =
+    typeof area === "number" && Number.isFinite(area) ? area : null;
+  const built = first.get("parcel.year_built");
+  return {
+    account: cardText(first.get("parcel.apn")),
+    property_category: cardText(first.get("parcel.state_property_category")),
+    use_code: cardText(first.get("parcel.local_use_code")),
+    improvement_area_sf: improvement,
+    land_only:
+      (improvement !== null && improvement > 0) || built != null
+        ? false
+        : improvement === 0
+          ? true
+          : null,
+    unit: addressUnit(label),
+  };
+}
+
+/**
+ * The order of parcels sharing one label (`address_card_compare` in Python): the largest improvement area first (none
+ * after), those the roll records as land only (land_only true) last, then by URN; a parcel whose record cannot tell
+ * (land_only null) is not put last.
+ */
+export function addressCardCompare(
+  a: { urn: string; card: AddressCard },
+  b: { urn: string; card: AddressCard },
+): number {
+  const la = a.card.land_only === true;
+  const lb = b.card.land_only === true;
+  if (la !== lb) return la ? 1 : -1;
+  const x = a.card.improvement_area_sf;
+  const y = b.card.improvement_area_sf;
+  if (x !== y) {
+    if (x === null) return 1;
+    if (y === null) return -1;
+    return y - x;
+  }
+  return binaryCompare(a.urn, b.urn);
 }
 
 // --- the place an address query names after its street line ---------------------------------------
@@ -987,6 +1509,120 @@ export interface AddressPlace {
   state: string | null;
   /** 5-digit ZIP code, or null: it orders the matches and never filters. */
   zip: string | null;
+  /** 5-digit county FIPS code from the call's county_fips: it filters, as the state does (absent: none). */
+  county?: string | null;
+}
+
+/** The place parameters of a registry_search_address call: the same words a query names after its street line. */
+export interface AddressWhere {
+  state?: string;
+  city?: string;
+  postal_code?: string;
+  county_fips?: string;
+}
+
+const STATE_FIPS_BY_POSTAL: Record<string, string> = {};
+
+/** A state's two-letter code from its code or full name ("tx", "Texas", "D.C."), or null (`state_code` in Python). */
+export function stateCode(s: string): string | null {
+  const w = s
+    .toUpperCase()
+    .replace(/[^A-Z]+/g, " ")
+    .trim();
+  const joined = w.replaceAll(" ", "");
+  if (joined.length === 2 && STATES.has(joined)) return joined;
+  return Object.hasOwn(STATE_NAMES, w) ? STATE_NAMES[w]! : null;
+}
+
+/**
+ * Problems with a call's place parameters, as input issues (`address_where_issues` in Python): a state that is no
+ * US state, a ZIP code that is not 5 digits (or ZIP+4), a county FIPS code that is not 3 or 5 digits, a 3-digit
+ * one without a state, or a 5-digit one in another state than the one named.
+ */
+export function addressWhereIssues(
+  where: AddressWhere,
+): { path: string; message: string }[] {
+  const out: { path: string; message: string }[] = [];
+  const st = where.state === undefined ? null : stateCode(where.state);
+  if (where.state !== undefined && st === null)
+    out.push({
+      path: "state",
+      message: "expected a US state's two-letter code or full name",
+    });
+  if (
+    where.postal_code !== undefined &&
+    !/^[0-9]{5}(?:-?[0-9]{4})?$/.test(where.postal_code.trim())
+  )
+    out.push({
+      path: "postal_code",
+      message: "expected a 5-digit ZIP code or ZIP+4",
+    });
+  const c = where.county_fips?.trim();
+  if (c !== undefined) {
+    if (!/^[0-9]{3}(?:[0-9]{2})?$/.test(c))
+      out.push({
+        path: "county_fips",
+        message:
+          "expected a 5-digit county FIPS code (state and county), or 3 digits with state",
+      });
+    else if (c.length === 3 && where.state === undefined)
+      out.push({
+        path: "county_fips",
+        message: "a 3-digit county FIPS code needs state",
+      });
+    else if (c.length === 5 && statePostal(c.slice(0, 2)) === null)
+      out.push({
+        path: "county_fips",
+        message: `${c} is in no US state`,
+      });
+    else if (c.length === 5 && st !== null && statePostal(c.slice(0, 2)) !== st)
+      out.push({
+        path: "county_fips",
+        message: `${c} is not in ${st}`,
+      });
+  }
+  return out;
+}
+
+/** The place parameters of a call's input (`address_where_of` in Python). */
+export function addressWhereOf(input: object): AddressWhere {
+  const i = input as Record<string, unknown>;
+  const out: AddressWhere = {};
+  for (const k of ["state", "city", "postal_code", "county_fips"] as const)
+    if (typeof i[k] === "string") out[k] = i[k];
+  return out;
+}
+
+/**
+ * The place of a query with the call's place parameters (`address_place_with` in Python): each parameter given
+ * replaces what the query names after its street line and means the same (state filters; city and postal_code
+ * only order), and county_fips filters too, by the county in each parcel's URN. Assumes valid parameters
+ * (`addressWhereIssues`).
+ */
+export function addressPlaceWith(
+  query: string,
+  where: AddressWhere = {},
+): AddressPlace {
+  const out: AddressPlace = { ...addressPlace(query) };
+  if (where.state !== undefined) out.state = stateCode(where.state);
+  if (where.city !== undefined) {
+    const c = placeWords(where.city).join(" ");
+    out.city = c === "" ? null : c;
+  }
+  if (where.postal_code !== undefined)
+    out.zip = where.postal_code.trim().slice(0, 5);
+  const c = where.county_fips?.trim();
+  if (c !== undefined) {
+    if (!Object.keys(STATE_FIPS_BY_POSTAL).length)
+      for (const [f, p] of Object.entries(STATE_BY_FIPS))
+        STATE_FIPS_BY_POSTAL[p] = f;
+    out.county =
+      c.length === 5
+        ? c
+        : `${STATE_FIPS_BY_POSTAL[out.state ?? ""] ?? "00"}${c}`;
+    out.state ??= statePostal(out.county.slice(0, 2));
+  }
+  return out;
 }
 
 /**
@@ -994,7 +1630,9 @@ export interface AddressPlace {
  * conservatively from the end of the part after the first comma:
  * - a trailing country ("USA", "U.S.A.", "US", "United States") is dropped, and "D.C." is DC;
  * - a ZIP code is a 5-digit number (or ZIP+4) that ends the query and does not follow a unit, suite, box, room,
- *   building or number word ("Suite 12345" makes the part no place); it only orders the matches;
+ *   building or number word ("Suite 12345" makes the part no place); it only orders the matches; 9 digits are ZIP+4
+ *   without its dash; a number of 4 or 6 to 8 digits there (or "6103.0") is a ZIP code written wrongly, as some rolls
+ *   do, and is passed over;
  * - a state (two letters, or the full name) counts only when it follows a city, in its comma part or the one
  *   before, and never after a unit word or floor ordinal ("12th Fl", "Unit CO"); it is the only part that filters;
  * - the city is the comma part left at the end: one to five words of letters, none a unit word ("Washington" in
@@ -1039,16 +1677,24 @@ export function addressPlace(query: string): AddressPlace {
     const k =
       n >= 2 && /^[0-9]{5}$/.test(w[n - 2]!) && /^[0-9]{4}$/.test(w[n - 1]!)
         ? 2
-        : /^[0-9]{5}$/.test(w[n - 1]!)
+        : /^[0-9]{5}(?:[0-9]{4})?$/.test(w[n - 1]!)
           ? 1
           : 0;
-    if (k) {
-      const before = w[n - k - 1];
+    // A ZIP code written wrongly ("6103.0", "60701822", "7700"): not a ZIP code, and not read as anything else.
+    const bad = k
+      ? 0
+      : n >= 2 && /^[0-9]{4}$/.test(w[n - 2]!) && w[n - 1] === "0"
+        ? 2
+        : /^(?:[0-9]{4}|[0-9]{6,8})$/.test(w[n - 1]!)
+          ? 1
+          : 0;
+    if (k || bad) {
+      const before = w[n - (k || bad) - 1];
       // "Suite 12345", "PO Box 12345": a unit's number, and the part is no place.
       if (before !== undefined && before !== "FL" && isUnitWord(before))
         return none;
-      zip = w[n - k]!;
-      drop(k);
+      if (k) zip = w[n - k]!.slice(0, 5);
+      drop(k || bad);
     }
   }
   let state: string | null = null;
@@ -1130,6 +1776,10 @@ export function addressPlaceRank(
     const m = /^fl:[a-z]+:us-([0-9]{2})/.exec(urn);
     if (!m || statePostal(m[1]!) !== place.state) return -1;
   }
+  if (place.county != null) {
+    const m = /^fl:[a-z]+:us-([0-9]{5})/.exec(urn);
+    if (!m || m[1] !== place.county) return -1;
+  }
   if (place.zip !== null && situsZip5(label) === place.zip) return 0;
   if (place.city !== null && labelInCity(label, place.city)) return 1;
   return 2;
@@ -1146,21 +1796,404 @@ export function addressPlaceTop(place: AddressPlace): number {
  */
 export const ADDRESS_ONE_WORD_CANDIDATES = 100;
 
-export function registrySearchAddress(address: string, limit = 20): Row[] {
-  const d = open();
+/**
+ * A miss reads a street's addresses for the house numbers nearest the query's only when the hosted index's list
+ * for the street (its rows holding the word pair around the street type) has at most this many rows.
+ */
+export const ADDRESS_STREET_HINT_ROWS = 5000;
+
+/** One parcel a search matched, with where it goes in the answer. */
+export interface AddressMatch {
+  urn: string;
+  label: string | null;
+  /** addressPlaceRank: 0 same ZIP code, 1 same city, 2 the rest. */
+  rank: number;
+  /** 0: the words as written; 1: another spelling; 2: a number inside the parcel's house-number range. */
+  tier: 0 | 1 | 2;
+  /** The parcel's address key is one of its tier's spellings exactly. */
+  exact: boolean;
+  /** The parcel's label names the unit the query names ("#310", "Unit 4B"). */
+  unit: boolean;
+}
+
+function labelCompare(a: string | null, b: string | null): number {
+  if (a === b) return 0;
+  if (a === null) return -1;
+  if (b === null) return 1;
+  return binaryCompare(a, b);
+}
+
+/**
+ * The order of an address search's matches (`address_match_key` in Python): place group (same ZIP code, then same
+ * city, then the rest), the words as written, then other spellings, then house-number ranges, exact address first, those whose
+ * label names the unit the query names first (a unit never filters), then label, then URN.
+ */
+export function addressMatchCompare(a: AddressMatch, b: AddressMatch): number {
+  return (
+    a.rank - b.rank ||
+    a.tier - b.tier ||
+    Number(b.exact) - Number(a.exact) ||
+    Number(b.unit) - Number(a.unit) ||
+    labelCompare(a.label, b.label) ||
+    binaryCompare(a.urn, b.urn)
+  );
+}
+
+function sameLabelRun(a: AddressMatch, b: AddressMatch): boolean {
+  return (
+    a.rank === b.rank &&
+    a.tier === b.tier &&
+    a.exact === b.exact &&
+    a.label === b.label
+  );
+}
+
+/**
+ * How many of the sorted matches to take cards for (`address_window_end` in Python): the first `limit`, and the
+ * rest of the last one's label up to twice `limit` in all (parcels sharing it are ordered by card before the limit
+ * applies; of a label shared by more, those first by URN), so a search reads at most twice `limit` records.
+ */
+export function addressWindowEnd(
+  sorted: AddressMatch[],
+  limit: number,
+): number {
+  let end = Math.min(limit, sorted.length);
+  while (
+    end > 0 &&
+    end < 2 * limit &&
+    end < sorted.length &&
+    sameLabelRun(sorted[end - 1]!, sorted[end]!)
+  )
+    end++;
+  return end;
+}
+
+/**
+ * The answer's rows from the window of sorted matches and their cards (`address_result_rows` in Python): parcels
+ * sharing a label (in one place group and tier) ordered by `addressCardCompare`, then the first `limit`, each as
+ * { urn, label, ...card }.
+ */
+export function addressResultRows(
+  items: { match: AddressMatch; card: AddressCard }[],
+  limit: number,
+): Row[] {
+  const out = [...items];
+  for (let i = 0; i < out.length;) {
+    let j = i + 1;
+    while (j < out.length && sameLabelRun(out[i]!.match, out[j]!.match)) j++;
+    if (j - i > 1) {
+      const run = out
+        .slice(i, j)
+        .sort((a, b) =>
+          addressCardCompare(
+            { urn: a.match.urn, card: a.card },
+            { urn: b.match.urn, card: b.card },
+          ),
+        );
+      out.splice(i, j - i, ...run);
+    }
+    i = j;
+  }
+  return out.slice(0, limit).map(({ match, card }) => ({
+    urn: match.urn,
+    label: match.label,
+    ...card,
+  }));
+}
+
+/** A parcel's search card from its current facts (registry_get's first fact of each predicate). */
+function addressCardOf(d: Database, urn: string, label: unknown): AddressCard {
+  const rows = d
+    .prepare(
+      `SELECT predicate, value_json FROM current_facts WHERE subject = ? AND predicate IN (${ADDRESS_CARD_PREDICATES.map(() => "?").join(", ")})${ORDER_FACTS}`,
+    )
+    .all(urn, ...ADDRESS_CARD_PREDICATES);
+  return addressCard(
+    label,
+    rows.map((r) => ({
+      predicate: r.predicate,
+      value: JSON.parse(String(r.value_json)) as unknown,
+    })),
+  );
+}
+
+/** What a miss can say about the street of a query with a house number (`address_street_hint` in Python). */
+export interface AddressStreetHint {
+  /** The street as the registry writes it ("SMITH ST"). */
+  street: string;
+  /** The query's house number. */
+  number: string;
+  /** Whether the street has any address in the place's state (or county); null when its list is too long to read. */
+  held: boolean | null;
+  /** The nearest house numbers held on it below and above the query's (in its ZIP code or city when it has any there). */
+  nearest: number[];
+  /** The place group the nearest numbers come from (addressPlaceRank: 0 ZIP code, 1 city, 2 the rest), or null. */
+  rank: number | null;
+  /** The query's house number is on the street in the place (as a key's first word or inside a range). */
+  number_held: boolean;
+}
+
+/**
+ * The street hint of a miss from the rows of each street's list (`address_street_hint_from` in Python): `lists`
+ * gives, for each street spelling, its list's row count and, when that is at most ADDRESS_STREET_HINT_ROWS, its
+ * rows ([urn, label, key]).
+ */
+export function addressStreetHintFrom(
+  number: string,
+  place: AddressPlace,
+  lists: {
+    street: string[];
+    count: number;
+    rows: [string, string | null, string][] | null;
+  }[],
+): AddressStreetHint | null {
+  if (!lists.length) return null;
+  const n = Number(number);
+  const byRank: number[][] = [[], [], []];
+  let held: boolean | null = false;
+  let unread = false;
+  let numberHeld = false;
+  let street: string | null = null;
+  for (const l of lists) {
+    if (l.rows === null) {
+      unread = true;
+      continue;
+    }
+    for (const [urn, label, key] of l.rows) {
+      if (!addressKeyMatches("street", l.street, key)) continue;
+      const rank = addressPlaceRank(place, urn, label);
+      if (rank < 0) continue;
+      held = true;
+      street ??= l.street.join(" ");
+      const k = upperAscii(key).split(" ");
+      const r = addressRange(urn, label, key);
+      const nums = r
+        ? [r[0], r[1]]
+        : /^[0-9]+$/.test(k[0] ?? "")
+          ? [Number(k[0])]
+          : [];
+      if (
+        nums.includes(n) ||
+        (r !== null && n > r[0] && n < r[1] && (!r[2] || n % 2 === r[0] % 2))
+      )
+        numberHeld = true;
+      for (const x of nums) if (x > 0 && x !== n) byRank[rank]!.push(x);
+    }
+  }
+  const best = byRank.findIndex((g) => g.length);
+  const nums = best < 0 ? [] : byRank[best]!;
+  const below = nums.filter((x) => x < n);
+  const above = nums.filter((x) => x > n);
+  const nearest = [
+    ...(below.length ? [Math.max(...below)] : []),
+    ...(above.length ? [Math.min(...above)] : []),
+  ];
+  // A street list too long to read leaves both the street and the number unknown.
+  if (unread) held = null;
+  return {
+    street: street ?? lists[0]!.street.join(" "),
+    number,
+    held,
+    nearest: held ? nearest : [],
+    rank: best < 0 ? null : best,
+    number_held: held === true && numberHeld,
+  };
+}
+
+/** The street spellings a miss reads for its hint, each with the hosted index's list it is in. */
+export function addressHintStreets(
+  mode: "house_number" | "street",
+  forms: AddressForms,
+): { street: string[]; list: string }[] {
+  if (mode !== "house_number") return [];
+  const out: { street: string[]; list: string }[] = [];
+  const seen = new Set<string>();
+  for (const f of [...forms.first, ...forms.other]) {
+    const street = addressStreetWords(f);
+    if (!street || seen.has(street.join(" "))) continue;
+    const list = addressListKey("street", street);
+    if (list === null || list.startsWith("U:")) continue;
+    seen.add(street.join(" "));
+    out.push({ street, list });
+  }
+  return out;
+}
+
+/** The list a query's matches all appear in, or null for a query no row can match (`address_list_key` in Python). */
+export function addressListKey(
+  mode: "house_number" | "street",
+  words: string[],
+): string | null {
+  if (!words.length || words.some((w) => w === "")) return null;
+  if (mode === "house_number") return `F:${words[0]}`;
+  if (words.length === 1) return `U:${words[0]}`;
+  for (let i = 1; i < words.length; i++)
+    if (STREET_TYPES.has(words[i]!)) return `B:${words[i - 1]} ${words[i]}`;
+  return STREET_TYPES.has(words[0]!) ? `A:${words[0]} ${words[1]}` : null;
+}
+
+/** An address search's matches and, when there are none, its street hint. */
+export interface AddressSearch {
+  results: Row[];
+  hint: AddressStreetHint | null;
+}
+
+/**
+ * registry_search_address over the configured file. Every spelling of the street line is searched
+ * (`addressSearchForms`), and with a house number every parcel whose house-number range holds it
+ * (`addressRangeMatches`); `where` holds the call's place parameters (`addressPlaceWith`).
+ */
+export function registrySearchAddress(
+  address: string,
+  limit = 20,
+  where: AddressWhere = {},
+): Row[] {
+  return searchAddress(open(), address, limit, where, false).results;
+}
+
+function searchAddress(
+  d: Database,
+  query: string,
+  limit: number,
+  where: AddressWhere,
+  hint: boolean,
+): AddressSearch {
+  const address = addressQueryWithPlace(query);
   const { mode } = addressQuery(address);
-  if (mode === null) return [];
+  if (mode === null) return { results: [], hint: null };
   const line = address.split(",")[0] ?? "";
-  const place = addressPlace(address);
+  const place = addressPlaceWith(address, where);
   // Each key version the file may hold: the words of the street line under that version's rules.
   const runs = addressSearchKeys(d, line).map((k) => k.split(" "));
-  const found = searchAddressRuns(d, mode, runs, limit, place);
-  if (found.length) return found;
-  // Nothing matched: once more with ordinal endings dropped, for rolls that write numbered streets bare.
-  const bare = runs
-    .map(addressWordsWithoutOrdinals)
-    .filter((w): w is string[] => w !== null);
-  return bare.length ? searchAddressRuns(d, mode, bare, limit, place) : found;
+  if (mode === "street" && runs.every((w) => w.length === 1)) {
+    const rows = searchAddressRuns(d, mode, runs, limit, place);
+    return {
+      results: rows.map((r) => ({
+        ...r,
+        ...addressCardOf(d, String(r.urn), r.label),
+      })),
+      hint: null,
+    };
+  }
+  // A query rebuilt with a comma still finds the address it was, exactly, first.
+  const forms = addressForms(
+    runs,
+    address === query ? [] : addressSearchKeys(d, query.split(",")[0] ?? ""),
+  );
+  // The unit as asked: rebuilding a query without a comma leaves the unit out of its street line.
+  const sorted = addressMatches(d, mode, forms, place, addressUnit(query));
+  const end = addressWindowEnd(sorted, limit);
+  const results = addressResultRows(
+    sorted.slice(0, end).map((m) => ({
+      match: m,
+      card: addressCardOf(d, m.urn, m.label),
+    })),
+    limit,
+  );
+  if (results.length || !hint) return { results, hint: null };
+  const number = forms.first[0]?.[0] ?? "";
+  const lists = addressHintStreets(mode, forms).map(({ street, list }) => {
+    const pair = `% ${list.slice(2)} %`;
+    const count = Number(
+      d
+        .prepare(
+          "SELECT COUNT(*) AS n FROM address_index a WHERE (' ' || a.key || ' ') LIKE ?",
+        )
+        .get(pair)?.n,
+    );
+    const rows =
+      count > ADDRESS_STREET_HINT_ROWS
+        ? null
+        : d
+            .prepare(
+              "SELECT a.urn, s.label, a.key FROM address_index a JOIN subjects s ON s.urn = a.urn " +
+                "WHERE (' ' || a.key || ' ') LIKE ?",
+            )
+            .all(pair)
+            .map(
+              (r) =>
+                [
+                  String(r.urn),
+                  (r.label ?? null) as string | null,
+                  String(r.key),
+                ] as [string, string | null, string],
+            );
+    return { street, count, rows };
+  });
+  return {
+    results,
+    hint: /^[0-9]+$/.test(number)
+      ? addressStreetHintFrom(number, place, lists)
+      : null,
+  };
+}
+
+/**
+ * Every parcel a search matches (each spelling, and with a house number each range holding it), in its place's
+ * state (and county) only, sorted by `addressMatchCompare`.
+ */
+function addressMatches(
+  d: Database,
+  mode: "house_number" | "street",
+  forms: AddressForms,
+  place: AddressPlace,
+  unit: string | null,
+): AddressMatch[] {
+  const all = [...forms.first, ...forms.other];
+  const where: string[] = [];
+  const params: string[] = [];
+  for (const words of all) {
+    if (mode === "street") {
+      where.push("(' ' || a.key || ' ') LIKE ?");
+      params.push(`% ${words.join(" ")} %`);
+      continue;
+    }
+    where.push(
+      "(" +
+        ["(a.key || ' ') LIKE ?"]
+          .concat(words.slice(1).map(() => "(' ' || a.key || ' ') LIKE ?"))
+          .join(" AND ") +
+        ")",
+    );
+    params.push(`${words[0]} %`, ...words.slice(1).map((w) => `% ${w} %`));
+    // A number inside a house-number range ("350" in "338-350 5 AVENUE").
+    if (words.length > 1 && /^[0-9]+$/.test(words[0]!)) {
+      where.push(
+        "(a.key GLOB '[0-9]*' AND substr(a.key, instr(a.key, ' ') + 1, 1) GLOB '[0-9]' AND " +
+          words
+            .slice(1)
+            .map(() => "(' ' || a.key || ' ') LIKE ?")
+            .join(" AND ") +
+          ")",
+      );
+      params.push(...words.slice(1).map((w) => `% ${w} %`));
+    }
+  }
+  const byUrn = new Map<string, AddressMatch>();
+  for (const r of d
+    .prepare(
+      `SELECT a.key, s.urn, s.label FROM address_index a JOIN subjects s ON s.urn = a.urn WHERE ${where.join(" OR ")}`,
+    )
+    .all(...params)) {
+    const urn = String(r.urn);
+    const label = (r.label ?? null) as string | null;
+    const t = addressRowTier(mode, forms, urn, label, String(r.key));
+    if (!t) continue;
+    const rank = addressPlaceRank(place, urn, label);
+    if (rank < 0) continue;
+    const m = byUrn.get(urn);
+    if (!m || t[0] < m.tier)
+      byUrn.set(urn, {
+        urn,
+        label,
+        rank,
+        tier: t[0],
+        exact: t[1],
+        unit: unit !== null && addressUnit(label) === unit,
+      });
+    else if (t[0] === m.tier && t[1]) m.exact = true;
+  }
+  return [...byUrn.values()].sort(addressMatchCompare);
 }
 
 /**
@@ -1198,7 +2231,7 @@ function searchAddressRuns(
     `SELECT s.urn, s.label, MAX(${exact}) AS x FROM address_index a JOIN subjects s ON s.urn = a.urn ` +
     `WHERE ${where.join(" OR ")} GROUP BY s.urn ORDER BY x DESC, s.label, s.urn`;
   const top = addressPlaceTop(place);
-  if (top === 2 && place.state === null)
+  if (top === 2 && place.state === null && place.county == null)
     return d
       .prepare(`${sql} LIMIT ?`)
       .all(...keys, ...params, limit)
@@ -1747,30 +2780,131 @@ function stateCountiesSummary(cov: RegistryCoverage, st: string): string {
   return `${counties.length} counties (${counties.reduce((a, c) => a + c.parcels, 0)} parcels)`;
 }
 
+/** What registry_search_address's misses say about the registry's scope. */
+export const ADDRESS_SCOPE_NOTE =
+  "the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it";
+
 /**
- * Pure: the `coverage` object of a miss, from a coverage summary. A query with a comma is read by
- * `addressPlace` (the state it names after a city); one without, by `queryState`.
+ * A city or ZIP code of the place every one of whose known counties the registry does not hold (`placeCounties`),
+ * as [what the query named, those counties], or null.
  */
-export function addressMiss(cov: RegistryCoverage, query: string): Row {
-  const place = query.includes(",") ? addressPlace(query) : null;
-  const st = place ? place.state : queryState(query);
+function unheldPlace(
+  cov: RegistryCoverage,
+  st: string | null,
+  place: AddressPlace | null,
+): [string, string[]] | null {
+  if (!st || !place) return null;
+  const held = new Set(
+    cov.counties.map((c) => `${c.state_fips}${c.county_fips}`),
+  );
+  for (const [name, key] of [
+    [`ZIP code ${place.zip ?? ""}`, place.zip],
+    [place.city ?? "", place.city],
+  ] as [string, string | null][]) {
+    if (key === null) continue;
+    const counties = placeCounties(st, key);
+    if (counties && counties.every((c) => !held.has(c)))
+      return [name, counties];
+  }
+  return null;
+}
+
+/**
+ * Pure: the `coverage` object of a miss, from a coverage summary (`address_miss` in Python). A query with a comma is
+ * read by `addressPlace` (the state it names after a city) with the call's place parameters; one without, by those
+ * and `queryState`. `hint` is what the search found on the query's street (`AddressStreetHint`). The message says
+ * which miss it is, when the query lets it tell (`reason`): the state is not loaded ("state_not_loaded"); the
+ * county named, or every county known to hold the named city's or ZIP code's parcels, is not ("county_not_loaded";
+ * a named county_fips also gives `county_loaded: false`); the query names no house number or street type
+ * ("no_street"); a street type alone was searched ("street_type_alone"); no address on the street is in the index
+ * ("street_not_found"); the house number is on the street but not with every other word of the query
+ * ("other_words"); the street is held and the index shows no such number on it, with the nearest numbers held
+ * ("house_number_not_found"); otherwise "no_match". Each claim is read from the index, never from a label's city
+ * text. The street, house-number and no-match kinds also say the registry's scope.
+ */
+export function addressMiss(
+  cov: RegistryCoverage,
+  asked: string,
+  where: AddressWhere = {},
+  hint: AddressStreetHint | null = null,
+): Row {
+  const query = addressQueryWithPlace(asked);
+  const comma = query.includes(",");
+  const named = Object.values(where).some((v) => v !== undefined);
+  const place = comma || named ? addressPlaceWith(query, where) : null;
+  const st =
+    place?.state ??
+    (comma || where.state !== undefined ? null : queryState(query));
   const states = cov.totals.states;
   const loaded = st ? states.includes(st) : null;
   const q = addressQuery(query);
   const oneWord = q.mode === "street" && q.tokens.length === 1;
-  const message =
-    st && !loaded
-      ? `no parcel matched: ${st} is not loaded in this registry; loaded: ${countiesSummary(cov)}`
-      : addressQuery(query).mode === null
-        ? `no parcel matched: address search matches whole words of the street address, so give a house number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part of a word alone matches nothing. Loaded: ${countiesSummary(cov)}`
-        : place && st
-          ? `no parcel matched in ${st}: matches are kept to the state the query names, and of ${st} this registry holds ${stateCountiesSummary(cov, st)}; ${
-              oneWord
-                ? `a street type alone is matched among its first ${ADDRESS_ONE_WORD_CANDIDATES} addresses only, so give the street name with it ("Main St")`
-                : "it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel is not found"
-            }`
-          : `no parcel matched in this registry (loaded: ${countiesSummary(cov)}); it holds commercial, industrial and multifamily parcels only, searched by situs address: try the house number and street name alone`;
-  return { state: st, state_loaded: loaded, loaded_states: states, message };
+  // The state the search was kept to (a state the query names without a city is reported, not searched by).
+  const kept = place?.state ?? null;
+  const holds = kept
+    ? `Of ${kept} this registry holds ${stateCountiesSummary(cov, kept)}`
+    : `Loaded: ${countiesSummary(cov)}`;
+  const at = kept ? ` in ${kept}` : "";
+  const out: Row = { state: st, state_loaded: loaded, loaded_states: states };
+  let reason: string;
+  let message: string;
+  const county = place?.county ?? null;
+  const unheld = unheldPlace(cov, kept, place);
+  if (st && !loaded) {
+    reason = "state_not_loaded";
+    message = `no parcel matched: ${st} is not loaded in this registry; loaded: ${countiesSummary(cov)}`;
+  } else if (q.mode === null) {
+    reason = "no_street";
+    message = `no parcel matched: address search matches whole words of the street address, so give a house number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part of a word alone matches nothing. Loaded: ${countiesSummary(cov)}`;
+  } else if (
+    county !== null &&
+    !cov.counties.some((c) => `${c.state_fips}${c.county_fips}` === county)
+  ) {
+    reason = "county_not_loaded";
+    out.county_loaded = false;
+    message = `no parcel matched${at}: ${countyLabel(county.slice(0, 2), county.slice(2))} is not loaded in this registry. ${holds}`;
+  } else if (unheld) {
+    reason = "county_not_loaded";
+    out.place_counties = unheld[1];
+    message = `no parcel matched${at}: ${unheld[0]} is in ${unheld[1].map((c) => countyLabel(c.slice(0, 2), c.slice(2))).join(" and ")}, which this registry does not hold. ${holds}`;
+  } else {
+    const parts: string[] = [];
+    if (oneWord) {
+      reason = "street_type_alone";
+      parts.push(
+        `a street type alone is matched among its first ${ADDRESS_ONE_WORD_CANDIDATES} addresses only, so give the street name with it ("Main St")`,
+      );
+    } else if (hint && hint.held === false) {
+      reason = "street_not_found";
+      out.street = hint.street;
+      parts.push(`no address on ${hint.street}${at} is in this registry`);
+    } else if (hint && hint.held && hint.number_held) {
+      reason = "other_words";
+      out.street = hint.street;
+      parts.push(
+        `${hint.number} ${hint.street}${at} is in this registry, but not with every other word of the query; search the house number and street alone`,
+      );
+    } else if (hint && hint.held && hint.nearest.length) {
+      reason = "house_number_not_found";
+      out.street = hint.street;
+      out.nearest_house_numbers = hint.nearest;
+      // The nearest numbers come from the whole state when no label on the street names the query's ZIP code or city.
+      const away =
+        hint.rank === 2 &&
+        place !== null &&
+        (place.zip !== null || place.city !== null)
+          ? `, and none of its labels names ${place.zip !== null ? `ZIP code ${place.zip}` : place.city}`
+          : "";
+      parts.push(
+        `${hint.street}${at} is in this registry, but not number ${hint.number}; the nearest numbers on it are ${hint.nearest.join(" and ")}${away}`,
+      );
+    } else reason = "no_match";
+    if (!oneWord) parts.push(ADDRESS_SCOPE_NOTE);
+    message = `no parcel matched${at}: ${parts.join("; ")}. ${holds}`;
+  }
+  out.reason = reason;
+  out.message = message;
+  return out;
 }
 
 /** Pure: the `coverage` object of a miss, from a coverage summary. */
@@ -1859,12 +2993,17 @@ export function registryResolveExternalResult(
       };
 }
 
-/** `registry_search_address`: matches, or none with what the file holds. */
-export function registrySearchAddressResult(query: string, limit: number): Row {
-  const results = registrySearchAddress(query, limit);
+/** `registry_search_address`: matches, or none with what the file holds and why the query missed. */
+export function registrySearchAddressResult(
+  query: string,
+  limit: number,
+  where: AddressWhere = {},
+): Row {
+  const d = open();
+  const { results, hint } = searchAddress(d, query, limit, where, true);
   return results.length
     ? { results }
-    : { results, coverage: addressMiss(coverage(open()), query) };
+    : { results, coverage: addressMiss(coverage(d), query, where, hint) };
 }
 
 /** `registry_search_entities`: matches, or none with the entity registries the file holds. */

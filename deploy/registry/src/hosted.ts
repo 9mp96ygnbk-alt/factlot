@@ -8,6 +8,8 @@ import { countyName } from "../../../packages/tools/src/county_names.ts";
 import type { CountyFields } from "../../../packages/tools/src/fields.ts";
 import {
   addressMiss,
+  type AddressStreetHint,
+  type AddressWhere,
   entitiesMiss,
   entityMiss,
   parcelMiss,
@@ -167,9 +169,20 @@ export function hostedAddressMiss(
   scope: HostedScope,
   cov: RegistryCoverage,
   query: string,
+  where: AddressWhere = {},
+  hint: AddressStreetHint | null = null,
 ): Row {
-  const out = addressMiss(cov, query);
-  if (out.state_loaded !== true || !query.includes(",")) return out;
+  return hostedAddressMissOf(scope, cov, addressMiss(cov, query, where, hint));
+}
+
+/** hostedAddressMiss from the SDK's miss (addressMiss) for the same query. */
+export function hostedAddressMissOf(
+  scope: HostedScope,
+  cov: RegistryCoverage,
+  miss: Row,
+): Row {
+  const out = { ...miss };
+  if (out.state_loaded !== true) return out;
   for (const c of cov.counties) {
     const fips = `${c.state_fips}${c.county_fips}`;
     const p = partialOf(scope, fips);
@@ -347,7 +360,7 @@ export function hostedOutcome<T extends Outcome>(
       String(args.county_fips),
     );
   else if (tool === "registry_search_address" && r.coverage !== undefined)
-    r.coverage = hostedAddressMiss(scope, cov, String(args.query));
+    r.coverage = hostedAddressMissOf(scope, cov, r.coverage as Row);
   else if (tool === "registry_search_entities" && r.coverage !== undefined)
     r.coverage = hostedEntitiesMiss(scope, cov);
   else if (tool === "registry_owned_by" && r.coverage !== undefined) {

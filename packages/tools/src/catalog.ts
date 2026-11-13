@@ -50,6 +50,9 @@ import {
   registryResolveExternalResult,
   registryResolveParcelResult,
   registrySearchAddressResult,
+  addressWhereIssues,
+  addressWhereOf,
+  type AddressWhere,
   registrySearchEntitiesResult,
   registryTxEquityCandidates,
   texasOnly,
@@ -778,23 +781,85 @@ const registryTools: ToolSpec[] = [
     name: "registry_search_address",
     title: "Search parcels by address",
     description:
-      "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. After the first comma, give the city, state and ZIP code ('1200 Main St, Houston, TX 77002'): a state (two letters or the full name) named after a city keeps the answer to that state, before the limit is applied; the ZIP code and the city only order the matches (same ZIP code first, then same city, then the rest) and never filter; a bare state with no city, and suite, floor or box text, are ignored. No match returns coverage: what this registry holds, in the named state when there is one." +
+      "Find commercial parcels by situs address. Matches whole words of the street line (the part before the first comma), normalized: 'Street' = 'St', 'Northwest' = 'N.W.' = 'NW'; a suite, unit, '#' or floor is ignored. A numbered street matches however it is written ('Fifth Avenue' = '5th Ave' = '5 Avenue', 'Forty-Second St' = '42nd St'), and a house number matches a lot whose address is a range holding it ('350 5th Ave' finds '338-350 5 AVENUE'): a range whose ends are both odd or both even holds only the numbers of that parity, one side of the street, and one whose ends differ holds every number between. Give a house number ('1200 Main', '1200 Main St NW') or a street name with its type ('Main St'); a city or a part of a word alone matches nothing. Give the place after the first comma ('1200 Main St, Houston, TX 77002') or as state, city, postal_code and county_fips: a state named after a city (or given as state) keeps the answer to that state, and county_fips to that county, before the limit is applied; the ZIP code and the city only order the matches (same ZIP code first, then same city, then the rest) and never filter; a bare state with no city in the query, and suite, floor or box text, are ignored. Within each place group, matches of the street as written come first, then other spellings, then house-number ranges, an exact address first, then the parcel whose label names the unit the query names (a unit never filters), then by label; parcels sharing one label come largest improvement area first, those the roll records as land only last. Each result carries what tells parcels at one address apart: the district's account or lot number, property category, use code, improvement area, land_only (true when the roll records an improvement area of 0, false when it records an improvement, null when it records neither), and the unit its label names; never an owner. No match returns coverage: what this registry holds (in the named state when there is one), and in reason and message why: the state or county is not loaded, the street is not held, the house number is held but not with the query's other words, or the street is held but not that house number (with the nearest numbers held on it)." +
       REGISTRY_NOTE,
-    input: z.object({
-      query: z
-        .string()
-        .min(1)
-        .max(500)
-        .describe(
-          "Street address ('1200 Main St, Houston, TX 77002'), or a house number and street words, or a street name with its type; the city, state and ZIP code after the first comma narrow and order the matches.",
-        ),
-      limit: Limit,
-    }),
+    input: z
+      .object({
+        query: z
+          .string()
+          .min(1)
+          .max(500)
+          .optional()
+          .describe(
+            "Street address ('1200 Main St, Houston, TX 77002'), or a house number and street words, or a street name with its type; the city, state and ZIP code after the first comma narrow and order the matches. Give query or address, not both.",
+          ),
+        address: z
+          .string()
+          .min(1)
+          .max(500)
+          .optional()
+          .describe("The same as query (give one of the two)."),
+        state: z
+          .string()
+          .min(2)
+          .max(40)
+          .optional()
+          .describe(
+            "State, two letters or full name ('TX', 'Texas'): keeps the answer to that state, as a state after the city in the query does; it replaces one named there.",
+          ),
+        city: z
+          .string()
+          .min(1)
+          .max(100)
+          .optional()
+          .describe(
+            "City ('Houston'): matches in it come first; it never filters. Replaces a city named in the query.",
+          ),
+        postal_code: z
+          .string()
+          .min(5)
+          .max(10)
+          .optional()
+          .describe(
+            "5-digit ZIP code (or ZIP+4): matches with it come first; it never filters, since some rolls write ZIP codes wrongly. Replaces one named in the query.",
+          ),
+        county_fips: z
+          .string()
+          .min(3)
+          .max(5)
+          .optional()
+          .describe(
+            "County FIPS code, 5 digits ('48201') or 3 with state ('201'): keeps the answer to that county, read from each parcel's URN.",
+          ),
+        limit: Limit,
+      })
+      .superRefine((v, ctx) => {
+        if ((v.query === undefined) === (v.address === undefined))
+          ctx.addIssue({
+            code: "custom",
+            path: [],
+            message: "provide exactly one of query or address",
+          });
+        for (const issue of addressWhereIssues(v))
+          ctx.addIssue({
+            code: "custom",
+            path: [issue.path],
+            message: issue.message,
+          });
+      }),
     path: "/v1/registry/search_address",
     requires: "registry",
     run: (i: never) => {
-      const v = i as { query: string; limit: number };
-      return registrySearchAddressResult(v.query, v.limit);
+      const v = i as {
+        query?: string;
+        address?: string;
+        limit: number;
+      } & AddressWhere;
+      return registrySearchAddressResult(
+        (v.query ?? v.address)!,
+        v.limit,
+        addressWhereOf(v),
+      );
     },
   },
   {

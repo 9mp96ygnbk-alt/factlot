@@ -17,7 +17,9 @@ import sqlite3
 from typing import Any
 
 from .county_names import county_name
-from .normalize import ADDRESS_ONE_WORD_CANDIDATES, STATE_BY_FIPS, STATES, address_place, address_query
+from .address_places import place_counties
+from .normalize import (ADDRESS_ONE_WORD_CANDIDATES, STATE_BY_FIPS, STATES, address_place_with, address_query,
+                        address_query_with_place)
 
 SCOPE = ("Commercial, industrial and multifamily parcels only (no single-family homes), each fact cited "
          "to its source file; owners of record are kept only for organisations, never natural persons.")
@@ -214,34 +216,100 @@ def _state_counties_summary(cov: dict[str, Any], st: str) -> str:
     return f"{len(counties)} counties ({sum(c['parcels'] for c in counties)} parcels)"
 
 
-def address_miss(cov: dict[str, Any], query: str) -> dict[str, Any]:
-    """A query with a comma is read by ``address_place`` (the state it names after a city); one without, by
-    ``query_state``."""
-    place = address_place(query) if "," in query else None
-    st = place["state"] if place else query_state(query)
+# What registry_search_address's misses say about the registry's scope (ADDRESS_SCOPE_NOTE in TS).
+ADDRESS_SCOPE_NOTE = ("the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit "
+                      "owned by a person, is not in it")
+
+
+def _unheld_place(cov: dict[str, Any], st: str | None, place: dict[str, Any] | None) -> tuple[str, list[str]] | None:
+    """A city or ZIP code of the place every one of whose known counties the registry does not hold (``unheldPlace``)."""
+    if not st or not place:
+        return None
+    held = {c["state_fips"] + c["county_fips"] for c in cov["counties"]}
+    for name, key in ((f"ZIP code {place['zip'] or ''}", place["zip"]), (place["city"] or "", place["city"])):
+        if key is None:
+            continue
+        counties = place_counties(st, key)
+        if counties and all(c not in held for c in counties):
+            return name, counties
+    return None
+
+
+def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None = None,
+                 hint: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Why an address search found nothing (``addressMiss`` in TS). A query with a comma is read by ``address_place``
+    (the state it names after a city) with the call's place parameters; one without, by those and ``query_state``.
+    ``hint`` is what the search found on the query's street (``address_street_hint_from``)."""
+    where = where or {}
+    query = address_query_with_place(query)
+    comma = "," in query
+    named = any(v is not None for v in where.values())
+    place = address_place_with(query, where) if comma or named else None
+    st = place["state"] if place and place["state"] is not None else (
+        None if comma or "state" in where else query_state(query))
     states = cov["totals"]["states"]
     loaded = st in states if st else None
+    q = address_query(query)
+    one_word = q["mode"] == "street" and len(q["tokens"]) == 1
+    # The state the search was kept to (a state the query names without a city is reported, not searched by).
+    kept = place["state"] if place else None
+    holds = f"Of {kept} this registry holds {_state_counties_summary(cov, kept)}" if kept else (
+        f"Loaded: {_counties_summary(cov)}")
+    at = f" in {kept}" if kept else ""
+    out: dict[str, Any] = {"state": st, "state_loaded": loaded, "loaded_states": states}
+    county = place.get("county") if place else None
+    unheld = _unheld_place(cov, kept, place)
     if st and not loaded:
+        reason = "state_not_loaded"
         message = f"no parcel matched: {st} is not loaded in this registry; loaded: {_counties_summary(cov)}"
-    elif address_query(query)["mode"] is None:
+    elif q["mode"] is None:
+        reason = "no_street"
         message = ("no parcel matched: address search matches whole words of the street address, so give a house "
                    'number ("1200 Main St") or a street name with its type ("Main St"); a city, state or part '
                    f"of a word alone matches nothing. Loaded: {_counties_summary(cov)}")
-    elif place and st:
-        q = address_query(query)
-        if q["mode"] == "street" and len(q["tokens"]) == 1:
-            why = (f"a street type alone is matched among its first {ADDRESS_ONE_WORD_CANDIDATES} addresses only, so "
-                   'give the street name with it ("Main St")')
-        else:
-            why = ("it holds commercial, industrial and multifamily parcels only, so a residential or exempt parcel "
-                   "is not found")
-        message = (f"no parcel matched in {st}: matches are kept to the state the query names, "
-                   f"and of {st} this registry holds {_state_counties_summary(cov, st)}; {why}")
+    elif county is not None and not any(c["state_fips"] + c["county_fips"] == county for c in cov["counties"]):
+        reason = "county_not_loaded"
+        out["county_loaded"] = False
+        message = f"no parcel matched{at}: {county_label(county[:2], county[2:])} is not loaded in this registry. {holds}"
+    elif unheld:
+        reason = "county_not_loaded"
+        out["place_counties"] = unheld[1]
+        names = " and ".join(county_label(c[:2], c[2:]) for c in unheld[1])
+        message = f"no parcel matched{at}: {unheld[0]} is in {names}, which this registry does not hold. {holds}"
     else:
-        message = (f"no parcel matched in this registry (loaded: {_counties_summary(cov)}); it holds commercial, "
-                   "industrial and multifamily parcels only, searched by situs address: try the house number "
-                   "and street name alone")
-    return {"state": st, "state_loaded": loaded, "loaded_states": states, "message": message}
+        parts: list[str] = []
+        if one_word:
+            reason = "street_type_alone"
+            parts.append(f"a street type alone is matched among its first {ADDRESS_ONE_WORD_CANDIDATES} addresses "
+                         'only, so give the street name with it ("Main St")')
+        elif hint and hint["held"] is False:
+            reason = "street_not_found"
+            out["street"] = hint["street"]
+            parts.append(f"no address on {hint['street']}{at} is in this registry")
+        elif hint and hint["held"] and hint["number_held"]:
+            reason = "other_words"
+            out["street"] = hint["street"]
+            parts.append(f"{hint['number']} {hint['street']}{at} is in this registry, but not with every other word of "
+                         "the query; search the house number and street alone")
+        elif hint and hint["held"] and hint["nearest"]:
+            reason = "house_number_not_found"
+            out["street"] = hint["street"]
+            out["nearest_house_numbers"] = hint["nearest"]
+            # The nearest numbers come from the whole state when no label on the street names the ZIP code or city.
+            away = ""
+            if hint["rank"] == 2 and place is not None and (place["zip"] is not None or place["city"] is not None):
+                away = ", and none of its labels names " + (f"ZIP code {place['zip']}" if place["zip"] is not None
+                                                             else place["city"])
+            parts.append(f"{hint['street']}{at} is in this registry, but not number {hint['number']}; the nearest "
+                         f"numbers on it are {' and '.join(str(n) for n in hint['nearest'])}{away}")
+        else:
+            reason = "no_match"
+        if not one_word:
+            parts.append(ADDRESS_SCOPE_NOTE)
+        message = f"no parcel matched{at}: {'; '.join(parts)}. {holds}"
+    out["reason"] = reason
+    out["message"] = message
+    return out
 
 
 def entities_miss(cov: dict[str, Any]) -> dict[str, Any]:

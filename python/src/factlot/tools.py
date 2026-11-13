@@ -549,17 +549,51 @@ def _nonempty(args: dict[str, Any], key: str) -> str:
     return v
 
 
+def _address_search_input(args: dict[str, Any]) -> tuple[str, int, dict[str, str]]:
+    """registry_search_address's query (or address), limit and place parameters, validated as the TypeScript
+    schema does: field types and lengths first, then exactly one of query or address, then the place parameters."""
+    from .registry.normalize import address_where_issues, address_where_of
+
+    issues: list[dict[str, str]] = []
+    for key, lo, hi in (("query", 1, 500), ("address", 1, 500), ("state", 2, 40), ("city", 1, 100),
+                        ("postal_code", 5, 10), ("county_fips", 3, 5)):
+        if key not in args:
+            continue
+        v = args[key]
+        if not isinstance(v, str):
+            issues.append({"path": key, "message": "expected string"})
+        elif len(v) < lo:
+            issues.append({"path": key, "message": f"expected at least {lo} character{'s' if lo > 1 else ''}"})
+        elif len(v) > hi:
+            issues.append({"path": key, "message": f"expected at most {hi} characters"})
+    limit = _limit(args)
+    if issues:
+        raise _MultiInputError(issues)
+    if ("query" in args) == ("address" in args):
+        issues.append({"path": "", "message": "provide exactly one of query or address"})
+    where = address_where_of(args)
+    issues += address_where_issues(where)
+    if issues:
+        raise _MultiInputError(issues)
+    return args["query"] if "query" in args else args["address"], limit, where
+
+
 def _search(kind: str):
     def run(args: dict[str, Any]) -> dict[str, Any]:
         from .registry import coverage
 
-        query, limit = _nonempty(args, "query"), _limit(args)  # validate before touching the registry
+        if kind == "entities":
+            query, limit = _nonempty(args, "query"), _limit(args)  # validate before touching the registry
+            reg = _registry()
+            results = reg.search_entities(query, limit)
+            return {"results": results} if results else {"results": results,
+                                                          "coverage": coverage.entities_miss(reg.coverage())}
+        query, limit, where = _address_search_input(args)
         reg = _registry()
-        results = reg.search_address(query, limit) if kind == "address" else reg.search_entities(query, limit)
+        results, hint = reg.search_address_hint(query, limit, where)
         if results:
             return {"results": results}
-        cov = coverage.address_miss(reg.coverage(), query) if kind == "address" else coverage.entities_miss(reg.coverage())
-        return {"results": results, "coverage": cov}
+        return {"results": results, "coverage": coverage.address_miss(reg.coverage(), query, where, hint)}
 
     return run
 
