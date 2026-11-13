@@ -185,6 +185,39 @@ describe("pricing page", () => {
   });
 });
 
+describe("home page", () => {
+  const html = read("site/index.html");
+  it("opens with the three promises, each linking to its page, above the developer material", () => {
+    const promises = html.indexOf('id="promise-title"');
+    const developer = html.indexOf('id="hero-title"');
+    assert.ok(promises > 0 && developer > promises);
+    const top = html.slice(promises, developer);
+    for (const href of ["/texas/", "/mcp-server/", "/try/"])
+      assert.ok(top.includes(`href="${href}"`), href);
+    assert.ok(/unequal-appraisal\s+arithmetic/.test(top));
+    assert.ok(/Free, no key/.test(top));
+    assert.ok(/Every answer\s+cites the public record/.test(top));
+    assert.equal(html.split("<h1").length - 1, 1);
+    // The developer material stays.
+    for (const id of ["layers", "how", "connect", "agents", "pricing"])
+      assert.ok(html.includes(`id="${id}"`), id);
+    assert.ok(html.includes("26 calculators"));
+  });
+  it("makes no claim of being the only, widest or first", () => {
+    for (const bad of [
+      /\bthe only\b/i,
+      /\bwidest\b/i,
+      /\bno other\b/i,
+      /\bthe best\b/i,
+      /can't get wrong/i,
+      /\bThe open fact layer\b/,
+    ])
+      assert.ok(!bad.test(html), String(bad));
+    for (const f of ["README.md", "llms.txt"])
+      assert.ok(!/\bThe open fact layer\b|Fastest path/.test(read(f)), f);
+  });
+});
+
 describe("texas hub", () => {
   const html = flat("site/_content/texas.html");
   const deadline = flat("site/_content/texas-protest-deadline.html");

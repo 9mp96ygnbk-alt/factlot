@@ -271,6 +271,16 @@ section:nth-of-type(even) {
   margin-top: 0;
 }
 
+.card .card-title {
+  font-size: 1.15rem;
+  margin-top: 0;
+}
+
+.hero .hero-claim {
+  font-size: clamp(1.75rem, 1.2rem + 2.5vw, 2.75rem);
+  max-width: 24ch;
+}
+
 .card p:last-child {
   margin-bottom: 0;
 }
