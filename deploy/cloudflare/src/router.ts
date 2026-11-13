@@ -103,6 +103,7 @@ import {
   onFreeKeyLimit,
 } from "./lifecycle.ts";
 import { propertyPagesRoute, type PagesEnv } from "./property-pages.ts";
+import { withRouteHint } from "./route-hint.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import {
   accountFormPage,
@@ -1961,6 +1962,12 @@ async function route(
       modelEnabled(env),
     );
   meterUsage(res.status);
+  // An unknown path under /v1/ that is a near miss of a real route names the right one.
+  if (res.status === 404 && path.startsWith("/v1/"))
+    res = await withRouteHint(res, path, apiBase, {
+      reports: reportsEnabled(env),
+      model: modelEnabled(env),
+    });
 
   // Only answers that find something are charged: a lookup that was refused as invalid, missed
   // outside the loaded coverage, could not be answered (RegistryUnavailable) or, within the hourly

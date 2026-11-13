@@ -5338,6 +5338,70 @@ describe("batch items and subjects that find nothing: not counted, guarded item 
   });
 });
 
+describe("unknown /v1/ paths that are near misses name the right route", () => {
+  it("through the router and the real inner handler, REST only", async () => {
+    const handler = createHandler({
+      maxBodyBytes: 1024 * 1024,
+      trustProxy: true,
+      logSink: () => {},
+    });
+    const server = createServer((req, res) => void handler(req, res));
+    await new Promise<void>((res) => server.listen(0, "127.0.0.1", res));
+    const { port } = server.address() as AddressInfo;
+    const api = {
+      fetch: async (r: Request) => {
+        const u = new URL(r.url);
+        const headers = new Headers(r.headers);
+        headers.delete("host");
+        headers.delete("content-length");
+        return fetch(`http://127.0.0.1:${port}${u.pathname}${u.search}`, {
+          method: r.method,
+          headers,
+          body: r.method === "GET" ? undefined : await r.text(),
+        });
+      },
+    };
+    try {
+      const e = env();
+      for (const [path, right] of [
+        ["/v1/report_create", "POST /v1/reports"],
+        ["/v1/registry_get", "POST /v1/registry/get"],
+        [
+          "/v1/rules/tx/property-tax-protest-deadline",
+          "POST /v1/rules/tx_property_tax_protest_deadline",
+        ],
+      ] as const) {
+        const r = await call(e, api, path, { body: { urn: "x" } });
+        assert.equal(r.status, 404, path);
+        const b = (await r.json()) as Record<string, string>;
+        assert.equal(b.error, "NotFound");
+        assert.equal(b.did_you_mean, right);
+        assert.match(b.message!, new RegExp(`Did you mean ${right}\\?`));
+        assert.equal(
+          b.next,
+          `${right.split(" ")[0]} https://api.factlot.com${right.split(" ")[1]}`,
+        );
+      }
+      // Reports closed: no hint toward a route that would answer ReportsUnavailable.
+      const closed = env({ REPORTS_ENABLED: undefined });
+      const r = await call(closed, api, "/v1/report_create", { body: {} });
+      assert.equal(r.status, 404);
+      assert.equal(
+        ((await r.json()) as { did_you_mean?: string }).did_you_mean,
+        undefined,
+      );
+      const plain = await call(e, api, "/v1/no-such-thing", { body: {} });
+      assert.equal(plain.status, 404);
+      assert.equal(
+        ((await plain.json()) as { did_you_mean?: string }).did_you_mean,
+        undefined,
+      );
+    } finally {
+      server.close();
+    }
+  });
+});
+
 describe("batch registry tools: one lookup per answered subject", () => {
   const BATCH = "registry_tx_equity_candidates_batch";
   const PATH = "/v1/registry/tx_equity_candidates/batch";
