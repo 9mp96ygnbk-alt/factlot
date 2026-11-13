@@ -96,7 +96,13 @@ import {
 } from "./lifecycle.ts";
 import { propertyPagesRoute } from "./property-pages.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
-import { accountFormPage, accountPage, escapeHtml, page } from "./pages.ts";
+import {
+  accountFormPage,
+  accountPage,
+  escapeHtml,
+  messagePage,
+  page,
+} from "./pages.ts";
 import {
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
   freeKeyEnabled,
@@ -863,8 +869,33 @@ async function route(
       path.startsWith("/account/stop/") ||
       path === "/account/lifecycle")
   ) {
+    // The two form posts are limited per address and their bodies capped, like the recovery form.
+    let body: string | undefined;
+    if (
+      request.method === "POST" &&
+      (path === "/account/stop" || path === "/account/lifecycle")
+    ) {
+      const address = await addressSubject(
+        clientAddress(request),
+        now(),
+        env.IP_HASH_SALT,
+      );
+      if (
+        !(await metered(env.RL_ANON.limit({ key: `lifecycle:${address}` })))
+          .success
+      )
+        return messagePage(
+          429,
+          "Optional emails",
+          "Too many tries from this address. Wait a minute.",
+        );
+      body = await readBody(request, 4 * 1024);
+      if (body === undefined)
+        return messagePage(413, "Optional emails", "The form is too large.");
+    }
     const res = await lifecycleRoute(request, env, url, path, {
       now,
+      body,
       fetchImpl: opts.fetchImpl,
       defer: deferWith(opts),
     });
@@ -1688,7 +1719,7 @@ async function route(
         freeKey,
         res,
         path === "/mcp" ? "mcp" : "rest",
-        path === "/mcp" ? mcpBody : parseArgs(restText),
+        path === "/mcp" ? mcpBody : restText,
         deferWith(opts),
         now(),
       );
@@ -2174,13 +2205,9 @@ async function accountRoute(
 ): Promise<Response> {
   const now = opts.now ?? Date.now;
   const formPage = (status?: number, notice?: string) =>
-    accountFormPage(
-      status,
-      notice,
-      recoveryState(env),
-      freeKeyEnabled(env),
-      lifecycleEnabled(env),
-    );
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env), {
+      lifecycle: lifecycleEnabled(env),
+    });
   if (request.method === "GET" || request.method === "HEAD") return formPage();
   if (request.method !== "POST")
     return apiError(
@@ -2358,7 +2385,7 @@ async function recoverRoute(
         "This form only works on its own page.",
         recoveryState(env),
         freeKeyEnabled(env),
-        lifecycleEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
     const address = await addressSubject(
       clientAddress(request),
@@ -2373,7 +2400,7 @@ async function recoverRoute(
         "Too many tries from this address. Wait a minute.",
         recoveryState(env),
         freeKeyEnabled(env),
-        lifecycleEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
     body = await readBody(request, 4 * 1024);
     if (body === undefined)
@@ -2382,7 +2409,7 @@ async function recoverRoute(
         "The form is too large.",
         recoveryState(env),
         freeKeyEnabled(env),
-        lifecycleEnabled(env),
+        { lifecycle: lifecycleEnabled(env) },
       );
   }
   if (token === undefined)
@@ -2438,13 +2465,9 @@ async function freeKeyRoute(
     );
   }
   const formPage = (status: number, notice: string) =>
-    accountFormPage(
-      status,
-      notice,
-      recoveryState(env),
-      freeKeyEnabled(env),
-      lifecycleEnabled(env),
-    );
+    accountFormPage(status, notice, recoveryState(env), freeKeyEnabled(env), {
+      lifecycle: lifecycleEnabled(env),
+    });
   if (request.method === "POST" || request.method === "DELETE") {
     const origin = request.headers.get("origin");
     const jsonBody = (request.headers.get("content-type") ?? "").includes(

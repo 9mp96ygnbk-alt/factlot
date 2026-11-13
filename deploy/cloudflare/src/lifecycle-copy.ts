@@ -15,6 +15,7 @@
  */
 import { body } from "./email.ts";
 import { PLANS, priceText, type Plan } from "./plans.ts";
+import { hmacSha256Hex } from "./stripe.ts";
 
 /** The feature is dark unless LIFECYCLE_EMAILS_ENABLED is exactly "true". */
 export function lifecycleEnabled(env: {
@@ -132,6 +133,17 @@ export function cleanQuery(raw: unknown): string {
     .trim();
 }
 
+/**
+ * encodeURIComponent, but also the characters it leaves alone that can end a sentence or a quote
+ * (`.` `'` `-` and the like), so a link never ends in punctuation a mail client might cut off.
+ */
+export function encodeQuery(s: string): string {
+  return encodeURIComponent(s).replace(
+    /[-.!~*'()]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+  );
+}
+
 const PARCEL_URN = /^fl:parcel:(us-\d{5}):([a-z0-9]+(?:-[a-z0-9]+)*)$/;
 
 /** A parcel URN as `fl:parcel:us-48201:0001`, or "" (nothing else is carried). */
@@ -161,8 +173,8 @@ export function readBack(src: {
 export function backParams(back?: Back): string {
   if (!back) return "";
   return (
-    (back.q ? `&q=${encodeURIComponent(back.q)}` : "") +
-    (back.urn ? `&urn=${encodeURIComponent(back.urn)}` : "")
+    (back.q ? `&q=${encodeQuery(back.q)}` : "") +
+    (back.urn ? `&urn=${encodeQuery(back.urn)}` : "")
   );
 }
 
@@ -186,7 +198,7 @@ export function backLink(
     };
   if (back.q)
     return {
-      href: `${site}/try/?q=${encodeURIComponent(back.q)}`,
+      href: `${site}/try/?q=${encodeQuery(back.q)}`,
       label: "Back to your lookup",
     };
   return undefined;
@@ -250,24 +262,27 @@ export interface WithheldFacts {
 
 /** A1: the first answer to a free key that left something out. */
 export function withheldMessage(c: PromoContext, f: WithheldFacts): Built {
-  const parts: string[] = [];
   const years = [...(f.years ?? [])].sort((a, b) => a - b);
-  if (years.length > 0)
-    parts.push(
-      `FactLot also holds ${years.length} earlier roll ${plural(years.length, "year", "years")} for that record (${years[0]}${years.length > 1 ? ` to ${years[years.length - 1]}` : ""}).`,
+  const cut = f.portfolio && f.portfolio.count > 0 ? f.portfolio : undefined;
+  const sentences: string[] = [];
+  if (years.length > 0 || f.facts) {
+    sentences.push(
+      "Your last lookup with your free key returned the current roll year.",
     );
-  else if (f.facts)
-    parts.push(
-      `FactLot also holds ${n(f.facts)} earlier ${plural(f.facts, "fact", "facts")} in that record's history.`,
+    sentences.push(
+      years.length > 0
+        ? `FactLot also holds ${years.length} earlier roll ${plural(years.length, "year", "years")} for that record (${years[0]}${years.length > 1 ? ` to ${years[years.length - 1]}` : ""}).`
+        : `FactLot also holds ${n(f.facts!)} earlier ${plural(f.facts!, "fact", "facts")} in that record's history.`,
     );
-  if (f.portfolio && f.portfolio.count > 0)
-    parts.push(
-      `${n(f.portfolio.count)} more ${plural(f.portfolio.count, "parcel", "parcels")} of that owner's ${n(f.portfolio.total)} were not shown.`,
+  }
+  if (cut)
+    sentences.push(
+      `${years.length > 0 || f.facts ? "Another answer" : "Your last lookup with your free key"} showed ${n(cut.total - cut.count)} of that owner's ${n(cut.total)} parcels; ${n(cut.count)} more ${plural(cut.count, "was", "were")} not shown.`,
     );
   const back: Back | undefined = f.urn ? { urn: f.urn } : undefined;
   return promo(c, "What your last FactLot lookup left out", [
-    `Your last lookup with your free key returned the current roll year. ${parts.join(" ")}`.trim(),
-    `Those come with ${PLANS.pro.name} (${priceText(PLANS.pro)}, renews monthly until cancelled) or ${PLANS.team.name}. What each plan includes: ${c.site}/pricing/`,
+    sentences.join(" "),
+    `The rest comes with ${PLANS.pro.name} (${priceText(PLANS.pro)}, renews monthly until cancelled) or ${PLANS.team.name}. What each plan includes: ${c.site}/pricing/`,
     back
       ? `Start ${PLANS.pro.name} and come back to this parcel afterwards: ${checkoutLink(c.site, "pro", back)}`
       : `Start ${PLANS.pro.name}: ${checkoutLink(c.site, "pro")}`,
@@ -307,9 +322,9 @@ const toolList = (tools: string[]) =>
 export function freeWeekMessage(c: PromoContext, u: UsageFacts): Built {
   return promo(
     c,
-    `Your first week with FactLot: ${n(u.lookups)} ${plural(u.lookups, "lookup", "lookups")}`,
+    `Your FactLot key so far: ${n(u.lookups)} ${plural(u.lookups, "lookup", "lookups")}`,
     [
-      `Since you created your free key it has made ${n(u.lookups)} registry ${plural(u.lookups, "lookup", "lookups")}${u.tools.length ? ` (${toolList(u.tools)})` : ""}.`,
+      `Your current free key has made ${n(u.lookups)} registry ${plural(u.lookups, "lookup", "lookups")}${u.tools.length ? ` (${toolList(u.tools)})` : ""}.`,
       `Earlier roll years and every parcel of an owner's portfolio come with ${PLANS.pro.name} (${priceText(PLANS.pro)}): ${checkoutLink(c.site, "pro")}`,
       "Or reply and tell us what you were trying to find; it decides what we load next.",
     ],
@@ -319,8 +334,8 @@ export function freeWeekMessage(c: PromoContext, u: UsageFacts): Built {
 /** B1: a paid plan with no lookup yet. */
 export function unusedPaidMessage(c: PromoContext, plan: Plan): Built {
   return promo(c, "Did connecting FactLot work?", [
-    `You bought ${plan.name} and FactLot has not recorded a lookup from it yet. That usually means the key has not reached your assistant.`,
-    `Setup steps for Claude, ChatGPT, Cursor, VS Code, Python and curl: ${c.api}/v1/onboarding?plan=${plan.id}`,
+    `You bought ${plan.name} and FactLot has not recorded a registry lookup from it yet. Calculators and other tools are not recorded, so this may just mean you have used those.`,
+    `If you meant to use registry lookups, the setup steps for Claude, ChatGPT, Cursor, VS Code, Python and curl are at ${c.api}/v1/onboarding?plan=${plan.id}`,
     "Reply with the client you use and we will send the exact lines, or do it with you on a call.",
   ]);
 }
@@ -331,9 +346,43 @@ export function paidWeekMessage(
   plan: Plan,
   u: UsageFacts,
 ): Built {
-  return promo(c, `Your first week on ${plan.name}`, [
-    `Since you subscribed, your plan has made ${n(u.lookups)} registry ${plural(u.lookups, "lookup", "lookups")}${u.tools.length ? ` (${toolList(u.tools)})` : ""}. The plan includes ${n(plan.registryLookupsPerMonth)} a month.`,
+  return promo(c, `Your ${plan.name} usage so far`, [
+    `Your plan has made ${n(u.lookups)} registry ${plural(u.lookups, "lookup", "lookups")}${u.tools.length ? ` (${toolList(u.tools)})` : ""}. The plan includes ${n(plan.registryLookupsPerMonth)} a month.`,
     "One request: what is the one thing you wanted FactLot to answer that it could not? One line is enough. Replies are read and set the build order.",
     `Billing, usage and cancelling: ${c.site}/account`,
   ]);
+}
+
+// --- Consent proof (the box on the page after checkout) ---------------------------------------------
+
+const CONSENT_PURPOSE = "factlot-lifecycle-consent";
+/** How long after the key was shown the page's consent form is accepted. */
+export const CONSENT_WINDOW_MS = 60 * 60 * 1000;
+
+/** The proof the success page puts in the form: an HMAC of (purpose | session id | issue time). */
+export async function consentProof(
+  secret: string,
+  sessionId: string,
+  issuedAt: number,
+): Promise<string> {
+  return hmacSha256Hex(secret, `${CONSENT_PURPOSE}|${sessionId}|${issuedAt}`);
+}
+
+/** Whether a proof is genuine for this session and was issued within CONSENT_WINDOW_MS of `now`. */
+export async function checkConsentProof(
+  secret: string,
+  sessionId: string,
+  issuedAt: unknown,
+  proof: unknown,
+  now: number,
+): Promise<boolean> {
+  const t = typeof issuedAt === "string" ? Number(issuedAt) : NaN;
+  if (!Number.isInteger(t) || typeof proof !== "string") return false;
+  if (t > now + 60_000 || now - t > CONSENT_WINDOW_MS) return false;
+  const expected = await consentProof(secret, sessionId, t);
+  if (expected.length !== proof.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++)
+    diff |= expected.charCodeAt(i) ^ proof.charCodeAt(i);
+  return diff === 0;
 }

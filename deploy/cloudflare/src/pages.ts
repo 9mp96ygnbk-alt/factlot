@@ -194,7 +194,7 @@ export interface OnboardingOptions {
   /** A link back to what the buyer was looking at before checkout. */
   back?: { href: string; label: string };
   /** Shows the optional-email box for this checkout session (lifecycle emails on, key shown now). */
-  consent?: { sessionId: string };
+  consent?: { sessionId: string; issuedAt: number; proof: string };
 }
 
 /**
@@ -268,7 +268,7 @@ ${facts}
 <ul class="plain"><li>${escapeHtml(LOOKUP_RULE)}</li><li>${escapeHtml(QUOTA_RULES.at_cap)}</li><li>Calculators, IDs, documents and rules tools never count.</li><li>${escapeHtml(REPORT_RULE)}</li></ul>
 <div class="buttons"><a class="button primary" href="${escapeHtml(site)}/account">Manage billing / cancel</a></div>
 <p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>${plan?.id === "team" ? " (priority support)" : ""}. What changed lately: <a href="${CHANGELOG_URL}">changelog</a>.</p>
-</section>${o.consent ? consentSection(o.consent.sessionId) : ""}`,
+</section>${o.consent ? consentSection(o.consent) : ""}`,
     {
       status: o.status,
       site,
@@ -280,9 +280,13 @@ ${facts}
 }
 
 /** The unticked box after checkout; it posts the checkout session so the choice is tied to the purchase. */
-function consentSection(sessionId: string): string {
+function consentSection(c: {
+  sessionId: string;
+  issuedAt: number;
+  proof: string;
+}): string {
   return `<section class="step" aria-labelledby="h-optional"><h2 id="h-optional">Optional emails</h2>
-<form method="post" action="/account/lifecycle"><input type="hidden" name="session_id" value="${escapeHtml(sessionId)}">
+<form method="post" action="/account/lifecycle"><input type="hidden" name="session_id" value="${escapeHtml(c.sessionId)}"><input type="hidden" name="t" value="${c.issuedAt}"><input type="hidden" name="proof" value="${escapeHtml(c.proof)}">
 <p><label><input type="checkbox" name="lifecycle_emails" value="1"> ${escapeHtml(paidConsentText())}</label></p>
 <p class="small">${escapeHtml(CONSENT_FOOTNOTE)}</p>
 <div class="buttons"><button type="submit" class="button">Save my choice</button></div></form></section>`;
@@ -459,8 +463,9 @@ export function accountFormPage(
   message?: string,
   recovery: RecoveryState = "no-email",
   freeKeyOn = false,
-  lifecycleOn = false,
+  extra: { lifecycle?: boolean } = {},
 ): Response {
+  const lifecycleOn = extra.lifecycle === true;
   return page(
     "Your FactLot account",
     `<h1>Your account</h1>

@@ -14,15 +14,26 @@
  *
  * KV (the KEYS namespace):
  *   lc:<kind>:<h>    consent record, kind "free" or "paid", h the salted address hash that
- *                    freekey.ts uses: {to, consent_at, subject, key_hash or subscription, since,
- *                    sent}. It holds the address because mail cannot be sent without it, and only
- *                    for someone who ticked the box. Deleted by a stop, by deleting the free key,
- *                    and by the sweep when the key or plan is gone.
+ *                    freekey.ts uses: {to, consent_at, subject, key_hash or subscription, since}. It
+ *                    holds the address because mail cannot be sent without it, and only for someone
+ *                    who ticked the box. Deleted by a stop, by deleting the free key, and by the
+ *                    sweep when the key or plan is gone. It is never written back after a send (the
+ *                    sent markers live elsewhere), so a stop cannot be undone by a send in flight.
+ *   lcmark:<kind>:<h> which messages were sent (time) or failed ("failed:<time>"): ids and times
+ *                    only, no address. A failed message is marked so it stops being due.
  *   lcstop:<h>       suppression: the time of the stop and nothing else (the hash, no address). Kept
  *                    for good; deleting a key does not remove it, and a new key request or a new
  *                    consent cannot undo it.
- * Durable Object claims (strongly consistent): `lcsent:<h>:<id>` once per person per message and
- * `lccap:<h>:<day>` the day's one optional message.
+ *   lcsweep:cursor   where the next sweep batch starts.
+ * Durable Object claims (strongly consistent): `lcsent:<d>` once per person per message and
+ * `lccap:<d>` the day's one optional message, where d is a SHA-256 of the address hash with the
+ * message id or the day, so a claim never holds the address hash itself. Claims are kept 395 days
+ * (limiter.ts CLAIM_TTL_MS) and are not deleted by a stop or a key deletion.
+ *
+ * Secret rotation: every hash here (and every stop link already emailed) is keyed by
+ * RECOVERY_SIGNING_SECRET. Rotating it orphans the stop markers and the consent records and breaks
+ * the stop links in mail already sent, so a stopped address could be mailed again. Do not rotate
+ * it while this feature is on without first exporting and re-keying the stop markers.
  *
  * Triggers: A1 and A3 fire from the router (a free key's answer that left something out; its daily
  * lookups running out); A2, A4, B1 and B2 are time based and run from `lifecycleSweep`, which the
@@ -35,6 +46,7 @@ import { sendEmail } from "./email.ts";
 import {
   DUE_AFTER_DAYS,
   DUE_UNTIL_DAYS,
+  checkConsentProof,
   PROMO_DAILY_CAP,
   freeWeekMessage,
   lifecycleEnabled,
@@ -56,7 +68,7 @@ import {
   randomToken,
   type KeyRecord,
 } from "./keys.ts";
-import { page, messagePage } from "./pages.ts";
+import { escapeHtml, page, messagePage } from "./pages.ts";
 import { PLANS, isPlanId, type PlanId } from "./plans.ts";
 import { EMAIL_RE } from "./recovery.ts";
 import { hmacSha256Hex } from "./stripe.ts";
@@ -88,15 +100,45 @@ export interface LifecycleRecord {
   plan?: PlanId;
   /** ISO: when the key or the plan began. */
   since: string;
-  /** ISO time each message was sent. */
-  sent: Partial<Record<MessageId, string>>;
 }
+
+/** Sent messages: the time, or "failed:<time>" for one whose send failed. */
+export type Marks = Partial<Record<MessageId, string>>;
 
 const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const DAY_MS = 86_400_000;
 
 const recordKey = (kind: Kind, h: string) => `lc:${kind}:${h}`;
 const stopKey = (h: string) => `lcstop:${h}`;
+const markKey = (kind: Kind, h: string) => `lcmark:${kind}:${h}`;
+const CURSOR_KEY = "lcsweep:cursor";
+
+async function readMarks(env: Env, kind: Kind, h: string): Promise<Marks> {
+  const raw = await env.KEYS.get(markKey(kind, h));
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Marks;
+  } catch {
+    return {};
+  }
+}
+
+async function writeMark(
+  env: Env,
+  kind: Kind,
+  h: string,
+  id: MessageId,
+  value: string,
+): Promise<void> {
+  const marks = await readMarks(env, kind, h);
+  marks[id] = value;
+  await env.KEYS.put(markKey(kind, h), JSON.stringify(marks));
+}
+
+/** A claim name that does not contain the address hash itself. */
+async function claimName(prefix: string, h: string, part: string) {
+  return `${prefix}:${(await hashKey(`${prefix}|${h}|${part}`)).slice(0, 32)}`;
+}
 
 async function readRecord(
   env: Env,
@@ -185,14 +227,17 @@ export async function stopEmails(
 ): Promise<{ already: boolean }> {
   const already = await isSuppressed(env, h);
   if (!already) await env.KEYS.put(stopKey(h), new Date(now).toISOString());
-  await env.KEYS.delete(recordKey("free", h));
-  await env.KEYS.delete(recordKey("paid", h));
+  for (const kind of ["free", "paid"] as const) {
+    await env.KEYS.delete(recordKey(kind, h));
+    await env.KEYS.delete(markKey(kind, h));
+  }
   return { already };
 }
 
 /** Free key deletion removes the consent record; the suppression marker stays. */
 export async function forgetFreeConsent(env: Env, h: string): Promise<void> {
   await env.KEYS.delete(recordKey("free", h));
+  await env.KEYS.delete(markKey("free", h));
 }
 
 // --- Consent ------------------------------------------------------------------------------------
@@ -241,9 +286,13 @@ export async function recordConsent(
         ...(c.subscription ? { subscription: c.subscription } : {}),
         ...(c.plan ? { plan: c.plan } : {}),
         since: iso,
-        sent: {},
       };
   await env.KEYS.put(recordKey(c.kind, c.h), JSON.stringify(rec));
+  // A stop that landed while this ran must win: look again and take the record back out.
+  if (await isSuppressed(env, c.h)) {
+    await env.KEYS.delete(recordKey(c.kind, c.h));
+    return "suppressed";
+  }
   return existing ? "refreshed" : "recorded";
 }
 
@@ -274,41 +323,65 @@ export async function deliverPromo(
   build: (rec: LifecycleRecord, ctx: PromoContext) => Built | undefined,
 ): Promise<SendResult> {
   if (!lifecycleEnabled(env)) return "off";
-  const ctx = await promoContext(env, h, kind);
-  if (!ctx) return "not-ready";
+  // The cheap checks first: no stop marker, a consent record, not sent (or failed) before.
   if (await isSuppressed(env, h)) return "suppressed";
   const rec = await readRecord(env, kind, h);
   if (!rec) return "no-consent";
-  if (rec.sent[id]) return "already";
+  const ctx = await promoContext(env, h, kind);
+  if (!ctx) return "not-ready";
+  if ((await readMarks(env, kind, h))[id]) return "already";
   const built = build(rec, ctx);
   if (!built) return "no-consent";
   // The day's cap: the first optional message of the day takes it; the same message may retry.
   const day = dayOf(now);
-  const cap = await env.METER.claim(`lccap:${h}:${day}`, id);
+  const cap = await env.METER.claim(await claimName("lccap", h, day), id);
   if (PROMO_DAILY_CAP === 1 && cap !== id) return "cap";
   const mine = randomToken();
-  if ((await env.METER.claim(`lcsent:${h}:${id}`, mine)) !== mine)
+  if (
+    (await env.METER.claim(await claimName("lcsent", h, id), mine)) !== mine
+  ) {
+    // Sent (or tried) before, by another run: stop it being due.
+    await writeMark(env, kind, h, id, `claimed:${new Date(now).toISOString()}`);
     return "already";
-  const ok = await sendEmail(env, "lifecycle", {
-    to: rec.to,
-    ...built,
-    headers: {
-      "List-Unsubscribe": `<${ctx.stopUrl}>`,
-      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-    },
-  });
-  if (!ok) return "failed";
-  rec.sent[id] = new Date(now).toISOString();
-  await env.KEYS.put(recordKey(kind, h), JSON.stringify(rec));
-  return "sent";
+  }
+  // A stop during the claims above wins.
+  if (await isSuppressed(env, h)) return "suppressed";
+  let ok: boolean;
+  try {
+    ok = await sendEmail(env, "lifecycle", {
+      to: rec.to,
+      ...built,
+      headers: {
+        "List-Unsubscribe": `<${ctx.stopUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    });
+  } catch {
+    ok = false;
+  }
+  // Mark it either way, so a failed message stops being due and cannot keep taking the day's slot.
+  // The consent record is not touched: a stop in flight stays stopped.
+  const stamp = new Date(now).toISOString();
+  await writeMark(env, kind, h, id, ok ? stamp : `failed:${stamp}`).catch(
+    () => undefined,
+  );
+  return ok ? "sent" : "failed";
 }
 
 // --- Event triggers (router hooks) ---------------------------------------------------------------
 
 type Json = Record<string, unknown>;
 
-/** The parcel URN a registry request named, from a REST body or an MCP tools/call message. */
-export function urnOfRequest(body: unknown): string | undefined {
+/** The parcel URN a registry request named, from a REST body (text) or an MCP tools/call message. */
+export function urnOfRequest(raw: unknown): string | undefined {
+  let body = raw;
+  if (typeof raw === "string") {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
   const item = Array.isArray(body) ? body[0] : body;
   if (typeof item !== "object" || item === null) return undefined;
   const m = item as Json;
@@ -383,7 +456,7 @@ export async function onFreeKeyAnswer(
   );
 }
 
-/** A3: a free key's daily lookups ran out. */
+/** A3: a free key's daily lookups ran out. Nothing but a consent check runs for a key without one. */
 export function onFreeKeyLimit(
   env: Env,
   freeKey: { email_hash: string },
@@ -393,12 +466,21 @@ export function onFreeKeyLimit(
 ): void {
   if (!lifecycleEnabled(env)) return;
   defer(
-    deliverPromo(env, "free", freeKey.email_hash, "A3", now, (_r, ctx) =>
-      limitReachedMessage(ctx, {
-        limit: quota.limit,
-        resetsAt: quota.resets_at,
-      }),
-    ).catch(() => "failed"),
+    (async () => {
+      if (!(await env.KEYS.get(recordKey("free", freeKey.email_hash)))) return;
+      await deliverPromo(
+        env,
+        "free",
+        freeKey.email_hash,
+        "A3",
+        now,
+        (_r, ctx) =>
+          limitReachedMessage(ctx, {
+            limit: quota.limit,
+            resetsAt: quota.resets_at,
+          }),
+      );
+    })().catch(() => undefined),
   );
 }
 
@@ -414,22 +496,24 @@ function usageFacts(u: UsageSummary): UsageFacts {
 }
 
 /**
- * The message a record is due for, given its age and whether its meter shows any lookup since the
- * key or plan began (undefined: none due).
+ * The message a record is due for, given its age, what was sent, and whether its meter shows any
+ * lookup since the key or plan began (undefined: none due). A message already sent or failed is
+ * never due again.
  */
 export function dueMessage(
-  rec: LifecycleRecord,
+  kind: Kind,
+  marks: Marks,
   ageDays: number,
   used: boolean,
 ): MessageId | undefined {
   if (ageDays > DUE_UNTIL_DAYS) return undefined;
-  const free = rec.kind === "free";
+  const free = kind === "free";
   const firstId: MessageId = free ? "A2" : "B1";
   const weekId: MessageId = free ? "A4" : "B2";
   const firstDays = free ? DUE_AFTER_DAYS.A2 : DUE_AFTER_DAYS.B1;
   const weekDays = free ? DUE_AFTER_DAYS.A4 : DUE_AFTER_DAYS.B2;
-  if (!rec.sent[weekId] && ageDays >= weekDays && used) return weekId;
-  if (!rec.sent[firstId] && ageDays >= firstDays && !used) return firstId;
+  if (!marks[weekId] && ageDays >= weekDays && used) return weekId;
+  if (!marks[firstId] && ageDays >= firstDays && !used) return firstId;
   return undefined;
 }
 
@@ -437,56 +521,97 @@ export interface SweepResult {
   checked: number;
   sent: Partial<Record<MessageId, number>>;
   removed: number;
+  errors: number;
+  /** The batch reached the end of the list: the next run starts again from the first record. */
+  complete: boolean;
 }
 
 /**
- * Run the time-based messages: for each consent record, find the message it is due for and send it
- * through the same gate as every optional message. Records whose key or plan is gone are removed.
- * Reads at most `max` records per run.
+ * Records one sweep invocation reads. Cloudflare's limits page gives a Worker 10,000 subrequests
+ * per invocation on the paid plan, and the Workers KV limits page gives 1,000 operations to
+ * external services per invocation; the smaller number is the one to stay under. Worst case for
+ * one paid record: stop marker 1, record 1, liveness 1 (the subscription's key list) + up to 5
+ * (its keys), marks 1, meter 1, then the send gate (stop 1, record 1, marks 1, two claims 2, mark
+ * read and write 2) = 18 operations; plus 3 for the list and the cursor. 50 x 18 + 3 = 903, under
+ * 1,000. A free record costs fewer. With a cron every hour that reaches 1,200 records a day; the
+ * cursor in KV carries the next run on from where this one stopped, so every record is reached.
+ */
+export const SWEEP_BATCH = 50;
+
+/**
+ * Run the time-based messages over one batch of consent records, starting at the saved cursor:
+ * for each, remove it if the address was stopped or the key or plan has ended, skip it once it is
+ * older than DUE_UNTIL_DAYS, else find the message it is due for and send it through the same gate
+ * as every optional message. One bad record cannot stop the run.
  */
 export async function lifecycleSweep(
   env: Env,
   now: number = Date.now(),
-  max = 2000,
+  batchSize = SWEEP_BATCH,
 ): Promise<SweepResult> {
-  const result: SweepResult = { checked: 0, sent: {}, removed: 0 };
+  const result: SweepResult = {
+    checked: 0,
+    sent: {},
+    removed: 0,
+    errors: 0,
+    complete: true,
+  };
   if (!lifecycleEnabled(env) || !env.KEYS.list) return result;
-  let cursor: string | undefined;
-  do {
-    const batch = await env.KEYS.list({ prefix: "lc:", cursor, limit: 500 });
-    for (const { name } of batch.keys) {
-      if (result.checked >= max) return result;
-      const m = /^lc:(free|paid):([0-9a-f]{64})$/.exec(name);
-      if (!m) continue;
-      result.checked++;
-      const kind = m[1] as Kind;
-      const h = m[2]!;
-      const rec = await readRecord(env, kind, h);
-      if (!rec) continue;
-      if (!(await recordIsLive(env, rec))) {
-        await env.KEYS.delete(name);
-        result.removed++;
-        continue;
-      }
-      const ageDays = (now - Date.parse(rec.since)) / DAY_MS;
-      if (!(ageDays >= 1)) continue;
-      // The meter's window runs back from today: far enough to cover everything since the start.
-      const window = Math.min(DUE_UNTIL_DAYS, Math.ceil(ageDays) + 1);
-      const usage = await env.METER.usage(rec.subject, window);
-      const id = dueMessage(rec, ageDays, usage.total > 0);
-      if (!id) continue;
-      const plan = rec.plan && isPlanId(rec.plan) ? PLANS[rec.plan] : PLANS.pro;
-      const r = await deliverPromo(env, kind, h, id, now, (_rec, ctx) => {
-        if (id === "A2") return unusedFreeMessage(ctx);
-        if (id === "A4") return freeWeekMessage(ctx, usageFacts(usage));
-        if (id === "B1") return unusedPaidMessage(ctx, plan);
-        return paidWeekMessage(ctx, plan, usageFacts(usage));
-      }).catch(() => "failed" as const);
-      if (r === "sent") result.sent[id] = (result.sent[id] ?? 0) + 1;
+  const cursor = (await env.KEYS.get(CURSOR_KEY)) ?? undefined;
+  const batch = await env.KEYS.list({
+    prefix: "lc:",
+    cursor,
+    limit: batchSize,
+  });
+  for (const { name } of batch.keys) {
+    result.checked++;
+    try {
+      await sweepOne(env, name, now, result);
+    } catch {
+      result.errors++;
     }
-    cursor = batch.list_complete ? undefined : batch.cursor;
-  } while (cursor);
+  }
+  result.complete = batch.list_complete;
+  if (batch.list_complete) await env.KEYS.delete(CURSOR_KEY);
+  else if (batch.cursor) await env.KEYS.put(CURSOR_KEY, batch.cursor);
   return result;
+}
+
+async function sweepOne(
+  env: Env,
+  name: string,
+  now: number,
+  result: SweepResult,
+): Promise<void> {
+  const m = /^lc:(free|paid):([0-9a-f]{64})$/.exec(name);
+  if (!m) return;
+  const kind = m[1] as Kind;
+  const h = m[2]!;
+  const drop = async () => {
+    await env.KEYS.delete(name);
+    await env.KEYS.delete(markKey(kind, h));
+    result.removed++;
+  };
+  if (await isSuppressed(env, h)) return drop();
+  const rec = await readRecord(env, kind, h);
+  if (!rec || !(await recordIsLive(env, rec))) return drop();
+  const ageDays = (now - Date.parse(rec.since)) / DAY_MS;
+  // Past DUE_UNTIL_DAYS nothing time-based is sent again; the record is not looked at further.
+  if (!(ageDays >= 1) || ageDays > DUE_UNTIL_DAYS) return;
+  const marks = await readMarks(env, kind, h);
+  // The meter's window runs back from today: far enough to cover everything since the start.
+  const window = Math.min(DUE_UNTIL_DAYS, Math.ceil(ageDays) + 1);
+  const usage = await env.METER.usage(rec.subject, window);
+  const id = dueMessage(kind, marks, ageDays, usage.total > 0);
+  if (!id) return;
+  const plan = rec.plan && isPlanId(rec.plan) ? PLANS[rec.plan] : PLANS.pro;
+  const r = await deliverPromo(env, kind, h, id, now, (_rec, ctx) => {
+    if (id === "A2") return unusedFreeMessage(ctx);
+    if (id === "A4") return freeWeekMessage(ctx, usageFacts(usage));
+    if (id === "B1") return unusedPaidMessage(ctx, plan);
+    return paidWeekMessage(ctx, plan, usageFacts(usage));
+  });
+  if (r === "sent") result.sent[id] = (result.sent[id] ?? 0) + 1;
 }
 
 /** Whether the key or plan a record is about still exists and works. */
@@ -496,7 +621,11 @@ async function recordIsLive(env: Env, rec: LifecycleRecord): Promise<boolean> {
       ? await env.KEYS.get(`freekey:${rec.key_hash}`)
       : null;
     if (!raw) return false;
-    return !(JSON.parse(raw) as { revoked_at?: string }).revoked_at;
+    try {
+      return !(JSON.parse(raw) as { revoked_at?: string }).revoked_at;
+    } catch {
+      return false;
+    }
   }
   if (!rec.subscription) return false;
   const keys = await liveKeys(env.KEYS, rec.subscription);
@@ -509,6 +638,8 @@ async function recordIsLive(env: Env, rec: LifecycleRecord): Promise<boolean> {
 
 export interface LifecycleRouteOptions {
   now: () => number;
+  /** The request body, already read with a size cap (POST /account/stop and /account/lifecycle). */
+  body?: string;
   fetchImpl?: typeof fetch;
   defer?: (work: Promise<unknown>) => void;
 }
@@ -558,9 +689,19 @@ export async function lifecycleRoute(
         "This stop link is not valid. Copy the whole link from the email, or stop them from the account page.",
         { next: { href: "/account/stop", label: "Stop them by address" } },
       );
-    // A HEAD (a mail scanner checking the link) changes nothing; GET and POST stop, which is the
-    // safe direction to get wrong. The link works without signing in and as often as it is used.
-    if (request.method !== "HEAD") await stopEmails(env, h, now);
+    // HEAD changes nothing. A GET only shows a button: mail gateways fetch links before the
+    // reader sees them, and must not unsubscribe anyone. The button (a POST to this same URL) and
+    // the RFC 8058 one-click POST that List-Unsubscribe-Post promises both stop, and either can be
+    // repeated with the same result. No sign-in is needed.
+    if (request.method !== "POST")
+      return page(
+        "Stop optional emails",
+        `<h1>Stop optional emails</h1>
+<p class="lead">Press the button to stop the optional emails from FactLot to this address. They stop at once and for good.</p>
+<form method="post" action="${escapeHtml(path)}"><div class="buttons"><button type="submit" class="button primary">Stop optional emails</button></div></form>`,
+        { formAction: "'self'" },
+      );
+    await stopEmails(env, h, now);
     return messagePage(200, STOPPED_TITLE, STOPPED_TEXT);
   }
   if (path === "/account/stop") {
@@ -571,7 +712,7 @@ export async function lifecycleRoute(
         status: 405,
         headers: { allow: "GET, HEAD, POST" },
       });
-    const body = new URLSearchParams(await request.text());
+    const body = new URLSearchParams(opts.body ?? "");
     const email = (body.get("email") ?? "").trim();
     if (email.length > 254 || !EMAIL_RE.test(email))
       return stopFormPage(400, "Enter a valid email address.");
@@ -606,9 +747,9 @@ async function paidConsentRoute(
   url: URL,
   opts: LifecycleRouteOptions,
 ): Promise<Response> {
-  const form = new URLSearchParams(await request.text());
+  const form = new URLSearchParams(opts.body ?? "");
   const origin = request.headers.get("origin");
-  if (origin && origin !== "null" && origin !== url.origin)
+  if (origin && origin !== url.origin)
     return messagePage(
       403,
       "Optional emails",
@@ -630,6 +771,20 @@ async function paidConsentRoute(
   const fail = (text: string) => messagePage(400, "Optional emails", text);
   if (!d || !SESSION_RE.test(sessionId) || !env.RECOVERY_SIGNING_SECRET)
     return fail("We could not save that choice.");
+  // The form on the page after checkout carries a proof that this browser was shown it for this
+  // session within the last hour; a session id seen elsewhere cannot set anyone's choice.
+  if (
+    !(await checkConsentProof(
+      env.RECOVERY_SIGNING_SECRET,
+      sessionId,
+      form.get("t"),
+      form.get("proof"),
+      opts.now(),
+    ))
+  )
+    return fail(
+      "This choice can only be saved from the page shown right after you paid, and within an hour of it.",
+    );
   // Only a checkout whose key was shown (the success page) can carry the choice.
   if (!(await env.KEYS.get(`session:${sessionId}`)))
     return fail("We could not find that checkout.");

@@ -58,6 +58,7 @@ import { sendWelcomeEmail } from "./email.ts";
 import {
   backLink,
   backParams,
+  consentProof,
   lifecycleEnabled,
   readBack,
   type Back,
@@ -501,21 +502,21 @@ export async function redeemSession(
   const email = buyerEmail(session);
   if (email)
     d.defer(
-      sendWelcomeEmail(
-        d.env,
-        email,
-        PLANS[plan],
-        backLink(
-          siteUrl(d.env),
-          back,
-          propertyPath,
-          (d.env as { PROPERTY_PAGES_ENABLED?: string })
-            .PROPERTY_PAGES_ENABLED === "true",
-        ),
-      ),
+      sendWelcomeEmail(d.env, email, PLANS[plan], returnLink(d.env, back)),
     );
   countEvent(d.env, "checkout_complete", [plan, by]);
   return { ok: true, key, plan };
+}
+
+/** The link back to what the buyer was viewing before checkout (lifecycle emails, when on). */
+function returnLink(env: Env, back?: Back) {
+  return backLink(
+    siteUrl(env),
+    back,
+    propertyPath,
+    (env as { PROPERTY_PAGES_ENABLED?: string }).PROPERTY_PAGES_ENABLED ===
+      "true",
+  );
 }
 
 /** The address the buyer gave Stripe Checkout. */
@@ -1256,13 +1257,9 @@ export async function successRoute(
   }
   const site = siteUrl(env);
   const api = env.API_URL ?? "https://api.factlot.com";
-  const link = backLink(
-    site,
-    back,
-    propertyPath,
-    (env as { PROPERTY_PAGES_ENABLED?: string }).PROPERTY_PAGES_ENABLED ===
-      "true",
-  );
+  const link = returnLink(env, back);
+  const issuedAt = Date.now();
+  const sessionId = url.searchParams.get("session_id") ?? "";
   if (result.ok)
     return onboardingPage({
       key: result.key,
@@ -1274,7 +1271,15 @@ export async function successRoute(
       // The optional-email box, only where such notes can be sent.
       consent:
         lifecycle && env.EMAIL && env.RECOVERY_SIGNING_SECRET
-          ? { sessionId: url.searchParams.get("session_id") ?? "" }
+          ? {
+              sessionId,
+              issuedAt,
+              proof: await consentProof(
+                env.RECOVERY_SIGNING_SECRET,
+                sessionId,
+                issuedAt,
+              ),
+            }
           : undefined,
     });
   // A revisit after the key was shown (here or to the buyer's agent): the guide, without the key.

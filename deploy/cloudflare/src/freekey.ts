@@ -38,6 +38,7 @@ import { json, siteUrl } from "./billing.ts";
 import {
   addressHash,
   forgetFreeConsent,
+  isSuppressed,
   lifecycleEnabled,
   recordConsent,
 } from "./lifecycle.ts";
@@ -202,12 +203,14 @@ async function sendLink(
   env: Env,
   email: string,
   now: () => number,
-  optionalEmails = false,
+  requested = false,
 ): Promise<void> {
   const kv: KV = env.KEYS;
   try {
     const eh = await emailHash(env, email);
     if (await kv.get(`freewait:${eh}`)) return;
+    // A stopped address is never signed up again, so the email does not promise notes.
+    const optionalEmails = requested && !(await isSuppressed(env, eh));
     await kv.put(`freewait:${eh}`, "1", {
       expirationTtl: FREE_KEY_RESEND_SECONDS,
     });
@@ -454,7 +457,7 @@ async function deleteAddress(
   await env.METER.forget(`freemail:${eh.slice(0, 32)}`);
   await env.KEYS.delete(`freeemail:${eh}`);
   // The consent record (and the address in it) goes with the key; the stop marker stays.
-  await forgetFreeConsent(env, eh);
+  if (lifecycleEnabled(env)) await forgetFreeConsent(env, eh);
 }
 
 /** The deletion email, run after the answer is sent; only for an address that has a key. */
