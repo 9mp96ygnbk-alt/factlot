@@ -23,7 +23,9 @@
 import {
   MAX_REPORT_BYTES,
   ReportInputError,
+  attachRegistry,
   prepareReport,
+  registryUrn,
   renderReport,
   reportRequestJsonSchema,
   type PreparedReport,
@@ -39,6 +41,7 @@ import {
   REPORT_DOWNLOAD_HOURS,
   type Tier,
 } from "./plans.ts";
+import type { SheetLookupOutcome } from "./property-sheet.ts";
 import type { Env, QuotaSpec, QuotaState } from "./types.ts";
 import { countEvent } from "./usage.ts";
 
@@ -67,7 +70,7 @@ export const REPORT_TOOL = {
   name: REPORT_TOOL_NAME,
   title: "Create a client-ready report (XLSX, PDF, ICS)",
   description:
-    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas; send registry_tx_equity_candidates' sources as context.sources to print each cited source's as-of date, URL and rights), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline dated on its contractual day and a reminder 30 days before; dates before today are left out unless include_past is true), tx_protest_deadline (rules_tx_property_tax_protest_deadline on tax_year, notice_delivered_date?, as_of?, or the _batch rule when arguments has items: ics, one calendar with each notice's statutory filing deadline and conservative file-by date as all-day events, reminders 30 and 7 days before the file-by date, the rule's basis, status, warnings and notes in each description, and the rule's next_season dates when the requested year has passed; or pdf, a deadline sheet). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons, tx_protest_deadline item ids) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256, filename and billed (true when this request counted against the month; every refusal has billed: false); inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
+    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas; send registry_tx_equity_candidates' sources as context.sources to print each cited source's as-of date, URL and rights), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline dated on its contractual day and a reminder 30 days before; dates before today are left out unless include_past is true), tx_protest_deadline (rules_tx_property_tax_protest_deadline on tax_year, notice_delivered_date?, as_of?, or the _batch rule when arguments has items: ics, one calendar with each notice's statutory filing deadline and conservative file-by date as all-day events, reminders 30 and 7 days before the file-by date, the rule's basis, status, warnings and notes in each description, and the rule's next_season dates when the requested year has passed; or pdf, a deadline sheet), property_sheet (pdf or xlsx: one page for one parcel, arguments { urn } only, the parcel's FactLot ID from registry_search_address: FactLot runs registry_get on it as your own call, so it costs one lookup and is gated like any registry_get of yours (free: the current roll year only, with a line naming the earlier years a Pro or Team key adds), then lays out the address, IDs, owner of record when the registry holds an organisation (or why there is none), the linked registered entity as the registry's match with its confidence, values by roll year with each file's as-of date, building and land facts, for a Texas parcel the next general protest deadline under Tex. Tax Code §41.44(a)(1) labelled as the general rule, and every source with its licence or attribution; no context is accepted). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons, tx_protest_deadline item ids) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256, filename and billed (true when this request counted against the month; every refusal has billed: false); inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
   inputSchema: (() => {
     const s = reportRequestJsonSchema() as {
       properties: Record<string, unknown>;
@@ -122,6 +125,11 @@ export interface ReportCaller {
    * report needs room in both; a refusal or a failed build gives both back.
    */
   also?: { subject: () => Promise<string>; per: string };
+  /**
+   * property_sheet: registry_get on the parcel as this caller (property-sheet.ts), gated and
+   * metered like any of their registry calls. Without it a property_sheet is not offered.
+   */
+  sheet?: (urn: string) => Promise<SheetLookupOutcome>;
 }
 
 export interface ReportOptions {
@@ -380,6 +388,23 @@ async function buildAndStore(
     if (err instanceof ReportInputError)
       return { ...inputError(err), quota: before } as ReportOutcome;
     throw err;
+  }
+  // property_sheet: the caller's own registry_get of the parcel (one lookup, gated for their
+  // plan), after the month's room is known and before the report is charged. A lookup that
+  // fails is passed on as it is and charges no report.
+  const urn = registryUrn(prepared);
+  if (urn !== undefined) {
+    if (!caller.sheet) return { ...FAILED, quota: before };
+    const got = await caller.sheet(urn);
+    if (!got.ok)
+      return {
+        ok: false,
+        status: got.status,
+        body: got.body,
+        quota: before,
+      };
+    // An answer that is not this parcel is a fault on FactLot's side (500, nothing charged).
+    prepared = attachRegistry(prepared, got.lookup);
   }
   // Charge before building: a build the runtime kills is not free.
   let charged = await infra(env.METER.consume(subject, spec));

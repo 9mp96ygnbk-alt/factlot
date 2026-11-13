@@ -155,6 +155,7 @@ import {
   type ReportCaller,
   reportsEnabled,
 } from "./reports.ts";
+import { asCaller, lookupForSheet } from "./property-sheet.ts";
 import type {
   Env,
   Fetcher,
@@ -1431,6 +1432,13 @@ async function route(
             ? `freemail:${freeKey.email_hash.slice(0, 32)}`
             : undefined) ??
           reportAddressSubject()),
+    // property_sheet: registry_get as this caller's own call (property-sheet.ts).
+    sheet: (urn) =>
+      lookupForSheet(urn, {
+        plan: paid ? paid.record.plan : "free",
+        registry: env.REGISTRY,
+        callMcp: (body) => route(asCaller(request, url, body), env, api, opts),
+      }),
     // A free key's reports also count against its address's month, the meter keyless reports use.
     ...(freeKey && !paid && !oauth
       ? {
