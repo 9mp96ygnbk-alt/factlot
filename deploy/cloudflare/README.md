@@ -16,6 +16,27 @@ of an entry module that is not a handler, or a binding whose shape differs from 
 decide what a binding is by probing its properties (`"x" in env.BINDING`, `typeof
 env.BINDING.method`); choose explicitly.
 
+## Lookup pages
+
+`GET /lookup/?q=<address>` (optional `state`, `city`, `zip`, `county`) and
+`GET /lookup/<county>/<parcel id>` on the site host answer a search or a record as a page, or as
+the API's JSON with `?format=json` or `Accept: application/json`. Code: `src/lookup-pages.ts`.
+
+- Counting. A page is answered by this Worker's own API call, sent back through the router as the
+  caller (their address and `Authorization` header): `registry_search_address` for a search,
+  `registry_get` for a record. It is counted, given back, limited per minute and cut to the free
+  view exactly as that call is, on the same meters, and the module has no meter of its own. A
+  search that finds one parcel under the batch lookup's rule redirects to its record; a record
+  that has a public property page redirects to that page before anything is counted (the property
+  pages' own route is asked, with its own per-address limit and cache). A HEAD looks nothing up.
+- Never published. Every answer carries `Cache-Control: no-store`, `X-Robots-Tag: noindex` and
+  `Referrer-Policy: no-referrer`; the pages are in no sitemap; `robots.txt` lets them be fetched.
+- The address searched is in the query string, which `redact_query_string` keeps out of Workers
+  Logs; a record's path holds the county and the parcel id. The usage counters see `/lookup` and
+  `/lookup/*` only. A query parameter named like a credential (`key`, `token`, ...) is refused
+  before anything is looked up, and its value is not written into the answer.
+- On the API host the same paths redirect to the site host.
+
 ## Usage counters
 
 How the hosted service is used, without recording who used it. Off unless the variable

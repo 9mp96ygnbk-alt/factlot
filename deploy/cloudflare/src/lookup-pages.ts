@@ -46,6 +46,7 @@ import {
 import {
   TRANSFER_PREDICATES,
   factRefs,
+  headingAddress,
   renderPropertyPage,
 } from "./property-pages.ts";
 import { withheldCounty } from "./property-sheet.ts";
@@ -268,7 +269,9 @@ function quotaLine(headers: Record<string, string>): string {
   const reset = headers["x-factlot-registry-quota-reset"];
   if (!Number.isFinite(left) || !Number.isFinite(limit)) return "";
   const paid = (headers["x-factlot-tier"] ?? "anonymous") !== "anonymous";
-  return `${e(int.format(left))} of ${e(int.format(limit))} ${paid ? "registry lookups left this month for this key" : "free registry lookups left today for your IP address"}${reset ? ` (they reset at ${e(reset)})` : ""}.`;
+  const at = /^(\d{4}-\d\d-\d\d)T(\d\d:\d\d)/.exec(reset ?? "");
+  const when = at ? `${at[2]} UTC on ${at[1]}` : reset;
+  return `${e(int.format(left))} of ${e(int.format(limit))} ${paid ? "registry lookups left this month for this key" : "free registry lookups left today for your IP address"}${when ? ` (they reset at ${e(when)})` : ""}.`;
 }
 
 /** Whether an answer that found nothing was counted, as the API marked it. */
@@ -431,7 +434,12 @@ function matchCard(
     ? [place.name, place.state].filter(Boolean).join(", ")
     : region;
   const path = lookupPath(String(r.urn));
-  const label = e(r.label ?? r.urn);
+  // The label as a property page heads it (a nine-digit ZIP after the county's own state as ZIP+4).
+  const label = e(
+    typeof r.label === "string"
+      ? (headingAddress(r.label, place?.state ?? "") ?? r.label)
+      : r.urn,
+  );
   const rows: [string, string][] = [["County", e(where)]];
   if (typeof r.account === "string" && r.account !== "")
     rows.push(["Account", `<code>${e(r.account)}</code>`]);
@@ -594,11 +602,11 @@ ${form(q, state)}
     `${crumbs("Matches")}
 <h1 id="page-title">${e(n)} ${results.length === 1 ? "parcel matches" : "parcels match"} “${e(q)}”</h1>
 <p class="lede">${e(why)}</p>
+${form(q, state)}
 <p class="small lookup-note">${["This search is one registry lookup; opening a record is another, unless the parcel has a public page.", quota, asJson].filter(Boolean).join(" ")}</p>
 <ol class="matches">
 ${results.map((r) => matchCard(r, places)).join("\n")}
 </ol>
-${form(q, state)}
 ${STANDING}`,
     headers,
   );

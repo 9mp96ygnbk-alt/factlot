@@ -3039,16 +3039,9 @@ h3 > .cite {
 }
 
 /* The same form on the home page and the lookup pages: the address, the state, the button. */
-.lookup-form .try-row {
-  flex-wrap: wrap;
-}
-
-.lookup-form .try-row input[name="q"] {
-  flex: 1 1 14rem;
-}
-
 .try-row .try-state {
-  flex: 0 1 5.5rem;
+  flex: 0 0 auto;
+  width: 5.5rem;
 }
 
 .hero-lookup {
@@ -3330,6 +3323,10 @@ h3 > .cite {
 @media (max-width: 30rem) {
   .try-row {
     flex-direction: column;
+  }
+
+  .try-row .try-state {
+    width: auto;
   }
 
   .try-ids {
