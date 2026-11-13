@@ -107,9 +107,16 @@ def key_versions(db: sqlite3.Connection) -> dict[str, str]:
     return {"name_key_version": v.get("name_key_version", "1"), "address_key_version": v.get("address_key_version", "1")}
 
 
-def tool_result(db: sqlite3.Connection, summary: dict[str, Any]) -> dict[str, Any]:
-    """The ``registry_coverage`` tool result: the summary, each county with its Census name."""
-    counties = [{**c, "name": county_name(c["state_fips"] + c["county_fips"])} for c in summary["counties"]]
+def tool_result(db: sqlite3.Connection, summary: dict[str, Any], fields: bool = False) -> dict[str, Any]:
+    """The ``registry_coverage`` tool result: the summary, each county with its Census name, and with ``fields`` its
+    field availability (``fields.compact_fields``; None for a county the computation does not list)."""
+    by_region = {}
+    if fields:
+        from .fields import compact_fields, field_availability
+
+        by_region = {c["region"]: compact_fields(c) for c in field_availability(db)}
+    counties = [{**c, "name": county_name(c["state_fips"] + c["county_fips"]),
+                 **({"fields": by_region.get(c["region"])} if fields else {})} for c in summary["counties"]]
     return {**summary, "counties": counties, **key_versions(db), "scope": SCOPE}
 
 

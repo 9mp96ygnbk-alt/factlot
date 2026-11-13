@@ -135,6 +135,7 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
         m.dbs[entry.k]!.dates,
         i.include_history === true,
         asOf,
+        m.value_files,
       );
     }
     case "registry_resolve_parcel": {
@@ -183,7 +184,9 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
       };
     }
     case "registry_coverage":
-      return m.coverage_result;
+      return i.fields === true && m.coverage_result_fields !== undefined
+        ? m.coverage_result_fields
+        : m.coverage_result;
     case "registry_tx_equity_candidates":
       return txEquity(pack, i);
     case "registry_tx_equity_candidates_batch":

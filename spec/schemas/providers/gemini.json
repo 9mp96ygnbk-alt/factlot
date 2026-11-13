@@ -5578,7 +5578,12 @@
           "description": "The counties (with parcel and building counts), entity registries, and crosswalk systems this FactLot Registry file holds, each with its sources and as-of dates. Call it before concluding that a parcel or entity does not exist: a miss outside these regions means not loaded, not absent. Requires a FactLot Registry (public-record facts about commercial property, each cited to the source file and record).",
           "parameters": {
             "type": "object",
-            "properties": {}
+            "properties": {
+              "fields": {
+                "description": "true: each county also carries fields, the share of its parcels with each fact group it holds and its roll years with their value types.",
+                "type": "boolean"
+              }
+            }
           }
         },
         {

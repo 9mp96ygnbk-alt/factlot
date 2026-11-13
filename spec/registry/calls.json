@@ -119,6 +119,12 @@
     "arguments": {}
   },
   {
+    "tool": "registry_coverage",
+    "arguments": {
+      "fields": true
+    }
+  },
+  {
     "tool": "registry_get",
     "arguments": {
       "urn": "fl:building:us-48999:77999:300-harbor-dr"

@@ -36,6 +36,7 @@ import {
   marketTitle,
   sourceNotices,
 } from "./market-pages.mjs";
+import { FIELDS_LEAD, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
 
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -613,6 +614,22 @@ ${rows
 // Figures come from site/_data/texas-counties.json and texas-examples.json, which
 // scripts/site/gen-texas-counties.ts and gen-texas-examples.ts write from a built registry file.
 
+// What each hosted county has and lacks (site/_data/fields.json, scripts/site/gen-fields.ts), for the Texas county
+// pages, the market pages and the coverage page.
+const fieldsRel = "site/_data/fields.json";
+const fieldsJson = readJson(fieldsRel);
+const fieldLabels = Object.fromEntries(
+  fieldsJson.groups.map((g) => [g.key, g.label]),
+);
+const fieldsOf = (fips) => {
+  const rows = fips.map((f) => fieldsJson.counties.find((c) => c.fips === f));
+  if (rows.some((r) => !r))
+    throw new Error(
+      `${fieldsRel} has no row for a hosted county of ${fips.join(", ")}: run scripts/site/gen-fields.ts`,
+    );
+  return rows;
+};
+
 {
   const countiesRel = "site/_data/texas-counties.json";
   const examplesRel = "site/_data/texas-examples.json";
@@ -634,9 +651,20 @@ ${rows
           ["/texas/", "Texas"],
           [`/texas/${c.slug}/`, `${c.name} County`],
         ],
-        body: countyBody(c, countyTpl, Boolean(e)),
+        body: countyBody(
+          c,
+          countyTpl,
+          Boolean(e),
+          placeFieldsText(
+            `${c.name} County`,
+            fieldsOf([`48${c.county_fips}`]),
+            fieldLabels,
+          ),
+        ),
       },
       [
+        fieldsRel,
+        "scripts/site/fields.mjs",
         "site/_content/texas-county.html",
         countiesRel,
         "scripts/site/texas-pages.mjs",
@@ -691,9 +719,21 @@ const hostedJson = readJson("site/_data/hosted.json");
           ["/coverage/", "Coverage"],
           [`/${m.slug}/`, m.title.split(": ")[0]],
         ],
-        body: marketBody(m, d, hostedJson, tpl),
+        body: marketBody(
+          m,
+          d,
+          hostedJson,
+          tpl,
+          placeFieldsText(
+            m.name[0].toUpperCase() + m.name.slice(1),
+            fieldsOf(hostedJson.places.find((p) => p.key === m.place).counties),
+            fieldLabels,
+          ),
+        ),
       },
       [
+        fieldsRel,
+        "scripts/site/fields.mjs",
         "site/_content/market.html",
         marketsRel,
         "site/_data/hosted.json",
@@ -714,8 +754,8 @@ let coverageJson;
   const CLASSES = ["hosted", "audited_load", "cited_load"];
   const LABEL = {
     hosted: "Hosted lookups",
-    audited_load: "Audited, not yet hosted",
-    cited_load: "Loaded, not yet audited",
+    audited_load: "Open-source pipeline only, audited",
+    cited_load: "Open-source pipeline only, not audited",
   };
   const fmtN = (n) => Number(n).toLocaleString("en-US");
   const entries = Object.entries(cov.counties);
@@ -759,7 +799,7 @@ let coverageJson;
   );
   const shapes = ordered
     .map(([fips, c]) => {
-      const t = `<title>${esc(c.name)}, ${esc(c.state)}: ${LABEL[c.class]}${c.withheld ? ` (${esc(c.withheld)})` : ""}. ${fmtN(c.commercial_parcels)} commercial parcels, data as of ${c.data_as_of}.</title>`;
+      const t = `<title>${esc(c.name)}, ${esc(c.state)}: ${LABEL[c.class]}${c.area ? ` for ${esc(c.area)} only` : ""}${c.withheld ? ` (${esc(c.withheld)})` : ""}. ${fmtN(c.commercial_parcels)} commercial parcels, data as of ${c.data_as_of}.</title>`;
       const b = box(geo.counties[fips].d);
       const dot =
         Math.max(b.x1 - b.x0, b.y1 - b.y0) < 6
@@ -771,21 +811,33 @@ let coverageJson;
   const n = Object.fromEntries(
     CLASSES.map((k) => [k, entries.filter(([, c]) => c.class === k).length]),
   );
+  // One hosted count: the map's hosted counties are the pack's (hosted.json, the source of registry_coverage).
+  const hostedFips = entries
+    .filter(([, c]) => c.class === "hosted")
+    .map(([f]) => f)
+    .sort();
+  const packFips = hostedJson.counties.map((c) => c.fips).sort();
+  if (JSON.stringify(hostedFips) !== JSON.stringify(packFips))
+    throw new Error(
+      `coverage: the map's hosted counties differ from site/_data/hosted.json; run scripts/registry/gen_coverage_map.py`,
+    );
   const total = 3142; // counties and county equivalents drawn on this map (50 states and DC)
   if (Object.keys(geo.counties).length !== total)
     throw new Error("coverage: geometry county count changed");
   const svg = `<svg class="covsvg" viewBox="${geo.viewBox}" role="img" aria-labelledby="covsvg-t covsvg-d" xmlns="http://www.w3.org/2000/svg">
 <title id="covsvg-t">FactLot commercial property data coverage by US county</title>
-<desc id="covsvg-d">${n.hosted} counties with hosted lookups, ${n.audited_load} audited, ${n.cited_load} loaded but not yet audited; the other ${total - entries.length} counties are grey. The full list is below the map.</desc>
+<desc id="covsvg-d">${n.hosted} counties with hosted lookups; ${n.audited_load + n.cited_load} counties built in the open-source pipeline only, not on the hosted API (${n.audited_load} audited, ${n.cited_load} not audited); the other ${total - entries.length} counties are grey. The lists are below the map.</desc>
 <path class="nation" d="${geo.nation}"/>
 ${shapes}
 <path class="cmesh" d="${geo.countyMesh}"/>
 <path class="smesh" d="${geo.stateMesh}"/>
 </svg>`;
+  // The hosted counties are the field table's rows; this list is the counties the hosted API does not serve.
   const byState = {};
-  for (const [fips, c] of entries) (byState[c.state] ??= []).push([fips, c]);
+  for (const [fips, c] of entries)
+    if (c.class !== "hosted") (byState[c.state] ??= []).push([fips, c]);
   const table = `<table class="covtable">
-<caption class="visually-hidden">Counties with FactLot data</caption>
+<caption class="visually-hidden">Counties built in the open-source pipeline, not on the hosted API</caption>
 <thead><tr><th scope="col">County</th><th scope="col">FIPS</th><th scope="col">Status</th><th scope="col">Commercial parcels</th><th scope="col">Data as of</th></tr></thead>
 <tbody>
 ${Object.keys(byState)
@@ -826,6 +878,7 @@ ${Object.keys(byState)
             source_id: c.source_id,
             owner_names: c.owner_names,
             hosted: c.hosted,
+            ...(c.area ? { area: c.area } : {}),
             ...(c.withheld ? { withheld: c.withheld } : {}),
           },
         ]),
@@ -839,7 +892,7 @@ ${Object.keys(byState)
     {
       urlPath: "/coverage/",
       title: "County coverage map: commercial property data | FactLot",
-      description: `Which US counties FactLot holds checked commercial property data for: ${n.hosted + n.audited_load + n.cited_load} counties with whole-county loads, as of ${long}. Everything else is grey.`,
+      description: `Which US counties FactLot serves on its hosted API (${n.hosted}) and which are built in its open-source pipeline only (${n.audited_load + n.cited_load}), as of ${long}, with the facts each hosted county holds. Everything else is grey.`,
       h1: "County coverage",
       crumbs: [["/coverage/", "County coverage"]],
       jsonld: [
@@ -877,6 +930,9 @@ ${Object.keys(byState)
         COV_ASOF: long,
         COV_MAX_AGE: String(cov.max_age_days),
         COV_TABLE: table,
+        COV_N_PIPELINE: String(n.audited_load + n.cited_load),
+        COV_FIELDS_LEAD: esc(FIELDS_LEAD),
+        COV_FIELDS_TABLE: hostedFieldsTable(fieldsJson),
         COV_REPO: REPO,
         COV_MARKETS: marketLinks(hostedJson),
         COV_NOTICES: sourceNotices(hostedJson),
@@ -886,6 +942,8 @@ ${Object.keys(byState)
       "site/_content/coverage.html",
       covRel,
       geoRel,
+      fieldsRel,
+      "scripts/site/fields.mjs",
       "site/_data/hosted.json",
       "scripts/site/market-pages.mjs",
     ],
@@ -1039,6 +1097,7 @@ fs.writeFileSync(
   `${JSON.stringify(
     buildCoverageCatalog({
       hosted: hostedJson,
+      fields: fieldsJson,
       configs: loadSourceConfigs(root),
       toolNames: tools.map((t) => t.name),
       version: VERSION,

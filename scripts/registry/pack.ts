@@ -66,7 +66,11 @@ import {
   TX_EQUITY_RANGE_SQL,
   TX_EQUITY_SOURCE_SQL,
   computeRegistryCoverage,
+  computeRegistryFields,
   configureRegistry,
+  mergeFieldLinks,
+  registryValueFiles,
+  unlabelValueHistory,
   coverageReport,
   equityCompanions,
   equityComparable,
@@ -81,7 +85,9 @@ import {
   mergeCoverage,
   runTool,
   situsZip5,
+  type CountyFields,
   type RegistryCoverage,
+  type ValueFile,
 } from "../../packages/tools/src/index.ts";
 import {
   EQUITY_BUCKET_BYTES,
@@ -210,6 +216,16 @@ class Writer {
   }
 }
 
+/**
+ * A record as the pack stores it: value-history entries without their labels, which the Worker puts back from the
+ * manifest's value_files at answer time (format.ts getResult).
+ */
+function stored(rec: Row): Row {
+  return Array.isArray(rec.value_history)
+    ? { ...rec, value_history: unlabelValueHistory(rec.value_history) }
+    : rec;
+}
+
 /** One subject's stored answers, made by runTool on the configured file and checked against them after decoding. */
 function subjectEntry(
   urn: string,
@@ -219,21 +235,22 @@ function subjectEntry(
   q?: EquitySubject,
 ): { entry: GetEntry; expect: [boolean, string | undefined, string][] } {
   const base = ok("registry_get", { urn, include_history: true });
-  const rec = withoutKeys(base, "history");
+  const full = withoutKeys(base, "history");
+  const rec = stored(full);
   const hist = base.history as unknown[];
   const entry: GetEntry = { k: dbIndex, r: rec, v: [] };
   if (q) entry.q = q;
   if (!same(hist, rec.facts)) entry.h = hist;
   const expect: [boolean, string | undefined, string][] = [
     [true, undefined, JSON.stringify(base)],
-    [false, undefined, JSON.stringify(rec)],
+    [false, undefined, JSON.stringify(full)],
   ];
   for (const at of [BEFORE, ...dates]) {
     const dated = ok("registry_get", { urn, include_history: true, as_of: at });
     expect.push([true, at, JSON.stringify(dated)]);
     expect.push([false, at, JSON.stringify(withoutKeys(dated, "history"))]);
     if (dated.as_of !== at) throw new Error(`${urn}: as_of not echoed`);
-    const vr = withoutKeys(dated, "history", "as_of");
+    const vr = stored(withoutKeys(dated, "history", "as_of"));
     const vh = dated.history as unknown[];
     const rv = same(vr, rec) ? 0 : vr;
     const hv = same(vh, hist) ? 0 : same(vh, vr.facts) ? 1 : vh;
@@ -255,9 +272,10 @@ function checkEntry(
   entry: GetEntry,
   dates: string[],
   expect: [boolean, string | undefined, string][],
+  files: Record<string, ValueFile>,
 ): void {
   for (const [history, asOf, want] of expect) {
-    const got = JSON.stringify(getResult(entry, dates, history, asOf));
+    const got = JSON.stringify(getResult(entry, dates, history, asOf, files));
     if (got !== want)
       throw new Error(
         `${urn}: the packed record differs from runTool (history ${history}, as_of ${asOf ?? "none"})`,
@@ -967,6 +985,12 @@ const newEquityState = (): EquityState => ({
 export interface RegionPart {
   db: PackDb;
   coverage: RegistryCoverage;
+  /** Field availability of the region's counties (packages/tools/src/fields.ts). */
+  fields: CountyFields[];
+  /** Owns links in this file to parcels of counties in other files (fields.ts RegistryFields). */
+  entity_links_elsewhere: Record<string, number>;
+  /** The file's snapshots as value-history labels use them, by document ID. */
+  value_files: Record<string, ValueFile>;
   name_key_version: string | null;
   address_key_version: string | null;
   /** Subject prefixes ("fl:parcel:us-24005"), in the order of the file's sorted subjects. */
@@ -1009,6 +1033,9 @@ function buildRegion(
       throw new Error(`${src.name}: a date before ${BEFORE}`);
     configureRegistry(src.path);
     const cov = computeRegistryCoverage();
+    const fa = computeRegistryFields();
+    const fields = fa.counties;
+    const valueFiles = registryValueFiles();
     let texas = 0;
     for (const c of cov.counties) if (c.state_fips === "48") texas += c.parcels;
     const texasRegions = cov.counties
@@ -1100,7 +1127,7 @@ function buildRegion(
         const back = decodeEntry(parsed, urn) as GetEntry;
         if (!same(back, entry))
           throw new Error(`${urn}: the shard does not decode to its entry`);
-        checkEntry(urn, back, dates, expect);
+        checkEntry(urn, back, dates, expect, valueFiles);
       }
       w.write(`g/${k}/${g}.json`, shard);
       if (g % 200 === 199)
@@ -1153,6 +1180,9 @@ function buildRegion(
         subjects: subjects.length,
       },
       coverage: cov,
+      fields,
+      entity_links_elsewhere: fa.entity_links_elsewhere,
+      value_files: valueFiles,
       name_key_version: nv,
       address_key_version: av,
       prefixes,
@@ -1173,6 +1203,9 @@ function buildRegion(
 class Combined {
   readonly dbs: PackDb[] = [];
   readonly covs: RegistryCoverage[] = [];
+  readonly fields: CountyFields[] = [];
+  readonly linksElsewhere: Record<string, number>[] = [];
+  readonly valueFiles: Record<string, ValueFile> = {};
   readonly prefixes: Record<string, number> = {};
   readonly counties: Record<string, number> = {};
   readonly crosswalk = new Map<string, string>();
@@ -1211,6 +1244,14 @@ class Combined {
     this.nameVersion = part.name_key_version;
     this.addressVersion = part.address_key_version;
     this.covs.push(part.coverage);
+    this.fields.push(...part.fields);
+    this.linksElsewhere.push(part.entity_links_elsewhere);
+    for (const [doc, f] of Object.entries(part.value_files)) {
+      const was = this.valueFiles[doc];
+      if (was && JSON.stringify(was) !== JSON.stringify(f))
+        throw new Error(`${name}: snapshot ${doc} differs from another file's`);
+      this.valueFiles[doc] = f;
+    }
     for (const c of part.coverage.counties) {
       if (Object.hasOwn(this.counties, c.region))
         throw new Error(`${name}: county ${c.region} is in two files`);
@@ -1345,6 +1386,17 @@ function finishPack(
     address_key_version: c.addressVersion ?? null,
   };
   const partial = partialCounties(coverage);
+  const fields = Object.fromEntries(
+    mergeFieldLinks(c.fields, c.linksElsewhere)
+      .sort((a, b) => sqliteCompare(a.region, b.region))
+      .map((f) => [f.region.slice(3), f]),
+  );
+  const scope = {
+    withheld,
+    entity_scope: c.entityScope,
+    partial_counties: partial,
+    fields,
+  };
   const manifest: Manifest = {
     format: PACK_FORMAT,
     built_at: new Date().toISOString(),
@@ -1354,13 +1406,15 @@ function finishPack(
     versions,
     coverage,
     coverage_result: hostedCoverageResult(
-      {
-        withheld,
-        entity_scope: c.entityScope,
-        partial_counties: partial,
-      },
+      scope,
       coverage,
       coverageReport(coverage, versions),
+    ),
+    // registry_coverage with fields: true.
+    coverage_result_fields: hostedCoverageResult(
+      scope,
+      coverage,
+      coverageReport(coverage, versions, fields),
     ),
     crosswalk_shards: xShards,
     address_shards: aShards,
@@ -1368,6 +1422,8 @@ function finishPack(
     withheld,
     entity_scope: c.entityScope,
     ...(Object.keys(partial).length ? { partial_counties: partial } : {}),
+    fields,
+    value_files: c.valueFiles,
     equity: c.equity.docs.length ? c.equity : null,
     counts: {
       parcels: coverage.totals.parcels,
@@ -1630,6 +1686,14 @@ function checkPart(
   };
   const part = r.part;
   if (part.db.name !== job.name) fail(`it is region ${part.db.name}`);
+  if (
+    !Array.isArray(part.fields) ||
+    !part.value_files ||
+    !part.entity_links_elsewhere
+  )
+    fail(
+      "it has no field availability or value files (built before the manifest carried them)",
+    );
   let bytes = 0;
   let largest = 0;
   const pools = new Set<string>();

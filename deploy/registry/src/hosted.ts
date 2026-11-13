@@ -5,6 +5,7 @@
  * registry trimmed they return the SDK's answer unchanged.
  */
 import { countyName } from "../../../packages/tools/src/county_names.ts";
+import type { CountyFields } from "../../../packages/tools/src/fields.ts";
 import {
   addressMiss,
   entitiesMiss,
@@ -37,6 +38,8 @@ export interface HostedScope {
   entity_scope?: Record<string, EntityScope>;
   /** 5-digit county FIPS → the part of the county its parcels cover, for a county loaded only in part. */
   partial_counties?: Record<string, PartialCounty>;
+  /** 5-digit county FIPS → which fact groups and roll years the county holds (fields.ts). */
+  fields?: Record<string, CountyFields>;
 }
 
 /**
@@ -229,7 +232,14 @@ export function hostedRecordMiss(
   return out;
 }
 
-/** registry_coverage for the hosted registry: the SDK's answer, with what it withholds or serves in part. */
+/** How to get each county's field availability: one sentence in every hosted registry_coverage answer of a pack that has it. */
+export const FIELDS_NOTE =
+  "Fields differ by county: with fields: true each county carries fields.shares (the share of its parcels with each fact group it holds; a group not listed is held for none) and fields.roll_years (the tax years held, with their value types, the newest file's as-of date and preliminary: true where the roll is preliminary); the same table is at https://factlot.com/coverage/#fields.";
+
+/**
+ * registry_coverage for the hosted registry: the SDK's answer (with or without `fields`), with what it withholds or
+ * serves in part, and FIELDS_NOTE when the pack holds field availability.
+ */
 export function hostedCoverageResult(
   scope: HostedScope,
   cov: RegistryCoverage,
@@ -238,7 +248,9 @@ export function hostedCoverageResult(
   const withheld = Object.keys(scope.withheld ?? {}).sort();
   const trimmed = Object.keys(scope.entity_scope ?? {}).sort();
   const partial = Object.keys(scope.partial_counties ?? {}).sort();
-  if (!withheld.length && !trimmed.length && !partial.length) return result;
+  const hasFields = Object.keys(scope.fields ?? {}).length > 0;
+  if (!withheld.length && !trimmed.length && !partial.length && !hasFields)
+    return result;
   const r = result as Row;
   return {
     ...r,
@@ -254,6 +266,7 @@ export function hostedCoverageResult(
           }),
         }
       : {}),
+    ...(hasFields ? { fields_note: FIELDS_NOTE } : {}),
     hosted: {
       ...(partial.length
         ? {

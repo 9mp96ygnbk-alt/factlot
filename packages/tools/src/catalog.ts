@@ -837,10 +837,18 @@ const registryTools: ToolSpec[] = [
     description:
       "The counties (with parcel and building counts), entity registries, and crosswalk systems this FactLot Registry file holds, each with its sources and as-of dates. Call it before concluding that a parcel or entity does not exist: a miss outside these regions means not loaded, not absent." +
       REGISTRY_NOTE,
-    input: z.object({}),
+    input: z.object({
+      fields: z
+        .boolean()
+        .optional()
+        .describe(
+          "true: each county also carries fields, the share of its parcels with each fact group it holds and its roll years with their value types.",
+        ),
+    }),
     path: "/v1/registry/coverage",
     requires: "registry",
-    run: () => registryCoverage(),
+    run: (i: never) =>
+      registryCoverage((i as { fields?: boolean }).fields === true),
   },
   {
     name: "registry_tx_equity_candidates",

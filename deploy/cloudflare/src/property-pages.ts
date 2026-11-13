@@ -753,10 +753,12 @@ export function renderPropertyPage(input: RenderInput): string {
       asOf = f.as_of;
       source = factCite(f);
     }
+    // The roll as the registry marks it (value_history's `roll`): "preliminary" where it says so.
+    const kind = vEntry?.roll === "preliminary" ? "preliminary " : "";
     const roll =
       typeof year === "number"
-        ? `the publisher's ${year} roll`
-        : "the publisher's roll";
+        ? `the publisher's ${year} ${kind}roll`
+        : `the publisher's ${kind}roll`;
     valueRows.push(
       `<tr><th scope="row">${e(label)}</th><td>${e(usd.format(amount))}<br><span class="small">${e(`figure from ${roll}${asOf ? `, as of ${asOf}` : ""}`)}</span></td><td class="small">${source}</td></tr>`,
     );

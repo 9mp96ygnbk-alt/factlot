@@ -19,6 +19,7 @@ from typing import Any, Callable, Iterable
 
 from .._core import fmt_num
 from ..ids import FactLotIdError, _base32, entity_id, normalize_apn_v1, parcel_id, parse as parse_id, short_id
+from .fields import label_value_history
 from . import buildings as _buildings
 from . import coverage as _coverage
 from .normalize import (
@@ -1508,7 +1509,13 @@ class Registry:
         if as_of is not None:
             sql += " AND as_of <= ?"
             params += (as_of,)
-        return value_history_entries(self.db.execute(sql + _ORDER_VALUE_HISTORY, params).fetchall())
+        def file_of(document_id: str) -> dict[str, Any] | None:
+            r = self.db.execute("SELECT source_id, filename, as_of, retrieved_at FROM snapshots WHERE document_id = ?",
+                                (document_id,)).fetchone()
+            return ({"source_id": r["source_id"], "filename": r["filename"], "as_of": r["as_of"],
+                     "read_on": str(r["retrieved_at"])[:10]} if r else None)
+        return label_value_history(value_history_entries(self.db.execute(sql + _ORDER_VALUE_HISTORY, params).fetchall()),
+                                   file_of)
 
     def snapshot(self, document_id: str) -> dict[str, Any] | None:
         """A source snapshot the registry cites, by its ``fl:document:sha256-…`` ID (``registrySnapshot`` in TS)."""

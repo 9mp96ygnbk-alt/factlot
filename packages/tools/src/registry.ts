@@ -15,6 +15,14 @@ import {
 } from "@factlot/id";
 
 import { countyName } from "./county_names.ts";
+import {
+  compactFields,
+  fieldAvailability,
+  labelValueHistory,
+  type CountyFields,
+  type RegistryFields,
+  type ValueFile,
+} from "./fields.ts";
 
 type Row = Record<string, unknown>;
 interface Statement {
@@ -555,20 +563,62 @@ function valueHistoryEntries(rows: Row[]): Row[] {
   });
 }
 
+/** The value-history file of a snapshot (fields.ts ValueFile), from the snapshots table. */
+function valueFileOf(
+  d: Database,
+): (documentId: string) => ValueFile | undefined {
+  const snap = d.prepare(
+    "SELECT source_id, filename, as_of, retrieved_at FROM snapshots WHERE document_id = ?",
+  );
+  return (doc) => {
+    const r = snap.get(doc);
+    return r
+      ? {
+          source_id: String(r.source_id),
+          filename: r.filename === null ? null : String(r.filename),
+          as_of: String(r.as_of),
+          read_on: String(r.retrieved_at).slice(0, 10),
+        }
+      : undefined;
+  };
+}
+
+/** Every snapshot of the configured file as value-history labels use it, by document ID (the pack's `value_files`). */
+export function registryValueFiles(): Record<string, ValueFile> {
+  const d = open();
+  const out: Record<string, ValueFile> = {};
+  for (const r of d
+    .prepare(
+      "SELECT document_id, source_id, filename, as_of, retrieved_at FROM snapshots ORDER BY document_id",
+    )
+    .all())
+    out[String(r.document_id)] = {
+      source_id: String(r.source_id),
+      filename: r.filename === null ? null : String(r.filename),
+      as_of: String(r.as_of),
+      read_on: String(r.retrieved_at).slice(0, 10),
+    };
+  return out;
+}
+
 /**
  * A parcel's market and appraised values by tax year, each cited (`Registry.value_history` in Python). Read
  * from every snapshot (current and superseded; with `asOf`, those dated on or before it): one entry per
  * snapshot that recorded a value. A tax year a later snapshot restates with the same values is listed once,
  * cited to the newest; a tax year two snapshots value differently is listed once per value, newest snapshot
- * first. Ordered by tax year, newest first (an entry without a tax year last).
+ * first. Ordered by tax year, newest first (an entry without a tax year last). Each entry carries the labels of
+ * fields.ts labelValueHistory (value types, file, roll, notes), made from the snapshots table at answer time.
  */
 export function registryValueHistory(urn: string, asOf?: string): Row[] {
   const d = open();
   const sql = `SELECT * FROM facts WHERE subject = ? AND predicate IN (${VALUE_HISTORY_IN})${asOf === undefined ? "" : " AND as_of <= ?"}`;
-  return valueHistoryEntries(
-    d
-      .prepare(sql + ORDER_VALUE_HISTORY)
-      .all(...(asOf === undefined ? [urn] : [urn, asOf])),
+  return labelValueHistory(
+    valueHistoryEntries(
+      d
+        .prepare(sql + ORDER_VALUE_HISTORY)
+        .all(...(asOf === undefined ? [urn] : [urn, asOf])),
+    ),
+    valueFileOf(d),
   );
 }
 
@@ -1343,6 +1393,11 @@ export function computeRegistryCoverage(): RegistryCoverage {
   return computeCoverage(open());
 }
 
+/** Which fact groups and roll years the configured file holds per county (fields.ts), computed from its tables. */
+export function computeRegistryFields(): RegistryFields {
+  return fieldAvailability(open());
+}
+
 function computeCoverage(d: Database): RegistryCoverage {
   const buildings = new Map(
     d
@@ -1447,8 +1502,11 @@ function coverage(d: Database): RegistryCoverage {
   return summary;
 }
 
-/** What the configured registry file holds: counties, entity registries, crosswalk systems, as-of dates. */
-export function registryCoverage(): Row {
+/**
+ * What the configured registry file holds: counties, entity registries, crosswalk systems, as-of dates; with
+ * `fields`, each county's field availability (fields.ts compactFields), computed from the file.
+ */
+export function registryCoverage(fields = false): Row {
   const d = open();
   const versions = new Map(
     d
@@ -1458,26 +1516,44 @@ export function registryCoverage(): Row {
       .all()
       .map((r) => [String(r.key), String(r.value)]),
   );
-  return coverageReport(coverage(d), {
-    name_key_version: versions.get("name_key_version") ?? null,
-    address_key_version: versions.get("address_key_version") ?? null,
-  });
+  return coverageReport(
+    coverage(d),
+    {
+      name_key_version: versions.get("name_key_version") ?? null,
+      address_key_version: versions.get("address_key_version") ?? null,
+    },
+    fields
+      ? Object.fromEntries(
+          fieldAvailability(d).counties.map((c) => [c.region.slice(3), c]),
+        )
+      : undefined,
+  );
 }
 
-/** The `registry_coverage` answer for a coverage summary and the file's key versions (null: not set). */
+/**
+ * The `registry_coverage` answer for a coverage summary and the file's key versions (null: not set). With `fields`
+ * (5-digit FIPS → field availability), each county carries `fields` (compactFields, or null when not listed).
+ */
 export function coverageReport(
   cov: RegistryCoverage,
   versions: {
     name_key_version: string | null;
     address_key_version: string | null;
   },
+  fields?: Record<string, CountyFields>,
 ): Row {
   return {
     ...cov,
-    counties: cov.counties.map((c) => ({
-      ...c,
-      name: countyName(`${c.state_fips}${c.county_fips}`) ?? null,
-    })),
+    counties: cov.counties.map((c) => {
+      const fips = `${c.state_fips}${c.county_fips}`;
+      const f =
+        fields && Object.hasOwn(fields, fips) ? fields[fips] : undefined;
+      return {
+        ...c,
+        name: countyName(fips) ?? null,
+        ...(fields ? { fields: f ? compactFields(f) : null } : {}),
+      };
+    }),
     name_key_version: versions.name_key_version ?? "1",
     address_key_version: versions.address_key_version ?? "1",
     scope: REGISTRY_SCOPE,
