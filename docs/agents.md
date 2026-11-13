@@ -284,11 +284,14 @@ Ave` finds `338-350 5 AVENUE`). Each result carries what tells parcels at one ad
 label names); a parcel whose label names the unit the query names comes first, and parcels sharing a
 label come largest improvement area first, land only last (`land_only` is null when the roll records
 neither an improvement area nor a year built). A miss
-says why in `coverage.reason`: `state_not_loaded`, `county_not_loaded` (also when every county
-known to hold the named city or ZIP code is not loaded), `street_not_found`, `other_words` (the
+says why in `coverage.reason`: `state_not_loaded`, `county_not_loaded` (also when the named city
+or ZIP code lies wholly in counties the registry does not hold: "SAN ANTONIO, TX lies in Bexar
+County…", with `place_counties` and `county_loaded: false`), `street_not_found`, `other_words` (the
 house number is on the street, but not with every other word of the query), `house_number_not_found`
 (with `nearest_house_numbers` on that street) or `no_match`; the registry holds commercial, industrial and multifamily parcels only, so a house
-or a condominium unit owned by a person is never in it.
+or a condominium unit owned by a person is never in it. A result outside every county the named
+city or ZIP code lies in carries `place_differs: true`, and when all do, `note` says so: a Houston
+address found only in Ector County is not the parcel asked for.
 
 ### Worked example: a Harris County parcel
 

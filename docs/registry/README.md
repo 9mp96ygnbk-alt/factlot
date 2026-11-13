@@ -458,11 +458,27 @@ parcel's label, so a label that leaves out the city or carries a malformed ZIP c
 rest; this changes the order only, never which parcels are returned. `spec/registry/normalize.json`
 (`address_places`, `address_place_ranks`) pins the reading and the order in both languages.
 
+**The counties a place lies in.** `placeCounties` (`place_counties` in Python) gives the counties a
+city or ZIP code lies in, from three generated tables: the US Census Bureau's 2020 ZIP Code
+Tabulation Area to county relationship file (`spec/registry/zip-counties.tsv`: the counties holding
+at least 5% of a ZCTA's land, or its largest part), its 2020 places by county file
+(`spec/registry/census-place-counties.tsv`: every incorporated or census-designated place, by its
+name without its legal description, with every county it lies in; places of one name in a state
+together), and the cities and ZIP codes of registry parcel labels (`spec/registry/address-places.tsv`,
+which knows the labels' own spellings such as BROOKLYN). `scripts/gen-address-places.py --census`
+builds the Census tables and records their source, vintage, retrieval date and hash; the Census
+files are works of the US government. A city named without a state is placed only when one state has
+a place of that name. When a query names a city or ZIP code, a result outside every county it lies
+in carries `place_differs: true`, and when every result does, `note` says so and `place_counties`
+lists the place's counties.
+
 **Misses that say why.** An empty answer's `coverage` carries `reason` and a message: the named
 state is not loaded (`state_not_loaded`); the named county is not, or every county known to hold
-the named city's or ZIP code's parcels is not (`county_not_loaded`, with `place_counties`; the
-table `spec/registry/address-places.tsv` is built from registry parcel labels by
-`scripts/gen-address-places.py`, and a city it does not know is not mentioned); the query names no
+the named city or ZIP code lies in is not (`county_not_loaded`, with `place_counties` and
+`county_loaded: false`, so the hosted API does not count it; the message names the place's counties
+and the counties of that state the registry holds, and the hosted registry says why a withheld
+county is not served); when the place lies partly in counties the registry does not hold, a street
+or no-match miss names those; the query names no
 house number or street type (`no_street`); a street type alone was searched
 (`street_type_alone`); no address on the street is in the index for the state (`street_not_found`);
 the house number is on the street but not with every other word of the query (`other_words`); the

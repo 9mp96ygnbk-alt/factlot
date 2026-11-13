@@ -17,7 +17,7 @@ import sqlite3
 from typing import Any
 
 from .county_names import county_name
-from .address_places import place_counties
+from .address_places import place_counties, place_states, zip_counties
 from .normalize import (ADDRESS_ONE_WORD_CANDIDATES, STATE_BY_FIPS, STATES, address_place_with, address_query,
                         address_query_with_place)
 
@@ -221,18 +221,84 @@ ADDRESS_SCOPE_NOTE = ("the registry holds commercial, industrial and multifamily
                       "owned by a person, is not in it")
 
 
-def _unheld_place(cov: dict[str, Any], st: str | None, place: dict[str, Any] | None) -> tuple[str, list[str]] | None:
-    """A city or ZIP code of the place every one of whose known counties the registry does not hold (``unheldPlace``)."""
-    if not st or not place:
+def address_place_counties(place: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The counties the place a query names lies in (``addressPlaceCounties`` in TS): ``{"name", "state",
+    "counties"}`` from its ZIP code when the tables know it, else from its city, in the state it names, or when it
+    names none in the only state with a place of that name; None when the tables cannot tell."""
+    if not place:
         return None
-    held = {c["state_fips"] + c["county_fips"] for c in cov["counties"]}
-    for name, key in ((f"ZIP code {place['zip'] or ''}", place["zip"]), (place["city"] or "", place["city"])):
-        if key is None:
-            continue
-        counties = place_counties(st, key)
-        if counties and all(c not in held for c in counties):
-            return name, counties
+    if place["zip"] is not None:
+        every = zip_counties(place["zip"])
+        st = place["state"]
+        if st is None and every and len({c[:2] for c in every}) == 1:
+            st = state_postal(every[0][:2])
+        counties = place_counties(st, place["zip"]) if st else None
+        if st and counties:
+            return {"name": f"ZIP code {place['zip']}", "state": st, "counties": counties}
+    if place["city"] is not None:
+        states = [place["state"]] if place["state"] else place_states(place["city"])
+        counties = place_counties(states[0], place["city"]) if len(states) == 1 else None
+        if counties:
+            return {"name": place["city"], "state": states[0], "counties": counties}
     return None
+
+
+def _county_list(counties: list[str]) -> str:
+    labels = [county_label(c[:2], c[2:]) for c in counties]
+    return labels[0] if len(labels) < 2 else f"{', '.join(labels[:-1])} and {labels[-1]}"
+
+
+def _held_county_names(cov: dict[str, Any], st: str) -> str:
+    names = [county_name(c["state_fips"] + c["county_fips"]) or f"county {c['state_fips']}{c['county_fips']}"
+             for c in cov["counties"] if c["state"] == st]
+    return ", ".join(names) if names else "none"
+
+
+def address_place_differs(place: dict[str, Any], urns: list[str]) -> list[bool]:
+    """Which results lie outside the counties of the place the query names (``addressPlaceDiffers`` in TS)."""
+    zipc = zip_counties(place["zip"]) if place["zip"] is not None else None
+    elsewhere = place["city"] is not None and bool(place_states(place["city"]))
+    out = []
+    for urn in urns:
+        m = re.match(r"fl:[a-z]+:us-([0-9]{5}):", urn)
+        if not m:
+            out.append(False)
+            continue
+        fips = m.group(1)
+        if zipc:
+            out.append(fips not in zipc)
+            continue
+        if place["city"] is None:
+            out.append(False)
+            continue
+        st = state_postal(fips[:2])
+        counties = place_counties(st, place["city"]) if st else None
+        out.append(fips not in counties if counties else elsewhere)
+    return out
+
+
+def address_found(query: str, where: dict[str, str] | None, results: list[dict[str, Any]]) -> dict[str, Any]:
+    """The answer of a search that found parcels (``addressFound`` in TS): a result outside the counties of the place
+    the query names carries ``place_differs: true``, and when every one does, ``note`` says so with
+    ``place_counties``."""
+    where = where or {}
+    asked = address_query_with_place(query)
+    place = address_place_with(asked, where) if "," in asked or any(v is not None for v in where.values()) else None
+    if not place or (place["zip"] is None and place["city"] is None):
+        return {"results": results}
+    differs = address_place_differs(place, [str(r["urn"]) for r in results])
+    if not any(differs):
+        return {"results": results}
+    out: dict[str, Any] = {"results": [{**r, "place_differs": True} if d else r for r, d in zip(results, differs)]}
+    if all(differs):
+        pc = address_place_counties(place)
+        named = f"ZIP code {place['zip']}" if place["zip"] is not None else place["city"]
+        out["note"] = (f"none of these parcels is in the counties {named}{', ' + pc['state'] if pc else ''} lies in"
+                       f"{' (' + _county_list(pc['counties']) + ')' if pc else ''}: each has this street address "
+                       "elsewhere")
+        if pc:
+            out["place_counties"] = pc["counties"]
+    return out
 
 
 def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None = None,
@@ -258,7 +324,11 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
     at = f" in {kept}" if kept else ""
     out: dict[str, Any] = {"state": st, "state_loaded": loaded, "loaded_states": states}
     county = place.get("county") if place else None
-    unheld = _unheld_place(cov, kept, place)
+    held = {c["state_fips"] + c["county_fips"] for c in cov["counties"]}
+    pc = address_place_counties(place)
+    unheld = [c for c in pc["counties"] if c not in held] if pc else []
+    if pc and pc["state"] in states:
+        out["place_counties"] = pc["counties"]
     if st and not loaded:
         reason = "state_not_loaded"
         message = f"no parcel matched: {st} is not loaded in this registry; loaded: {_counties_summary(cov)}"
@@ -271,11 +341,13 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
         reason = "county_not_loaded"
         out["county_loaded"] = False
         message = f"no parcel matched{at}: {county_label(county[:2], county[2:])} is not loaded in this registry. {holds}"
-    elif unheld:
+    elif pc and pc["state"] in states and len(unheld) == len(pc["counties"]):
+        # The place lies wholly in counties the registry does not hold: nothing there can match.
         reason = "county_not_loaded"
-        out["place_counties"] = unheld[1]
-        names = " and ".join(county_label(c[:2], c[2:]) for c in unheld[1])
-        message = f"no parcel matched{at}: {unheld[0]} is in {names}, which this registry does not hold. {holds}"
+        out["county_loaded"] = False
+        none = "none of which this registry holds" if len(pc["counties"]) > 1 else "which this registry does not hold"
+        message = (f"no parcel matched{at}: {pc['name']}, {pc['state']} lies in {_county_list(pc['counties'])}, "
+                   f"{none}. Of {pc['state']} this registry holds: {_held_county_names(cov, pc['state'])}")
     else:
         parts: list[str] = []
         if one_word:
@@ -304,6 +376,10 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
                          f"numbers on it are {' and '.join(str(n) for n in hint['nearest'])}{away}")
         else:
             reason = "no_match"
+        # A place partly in counties the registry does not hold: which ones.
+        if pc and pc["state"] in states and unheld:
+            parts.append(f"{pc['name']}, {pc['state']} also lies in {_county_list(unheld)}, which this registry does "
+                         "not hold")
         if not one_word:
             parts.append(ADDRESS_SCOPE_NOTE)
         message = f"no parcel matched{at}: {'; '.join(parts)}. {holds}"

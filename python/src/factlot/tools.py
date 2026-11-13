@@ -596,7 +596,7 @@ def _search(kind: str):
         reg = _registry()
         results, hint = reg.search_address_hint(query, limit, where)
         if results:
-            return {"results": results}
+            return coverage.address_found(query, where, results)
         return {"results": results, "coverage": coverage.address_miss(reg.coverage(), query, where, hint)}
 
     return run

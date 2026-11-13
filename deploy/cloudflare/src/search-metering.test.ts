@@ -43,6 +43,15 @@ test("an address search kept to a county the registry does not hold is not charg
     assert.equal(coverage.county_loaded, false);
     assert.equal(isChargedAnswer({ results: [], coverage }), false);
   }
+  // A place that lies wholly in counties the registry does not hold (San Antonio: Bexar, Comal, Medina) is the
+  // same miss: free. One that lies partly in a held county (Houston: Harris) stays a miss inside coverage.
+  const sa = addressMiss(cov, "4000 Medical Dr, San Antonio, TX");
+  assert.equal(sa.reason, "county_not_loaded");
+  assert.equal(sa.county_loaded, false);
+  assert.equal(isChargedAnswer({ results: [], coverage: sa }), false);
+  const houston = addressMiss(cov, "1 Nowhere Rd, Houston, TX");
+  assert.equal(houston.county_loaded, undefined);
+  assert.equal(isChargedAnswer({ results: [], coverage: houston }), true);
   // Other misses in a loaded state are charged as before.
   const street = addressMiss(cov, "1 Nowhere Rd, Houston, TX");
   assert.equal(street.state_loaded, true);

@@ -1,5 +1,5 @@
 {
-  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code), read conservatively: only a state named after a city filters; a ZIP code and a city only order; unit, floor and box text and a bare two-letter or full state name name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state). 'address_search_forms': the spellings a street line is searched by (as written first). 'address_ranges' and 'address_range_matches': a lot's house-number range [low, high, one side] and whether a query's number falls in it. 'address_street_words': the street a miss reads for its nearest house numbers. 'address_cards': what a search result carries from its label and current facts. 'address_place_with' and 'address_where_issues': the call's place parameters. 'address_queries_with_place': a query without a comma whose street line ends in a place, with the comma put in. 'address_units': the unit a label or query names, which puts the parcel naming it first. 'address_card_orders': the order of parcels sharing one label: largest improvement area first, none after, land only last, then URN.",
+  "description": "Registry name/address normalization; Python factlot.registry and TS @factlot/tools must agree. 'addresses' is address key version 2 (2026-11-03); 'legacy_addresses' version 1, which files built earlier keep until re-keyed. 'address_queries': how registry_search_address reads a query (mode house_number, street, or null when it has neither a house number nor a street type, and then searches nothing; tokens are the street line's words). 'address_places': the place a query names after its street line (city, state, ZIP code), read conservatively: only a state named after a city filters; a ZIP code and a city only order; unit, floor and box text and a bare two-letter or full state name name no state. 'address_place_ranks': where a match goes for a query naming a place (-1 outside its state, 0 same ZIP code, 1 same city, 2 the rest of the state). 'address_search_forms': the spellings a street line is searched by (as written first). 'address_ranges' and 'address_range_matches': a lot's house-number range [low, high, one side] and whether a query's number falls in it. 'address_street_words': the street a miss reads for its nearest house numbers. 'address_cards': what a search result carries from its label and current facts. 'address_place_with' and 'address_where_issues': the call's place parameters. 'address_queries_with_place': a query without a comma whose street line ends in a place, with the comma put in. 'address_units': the unit a label or query names, which puts the parcel naming it first. 'address_card_orders': the order of parcels sharing one label: largest improvement area first, none after, land only last, then URN. 'address_place_counties', 'address_place_differs', 'address_found' and 'address_place_misses': the counties a query's place lies in (Census tables and registry labels), which results lie outside them, and what a miss says of them.",
   "names": [
     ["The Acme Properties, L.L.C.", "ACME PROPERTIES LLC"],
     ["Gulf Logistics, Limited Partnership", "GULF LOGISTICS LP"],
@@ -2172,5 +2172,254 @@
         "fl:parcel:us-48999:x"
       ]
     ]
-  ]
+  ],
+  "address_place_counties": [
+    [
+      "1 Main St, San Antonio, TX",
+      {},
+      {
+        "name": "SAN ANTONIO",
+        "state": "TX",
+        "counties": ["48029", "48091", "48325"]
+      }
+    ],
+    [
+      "1 Main St, Houston, TX",
+      {},
+      {
+        "name": "HOUSTON",
+        "state": "TX",
+        "counties": ["48157", "48201", "48339", "48473"]
+      }
+    ],
+    [
+      "1 Main St, 78205",
+      {},
+      {
+        "name": "ZIP code 78205",
+        "state": "TX",
+        "counties": ["48029"]
+      }
+    ],
+    [
+      "1 Main St",
+      {
+        "city": "Fort Worth",
+        "state": "TX"
+      },
+      {
+        "name": "FORT WORTH",
+        "state": "TX",
+        "counties": ["48121", "48251", "48367", "48439", "48497"]
+      }
+    ],
+    ["1 Main St, Springfield", {}, null],
+    ["1 Main St, Atlantis, TX", {}, null],
+    [
+      "1 Main St, Brooklyn, NY",
+      {},
+      {
+        "name": "BROOKLYN",
+        "state": "NY",
+        "counties": ["36047"]
+      }
+    ],
+    [
+      "1 Main St",
+      {
+        "postal_code": "10118"
+      },
+      null
+    ]
+  ],
+  "address_place_differs": [
+    [
+      "1 Main St, Houston, TX",
+      ["fl:parcel:us-48201:1", "fl:parcel:us-48135:2", "fl:parcel:us-24005:3"],
+      [false, true, true]
+    ],
+    [
+      "1 Main St, 77002",
+      ["fl:parcel:us-48201:1", "fl:parcel:us-48135:2"],
+      [false, true]
+    ],
+    ["1 Main St, Atlantis, TX", ["fl:parcel:us-48201:1"], [true]],
+    [
+      "1 Main St, Houston",
+      ["fl:parcel:us-48201:1", "fl:parcel:us-24005:3"],
+      [false, true]
+    ]
+  ],
+  "address_found": [
+    [
+      "1 Main St, Houston, TX",
+      {},
+      [
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-48135:2",
+            "label": "1 MAIN ST, ODESSA TX",
+            "place_differs": true
+          }
+        ],
+        "note": "none of these parcels is in the counties HOUSTON, TX lies in (Fort Bend County, TX (48157), Harris County, TX (48201), Montgomery County, TX (48339) and Waller County, TX (48473)): each has this street address elsewhere",
+        "place_counties": ["48157", "48201", "48339", "48473"]
+      }
+    ],
+    [
+      "1 Main St",
+      {
+        "city": "Houston",
+        "state": "TX"
+      },
+      [
+        {
+          "urn": "fl:parcel:us-48201:1",
+          "label": "1 MAIN ST, HOUSTON TX 77002"
+        },
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-48201:1",
+            "label": "1 MAIN ST, HOUSTON TX 77002"
+          },
+          {
+            "urn": "fl:parcel:us-48135:2",
+            "label": "1 MAIN ST, ODESSA TX",
+            "place_differs": true
+          }
+        ]
+      }
+    ],
+    [
+      "1 Main St",
+      {},
+      [
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-48135:2",
+            "label": "1 MAIN ST, ODESSA TX"
+          }
+        ]
+      }
+    ]
+  ],
+  "address_place_misses": {
+    "coverage": {
+      "counties": [
+        {
+          "region": "us-48201",
+          "state_fips": "48",
+          "county_fips": "201",
+          "state": "TX",
+          "parcels": 10,
+          "buildings": 0,
+          "sources": []
+        },
+        {
+          "region": "us-48113",
+          "state_fips": "48",
+          "county_fips": "113",
+          "state": "TX",
+          "parcels": 5,
+          "buildings": 0,
+          "sources": []
+        }
+      ],
+      "entity_registries": [],
+      "crosswalk_systems": [],
+      "totals": {
+        "parcels": 15,
+        "entities": 0,
+        "buildings": 0,
+        "counties": 2,
+        "states": ["TX"]
+      }
+    },
+    "cases": [
+      [
+        "4000 Medical Dr, San Antonio, TX",
+        {},
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "place_counties": ["48029", "48091", "48325"],
+          "county_loaded": false,
+          "reason": "county_not_loaded",
+          "message": "no parcel matched in TX: SAN ANTONIO, TX lies in Bexar County, TX (48029), Comal County, TX (48091) and Medina County, TX (48325), none of which this registry holds. Of TX this registry holds: Harris County, Dallas County"
+        }
+      ],
+      [
+        "4200 S Hulen St, Fort Worth, TX 76109",
+        {},
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "place_counties": ["48439"],
+          "county_loaded": false,
+          "reason": "county_not_loaded",
+          "message": "no parcel matched in TX: ZIP code 76109, TX lies in Tarrant County, TX (48439), which this registry does not hold. Of TX this registry holds: Harris County, Dallas County"
+        }
+      ],
+      [
+        "1600 Smith St, Houston, TX",
+        {},
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "place_counties": ["48157", "48201", "48339", "48473"],
+          "reason": "no_match",
+          "message": "no parcel matched in TX: HOUSTON, TX also lies in Fort Bend County, TX (48157), Montgomery County, TX (48339) and Waller County, TX (48473), which this registry does not hold; the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of TX this registry holds Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
+        }
+      ],
+      [
+        "1 Main St, Dallas, TX",
+        {},
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "place_counties": ["48085", "48113", "48121", "48257", "48397"],
+          "reason": "no_match",
+          "message": "no parcel matched in TX: DALLAS, TX also lies in Collin County, TX (48085), Denton County, TX (48121), Kaufman County, TX (48257) and Rockwall County, TX (48397), which this registry does not hold; the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of TX this registry holds Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
+        }
+      ],
+      [
+        "1 Main St",
+        {
+          "city": "San Antonio",
+          "state": "Texas"
+        },
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "place_counties": ["48029", "48091", "48325"],
+          "county_loaded": false,
+          "reason": "county_not_loaded",
+          "message": "no parcel matched in TX: SAN ANTONIO, TX lies in Bexar County, TX (48029), Comal County, TX (48091) and Medina County, TX (48325), none of which this registry holds. Of TX this registry holds: Harris County, Dallas County"
+        }
+      ]
+    ]
+  }
 }

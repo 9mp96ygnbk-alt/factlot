@@ -10,6 +10,7 @@ import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
   TX_EQUITY_WHICH_PARCEL,
+  addressFound,
   addressWhereOf,
   externalMiss,
   parcelUrnForRule,
@@ -32,6 +33,7 @@ import {
   type PagedList,
 } from "./format.ts";
 import {
+  hostedAddressFoundOf,
   hostedAddressMiss,
   hostedEntitiesMiss,
   hostedEntityMiss,
@@ -178,7 +180,7 @@ async function run(pack: Pack, tool: string, i: Input): Promise<unknown> {
         where,
       );
       return results.length
-        ? { results }
+        ? hostedAddressFoundOf(m, cov, addressFound(query, where, results))
         : {
             results,
             coverage: hostedAddressMiss(m, cov, query, where, hint),
