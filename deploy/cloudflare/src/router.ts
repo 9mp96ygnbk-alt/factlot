@@ -2562,6 +2562,7 @@ async function accountRoute(
         deriveStatus(r) === "active"
           ? watchCaller({ hash: h, record: r })
           : undefined,
+        { now },
       ),
       ...o,
     });
