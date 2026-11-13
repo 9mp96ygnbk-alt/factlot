@@ -214,19 +214,7 @@ test("field availability: shares and roll years per county, computed from the fi
     );
     assert.equal(f.counties[0]!.groups.recorded_sales.share, 1);
     assert.deepEqual(compactFields(f.counties[0]!), {
-      shares: {
-        owner_of_record: 0,
-        owner_mailing_address: 0,
-        market_value: 1,
-        appraised_value: 0,
-        building_facts: 0,
-        neighborhood_and_class: 0,
-        zoning: 0,
-        recorded_sales: 1,
-        deeds_and_mortgages: 0,
-        energy_benchmarks: 0,
-        entity_links: 0,
-      },
+      shares: { market_value: 1, recorded_sales: 1 },
       roll_years: [
         { tax_year: 2026, value_types: ["market"], as_of: "2026-11-02" },
         { tax_year: 2025, value_types: ["market"], as_of: "2026-11-02" },

@@ -82,19 +82,7 @@ test("hosted registry_coverage: each county says which fact groups and roll year
   };
   assert.equal(r.fields_note, FIELDS_NOTE);
   assert.deepEqual(r.counties[0]!.fields, {
-    shares: {
-      owner_of_record: 0,
-      owner_mailing_address: 0,
-      market_value: 0,
-      appraised_value: 1,
-      building_facts: 0.9,
-      neighborhood_and_class: 0,
-      zoning: 0.9,
-      recorded_sales: 0,
-      deeds_and_mortgages: 0,
-      energy_benchmarks: 0,
-      entity_links: 0,
-    },
+    shares: { appraised_value: 1, building_facts: 0.9, zoning: 0.9 },
     roll_years: [
       { tax_year: 2025, value_types: ["appraised"], as_of: "2026-06-26" },
     ],

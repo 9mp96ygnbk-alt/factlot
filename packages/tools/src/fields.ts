@@ -62,7 +62,7 @@ export const FACT_GROUP_LABELS: Record<FactGroup, string> = {
   market_value: "market value",
   appraised_value: "appraised value",
   building_facts: "building facts (area, year built, floors or units)",
-  neighborhood_and_class: "neighborhood and building class codes",
+  neighborhood_and_class: "neighborhood or building class codes",
   zoning: "zoning",
   recorded_sales: "recorded sales",
   deeds_and_mortgages: "recorded deeds and mortgages",
@@ -322,12 +322,18 @@ export function yearsText(years: number[]): string {
 }
 
 /**
- * The compact form registry_coverage carries per county: each group's share (1 every parcel, 0 none), and each roll
- * year with its value types, newest file as-of date and whether it is preliminary.
+ * The compact form registry_coverage carries per county: the share of each fact group the county holds (1 every
+ * parcel; a group not listed: no parcel has it), and each roll year with its value types, newest file as-of date and
+ * whether it is preliminary.
  */
 export function compactFields(c: CountyFields): Row {
   return {
-    shares: Object.fromEntries(FACT_GROUPS.map((g) => [g, c.groups[g].share])),
+    shares: Object.fromEntries(
+      FACT_GROUPS.filter((g) => c.groups[g].share > 0).map((g) => [
+        g,
+        c.groups[g].share,
+      ]),
+    ),
     roll_years: c.roll_years.map((y) => ({
       tax_year: y.tax_year,
       value_types: y.value_types,
