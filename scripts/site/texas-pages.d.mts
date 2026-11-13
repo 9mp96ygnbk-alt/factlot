@@ -47,3 +47,8 @@ export function exampleFacts(e: unknown): {
 export function exampleSources(
   e: unknown,
 ): { n: number; title: string; retrieved: string }[];
+export const TEXAS_ROLLS_FILES: string[];
+export function renderTexasRolls(
+  text: string,
+  counties: unknown[],
+): { text: string; found: number };

@@ -482,3 +482,30 @@ ${counties
 export function texasRollsText(counties) {
   return `Texas roll years on the hosted API: ${hubRollSentence(counties)}`;
 }
+
+/** The documents that state texasRollsText, kept current by renderTexasRolls. */
+export const TEXAS_ROLLS_FILES = [
+  "README.md",
+  "docs/agents.md",
+  "llms.txt",
+  "site/llms.txt",
+];
+
+/** `text` with its texas:rolls span (or llms.txt line) rewritten from `counties`, and how many it held. */
+export function renderTexasRolls(text, counties) {
+  const want = texasRollsText(counties);
+  let found = 0;
+  const out = text
+    .replace(
+      /(<!-- texas:rolls -->)[\s\S]*?(<!-- \/texas:rolls -->)/g,
+      (_m, a, b) => {
+        found++;
+        return `${a}${want}${b}`;
+      },
+    )
+    .replace(/^Texas roll years on the hosted API: .*$/gm, () => {
+      found++;
+      return want;
+    });
+  return { text: out, found };
+}

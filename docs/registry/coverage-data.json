@@ -1197,6 +1197,42 @@
         }
       ],
       "as_of_override": "2026-07-17"
+    },
+    {
+      "source_id": "tx-bell-cad",
+      "state": "TX",
+      "area": "Bell County",
+      "kind": "load",
+      "parcels": 13685,
+      "org_owners": 7224,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-13.md",
+          "quote": "Bell County (`tx-bell-cad`): 13,685 commercial parcels; 7,224 with an organisation owner of record; data as of 2026-10-01"
+        }
+      ],
+      "as_of_override": "2026-10-01"
+    },
+    {
+      "source_id": "tx-johnson-cad",
+      "state": "TX",
+      "area": "Johnson County",
+      "kind": "load",
+      "parcels": 4416,
+      "org_owners": 2868,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
+      "notes": "",
+      "cites": [
+        {
+          "doc": "docs/registry/sources/tx-hosted-pack-2026-11-13.md",
+          "quote": "Johnson County (`tx-johnson-cad`): 4,416 commercial parcels; 2,868 with an organisation owner of record; data as of 2026-08-10"
+        }
+      ],
+      "as_of_override": "2026-08-10"
     }
   ],
   "entity_registries": [
@@ -1358,6 +1394,14 @@
       "text": "Yes: hosted on api.factlot.com"
     },
     "tx-kaufman-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-bell-cad": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "tx-johnson-cad": {
       "areas": "all",
       "text": "Yes: hosted on api.factlot.com"
     },

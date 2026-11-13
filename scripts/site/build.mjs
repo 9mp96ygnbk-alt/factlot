@@ -568,13 +568,26 @@ addPage(
       "FactLot's hosted API: Free, Pro ($49 a month or $490 a year) and Team ($599 a month). What each plan includes, request rates, registry lookups, reports, what counts as a lookup, and how to cancel.",
     h1: "Pricing",
     crumbs: [["/pricing/", "Pricing"]],
-    body: fill(read("site/_content/pricing.html"), { REPO, ...PLAN_VARS }),
+    body: fill(read("site/_content/pricing.html"), {
+      REPO,
+      ...PLAN_VARS,
+      // The hosted Texas counties, in words, from hosted.json (the pack's manifest).
+      TX_COUNTY_COUNT_CAP: (() => {
+        const w = countWord(
+          readJson("site/_data/hosted.json").counties.filter(
+            (c) => c.state === "TX",
+          ).length,
+        );
+        return w.charAt(0).toUpperCase() + w.slice(1);
+      })(),
+    }),
     scripts: ["/try/freekey.js"],
   },
   [
     "site/_content/pricing.html",
     "deploy/cloudflare/src/plans.ts",
     "site/_data/plans.json",
+    "site/_data/hosted.json",
     "site/try/freekey.js",
   ],
 );

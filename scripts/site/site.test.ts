@@ -30,6 +30,7 @@ import {
   hubRollSentence,
   hubCountyLinks,
   texasRollsText,
+  countWord,
 } from "./texas-pages.mjs";
 
 const root = new URL("../../", import.meta.url);
@@ -83,6 +84,13 @@ describe("site/llms.txt", () => {
 });
 
 const flat = (rel: string) => read(rel).replace(/\s+/g, " ");
+/** The hosted Texas counties of the pack (site/_data/hosted.json, from its manifest). */
+const hostedTexas = () =>
+  (
+    JSON.parse(read("site/_data/hosted.json")) as {
+      counties: { fips: string; name: string; parcels: number }[];
+    }
+  ).counties.filter((c) => c.fips.startsWith("48"));
 
 describe("operator's postal address", () => {
   const ADDRESS = "Postal address: PO Box 12488, San Antonio, TX 78212.";
@@ -238,7 +246,7 @@ describe("home page", () => {
 describe("texas hub", () => {
   const html = flat("site/_content/texas.html");
   const deadline = flat("site/_content/texas-protest-deadline.html");
-  it("lists the sixteen hosted counties summing to 305,684", () => {
+  it("lists the pack's hosted Texas counties with their parcel total (hosted.json)", () => {
     const data = JSON.parse(read("site/_data/texas-counties.json")) as {
       total_hosted_parcels: number;
       counties: { name: string; hosted_parcels: number; rolls: unknown[] }[];
@@ -247,13 +255,15 @@ describe("texas hub", () => {
     const rows = [
       ...table.matchAll(/<th scope="row">(\w+)<\/th> <td>([\d,]+)<\/td>/g),
     ].filter((m) => m[1] !== "Total");
-    assert.equal(rows.length, 16);
+    const pack = hostedTexas();
+    const total = pack.reduce((a, c) => a + c.parcels, 0);
+    assert.equal(rows.length, pack.length);
     assert.equal(
       rows.reduce((a, m) => a + Number((m[2] ?? "").replaceAll(",", "")), 0),
-      305684,
+      total,
     );
-    assert.equal(data.total_hosted_parcels, 305684);
-    assert.ok(table.includes("<td>305,684</td>"));
+    assert.equal(data.total_hosted_parcels, total);
+    assert.ok(table.includes(`<td>${total.toLocaleString("en-US")}</td>`));
     assert.ok(html.includes("{{HOSTED_TABLE}}"));
     // Midland has no values; the multi-year counties say so.
     assert.ok(table.includes("no values in the publisher's file"));
@@ -261,8 +271,12 @@ describe("texas hub", () => {
     // Harris, Dallas and Travis: 2022 to 2025 loaded as value history beside the current roll.
     assert.equal(table.split("five roll years, 2022 to 2026").length - 1, 3);
     assert.ok(!html.includes("one roll year per county"));
+    const multi = data.counties.filter((c) => c.rolls.length > 1).length;
+    const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
     assert.ok(
-      hubRollSentence(data.counties).startsWith("Nine of the sixteen counties"),
+      hubRollSentence(data.counties).startsWith(
+        `${cap(countWord(multi))} of the ${countWord(pack.length)} counties`,
+      ),
     );
   });
   it("leads with what the account gets, for whom, the price and the next step", () => {
@@ -361,8 +375,10 @@ interface County {
   license: string;
   terms_url: string;
   source_url: string;
+  county_fips: string;
   hosted_parcels: number;
   neighborhood_tier: boolean;
+  neighborhood_code_parcels: number;
   rolls: { tax_year: number; as_of: string; parcels: number }[];
 }
 interface Example {
@@ -390,27 +406,12 @@ describe("texas county pages", () => {
   const hub = flat("site/_content/texas.html");
   const tpl = read("site/_content/texas-county.html");
   const flatten = (h: string) => h.replace(/\s+/g, " ");
-  it("cover the sixteen hosted counties and match the hub", () => {
+  it("cover the pack's hosted Texas counties, largest first, and match the hub", () => {
     assert.deepEqual(
-      counties.map((c) => c.slug),
-      [
-        "harris",
-        "dallas",
-        "travis",
-        "collin",
-        "denton",
-        "williamson",
-        "cameron",
-        "nueces",
-        "galveston",
-        "jefferson",
-        "brazos",
-        "midland",
-        "ector",
-        "grayson",
-        "guadalupe",
-        "kaufman",
-      ],
+      counties.map((c) => c.county_fips),
+      hostedTexas()
+        .sort((a, b) => b.parcels - a.parcels || a.name.localeCompare(b.name))
+        .map((c) => c.fips.slice(2)),
     );
     const hubTable = hubHostedTable(counties).replace(/\s+/g, " ");
     const hubLinks = hubCountyLinks(counties, ["harris", "dallas"]);
@@ -450,8 +451,11 @@ describe("texas county pages", () => {
     }
     assert.deepEqual(
       counties.filter((c) => c.neighborhood_tier).map((c) => c.slug),
-      ["harris", "dallas", "travis"],
+      counties
+        .filter((c) => c.neighborhood_code_parcels > 0)
+        .map((c) => c.slug),
     );
+    assert.ok(counties.some((c) => c.neighborhood_tier));
   });
   it("lists Tarrant withheld and no hosted district as not yet hosted", () => {
     const t = flatten(otherDistrictsTable());
@@ -1496,9 +1500,7 @@ describe("hand-typed counts", () => {
   it("README, llms.txt and the agent guide state the Texas roll years from texas-counties.json", () => {
     const expected = texasRollsText(counties);
     assert.ok(
-      expected.startsWith(
-        "Texas roll years on the hosted API: Nine of the sixteen",
-      ),
+      expected.includes(` of the ${countWord(counties.length)} counties`),
     );
     for (const f of ["README.md", "docs/agents.md"]) {
       const m = /<!-- texas:rolls -->([\s\S]*?)<!-- \/texas:rolls -->/.exec(
@@ -1515,5 +1517,53 @@ describe("hand-typed counts", () => {
       read("llms.txt").split("\n").includes(expected),
       "llms.txt: paste texasRollsText()",
     );
+  });
+});
+
+describe("hosted Texas counties come from the pack", () => {
+  const tx = (
+    JSON.parse(read("site/_data/texas-counties.json")) as {
+      counties: {
+        name: string;
+        county_fips: string;
+        id_system: string;
+        rolls: { preliminary: boolean }[];
+      }[];
+    }
+  ).counties;
+  it("coverage.json names each county's ID system as the registry file does", async () => {
+    const { ID_SYSTEMS } = await import("./coverage-catalog.mjs");
+    for (const c of tx)
+      assert.equal(
+        (ID_SYSTEMS as Record<string, string>)[`48${c.county_fips}`],
+        c.id_system,
+        c.name,
+      );
+  });
+  it("the Texas note names the preliminary and value-less counties the data holds", async () => {
+    const { TX_NOTE } = await import("./hosted.mjs");
+    const prelim = tx
+      .filter((c) => c.rolls.at(-1)?.preliminary)
+      .map((c) => c.name);
+    const none = tx.filter((c) => c.rolls.length === 0).map((c) => c.name);
+    for (const n of [...prelim, ...none]) assert.ok(TX_NOTE.includes(n), n);
+    for (const c of tx)
+      if (!prelim.includes(c.name) && !none.includes(c.name))
+        assert.ok(!TX_NOTE.includes(c.name), `${c.name} is not in the note`);
+  });
+  it("the pricing page and the agent guide take the Texas count and names from data", () => {
+    assert.ok(
+      read("site/_content/pricing.html").includes("{{TX_COUNTY_COUNT_CAP}}"),
+    );
+    assert.ok(read("docs/agents.md").includes("<!-- hosted:texas-names -->"));
+    for (const f of [
+      "site/_content/pricing.html",
+      "site/_content/texas.html",
+      "site/index.html",
+    ])
+      assert.ok(
+        !/\b(sixteen|fifteen) (hosted )?Texas counties\b/i.test(read(f)),
+        f,
+      );
   });
 });

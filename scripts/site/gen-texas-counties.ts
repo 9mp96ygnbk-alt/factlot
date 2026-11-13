@@ -1,11 +1,16 @@
-// Writes site/_data/texas-counties.json: the figures on the /texas/<county>/ pages, read from a
-// built registry file (opened read-only) and from registry/sources/texas.json. Only the small JSON
+// Writes site/_data/texas-counties.json: the figures on the /texas/<county>/ pages, for the Texas
+// counties site/_data/hosted.json hosts, read from a built registry file (opened read-only) and from
+// registry/sources. Only the small JSON
 // is committed, never the database.
 //
 //   node --experimental-strip-types scripts/site/gen-texas-counties.ts /path/to/tx.db
+//
+// Run it after gen-hosted.ts has written hosted.json from the pack, then run gen-hosted.ts again
+// (--text is not enough: the Texas order in hosted.json comes from this file).
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { writeResourceData } from "../mcp/gen-resources.ts";
+import { TEXAS_ROLLS_FILES, renderTexasRolls } from "./texas-pages.mjs";
 
 const dbPath = process.argv[2];
 if (!dbPath) throw new Error("usage: gen-texas-counties.ts /path/to/tx.db");
@@ -20,24 +25,43 @@ const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as {
 };
 const db = new DatabaseSync(dbPath, { readOnly: true });
 
-const HOSTED = [
-  ["harris", "Harris", "201", "tx-harris-cad", "hcad_account"],
-  ["dallas", "Dallas", "113", "tx-dallas-cad", "dcad_account"],
-  ["travis", "Travis", "453", "tx-travis-cad", "tcad_prop_id"],
-  ["collin", "Collin", "085", "tx-collin-cad", "ccad_prop_id"],
-  ["denton", "Denton", "121", "tx-denton-cad", "dcad_prop_id"],
-  ["williamson", "Williamson", "491", "tx-williamson-cad", "wcad_property_id"],
-  ["cameron", "Cameron", "061", "tx-cameron-cad", "cameron_prop_id"],
-  ["nueces", "Nueces", "355", "tx-nueces-cad", "ncad_prop_id"],
-  ["galveston", "Galveston", "167", "tx-galveston-cad", "gcad_prop_id"],
-  ["jefferson", "Jefferson", "245", "tx-jefferson-cad", "jcad_prop_id"],
-  ["brazos", "Brazos", "041", "tx-brazos-cad", "brazoscad_prop_id"],
-  ["midland", "Midland", "329", "tx-midland-cad", "midland_webprop_id"],
-  ["ector", "Ector", "135", "tx-ector-cad", "ector_account_number"],
-  ["grayson", "Grayson", "181", "tx-grayson-cad", "grayson_prop_id"],
-  ["guadalupe", "Guadalupe", "187", "tx-guadalupe-cad", "gcad_gco_prop_id"],
-  ["kaufman", "Kaufman", "257", "tx-kaufman-cad", "kaufman_prop_id"],
-] as const;
+// The hosted Texas counties are the pack's (site/_data/hosted.json, from its manifest; Tarrant is withheld
+// there), largest first. Each one's roll source is its source without a year or "-buildings" suffix, and
+// its ID system the crosswalk system its parcels carry in the registry file.
+const hostedJson = JSON.parse(
+  readFileSync(new URL("site/_data/hosted.json", root), "utf8"),
+) as {
+  counties: {
+    fips: string;
+    name: string;
+    state: string;
+    parcels: number;
+    sources: string[];
+  }[];
+};
+const HOSTED = hostedJson.counties
+  .filter((c) => c.state === "TX")
+  .sort((a, b) => b.parcels - a.parcels || a.name.localeCompare(b.name))
+  .map((c) => {
+    const name = c.name.replace(/ County$/, "");
+    const sourceId = c.sources.find((s) => !/-(\d{4}|buildings)$/.test(s));
+    if (!sourceId) throw new Error(`${c.name}: no roll source in hosted.json`);
+    const system = String(
+      db
+        .prepare(
+          "select system from crosswalk where urn glob ? group by system order by count(*) desc limit 1",
+        )
+        .all(`fl:parcel:us-${c.fips}:*`)[0]?.system ?? "",
+    );
+    if (!system) throw new Error(`${c.name}: no parcels in ${dbPath}`);
+    return [
+      name.toLowerCase().replace(/[^a-z]+/g, "-"),
+      name,
+      c.fips.slice(2),
+      sourceId,
+      system,
+    ] as const;
+  });
 
 // registry/sources/texas.json holds the first counties; later ones have a file in tx/.
 const readSources = (rel: string): Record<string, string>[] =>
@@ -115,6 +139,7 @@ const counties = HOSTED.map(([slug, name, fips, sourceId, system]) => {
     name,
     county_fips: fips,
     source_id: sourceId,
+    id_system: system,
     publisher: src.publisher,
     source_url: String(dbSrc?.url),
     terms_url: src.terms_url,
@@ -141,6 +166,13 @@ writeFileSync(
   `${JSON.stringify(out, null, 2)}\n`,
 );
 console.log(counties.map((c) => `${c.slug} ${c.hosted_parcels}`).join(", "));
+
+// README, the agent guide and llms.txt state the roll-year sentence (texas-pages.mjs texasRollsText).
+for (const f of TEXAS_ROLLS_FILES) {
+  const before = readFileSync(new URL(f, root), "utf8");
+  const { text } = renderTexasRolls(before, counties);
+  if (text !== before) writeFileSync(new URL(f, root), text);
+}
 
 // The MCP server's factlot:// resources carry these figures too (scripts/mcp/gen-resources.ts).
 writeResourceData();

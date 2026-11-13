@@ -801,16 +801,18 @@ export const RESOURCE_DATA: ResourceData = {
       "Dallas",
       "Travis",
       "Collin",
+      "Cameron",
+      "Bell",
+      "Nueces",
       "Denton",
       "Williamson",
-      "Cameron",
-      "Nueces",
       "Galveston",
       "Jefferson",
       "Brazos",
       "Midland",
       "Ector",
       "Grayson",
+      "Johnson",
       "Guadalupe",
       "Kaufman",
     ],
@@ -855,13 +857,27 @@ export const RESOURCE_DATA: ResourceData = {
     ],
     text: {
       places:
-        "Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, eighteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe, Kaufman, Bell and Johnson), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)",
+        "Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, eighteen Texas counties (Harris, Dallas, Travis, Collin, Cameron, Bell, Nueces, Denton, Williamson, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Johnson, Guadalupe and Kaufman), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)",
       totals: "909,732 parcels in 62 counties",
       withheld:
         "Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.",
     },
   },
   roll_years: {
+    "48027": [
+      {
+        tax_year: 2024,
+        preliminary: false,
+      },
+      {
+        tax_year: 2025,
+        preliminary: false,
+      },
+      {
+        tax_year: 2026,
+        preliminary: false,
+      },
+    ],
     "48041": [
       {
         tax_year: 2016,
@@ -1011,6 +1027,20 @@ export const RESOURCE_DATA: ResourceData = {
       },
     ],
     "48245": [
+      {
+        tax_year: 2025,
+        preliminary: false,
+      },
+      {
+        tax_year: 2026,
+        preliminary: false,
+      },
+    ],
+    "48251": [
+      {
+        tax_year: 2024,
+        preliminary: false,
+      },
       {
         tax_year: 2025,
         preliminary: false,

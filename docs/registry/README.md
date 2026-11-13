@@ -642,7 +642,7 @@ latency to the call. A release costs one `PutObject` (Class A) per changed file,
    show how each county reports them.
 3. **More hosted regions.** The hosted registry at `https://api.factlot.com` is a query-only
    service built from registry files: the registry tools run against it and the files are not
-   downloadable from it. It serves <!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, eighteen Texas counties (Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Guadalupe, Kaufman, Bell and Johnson), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)<!-- /hosted:places --> (<!-- hosted:totals -->909,732 parcels in 62 counties<!-- /hosted:totals -->); `registry_coverage` lists
+   downloadable from it. It serves <!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, Juab and Summit counties in Utah, eighteen Texas counties (Harris, Dallas, Travis, Collin, Cameron, Bell, Nueces, Denton, Williamson, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Johnson, Guadalupe and Kaufman), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, and Connecticut (statewide, by town)<!-- /hosted:places --> (<!-- hosted:totals -->909,732 parcels in 62 counties<!-- /hosted:totals -->); `registry_coverage` lists
    exactly what is hosted. More regions open as their terms allow. A self-hosted
    `@factlot/server` serves any registry file with `FACTLOT_REGISTRY_DB`.
 

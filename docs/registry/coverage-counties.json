@@ -1547,13 +1547,13 @@
       "class": "hosted",
       "source_id": "tx-bell-cad",
       "commercial_parcels": 13685,
-      "organisation_owners_row": null,
-      "owner_names": null,
-      "entity_links": null,
+      "organisation_owners_row": 7224,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-01",
       "hosted": "hosted on api.factlot.com",
-      "evidence": "site/_data/hosted.json"
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-13.md"
     },
     "48041": {
       "name": "Brazos County",
@@ -1729,13 +1729,13 @@
       "class": "hosted",
       "source_id": "tx-johnson-cad",
       "commercial_parcels": 4416,
-      "organisation_owners_row": null,
-      "owner_names": null,
-      "entity_links": null,
+      "organisation_owners_row": 2868,
+      "owner_names": "yes",
+      "entity_links": "not recorded for this county (the Texas entity file is loaded)",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-08-10",
       "hosted": "hosted on api.factlot.com",
-      "evidence": "site/_data/hosted.json"
+      "evidence": "docs/registry/sources/tx-hosted-pack-2026-11-13.md"
     },
     "48257": {
       "name": "Kaufman County",

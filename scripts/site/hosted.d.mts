@@ -52,3 +52,4 @@ export function hostedDifferences(
   data: unknown,
   freeLookupsPerDay: number,
 ): string[];
+export const TX_NOTE: string;

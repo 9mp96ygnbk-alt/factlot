@@ -70,7 +70,7 @@ const NYC = {
   36085: "Staten Island",
 };
 
-const TX_NOTE =
+export const TX_NOTE =
   "Denton and Williamson from 2027 preliminary rolls as of 2026-11-07; Midland has no values because its publisher's file has none";
 
 /**
@@ -295,6 +295,10 @@ export function blockText(id, data) {
       );
     case "withheld":
       return withheldText(data);
+    case "texas-names": {
+      const tx = data.places.find((p) => p.key === "tx");
+      return tx ? `${andList(texasNames(tx, data))} counties` : "no counties";
+    }
   }
   throw new Error(`no hosted text named "${id}"`);
 }

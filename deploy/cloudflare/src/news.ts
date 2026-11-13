@@ -12,6 +12,10 @@ export const HOSTING_NOTE = HOSTED_NOTE;
 
 export const WHATS_NEW: { text: string; changelog: string }[] = [
   {
+    text: "Texas registry grows to eighteen counties: Bell and Johnson join, each with roll years 2024 to 2026.",
+    changelog: "eighteen hosted counties",
+  },
+  {
     text: "Six new hosted regions: New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver and Connecticut. Los Angeles County and San Francisco files carry no owner names; the City of Boston is loaded without the rest of Suffolk County.",
     changelog: "six new hosted regions",
   },

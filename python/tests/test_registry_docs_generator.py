@@ -136,13 +136,11 @@ class CoverageMapGenerator(unittest.TestCase):
         self.assertIn("11001", hosted)
         self.assertEqual([f for f in hosted if f.startswith("49")], ["49023", "49043"])
         self.assertEqual(len([f for f in hosted if f.startswith("24")]), 24)
-        # Harris, Dallas, Travis, Collin, Denton, Williamson, Cameron, Nueces, Galveston, Jefferson, Brazos,
-        # Midland, Ector, Grayson, Guadalupe and Kaufman; Tarrant (48439) is withheld
-        self.assertEqual(
-            [f for f in hosted if f.startswith("48")],
-            sorted(["48201", "48113", "48453", "48085", "48121", "48491", "48061", "48355", "48167", "48245",
-                    "48041", "48329", "48135", "48181", "48187", "48257"]),
-        )
+        # Texas: exactly the pack's Texas counties, never Tarrant (48439), which the pack withholds
+        texas = [f for f in hosted if f.startswith("48")]
+        self.assertEqual(texas, sorted(c["fips"] for c in pack["counties"] if c["fips"].startswith("48")))
+        self.assertNotIn("48439", texas)
+        self.assertIn("48439", [w["fips"] for w in pack["withheld"]])
         tarrant = data["counties"]["48439"]
         self.assertNotEqual(tarrant["class"], "hosted")
         self.assertFalse(tarrant["hosted"])
