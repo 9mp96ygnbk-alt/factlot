@@ -26,11 +26,22 @@ _SUFFIXES = [
     (r"\bLIMITED\b", "LTD"),
 ]
 
-# Tokens that mark an organisation rather than a natural person. "CO" followed by a fiduciary or
-# ownership role is a person's role ("SMITH JOHN CO-TRUSTEE", "DOE JANE CO TRS"), not "Company".
+# Words that qualify a fiduciary's role: "CO-SUCCESSOR TRUSTEE", "TEMPORARY CO-GUARDIAN", "CO-PRELIMINARY EXECUTOR",
+# "SUCCESSOR CO-TRUS[TEE]" (cut short by the record).
+_ROLE_QUALIFIER = (r"(?:CO|SUCCESSOR|SUCCESSORS|SUC|SUCC|SOLE|SPECIAL|TEMPORARY|TEMPOARY|TEMP|PRELIMINARY|INDEPENDENT|"
+                   r"ANCILLARY|SUBSTITUTE|ALTERNATE|INTERIM|ACTING|DOMICILIARY|JOINT)")
+# Fiduciary roles that a natural person holds for an estate, a ward or a trust (besides trustee, in ``_TRUSTEE``).
+_FIDUCIARY_ROLE = (r"(?:EXECUTORS?|EXECUTRIX|EXECUTRICES|EXECUTRIXES|EXRS?|ADMINISTRATORS?|ADMINISTRATRIX|"
+                   r"ADMINISTRATRICES|ADMRS?|ADMRX|ADMX|PERSONAL REPRESENTATIVES?|PERSONAL REP|PERS REPS?|GUARDIANS?|"
+                   r"CONSERVATORS?|COMMITTEE|RECEIVERS?)")
+# "CO" followed by a trust word, or by a fiduciary or ownership role however qualified, is a person's ("EXAMPLE, PAT CO
+# TRUST", "SMITH JOHN CO-TRUSTEE", "DOE JANE CO TRS", "DOE JANE CO-SUCCESSOR TRUSTEE", "DOE, AS TEMPORARY CO-GUARDIAN"), not "Company".
+_CO_ROLE = (rf"(?:{_ROLE_QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRS?|TRU|TTEES?|TRUS|TRUSTS?|TRST|TRSUTEES?|GENERAL PARTNERS?|PARTNER|OWNERS?|TENANTS?|ADMIN|EXEC|EXE|EXECUT|"
+            rf"{_FIDUCIARY_ROLE})\b")
+
+# Tokens that mark an organisation rather than a natural person.
 _ENTITY_TOKENS = re.compile(
-    r"\b(LLC|LLP|LP|INC|CORP|CO(?! (?:TRUSTEES?|TRS?|TTEES?|OWNERS?|TENANTS?|EXECUTORS?|EXRS?|"
-    r"EXECUTRIX|ADMINISTRATORS?|ADMRS?|PERSONAL REPRESENTATIVES?)\b)|LTD|PLLC|PC|PARTNERS|PARTNERSHIP|PROPERTIES|PROPERTY|HOLDINGS|"
+    rf"\b(LLC|LLP|LP|INC|CORP|CO(?! {_CO_ROLE})|(?<=TRUST )CO|(?<=BANK )CO|(?<=TITLE )CO|(?<=SAVINGS )CO|(?<=GUARANTY )CO|(?<=FIDUCIARY )CO|(?<=ABSTRACT )CO|LTD|PLLC|PC|PARTNERS|PARTNERSHIP|PROPERTIES|PROPERTY|HOLDINGS|"
     r"REALTY|INVESTMENTS?|FUND|CAPITAL|VENTURES?|ASSOCIATES|GROUP|BANK|CHURCH|ASSOCIATION|"
     r"FOUNDATION|DISTRICT|AUTHORITY|ISD|COUNTY|CITY|STATE|UNIVERSITY|HOSPITAL|REIT|"
     r"REAL ESTATE INVESTMENT TRUST)\b"
@@ -325,11 +336,15 @@ def _structurally_organization(s: str) -> bool:
 _PROBATE = re.compile(
     r"^(?:THE )?(?:ESTATE|EST) OF\b(?! \d)|\b(?:ESTATE|EST) OF$"
     r"|(?<!\bREAL )\b(?:ESTATE|EST) OF\b(?! \d)(?!.*\b(?:LLC|LLLP|LLP|LP|INC|CORP|LTD|PLLC|CO)\b)|\bHEIRS (?:OF|AT LAW)\b|\bUNKNOWN HEIRS\b|\bLIFE (?:ESTATE|EST|TENANTS?)\b"
-    r"|\bDECEASED\b|\bDECD\b|\bDEC D\b")
+    r"|\bDECEASED\b|\bDECD\b|\bDEC D\b"
+    r"|\bSOLE HEIRS?\b|\bHEIRS?$|\bHEIR (?:AT LAW|OF|DIST|DISTRIBUTEE)\b|\bDISTRIBUTEES?\b"
+    # a roll's "<surname> <given> ESTATE OF": a given name or an initial just before the words
+    rf"|\b(?:{'|'.join(sorted(_TRADE_NAME_GIVEN_NAMES))}|[A-Z]) (?:ESTATE|EST) OF\b")
 _TRUST_WORD = r"(?:TRUSTS?|TRST|TR)"
 # Personal trusts, written out or as the rolls abbreviate them. Apostrophes have become spaces ("SURVIVOR S").
 _PERSONAL_TRUST_MARK = re.compile(
-    r"\b(?:REVOCABLE|IRREVOCABLE|REVOC|IRREVOC|IRREV|INTER ?VIVOS|TESTAMENTARY|TESTAMENTRY|QTIP|QPRT|CRUT|CRAT)\b"
+    r"\b(?:REVOCABLE|IRREVOCABLE|REVOC|IRREVOC|IRREV|RVCBLE|INTER ?VIVOS|TESTAMENTARY|TESTAMENTRY|TESTMENTARY|QTIP|QPRT|"
+    r"CRUT|CRAT)\b"
     r"|\bREV (?:LIV|LIVING|LVG|TR|TRUST|TRST|FAM|FAMILY|DEC|DECL|DECLARATION)\b|\bIRR (?:TR|TRUST)\b"
     r"|(?<!\bSENIOR )(?<!\bASSISTED )(?<!\bINDEPENDENT )\b(?:LIVING|LIV|LVG) (?:TR|TRUST|TRST|REV)\b"
     rf"|\b(?:FAMILY|FAM) (?:{_TRUST_WORD}|REV|LIV|LIVING|IRREV)\b"
@@ -347,17 +362,26 @@ _ANY_TRUST_WORD = re.compile(r"\b(?:TRUSTS?|TRST|TR|TRS|TRUSTEES?|TTEES?|TRSTEES
 # A trustee, written out or abbreviated, with its role words; "BOARD OF TRUSTEES" is a body, kept as one unit.
 _BOARD_OF_TRUSTEES = re.compile(r"\b(?:THE )?(?:BOARD|BD|BRD) OF (?:TRUSTEES|TRS|TTEES)\b(?: OF)?(?: THE)?")
 _TRUSTEE = re.compile(
-    r"\b(?:AS )?(?:(?:SUCCESSOR|SUC|SUCC|CO|SOLE|SPECIAL|INDIVIDUALLY AND AS|INDIVIDUALLY AND|INDENTURE|COLLATERAL|OWNER|"
-    r"SEPARATE|CERTIFICATE|INSTITUTIONAL|LIQUIDATING|PLAN|DELAWARE|ADMINISTRATIVE) )?"
-    r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS)\b(?! (?:CO|COMPANY|CORP|SERVICES|SERVICING)\b)"
-    r"(?: (?:OF|FOR|UNDER|U A|U T A|UNDER THE|OF THE|FOR THE|OF THAT|U D T))?")
+    rf"\b(?:AS )?(?:(?:{_ROLE_QUALIFIER}|INDIVIDUALLY AND AS|INDIVIDUALLY AND|INDENTURE|COLLATERAL|OWNER|"
+    r"SEPARATE|CERTIFICATE|INSTITUTIONAL|LIQUIDATING|PLAN|DELAWARE|ADMINISTRATIVE) )*"
+    r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS|(?<=\bCO )TRUS|(?<=\bSUCCESSOR )TRUS)\b"
+    r"(?! (?:CO|COMPANY|CORP|SERVICES|SERVICING)\b)"
+    r"(?: (?:OF|FOR|UNDER|U A|U T A|UNDER THE|OF THE|FOR THE|OF THAT|U D T))?"
+    # An executor, administrator, personal representative, guardian, conservator, committee or receiver: a role only
+    # when written as one (after AS, CO or a qualifier, or ending the name), since GUARDIAN, ADMINISTRATORS or EXR
+    # also stand in companies' names ("GUARDIAN LIFE INSURANCE CO", "EXR PR <place> LLC").
+    rf"|\b(?:AS (?:(?:{_ROLE_QUALIFIER}|PUBLIC|PLAN|PROPERTY) )*|(?:(?:{_ROLE_QUALIFIER}|PUBLIC|PLAN|PROPERTY) )+)"
+    rf"{_FIDUCIARY_ROLE}\b(?: OF THE (?:PROPERTY|PERSON)(?: AND (?:PROPERTY|PERSON))?)?(?: (?:OF|FOR|OF THE|FOR THE))?"
+    rf"|\b{_FIDUCIARY_ROLE}$|^(?:THE )?{_FIDUCIARY_ROLE} (?:OF|FOR)(?: THE)?\b")
 # "<x> TRUST CO TRUSTEES OF ...": the CO is the trust company's, not a co-trustee's.
 _COMPANY_BEFORE_TRUSTEE = re.compile(
-    r"\b(TRUST|BANK|TITLE|SAVINGS|GUARANTY|FIDUCIARY|ABSTRACT) CO (?=(?:AS )?(?:SUCCESSOR )?(?:TRUSTEES?|TTEES?|TRS)\b)")
+    r"\b(TRUST|BANK|TITLE|SAVINGS|GUARANTY|FIDUCIARY|ABSTRACT) CO "
+    rf"(?=(?:AS )?(?:{_ROLE_QUALIFIER} )*(?:TRUSTEES?|TTEES?|TRS|{_FIDUCIARY_ROLE})\b)")
 # A company named as a trustee company: "100 EXAMPLE TRUSTEE LLC", "EXAMPLE TRUSTEES INC".
 _TRUSTEE_COMPANY = re.compile(r"\b(?:TRUSTEES?|TTEES?|TRS) (?:SERVICES |SERVICING |SOLUTIONS )?(?:LLC|LLLP|LLP|LP|INC|CORP|LTD|PLLC|CO)$")
 # Legal forms that end a company's name; what follows the last one is not part of that name.
-_LEGAL_FORM = re.compile(r"\b(?:LLC|LLLP|LLP|LP|INC|CORP|LTD|PLLC|PC|CO(?! (?:TRUSTEES?|TRS?|TTEES?)\b))\b")
+# A trust company's or a bank's "CO" is "Company" whatever follows ("EXAMPLE TRUST CO ADMIN").
+_LEGAL_FORM = re.compile(rf"\b(?:LLC|LLLP|LLP|LP|INC|CORP|LTD|PLLC|PC|CO(?! {_CO_ROLE})|(?<=TRUST )CO|(?<=BANK )CO|(?<=TITLE )CO|(?<=SAVINGS )CO|(?<=GUARANTY )CO|(?<=FIDUCIARY )CO|(?<=ABSTRACT )CO)\b")
 # A land trust identified by number only ("TRUST NO 12345", "LAND TRUST 4021") names no person.
 _NUMBERED_TRUST = re.compile(r"^(?:THE )?(?:LAND )?TRUST (?:NO |NUMBER )?\d[\d A-Z]*$")
 # Securitisation and fund wording after "AS TRUSTEE FOR ...": certificate holders, a series, a numbered trust.
@@ -402,6 +426,8 @@ def _segment_names_no_person(seg: str) -> bool:
         return True
     if _PERSONAL_TRUST_MARK.search(seg) or _PROBATE.search(seg):
         return False
+    if _person_in_side(tokens) or _person_after_anchor(seg, _SIDE_ANCHOR):
+        return False
     forms = list(_LEGAL_FORM.finditer(seg))
     if forms:
         after = seg[forms[-1].end():].split()
@@ -418,6 +444,88 @@ def _segment_names_no_person(seg: str) -> bool:
     return bool(m) and not _only_given_names([t for t in tokens if not _INSTITUTION_WORD.fullmatch(t)])
 
 
+# A given name with an initial and a surname ("PAT Q EXAMPLE"), or the roll's "EXAMPLE PAT Q", on one side of a
+# trustee or other fiduciary: a person, whatever institution word stands beside it.
+def _person_in_side(tokens: list[str]) -> bool:
+    for i, t in enumerate(tokens):
+        if t not in _TRADE_NAME_GIVEN_NAMES:
+            continue
+        nxt = tokens[i + 1:i + 3]
+        if len(nxt) == 2 and len(nxt[0]) == 1 and nxt[0].isalpha() and len(nxt[1]) > 1 and nxt[1].isalpha():
+            return True  # PAT Q EXAMPLE
+        if len(nxt) >= 1 and nxt[0] in ("TRUST", "TR", "TRST") and tokens[i + 2:i + 3] not in (["CO"], ["COMPANY"]):
+            return True  # EXAMPLE PAT TRUST: a trust named for a person
+        if (i > 0 and tokens[i - 1].isalpha() and len(tokens[i - 1]) > 1 and len(nxt) >= 1 and len(nxt[0]) == 1
+                and nxt[0].isalpha() and (len(nxt) == 1 or nxt[1] in ("TRUST", "TR", "TRST", "JR", "SR"))):
+            return True  # EXAMPLE PAT Q (TRUST)
+    return False
+
+
+# What may stand before a person's name at the end of a party or owner string without making it the organisation's:
+# a legal form, and (on a fiduciary's side) a public body ("PUBLIC ADMINISTRATOR OF EXAMPLE COUNTY, PAT Q EXAMPLE").
+_SIDE_ANCHOR = re.compile(rf"{_LEGAL_FORM.pattern}|\b(?:COUNTY|CITY|TOWN|STATE|VILLAGE|BOROUGH)\b")
+# Words before a given name that make it part of a place's or a surname's name ("SAN ANTONIO", "ST JOHN", "D'ANGELO",
+# "A VIRGINIA corporation").
+_BEFORE_GIVEN_NOT_A_PERSON = frozenset("SAN SANTA ST SAINT FORT FT PORT MOUNT MT LAKE CAPE A AN D O MORGAN".split())
+# A street line or a property's label after a company's name ("ACME LLC - 300 EXAMPLE DR", "ACME LLC RS 12 PAT"):
+# not a person, unless the account is held for one ("... FBO PAT EXAMPLE IRA 1234").
+_STREET_WORD = frozenset("ST STREET DR DRIVE AVE AVENUE RD ROAD BLVD BOULEVARD PKWY PARKWAY LN LANE WAY CT COURT HWY "
+                         "HIGHWAY FWY FREEWAY TRL TRAIL PL PLACE CIR CIRCLE LOOP SQ SQUARE TER TERRACE PLZ PLAZA".split())
+_CONNECTORS = frozenset("AND OF THE A".split())
+_TRUST_WORDS = frozenset("TR TRUST TRUSTS TRST TRUSTEE TRUSTEES".split())
+_FOR_BENEFIT_OF = re.compile(r"\b(?:FBO|F B O|CFBO|C F B O|IRA|ROTH|SEP IRA|HSA)\b")
+# Words that make a co-owner's name an organisation's or a place's ("ACME LLC AND EXAMPLE HOUSING DEVELOPMENT").
+# (With ``NAME_STOP_TOKENS``, defined below.)
+_CO_OWNER_ORG_WORDS = (_GENERIC_BUSINESS_WORDS | _LP_CONTEXT | _STREET_WORD
+                       | frozenset("JV ASSIGNS ASSIGN AGENT MISSION RESIDENTIAL HOUSING SOUND RIVER LAKE CREEK HILLS "
+                                   "HILL PARK RANCH FARMS TIC TEMPLO IGLESIA".split()))
+
+
+def _person_after_anchor(s: str, anchor: re.Pattern[str]) -> bool:
+    """A person named after a company's (or a public body's) name: "ACME LLC PAT EXAMPLE ET AL", "ACME INC ETAL EXAMPLE,
+    PAT Q", "ACME LTD AND QUIN EXAMPLE", "ACME CO FBO PAT EXAMPLE IRA", "ACME LLC C/O PAT EXAMPLE".
+
+    What follows the last anchor ("ET AL" and contact markers aside) is read as a person when it is an account held for
+    one (FBO, IRA); when it holds a given name (``_TRADE_NAME_GIVEN_NAMES``, not in a place's or surname's name) beside an
+    initial and no street word; or, holding no word that makes it an organisation, an institution, a street, a number or
+    a property, when it holds a given name or is a co-owner of two to four plain words after AND that are not the
+    company's own words ("ACME WEST LLC AND ACME WEST" is an affiliate)."""
+    forms = list(anchor.finditer(s))
+    if not forms:
+        return False
+    head = s[:forms[-1].start()].split()
+    tail = re.sub(r"\b(?:ET AL|ETAL|ETALS|ET UX|ETUX|ET VIR|ETVIR|C O|ATTN|ATTENTION|ATT|CARE OF|BY)\b", " ",
+                  s[forms[-1].end():]).split()
+    if not tail:
+        return False
+    text = " ".join(tail)
+
+    def given(i: int, t: str) -> bool:
+        return t in _TRADE_NAME_GIVEN_NAMES and not (i > 0 and tail[i - 1] in _BEFORE_GIVEN_NOT_A_PERSON)
+
+    def initial(j: int) -> bool:
+        return 0 <= j < len(tail) and len(tail[j]) == 1 and tail[j].isalpha() and tail[j] not in ("A",)
+
+    if _FOR_BENEFIT_OF.search(text) and any(given(i, t) or initial(i) for i, t in enumerate(tail)):
+        return True  # an account held for a person
+    if _INSTITUTION_WORD.search(text) and not _FOR_BENEFIT_OF.search(text):
+        return False
+    if not any(t in _STREET_WORD for t in tail) and any(
+            given(i, t) and (initial(i + 1) or initial(i - 1)) for i, t in enumerate(tail)):
+        return True  # PAT Q EXAMPLE, EXAMPLE PAT Q
+    if (_ENTITY_TOKENS.search(text) or any(not t.isalpha() for t in tail)
+            or any(t in _CO_OWNER_ORG_WORDS or (t in NAME_STOP_TOKENS and t not in _CONNECTORS
+                                                 and t not in _TRUST_WORDS) for t in tail)):
+        return False
+    if any(given(i, t) for i, t in enumerate(tail)):
+        return True
+    if tail[0] == "AND":
+        words = tail[1:]
+        own = [t for t in words if len(t) > 2]
+        return 2 <= len(words) <= 4 and not (own and all(t in head for t in own))
+    return False
+
+
 def _wrapper_tail(s: str) -> bool:
     """Whether a personal trust, a trustee or a probate form follows a company's legal form ("ACME LLC DOE J REV TR")."""
     forms = list(_LEGAL_FORM.finditer(s))
@@ -426,7 +534,8 @@ def _wrapper_tail(s: str) -> bool:
     first_end = forms[0].end()
     tail = s[first_end:]
     trustee = bool(_TRUSTEE.search(tail)) and not _trustee_company(s)
-    return bool(_PERSONAL_TRUST_MARK.search(tail) or _PROBATE.search(tail) or trustee or _personal_instrument(tail))
+    return bool(_PERSONAL_TRUST_MARK.search(tail) or _PROBATE.search(tail) or trustee or _personal_instrument(tail)
+                or _person_after_anchor(s, _LEGAL_FORM))
 
 
 def _company_estate(s: str) -> bool:
@@ -1016,6 +1125,176 @@ def scrub_mailing_address(address: str | None) -> tuple[str | None, int]:
     text = re.sub(r"\s+", " ", "".join(out))
     text = re.sub(r"\s*,\s*(?:,\s*)*", ", ", text).strip(" ,")
     return (text or None), removed
+
+
+# --- the leading line of a mailing address ------------------------------------------------------
+#
+# Many rolls and entity registries write a name before the street line of a mailing address: the owner itself ("ACME
+# LLC, 100 MAIN ST, ..."), a manager ("C/O ACME MANAGEMENT LLC, ..."), or a natural person ("PAT Q EXAMPLE, 100 MAIN
+# ST", "PAT EXAMPLE TRUSTEE, CITY, TX", "ATT: PAT EXAMPLE, CITY, NH", "PAT Q EXAMPLE 33 MILL RD, CITY, CT"). An address
+# whose leading line names a person, or cannot be read, is not stored or served (``mailing_address_withheld``).
+
+# A routing marker at the start of a line, in any of the forms rolls write it ("C/O", "C O", "CO", "CARE OF", "ATTN",
+# "ATTN:", "ATT:", "ATTENTION", "ACCT", "%").
+_LEAD_MARKER = re.compile(
+    r"^(?:C\s*/\s*O|C\s+O|C\.\s*O\.?|CO(?!\s+(?:RD|ROAD|HWY|HIGHWAY|LINE)\b)|CARE\s+OF|ATTN|ATTENTION|ATT|ACCT|%)"
+    r"(?![A-Z0-9])[\s:.\-/]*", re.I)
+# The same markers inside a line ("ACME LLC ATTN PAT EXAMPLE"): what follows is read on its own.
+_LEAD_MARKER_INSIDE = re.compile(r"(?<![A-Z0-9])(?:C\s*/\s*O|CARE\s+OF|ATTN|ATTENTION|ATT|%)(?![A-Z0-9])[\s:.\-]*", re.I)
+# Words that begin the box or route part of an address.
+_BOX_START = frozenset("PO POB PMB DRAWER BOX".split())
+_ROUTE_START = frozenset("RR HC CMR PSC".split())
+_NUMBER_WORDS = frozenset("ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE TWENTY THIRTY FIFTY HUNDRED "
+                          "FIRST".split())
+# Street types written short: a line ending in one is a street ("JOHN F KENNEDY BLVD", "MARTIN LUTHER KING JR DR", "SAN
+# JACINTO ST") whatever names it holds.
+_STREET_ABBREV = frozenset("ST RD DR AVE AV BLVD LN PKWY PKY HWY FWY EXPY CT CIR TRL PL PLZ SQ TER TPKE WY CTR STE FL "
+                           "FLR BLDG RT RTE".split())
+# Street and building words written out: a street only when no given name stands before them ("HAMPTON STREET",
+# "LILLY CORPORATE CENTER"; "PAT LANE" is a person).
+_STREET_LONG = frozenset("STREET ROAD DRIVE AVENUE BOULEVARD LANE PARKWAY HIGHWAY FREEWAY EXPRESSWAY COURT CIRCLE "
+                         "TRAIL PLACE PLAZA SQUARE TERRACE TURNPIKE WAY CENTER CENTRE TOWER TOWERS BUILDING PARK "
+                         "CAMPUS ROUTE PIKE ALLEY ROW CRESCENT LOOP".split())
+# Lines that route mail inside an organisation and name no one: "TAX DEPT", "ACCOUNTS PAYABLE", "ESQ.", "C.P.A.".
+_DESCRIPTOR_WORDS = frozenset(
+    "TAX TAXES DEPT DEPARTMENT DEPARTMENTS DIV DIVISION ACCOUNTS ACCOUNT ACCT PAYABLE RECEIVABLE PROPERTY PROPERTIES "
+    "REAL ESTATE LEGAL LAW OFFICE OFFICES ESQ CPA C P A STORE NO NUMBER UNIT SUITE STE FLOOR FL MAIL STOP MS ROOM RM "
+    "LOC LOCATION ATTN THE OF AND FOR GENERAL COUNSEL CORPORATE SERVICES SERVICE CENTER CTR ADMINISTRATION ADMIN "
+    "MANAGEMENT MGMT LEASE LEASING PORTFOLIO ASSET ASSETS COMPLIANCE FINANCE ACCOUNTING HEADQUARTERS HQ NON TAXABLE "
+    "EXEMPT REGISTERED AGENT AGENTS BILLING INVOICE INVOICES PAYMENT PAYMENTS PROCESSING PROP OFC GENERAL DELIVERY "
+    "POST STREET ADDRESS ACCTS AD VALOREM VALOREM UNKNOWN".split())
+# Words that route mail inside an organisation: a line of one other word and these names a department, not a person.
+_ROUTING_WORDS = frozenset("TAX TAXES DEPT DEPARTMENT DIV DIVISION OFFICE OFFICES PAYABLE ACCOUNTING FINANCE LEGAL "
+                           "COUNSEL HEADQUARTERS HQ".split())
+_STATES = ("ALABAMA ALASKA ARIZONA ARKANSAS CALIFORNIA COLORADO CONNECTICUT DELAWARE FLORIDA GEORGIA HAWAII IDAHO "
+           "ILLINOIS INDIANA IOWA KANSAS KENTUCKY LOUISIANA MAINE MARYLAND MASSACHUSETTS MICHIGAN MINNESOTA "
+           "MISSISSIPPI MISSOURI MONTANA NEBRASKA NEVADA OHIO OKLAHOMA OREGON PENNSYLVANIA TENNESSEE TEXAS UTAH "
+           "VERMONT VIRGINIA WASHINGTON WISCONSIN WYOMING").split() + [
+    "NEW HAMPSHIRE", "NEW JERSEY", "NEW MEXICO", "NEW YORK", "NORTH CAROLINA", "NORTH DAKOTA", "RHODE ISLAND",
+    "SOUTH CAROLINA", "SOUTH DAKOTA", "WEST VIRGINIA"]
+_STATE = r"(?:[A-Z]{2}|" + "|".join(sorted(_STATES, key=len, reverse=True)) + r")"
+_ZIP = r"\d{5}(?:\s?-?\s?\d{4})?"
+# A segment that is the state and ZIP alone ("TX 77002", "TX", "77002"), so the segment before it is the city.
+_STATE_ONLY = re.compile(rf"^(?:{_STATE}(?: {_ZIP})?|{_ZIP}|USA|US|UNITED STATES|CANADA)$")
+# A segment that holds the city with the state ("WASHINGTON DC 20002").
+_CITY_STATE = re.compile(rf"^[A-Z ]+ {_STATE}(?: {_ZIP})?$")
+_LEAD_ROLE = re.compile(
+    r"\b(?:TRUSTEES?|TTEES?|TRS|EXECUTORS?|EXECUTRIX|EXRS?|ADMINISTRATORS?|ADMINISTRATRIX|ADMRS?|PERSONAL REPRESENTATIVES?|"
+    r"GUARDIANS?|CONSERVATORS?|HEIRS?|ESTATE OF|EST OF)\b")
+_LEGAL_TOKENS = frozenset("LLC INC LP LTD CORP CO TRUST LLP PLLC".split())
+
+
+def _clean_line(line: str) -> list[str]:
+    return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9# ]+", " ", _APOSTROPHES.sub("", line.upper()))).split()
+
+
+def _street_start(tokens: list[str]) -> int | None:
+    """Where the street, box or route part of one comma segment starts, or None when it holds none."""
+    first = tokens[0]
+    if first[0].isdigit() or first.startswith("#") or (first in _NUMBER_WORDS and len(tokens) > 1):
+        return 0
+    for i, t in enumerate(tokens):
+        if t in _BOX_START or (t == "P" and tokens[i + 1:i + 2] == ["O"]):
+            return i
+        if t in _ROUTE_START and any(c.isdigit() for c in "".join(tokens[i + 1:i + 2])):
+            return i
+    # A house number inside the segment: the last digit-led token followed by a word ("PAT Q EXAMPLE 33 MILL RD").
+    for i in range(len(tokens) - 2, 0, -1):
+        if tokens[i][0].isdigit() and tokens[i + 1][0].isalpha() and tokens[i + 1] not in _LEGAL_TOKENS:
+            return i
+    return None
+
+
+def _is_street_line(tokens: list[str]) -> bool:
+    """A street or building line with no house number: "N CARPENTER ST", "JOHN F KENNEDY BLVD", "HAMPTON STREET"."""
+    if len(tokens) < 2:
+        return False
+    if tokens[-1] in _STREET_ABBREV:
+        return True
+    if tokens[-1] in _STREET_LONG:
+        return not any(t in _TRADE_NAME_GIVEN_NAMES for t in tokens[:-1]) or (
+            len(tokens) >= 3 and any(len(t) == 1 for t in tokens[:-1]))
+    return False
+
+
+def mailing_lead(address: str) -> list[str]:
+    """The lines before the street (or box) line of a mailing address, marker included, or [] when the address
+    starts with its street, box or city. The city, state and ZIP at its end are never part of it."""
+    joined = _SUFFIX_SEGMENT.sub(lambda m: m.group(0).replace(",", " "), address)
+    lead: list[str] = []
+    for seg in (s.strip() for s in joined.split(",")):
+        tokens = _clean_line(seg)
+        if not tokens:
+            continue
+        start = _street_start(tokens)
+        if start is not None:
+            if start > 0:
+                lead.append(" ".join(tokens[:start]))
+            return lead
+        if _is_street_line(tokens):
+            return lead
+        lead.append(" ".join(tokens) if _LEAD_MARKER.match(seg.strip()) is None else seg.strip())
+    # No street line: the last segments are the state (and ZIP) and the city.
+    if lead and _STATE_ONLY.match(" ".join(_clean_line(lead[-1]))):
+        lead.pop()
+        if lead:
+            lead.pop()
+    elif lead and _CITY_STATE.match(" ".join(_clean_line(lead[-1]))):
+        lead.pop()
+    return lead
+
+
+def mailing_lead_class(address: str | None) -> tuple[str, list[str]]:
+    """``(class, lines)`` of a mailing address's leading lines (``mailing_lead``): ``none`` (it starts with its street,
+    box or city), ``street`` (a street, building or routing line that names no one: "EXAMPLE PLAZA", "TAX DEPT"),
+    ``organisation`` (``is_organization``, after any routing marker), ``person`` (a natural person, alone, with a role
+    or after a routing marker) or ``unclear``. With several lines the worst counts: person, unclear, organisation,
+    street."""
+    lines = mailing_lead(address) if address else []
+    seen: set[str] = set()
+    for line in lines:
+        text = _LEAD_MARKER.sub("", line.strip().upper()).strip()
+        marked = text != line.strip().upper()
+        parts = [p.strip() for p in _LEAD_MARKER_INSIDE.split(text) if p and p.strip()]
+        for part in parts:
+            tokens = _clean_line(part)
+            if not tokens:
+                continue
+            unknown = [t for t in tokens if not (t in _DESCRIPTOR_WORDS or t[0].isdigit() or t.startswith("#"))]
+            if not unknown or _is_street_line(tokens):
+                seen.add("street")
+            elif (len(unknown) == 1 and len(tokens) >= 3 and unknown[0] not in _TRADE_NAME_GIVEN_NAMES
+                  and len(unknown[0]) > 1 and not marked and any(t in _ROUTING_WORDS for t in tokens)):
+                seen.add("street")  # one organisation's name and its routing: "EXAMPLE TAX DEPT", "EXAMPLE REAL ESTATE OFFICE"
+            elif is_organization(part):
+                seen.add("organisation")
+            elif (_LEAD_ROLE.search(" ".join(tokens)) or marked or len(parts) > 1
+                  or (2 <= len(tokens) <= 6 and all(t.isalpha() for t in tokens))):
+                seen.add("person")
+            else:
+                seen.add("unclear")
+    for c in ("person", "unclear", "organisation", "street"):
+        if c in seen:
+            return c, lines
+    return "none", lines
+
+
+def mailing_address_withheld(address: str | None, owner_name: str | None = None) -> str | None:
+    """Why a mailing address must not be stored or served, or None to keep it.
+
+    It is withheld when its leading line (``mailing_lead_class``) names a natural person ("PAT Q EXAMPLE", "PAT EXAMPLE
+    TRUSTEE", "C/O PAT EXAMPLE", "ATT: PAT EXAMPLE") or cannot be read, unless that line is the name of the owner or
+    entity it belongs to (``owner_name``, an organisation). A line naming an organisation, a street, a building, a box
+    or an internal routing ("TAX DEPT"), or no line at all, keeps it. Returns ``"person"`` or ``"unclear"``."""
+    cls, lines = mailing_lead_class(address)
+    if cls not in ("person", "unclear"):
+        return None
+    if cls == "unclear" and owner_name and is_organization(owner_name):
+        owner_key = normalize_name(owner_name)
+        keys = [normalize_name(_LEAD_MARKER.sub("", line.strip().upper())) for line in lines]
+        if all(k and (k == owner_key or k in owner_key) for k in keys):
+            return None
+    return cls
 
 
 # --- entity standing, for disambiguating same-name entities ------------------------------------

@@ -7,6 +7,8 @@ reports, per file:
 - party names in recorded documents (deeds, mortgages, satisfactions: ``grantors``, ``grantees``, ``borrowers``,
   ``lenders``) that the rule would not store as written (``normalize.organization_part``): a person, an estate, a
   personal trust, a trustee named in person, a company followed by a personal trust;
+- owner and entity mailing addresses whose leading line (before the street line) names a natural person or cannot be
+  read (``normalize.mailing_address_withheld``: "PAT Q EXAMPLE, CITY, TX", "C/O PAT EXAMPLE, ...", "ATT: PAT EXAMPLE");
 - owner and entity mailing addresses whose owner or entity name reads as a person's or a family's
   (``normalize.personal_style_organization``: "JOHN SMITH LLC", "SMITH FAMILY LP"), which ingest no longer
   stores because they are most often a home.
@@ -25,7 +27,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .normalize import is_organization, organization_part, personal_style_organization
+from .normalize import is_organization, mailing_address_withheld, organization_part, personal_style_organization
 from .store import PARTY_LIST_PREDICATES, PARTY_ROLES
 
 _MAILING = (
@@ -73,6 +75,18 @@ def scan(path: str | Path) -> dict[str, Any]:
                 n_parties += bad
                 if len(parties) < SAMPLES and subject not in parties:
                     parties.append(subject)
+        leads: list[str] = []
+        n_leads = 0
+        for name_predicate, mailing in _MAILING:
+            for subject, value_json, name_json in db.execute(
+                    "SELECT m.subject, m.value_json, (SELECT n.value_json FROM facts n WHERE n.subject = m.subject "
+                    "AND n.document_id = m.document_id AND n.predicate = ? LIMIT 1) FROM facts m WHERE m.predicate = ?",
+                    (name_predicate, mailing)):
+                address = _name(value_json)
+                if address is not None and mailing_address_withheld(address, _name(name_json) if name_json else None):
+                    n_leads += 1
+                    if len(leads) < SAMPLES:
+                        leads.append(subject)
         homes: list[str] = []
         n_homes = 0
         for name_predicate, mailing in _MAILING:
@@ -92,6 +106,8 @@ def scan(path: str | Path) -> dict[str, Any]:
         "person_owner_samples": persons,
         "person_party_names": n_parties,
         "person_party_samples": parties,
+        "person_mailing_leads": n_leads,
+        "person_mailing_lead_samples": leads,
         "personal_style_mailing_addresses": n_homes,
         "personal_style_samples": homes,
     }
@@ -105,6 +121,9 @@ def problems(path: str | Path, report: dict[str, Any]) -> list[str]:
     if report["person_party_names"]:
         out.append(f"{path}: {report['person_party_names']} party names in recorded documents read as natural persons "
                    f"(e.g. {', '.join(report['person_party_samples'])})")
+    if report.get("person_mailing_leads"):
+        out.append(f"{path}: {report['person_mailing_leads']} mailing addresses whose leading line names a natural person "
+                   f"or cannot be read (e.g. {', '.join(report['person_mailing_lead_samples'])})")
     if report["personal_style_mailing_addresses"]:
         out.append(f"{path}: {report['personal_style_mailing_addresses']} mailing addresses of owners or entities "
                    f"whose name reads as a person's or a family's (e.g. {', '.join(report['personal_style_samples'])})")
