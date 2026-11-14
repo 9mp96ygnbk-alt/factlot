@@ -40,7 +40,7 @@ const GIVEN = new Set(
 );
 const QUALIFIER =
   "(?:CO|SUCCESSOR|SUC|SUCC|SOLE|SPECIAL|TEMPORARY|TEMPOARY|TEMP|PRELIMINARY|INDEPENDENT|ANCILLARY|SUBSTITUTE|ALTERNATE|INTERIM|ACTING|DOMICILIARY|JOINT)";
-const CO_ROLE = `(?:${QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRS?|TRU|TTEES?|TRUS|TRUSTS?|TRST|TRSUTEES?|GENERAL PARTNERS?|PARTNER|OWNERS?|TENANTS?|ADMIN|EXEC|EXE|EXECUT|EXECUTORS?|EXECUTRIX|EXRS?|ADMINISTRATORS?|ADMINISTRATRIX|ADMRS?|PERSONAL REPRESENTATIVES?|PERSONAL REP|GUARDIANS?|CONSERVATORS?|COMMITTEE|RECEIVERS?|T$)\\b`;
+const CO_ROLE = `(?:${QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRT|TRTE|TRTEES?|TRUSSTEES?|TRUSTE|TRSTE|TRSTEES?|TRS?|TRU|TTEES?|TRUS|TRUSTS?|TRST|TRSUTEES?|GENERAL PARTNERS?|PARTNER|OWNERS?|TENANTS?|ADMIN|EXEC|EXE|EXECUT|EXECUTORS?|EXECUTRIX|EXRS?|ADMINISTRATORS?|ADMINISTRATRIX|ADMRS?|PERSONAL REPRESENTATIVES?|PERSONAL REP|GUARDIANS?|CONSERVATORS?|COMMITTEE|RECEIVERS?|T$)\\b`;
 /** "CO" is "Company" unless a role follows it; after TRUST or BANK it is always "Company". */
 const CO = `(?:CO(?! ${CO_ROLE})|(?<=\\b(?:TRUST|BANK|TITLE|SAVINGS|GUARANTY|FIDUCIARY|ABSTRACT) )CO)`;
 const LEGAL_FORM = new RegExp(
@@ -443,6 +443,30 @@ function piecesNameAPerson(value: string): boolean {
 /** "&" after a company's name starts a new owner: "ACME LLC & PAT EXAMPLE", "EXAMPLE FOUNDATION AND PAT EXAMPLE". */
 function coOwnerIsPerson(value: string): boolean {
   const parts = value.toUpperCase().split(/\s*(?:&|\bAND\b)\s*/);
+  // A co-owner written "SURNAME, GIVEN ..." with no organisation word, beside others: "EXAMPLE, PAT Q & ACME LLC",
+  // "ACME CHURCH TR & EXAMPLE, PAT Q". The word after the comma is a listed given name, or an initial or a second word
+  // follows it (not "SMITH, JONES & BROWN LLP", a firm named for its partners).
+  if (parts.length > 1)
+    for (const part of parts) {
+      const m = /^\s*([A-Z'-]{2,})\s*,\s*([A-Z][A-Z .]*?)\s*,?\s*$/.exec(part);
+      if (!m) continue;
+      const after = clean(m[2]!)
+        .split(" ")
+        .filter((t) => t !== "");
+      if (after.length === 0) continue;
+      const words = [clean(m[1]!), ...after];
+      if (
+        ORGANIZATION.test(words.join(" ")) ||
+        words.some((t) => NOT_A_PERSON_TAIL.has(t) || DESCRIPTOR_WORDS.has(t))
+      )
+        continue;
+      if (
+        GIVEN.has(after[0]!) ||
+        after.length >= 2 ||
+        after.some((t) => /^[B-HJ-Z]$/.test(t))
+      )
+        return true;
+    }
   // A person first, then a company: "EXAMPLE PAT Q & ACME REALTY", "EXAMPLE, PAT & ACME LLC" (not "PAT EXAMPLE &
   // SONS INC", "SMITH C AND G PROPERTIES LTD", "THE PAT & MARY EXAMPLE FOUNDATION").
   if (parts.length > 1) {
@@ -499,6 +523,23 @@ function coOwnerIsPerson(value: string): boolean {
 function surnameCollision(s: string): boolean {
   const t = s.split(" ");
   if (!/^(?:CHURCH|CITY|COUNTY|STATE|BANK)$/.test(t[0] ?? "")) return false;
+  // "CHURCH QUIN E": the surname, a name and an initial, whatever the name
+  if (
+    t.length >= 3 &&
+    t.length <= 4 &&
+    !t.includes("OF") &&
+    /^[B-HJ-Z]$/.test(t[t.length - 1]!) &&
+    t
+      .slice(1, -1)
+      .every(
+        (x) =>
+          /^[A-Z]{2,}$/.test(x) &&
+          !NOT_A_PERSON_TAIL.has(x) &&
+          !DESCRIPTOR_WORDS.has(x),
+      ) &&
+    !ORGANIZATION.test(t.slice(1).join(" "))
+  )
+    return true;
   if (!GIVEN.has(t[1] ?? "") || t[1] === "JESUS") return false;
   if (t.some((x) => DESCRIPTOR_WORDS.has(x))) return false;
   const rest = t.slice(1).filter((x) => x !== "AND");

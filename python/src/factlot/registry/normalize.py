@@ -36,7 +36,7 @@ _FIDUCIARY_ROLE = (r"(?:EXECUTORS?|EXECUTRIX|EXECUTRICES|EXECUTRIXES|EXRS?|ADMIN
                    r"CONSERVATORS?|COMMITTEE|RECEIVERS?)")
 # "CO" followed by a trust word, or by a fiduciary or ownership role however qualified, is a person's ("EXAMPLE, PAT CO
 # TRUST", "SMITH JOHN CO-TRUSTEE", "DOE JANE CO TRS", "DOE JANE CO-SUCCESSOR TRUSTEE", "DOE, AS TEMPORARY CO-GUARDIAN"), not "Company".
-_CO_ROLE = (rf"(?:{_ROLE_QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRS?|TRU|TTEES?|TRUS|TRUSTS?|TRST|TRSUTEES?|GENERAL PARTNERS?|PARTNER|T$|OWNERS?|TENANTS?|ADMIN|EXEC|EXE|EXECUT|"
+_CO_ROLE = (rf"(?:{_ROLE_QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRT|TRTE|TRTEES?|TRUSSTEES?|TRUSTE|TRSTE|TRSTEES?|TRS?|TRU|TTEES?|TRUS|TRUSTS?|TRST|TRSUTEES?|GENERAL PARTNERS?|PARTNER|T$|OWNERS?|TENANTS?|ADMIN|EXEC|EXE|EXECUT|"
             rf"{_FIDUCIARY_ROLE})\b")
 
 # Tokens that mark an organisation rather than a natural person.
@@ -238,6 +238,12 @@ _INSTITUTION_NAME_WORDS = frozenset(
 def _is_surname_collision(s: str) -> bool:
     """Whether a cleaned name is a person whose surname is one of ``_SURNAME_WORDS``."""
     tokens = s.split()
+    # "CHURCH QUIN E": the surname, a name and an initial, whatever the name
+    if (3 <= len(tokens) <= 4 and tokens[0] in _SURNAME_WORDS and len(tokens[-1]) == 1 and tokens[-1] not in "AI"
+            and "OF" not in tokens
+            and all(t.isalpha() and len(t) > 1 and not _ENTITY_TOKENS.search(t) and t not in _INSTITUTION_NAME_WORDS
+                    for t in tokens[1:-1])):
+        return True
     # "CHURCH PAT QUIN", "CITY PAT AND MARY EXAMPLE": once a given name follows the surname, any plain words may follow
     if (len(tokens) >= 2 and tokens[0] in _SURNAME_WORDS and tokens[1] in _TRADE_NAME_GIVEN_NAMES
             and tokens[1] != "JESUS" and "OF" not in tokens
@@ -989,6 +995,20 @@ def _co_owner_is_person(text: str) -> bool:
     parts = re.split(r"\s*(?:&|\bAND\b)\s*", text.upper())
     if len(parts) < 2:
         return False
+    # a co-owner written "SURNAME, GIVEN ..." with no organisation word: the word after the comma is a listed given name,
+    # or an initial or a second word follows it (not "SMITH, JONES & BROWN LLP", a firm named for its partners)
+    for part in parts:
+        m = re.match(r"^\s*([A-Z'-]{2,})\s*,\s*([A-Z][A-Z .]*?)\s*,?\s*$", part)
+        if not m:
+            continue
+        after = _clean_for_rule(m.group(2)).split()
+        words = _clean_for_rule(m.group(1)).split() + after
+        if (not after or _organization_reading(" ".join(words))
+                or any(t in _CO_OWNER_ORG_WORDS or t in _PIECE_DESCRIPTOR_WORDS or t in NAME_STOP_TOKENS for t in words)):
+            continue
+        if (after[0] in _TRADE_NAME_GIVEN_NAMES or len(after) >= 2
+                or any(len(t) == 1 and t not in "AI" for t in after)):
+            return True
     first_raw = re.sub(r"\([^()]*\)?", " ", parts[0])
     first = _clean_for_rule(first_raw).split()
     second = _clean_for_rule(parts[1])
