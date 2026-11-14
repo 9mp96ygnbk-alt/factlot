@@ -76,6 +76,7 @@ import {
   siteFooter,
   siteHeader,
 } from "./shell.mjs";
+import { siteProblems } from "./link-check.mjs";
 import { published } from "./site-files.mjs";
 import { INSETS, box, insetSvg, miniMapSvg } from "./coverage-maps.mjs";
 import {
@@ -1614,52 +1615,8 @@ ${entries.map(([u, src, lm]) => `  <url><loc>${SITE}${u}</loc><lastmod>${lm ?? l
 `,
 );
 
-// Every internal link resolves, nothing loads from another origin, JSON-LD parses.
-const problems = [];
-const exists = (u) => {
-  const p = decodeURIComponent(u.split(/[?#]/)[0]);
-  const f = path.join(out, p);
-  return (
-    p === "/" ||
-    // A path the Worker answers itself (the lookup pages) is not a file of the site.
-    workerPath(p.replace(/\/+$/, "")) ||
-    fs.existsSync(path.join(f, "index.html")) ||
-    (fs.existsSync(f) && fs.statSync(f).isFile()) ||
-    fs.existsSync(`${f}.html`)
-  );
-};
-for (const f of fs
-  .readdirSync(out, { recursive: true })
-  .filter((f) => f.endsWith(".html"))) {
-  const html = fs.readFileSync(path.join(out, f), "utf8");
-  for (const [, u] of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
-    if (u.startsWith("/") && !u.startsWith("//") && !exists(u))
-      problems.push(`${f}: broken link ${u}`);
-  }
-  for (const [tag] of html.matchAll(
-    /<script\b[^>]*>|<link\b[^>]*rel="stylesheet"[^>]*>/g,
-  )) {
-    if (/(?:src|href)="(?:https?:)?\/\//.test(tag))
-      problems.push(`${f}: external resource ${tag}`);
-    // The only scripts besides JSON-LD are same-origin files under /try/.
-    if (
-      tag.startsWith("<script") &&
-      !tag.includes("application/ld+json") &&
-      !/^<script src="\/try\/[a-z-]+\.js" defer>$/.test(tag)
-    )
-      problems.push(`${f}: script that is not JSON-LD or a /try/ file`);
-  }
-  for (const [, j] of html.matchAll(
-    /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
-  )) {
-    try {
-      JSON.parse(j);
-    } catch (e) {
-      problems.push(`${f}: JSON-LD does not parse: ${e.message}`);
-    }
-  }
-  if (/\{\{[A-Z_]+\}\}/.test(html)) problems.push(`${f}: unfilled placeholder`);
-}
+// Every internal link resolves, nothing loads from another origin, JSON-LD parses (link-check.mjs).
+const problems = siteProblems(out);
 if (problems.length) {
   console.error(problems.join("\n"));
   process.exit(1);
