@@ -35,6 +35,7 @@ import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
   EMPTY_ANSWERS_PER_HOUR,
+  FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
   PLANS,
 } from "./plans.ts";
 import { resetPropertyPagesState } from "./property-pages.ts";
@@ -302,6 +303,16 @@ function world(vars: Record<string, string> = {}) {
       { now: () => clock.t },
     );
   return { env, kv, clock, counts, get, usedToday, apiPost };
+}
+
+/** A free key, stored as the free-key flow stores it. */
+async function issueFree(kv: MemoryKV) {
+  const key = `fl_free_${generateKey().slice("fl_live_".length)}`;
+  await kv.put(
+    `freekey:${await hashKey(key)}`,
+    JSON.stringify({ email_hash: "e".repeat(64), created: "2026-11-07" }),
+  );
+  return key;
 }
 
 async function issue(kv: MemoryKV, plan: "pro" | "team" = "pro") {
@@ -671,6 +682,42 @@ describe("lookup pages: the allowance", () => {
     assert.equal(await w.usedToday("198.51.100.9"), 0);
   });
 
+  it("says whose allowance a lookup was counted on: the address's, a free key's or a subscription's", async () => {
+    const w = world();
+    const day = ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY;
+    const noKey = strip(await (await w.get(MAIN_TX_PATH)).text());
+    assert.ok(
+      noKey.includes(
+        `${day - 1} of ${day} free registry lookups left today for your IP address`,
+      ),
+    );
+    const key = await issueFree(w.kv);
+    const res = await w.get(MAIN_TX_PATH, { key });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("x-factlot-tier"), "anonymous");
+    const text = strip(await res.text());
+    assert.ok(
+      text.includes(
+        `${day - 1} of ${day} free registry lookups left today for this free key (the free keys used from one IP address together are held to ${FREE_KEY_ADDRESS_LOOKUPS_PER_DAY} a day)`,
+      ),
+      text,
+    );
+    assert.ok(!text.includes("for your IP address"));
+    // The key's own day was counted, not the keyless one of the address.
+    assert.equal(await w.usedToday(), 1);
+    // At the key's cap the page does not offer a free key to a caller who has one.
+    for (let i = 0; i < day; i++) {
+      if (i % 20 === 0) w.clock.t += 61_000;
+      await w.get(`${MAIN_TX_PATH}?format=json`, { key });
+    }
+    w.clock.t += 61_000;
+    const refused = await w.get(MAIN_TX_PATH, { key });
+    assert.equal(refused.status, 429);
+    const html = await refused.text();
+    assert.ok(strip(html).includes("Today&#39;s free lookups are used up"));
+    assert.ok(!html.includes("/account#free-key"));
+  });
+
   it("honours a key in the Authorization header as the API does, and never one in the address", async () => {
     const w = world();
     const key = await issue(w.kv);
@@ -687,7 +734,7 @@ describe("lookup pages: the allowance", () => {
     );
     assert.ok(
       strip(await res.text()).includes(
-        "registry lookups left this month for this key",
+        `${(PLANS.pro.registryLookupsPerMonth - 1).toLocaleString("en-US")} of ${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} registry lookups left this month for this key&#39;s subscription, shared by all of its keys`,
       ),
     );
     // The key's month was charged, not the address's day.

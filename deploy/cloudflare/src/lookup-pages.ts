@@ -40,6 +40,7 @@ import { escapeHtml } from "./html.ts";
 import { innerRequest } from "./internal.ts";
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
   PLANS,
   PRICING_URL,
 } from "./plans.ts";
@@ -258,16 +259,42 @@ function htmlPage(
 
 // --- what the API said, in a page's words ----------------------------------------------------------------
 
-/** "12 of 25 free registry lookups left today for your IP address (they reset at …)", from the API's headers. */
-function quotaLine(headers: Record<string, string>): string {
+/**
+ * Who a lookup was counted for, from the API's tier header and whether the request sent a key. The
+ * tier is "anonymous" for a free key too; a free sign-in connection cannot reach these pages (its
+ * token is honoured on /mcp only), so a key sent with an anonymous answer is a free key.
+ */
+type Caller = "no-key" | "free-key" | "paid";
+const callerOf = (headers: Record<string, string>, keyed: boolean): Caller =>
+  (headers["x-factlot-tier"] ?? "anonymous") !== "anonymous"
+    ? "paid"
+    : keyed
+      ? "free-key"
+      : "no-key";
+
+/**
+ * "12 of 25 free registry lookups left today for your IP address (they reset at …)", from the API's
+ * headers, in the words of the allowance that caller is counted on (plans.ts: QUOTA_RULES.free,
+ * FREE_KEY_NOTE, QUOTA_RULES.paid). For a free key the answer reports the key's own day count, or the
+ * ceiling shared by the free keys of one address when that is the one that ran short.
+ */
+function quotaLine(headers: Record<string, string>, keyed: boolean): string {
   const left = Number(headers["x-factlot-registry-quota-remaining"]);
   const limit = Number(headers["x-factlot-registry-quota-limit"]);
   const reset = headers["x-factlot-registry-quota-reset"];
   if (!Number.isFinite(left) || !Number.isFinite(limit)) return "";
-  const paid = (headers["x-factlot-tier"] ?? "anonymous") !== "anonymous";
   const at = /^(\d{4}-\d\d-\d\d)T(\d\d:\d\d)/.exec(reset ?? "");
   const when = at ? `${at[2]} UTC on ${at[1]}` : reset;
-  return `${e(int.format(left))} of ${e(int.format(limit))} ${paid ? "registry lookups left this month for this key" : "free registry lookups left today for your IP address"}${when ? ` (they reset at ${e(when)})` : ""}.`;
+  const caller = callerOf(headers, keyed);
+  const whose =
+    caller === "paid"
+      ? "registry lookups left this month for this key's subscription, shared by all of its keys"
+      : caller === "no-key"
+        ? "free registry lookups left today for your IP address"
+        : limit === FREE_KEY_ADDRESS_LOOKUPS_PER_DAY
+          ? "free registry lookups left today for all the free keys used from your IP address together"
+          : `free registry lookups left today for this free key (the free keys used from one IP address together are held to ${int.format(FREE_KEY_ADDRESS_LOOKUPS_PER_DAY)} a day)`;
+  return `${e(int.format(left))} of ${e(int.format(limit))} ${e(whose)}${when ? ` (they reset at ${e(when)})` : ""}.`;
 }
 
 /** Whether an answer that found nothing was counted, as the API marked it. */
@@ -377,6 +404,7 @@ function apiErrorPage(
   deps: LookupDeps,
   q: string,
   state: string,
+  keyed: boolean,
 ): Response {
   const headers = passed(res);
   const code = String(body?.code ?? body?.error ?? "");
@@ -394,7 +422,7 @@ function apiErrorPage(
       : "This month's lookups are used up";
     more = `<ul>
 ${
-  anonymous && deps.freeKey
+  callerOf(headers, keyed) === "no-key" && deps.freeKey
     ? `<li>A <a href="/account#free-key">free key by email</a> counts lookups on its own meter, ${e(int.format(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY))} a day for the key, instead of one shared by everyone at your IP address.</li>\n`
     : ""
 }<li>A Pro key gives ${e(int.format(PLANS.pro.registryLookupsPerMonth))} registry lookups a month, and Team ${e(int.format(PLANS.team.registryLookupsPerMonth))}: <a href="${e(PRICING_URL)}">pricing</a>.</li>
@@ -507,6 +535,7 @@ ${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("\n")}
 async function search(
   url: URL,
   json: boolean,
+  keyed: boolean,
   deps: LookupDeps,
 ): Promise<Response> {
   const q = clean(url.searchParams.get("q"));
@@ -577,7 +606,7 @@ ${form()}
   if (json) return passJson(res);
   const body = parse(await res.text()) as Json | undefined;
   if (res.status !== 200 || !body || typeof body !== "object")
-    return apiErrorPage(res, body, deps, q, state);
+    return apiErrorPage(res, body, deps, q, state, keyed);
   const headers = passed(res);
   const step = rule.next({ ok: true, result: body } as never);
   if (!step.done) {
@@ -588,7 +617,7 @@ ${form()}
   }
   const entry = (step.done ? step.value : {}) as Json;
   const results = (Array.isArray(body.results) ? body.results : []) as Json[];
-  const quota = quotaLine(headers);
+  const quota = quotaLine(headers, keyed);
   const asJson = jsonLine(searchJsonHref(url), "registry_search_address");
 
   if (results.length === 0) {
@@ -665,6 +694,7 @@ async function record(
   url: URL,
   urn: string,
   json: boolean,
+  keyed: boolean,
   deps: LookupDeps,
 ): Promise<Response> {
   const reason = withheldCounty(urn);
@@ -685,7 +715,7 @@ async function record(
   if (json) return passJson(res);
   const body = parse(await res.text()) as Json | undefined;
   if (res.status !== 200 || !body || typeof body !== "object")
-    return apiErrorPage(res, body, deps, "", "");
+    return apiErrorPage(res, body, deps, "", "", keyed);
   // The page is the free view whoever asks: the current roll year, the newest sale or deed, and the
   // lines that say what a paid key adds. (A paid caller's JSON answer holds the rest.)
   const rec = limitSales(limitHistory(body)) as PageRecord;
@@ -725,7 +755,7 @@ async function record(
     lookup: {
       note: [
         "This record is one registry lookup.",
-        quotaLine(headers),
+        quotaLine(headers, keyed),
         jsonLine(recordJsonHref(urn), "registry_get"),
       ]
         .filter(Boolean)
@@ -752,6 +782,8 @@ export async function lookupRoute(
   deps: LookupDeps,
 ): Promise<Response> {
   const json = wantsJson(request, url);
+  // Whether the caller sent a key (in the Authorization header, the only place one is read).
+  const keyed = request.headers.has("authorization");
   if (request.method !== "GET" && request.method !== "HEAD")
     return new Response("Use GET.\n", {
       status: 405,
@@ -770,7 +802,7 @@ export async function lookupRoute(
     });
 
   const rest = path.slice("/lookup".length);
-  if (rest === "") return search(url, json, deps);
+  if (rest === "") return search(url, json, keyed, deps);
   // By URN: the same record at its path.
   let name = rest.slice(1);
   try {
@@ -794,5 +826,5 @@ export async function lookupRoute(
       "No such record address",
       "A record's address is /lookup/<county>/<parcel id>, for example /lookup/us-48201/0011440000001, or /lookup/ followed by the parcel's FactLot ID (fl:parcel:us-48201:0011440000001). To find a parcel by its address, search below.",
     );
-  return record(url, urn, json, deps);
+  return record(url, urn, json, keyed, deps);
 }
