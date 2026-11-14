@@ -161,14 +161,14 @@ describe("one hosted count", () => {
         c.name,
       );
     }
-    // Travis: one count and one date everywhere (the pack's), and llms.txt states the same count.
+    // Travis: one count and one date everywhere (the pack's), and the README table states the same count.
     const travis = hosted.counties.find((c) => c.fips === "48453")!;
     assert.equal(
       counties.counties["48453"]!.commercial_parcels,
       travis.parcels,
     );
     assert.ok(
-      read("llms.txt").includes(
+      read("README.md").includes(
         `Travis ${new Intl.NumberFormat("en-US").format(travis.parcels)}`,
       ),
     );

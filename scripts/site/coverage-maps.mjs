@@ -95,6 +95,26 @@ export const INSETS = [
       ["06075", "San Francisco", "e"],
     ],
   },
+  {
+    id: "midwest",
+    name: "Indiana and Michigan",
+    view: [630, 185, 127, 95],
+    states: ["18", "26", "39", "17", "21", "55"],
+    labels: [
+      ["18097", "Marion", "w"],
+      ["26125", "Oakland", "e"],
+    ],
+  },
+  {
+    id: "southeast",
+    name: "Georgia and North Carolina",
+    view: [700, 320, 133, 100],
+    states: ["13", "37", "45", "47", "51", "01", "12"],
+    labels: [
+      ["13089", "DeKalb", "w"],
+      ["37183", "Wake", "e"],
+    ],
+  },
 ];
 
 /**

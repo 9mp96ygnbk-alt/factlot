@@ -21,6 +21,10 @@ export const HOSTED_REGISTRY_CASES: {
   tool: string;
   arguments: Record<string, unknown>;
   expect?: Record<string, unknown>;
+  /** Added to `expect` for a free caller (no key, a free key): what the free view keeps and says it left out. */
+  expect_free?: Record<string, unknown>;
+  /** Added to `expect` for a Pro or Team key: what only the full view holds. */
+  expect_paid?: Record<string, unknown>;
   /** Paths whose value must match the regular expression. */
   expect_match?: Record<string, string>;
   /** Fact predicates the answer's `facts` must carry, or must not carry. */
@@ -111,7 +115,8 @@ export const HOSTED_REGISTRY_CASES: {
       "value_history.0.market_value": 303755215,
     },
   },
-  // Brazos holds eleven roll years (2016 to 2026): value_history runs newest first.
+  // Brazos holds eleven roll years (2016 to 2026): value_history runs newest first. A free caller gets the
+  // current roll year, with the earlier years named in history_withheld; a Pro or Team key gets all eleven.
   {
     tool: "registry_get",
     arguments: { urn: "fl:parcel:us-48041:100022" },
@@ -120,8 +125,55 @@ export const HOSTED_REGISTRY_CASES: {
       kind: "parcel",
       "value_history.0.tax_year": 2026,
       "value_history.0.market_value": 1268807,
+    },
+    expect_free: {
+      "value_history.1": null,
+      history_available: "pro",
+      "history_withheld.count": 10,
+      "history_withheld.tax_years.0": 2025,
+      "history_withheld.tax_years.9": 2016,
+    },
+    expect_paid: {
       "value_history.10.tax_year": 2016,
       "value_history.10.market_value": 521990,
+    },
+  },
+  // Wake County, North Carolina (pack of 2026-11-14): NC OneMap's statewide layer gives an assessed value
+  // with no tax year, and the county's own REID.
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-37183:0656936438" },
+    expect: {
+      status: "current",
+      label: "961 S JUDD PKWY SE, FUQUAY-VARINA NC",
+      "crosswalk.0.system": "wake_reid",
+      "value_history.0.appraised_value": 993031,
+      "value_history.0.file.source_id": "nc-wake-parcels",
+    },
+  },
+  // Allegheny County, Pennsylvania (pack of 2026-11-14), by address.
+  {
+    tool: "registry_search_address",
+    arguments: { query: "418 Wood St, Pittsburgh, PA", limit: 2 },
+    expect: {
+      "results.0.urn": "fl:parcel:us-42003:0001h00283000000",
+      "results.0.label": "418 WOOD ST, PITTSBURGH PA 15222",
+    },
+  },
+  // New York City (pack of 2026-11-14): PLUTO zoning, LL84 energy and the recorded sales. A free caller sees the
+  // newest sale (2026-05-01) and the count of the rest; a Pro or Team key gets every recorded sale and document.
+  {
+    tool: "registry_get",
+    arguments: { urn: "fl:parcel:us-36061:1000210001" },
+    expect: {
+      status: "current",
+      label: "61 BROADWAY, NEW YORK NY 10006",
+    },
+    has_predicates: ["transaction.sale", "zoning.district", "energy.site_eui"],
+    expect_free: {
+      history_available: "pro",
+      "sales_withheld.count": 1,
+      "sales_withheld.from_year": 2014,
     },
   },
   {

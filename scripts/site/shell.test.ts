@@ -520,7 +520,11 @@ describe("the home page's figures", () => {
       hosted.counties.length,
     );
     assert.ok(preview.includes('src="/coverage/map-mini.svg"'));
-    assert.ok(preview.length < 26_000, `${preview.length} bytes`);
+    // About 9 KB per inset with its hosted counties: the home page carries the insets inline.
+    assert.ok(
+      preview.length < 10_000 * INSETS.length,
+      `${preview.length} bytes`,
+    );
   });
 });
 
@@ -1348,7 +1352,10 @@ describe("the built site", () => {
         /<form\s+class="try-form lookup-form hero-lookup"\s+action="\/lookup\/"\s+method="get"\s*>/,
       );
       const coverage = readFileSync(`${out}/coverage/index.html`, "utf8");
-      assert.equal(coverage.split('class="covsvg inset"').length - 1, 3);
+      assert.equal(
+        coverage.split('class="covsvg inset"').length - 1,
+        INSETS.length,
+      );
       const texasHub = readFileSync(`${out}/texas/index.html`, "utf8");
       assert.ok(texasHub.includes(hubReadouts(texas)));
       assert.ok(texasHub.includes(texasMap(geo, texas)));

@@ -905,36 +905,45 @@ describe("hosted registry figures (site/_data/hosted.json)", async () => {
     const d = hostedData(m, ["Harris"]);
     assert.equal(
       hosted.placesText(d),
-      "Maryland (1 of its 24 jurisdictions), one Texas county (Harris), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, Connecticut (statewide, by town), and Fairfax County, VA",
+      "Maryland (1 of its 24 jurisdictions), one Texas county (Harris), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, Connecticut (statewide, by town), and Fairfax County (VA)",
     );
+    // llms.txt names each place compactly and points to the coverage page and catalog for the details.
     const line = hosted.llmsHostedLine(d, 25);
     assert.match(
       line,
-      /New York City \(all five boroughs; 200 commercial parcels/,
+      /New York City \(all five boroughs\), Los Angeles County/,
+    );
+    assert.match(line, /419 parcels in 20 counties in 8 states,/);
+    assert.ok(line.includes("https://factlot.com/coverage.json"));
+    // The details are in the README table, from the same places.
+    const detail = hosted.tableText(d);
+    assert.match(
+      detail,
+      /\| New York City \| All five boroughs; 200 commercial parcels/,
     );
     assert.match(
-      line,
+      detail,
       /the 1,234 New York Department of State entities that own a hosted parcel/,
     );
     assert.match(
-      line,
-      /the City of Boston \(the City of Boston only, not Chelsea, Revere or Winthrop, the rest of Suffolk County; 30 commercial parcels from the Assessing Department's fiscal-year 2026 file, with values as of 2026-10-01, older than the other regions/,
+      detail,
+      /\| The City of Boston \| The City of Boston only, not Chelsea, Revere or Winthrop, the rest of Suffolk County; 30 commercial parcels from the Assessing Department's fiscal-year 2026 file, with values as of 2026-10-01, older than the other regions/,
     );
     assert.match(
-      line,
-      /Connecticut \(40 commercial parcels in eight former counties, from the towns' grand lists in the statewide parcel and CAMA layer as of 2026-10-01; CC0\)/,
+      detail,
+      /\| Connecticut \| 40 commercial parcels in eight former counties, from the towns' grand lists in the statewide parcel and CAMA layer as of 2026-10-01; CC0 \|/,
     );
     assert.match(
-      line,
-      /Los Angeles County \(100 commercial parcels from the Assessor's parcel data roll as of 2026-10-01; no owner names, which the public file does not carry/,
+      detail,
+      /\| Los Angeles County \| 100 commercial parcels from the Assessor's parcel data roll as of 2026-10-01; no owner names, which the public file does not carry/,
     );
     assert.match(
-      line,
-      /San Francisco \(10 commercial parcels from the Assessor's secured roll \(the 2025 roll year, the latest published; file as of 2026-10-01\); no owner names/,
+      detail,
+      /\| San Francisco \| 10 commercial parcels from the Assessor's secured roll \(the 2025 roll year, the latest published; file as of 2026-10-01\); no owner names/,
     );
     assert.match(
-      line,
-      /Denver \(20 commercial parcels[^)]*CC BY 3\.0, "City and County of Denver", and 56 Colorado/,
+      detail,
+      /\| Denver \| 20 commercial parcels[^|]*CC BY 3\.0, "City and County of Denver", and 56 Colorado/,
     );
     // The README table and the account page's note come from the same places.
     const table = hosted.tableText(d);
@@ -1002,7 +1011,7 @@ describe("hosted registry figures (site/_data/hosted.json)", async () => {
       notices.includes("THE STATE OF COLORADO MAKES NO REPRESENTATIONS"),
     );
     assert.match(markets.marketLinks(d), /href="\/new-york-city\/"/);
-    assert.match(line, /: 419 parcels in 20 counties, on every plan/);
+    assert.match(line, /: 419 parcels in 20 counties in 8 states, on every plan/);
     assert.match(line, /Tarrant County is not served by the hosted registry/);
   });
 });

@@ -70,6 +70,11 @@ const NYC = {
   36085: "Staten Island",
 };
 
+const utahCounties = (p) =>
+  p.counties.length > 4
+    ? `${word(p.counties.length)} counties in Utah`
+    : `${andList(p.names.map(bare))} counties in Utah`;
+
 export const TX_NOTE =
   "Denton and Williamson from 2027 preliminary rolls as of 2026-11-07; Midland has no values because its publisher's file has none";
 
@@ -99,15 +104,18 @@ export const PLACES = [
   {
     key: "ut",
     state: "49",
-    label: (p) => `${andList(p.names.map(bare))} counties in Utah`,
-    short: (p) => `${andList(p.names.map(bare))} counties in Utah`,
+    // A long county list is given as a count; coverage.json and /coverage/ name every county.
+    label: (p) => utahCounties(p),
+    compact: (p) => `${word(p.counties.length)} Utah counties`,
+    short: (p) => utahCounties(p),
     detail: (p) =>
-      `${N(p.parcels)} parcels, snapshot as of ${p.as_of}; CC BY 4.0, "State of Utah, SGID"`,
+      `${N(p.parcels)} parcels, newest snapshot as of ${p.as_of}; CC BY 4.0, "State of Utah, SGID"`,
   },
   {
     key: "tx",
     state: "48",
     label: (p) => txCounties(p.counties.length),
+    compact: (p) => txCounties(p.counties.length),
     short: (p, d) =>
       `${txCounties(p.counties.length)} (${andList(texasNames(p, d))})`,
     detail: (p, d) => {
@@ -130,7 +138,7 @@ export const PLACES = [
         ? "New York City (all five boroughs)"
         : `New York City (${andList(p.counties.map((f) => NYC[f]))})`,
     detail: (p, d) =>
-      `${p.counties.length === 5 ? "all five boroughs" : andList(p.counties.map((f) => NYC[f]))}; ${N(p.parcels)} commercial parcels${p.buildings ? ` and ${N(p.buildings)} buildings` : ""} from the Department of Finance final assessment roll as of ${p.as_of}, public record with no restrictions on use, with owners of record that are organisations${ownersOf(d, "us-ny", "New York Department of State")}`,
+      `${p.counties.length === 5 ? "all five boroughs" : andList(p.counties.map((f) => NYC[f]))}; ${N(p.parcels)} commercial parcels${p.buildings ? ` and ${N(p.buildings)} buildings` : ""} from the Department of Finance final assessment roll, with PLUTO zoning and lot facts, condominium units, recorded sales, ACRIS deeds and mortgages (organisation party names only) and Local Law 84 energy benchmarks; newest file as of ${p.as_of}; NYC Open Data, no restrictions on use; owners of record that are organisations${ownersOf(d, "us-ny", "New York Department of State")}`,
   },
   {
     key: "la",
@@ -162,7 +170,7 @@ export const PLACES = [
     label: () => "Denver",
     short: () => "Denver",
     detail: (p, d) =>
-      `${N(p.parcels)} commercial parcels from the Assessor's file as of ${p.as_of}; CC BY 3.0, "City and County of Denver"${ownersOf(d, "us-co", "Colorado Secretary of State")}`,
+      `${N(p.parcels)} commercial parcels from the Assessor's file, with Energize Denver energy benchmarks; newest file as of ${p.as_of}; CC BY 3.0, "City and County of Denver"${ownersOf(d, "us-co", "Colorado Secretary of State")}`,
   },
   {
     key: "ct",
@@ -216,8 +224,8 @@ export function groupPlaces(counties) {
 
 const config = (p) =>
   PLACES.find((x) => x.key === p.key) ?? {
-    label: () => `${p.names[0]}, ${p.state}`,
-    short: () => `${p.names[0]}, ${p.state}`,
+    label: () => `${p.names[0]} (${p.state})`,
+    short: () => `${p.names[0]} (${p.state})`,
     detail: (q) => `${N(q.parcels)} commercial parcels as of ${q.as_of}`,
   };
 
@@ -248,19 +256,30 @@ export function withheldText(data) {
   return `${andList(data.withheld.map((w) => w.name))} ${data.withheld.length === 1 ? "is" : "are"} not served by the hosted registry while the publisher's terms for AI use are unclear.`;
 }
 
-/** The llms.txt line that starts "Hosted registry: ". */
+/** "13 states and the District of Columbia". */
+export function statesText(data) {
+  const st = data.totals.states.filter((x) => x !== "DC");
+  const dc = st.length < data.totals.states.length;
+  return `${st.length} ${st.length === 1 ? "state" : "states"}${dc ? " and the District of Columbia" : ""}`;
+}
+
+/**
+ * The llms.txt line that starts "Hosted registry: ": every place by a short name (a long county list is
+ * given as a count), the totals, and where each place's counties, counts, dates and rights are listed.
+ */
 export function llmsHostedLine(data, freeLookupsPerDay) {
-  const places = andList(
+  const places = serialList(
     data.places.map((p) => {
       const c = config({ ...p, state: stateOf(data, p) });
-      return `${c.label(p, data)} (${c.detail(p, data)})`;
+      return (c.compact ?? c.short)(p, data);
     }),
   );
   const withheld = withheldText(data);
   return (
-    `Hosted registry: the hosted API answers the \`registry_*\` tools for ${places}: ${totalsText(data)}, on every plan including the free tier (${freeLookupsPerDay} lookups a day per IP address). ` +
+    `Hosted registry: the hosted API answers the \`registry_*\` tools for ${places}: ${totalsText(data)} in ${statesText(data)}, on every plan including the free tier (${freeLookupsPerDay} lookups a day per IP address). ` +
+    "Each place's counties, parcel counts, as-of dates, sources, licence and AI-use rights: https://factlot.com/coverage/ and https://factlot.com/coverage.json. " +
     "Call `registry_coverage` first to see exactly what is hosted. Every answer cites its source file and licence or attribution. " +
-    "Other regions in the project's pipeline run only on a self-hosted FactLot with a registry file; more hosted regions open as their terms allow." +
+    "Other regions in the project's pipeline run only on a self-hosted FactLot with a registry file." +
     (withheld ? ` ${withheld}` : "")
   );
 }

@@ -12,6 +12,10 @@ export const HOSTING_NOTE = HOSTED_NOTE;
 
 export const WHATS_NEW: { text: string; changelog: string }[] = [
   {
+    text: "Six new hosted counties: Sacramento, DeKalb (Georgia), Marion (Indiana), Oakland (Michigan), Wake (North Carolina) and Allegheny (Pennsylvania), with 19 more Utah counties; New York City adds zoning, recorded sales, deeds and mortgages and energy benchmarks.",
+    changelog: "pack of 2026-11-14",
+  },
+  {
     text: "Texas registry grows to eighteen counties: Bell and Johnson join, each with roll years 2024 to 2026.",
     changelog: "eighteen hosted counties",
   },

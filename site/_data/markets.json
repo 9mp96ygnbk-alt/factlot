@@ -16,6 +16,61 @@
           "terms_reviewed": "2026-11-02"
         },
         {
+          "source_id": "ny-nyc-dcp-pluto",
+          "publisher": "New York City Department of City Planning",
+          "title": "Primary Land Use Tax Lot Output (PLUTO)",
+          "url": "https://data.cityofnewyork.us/City-Government/Primary-Land-Use-Tax-Lot-Output-PLUTO-/64uk-42ks",
+          "license": "Published on NYC Open Data under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.' DCP provides PLUTO for informational purposes only and does not warrant its completeness, accuracy or fitness for any purpose.",
+          "ai_use": "unknown",
+          "redistribution": "permitted",
+          "attribution": "New York City Department of City Planning (DCP), PLUTO",
+          "terms_reviewed": "2026-11-03"
+        },
+        {
+          "source_id": "ny-nyc-dof-condo",
+          "publisher": "New York City Department of Finance",
+          "title": "Digital Tax Map: Condominiums and Condominium Units (unit lot to billing lot)",
+          "url": "https://data.cityofnewyork.us/City-Government/Digital-Tax-Map-Condominium-Units/eguu-7ie3",
+          "license": "Published on NYC Open Data under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.' The facts copied from the billing lot are Department of City Planning PLUTO facts, which DCP provides for informational purposes only.",
+          "ai_use": "unknown",
+          "redistribution": "permitted",
+          "attribution": "New York City Department of Finance, Digital Tax Map; New York City Department of City Planning (DCP), PLUTO",
+          "terms_reviewed": "2026-11-04"
+        },
+        {
+          "source_id": "ny-nyc-dof-sales-rolling",
+          "publisher": "New York City Department of Finance",
+          "title": "Rolling Sales (last 12 months), tax classes 1, 2 and 4",
+          "url": "https://www.nyc.gov/site/finance/property/property-rolling-sales-data.page",
+          "license": "Public record published by DOF and on NYC Open Data (usep-8jbt rolling, w2pb-icbu annualized) under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.'",
+          "ai_use": "unknown",
+          "redistribution": "permitted",
+          "attribution": "New York City Department of Finance",
+          "terms_reviewed": "2026-11-04"
+        },
+        {
+          "source_id": "ny-nyc-dof-acris",
+          "publisher": "New York City Department of Finance",
+          "title": "ACRIS Real Property Master, Legals and Parties (deeds, mortgages, satisfactions)",
+          "url": "https://data.cityofnewyork.us/City-Government/ACRIS-Real-Property-Master/bnx9-e6tj",
+          "license": "Published on NYC Open Data under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.' ACRIS is an index of recorded documents, not the documents themselves.",
+          "ai_use": "unknown",
+          "redistribution": "permitted",
+          "attribution": "New York City Department of Finance, ACRIS",
+          "terms_reviewed": "2026-11-04"
+        },
+        {
+          "source_id": "ny-nyc-dob-ll84",
+          "publisher": "New York City Department of Buildings",
+          "title": "Local Law 84 energy and water benchmarking disclosure (2022-present)",
+          "url": "https://data.cityofnewyork.us/Environment/NYC-Building-Energy-and-Water-Data-Disclosure-for-Lo/5zyy-y8am",
+          "license": "Published on NYC Open Data under the NYC Open Data Law (Admin. Code §23-502). NYC Open Data FAQ: 'Open Data belongs to all New Yorkers. There are no restrictions on the use of Open Data.' Owners self-report to the EPA's Portfolio Manager; the figures are as submitted and are not verified by the City.",
+          "ai_use": "unknown",
+          "redistribution": "permitted",
+          "attribution": "New York City Department of Buildings, Local Law 84 benchmarking",
+          "terms_reviewed": "2026-11-04"
+        },
+        {
           "source_id": "ny-dos-entities",
           "publisher": "New York State Department of State, Division of Corporations",
           "title": "Active Corporations: Beginning 1800 (Open NY dataset n9v6-gdp6)",
@@ -38,22 +93,46 @@
         "market_value": 30444000,
         "appraised_value": 13699800,
         "predicates": [
+          "energy.floor_area_sf",
+          "energy.ghg_emissions",
+          "energy.ghg_intensity",
+          "energy.property_type",
+          "energy.reporting_year",
+          "energy.site_eui",
+          "energy.source_eui",
+          "energy.weather_normalized_site_eui",
           "ownership.owner_of_record",
           "parcel.apn",
           "parcel.appraised_value",
+          "parcel.area_by_use_sf",
+          "parcel.built_far",
           "parcel.improvement_area_sf",
           "parcel.land_area_sf",
+          "parcel.land_use_code",
+          "parcel.landmark_designated",
           "parcel.local_use_code",
           "parcel.market_value",
+          "parcel.num_buildings",
+          "parcel.num_floors",
           "parcel.situs_address",
           "parcel.state_property_category",
           "parcel.tax_year",
-          "parcel.year_built"
+          "parcel.units_total",
+          "parcel.year_altered",
+          "parcel.year_built",
+          "zoning.district",
+          "zoning.max_far_affordable_residential",
+          "zoning.max_far_commercial",
+          "zoning.max_far_facility",
+          "zoning.max_far_residential",
+          "zoning.other_districts",
+          "zoning.special_district",
+          "zoning.split_zone"
         ]
       },
       "holds": {
         "owner_of_record": true,
-        "zoning": false
+        "zoning": true
       }
     },
     {
@@ -199,6 +278,17 @@
           "terms_reviewed": "2026-11-02"
         },
         {
+          "source_id": "co-denver-energize-benchmarking",
+          "publisher": "City and County of Denver, Climate Action, Sustainability and Resiliency",
+          "title": "Energize Denver Master Dataset (building energy benchmarking)",
+          "url": "https://opendata-geospatialdenver.hub.arcgis.com/documents/geospatialDenver::energize-denver-2025-master-dataset",
+          "license": "CC BY 3.0 (City and County of Denver open data catalog); the item's use constraints disclaim liability and say NOT FOR ENGINEERING PURPOSES. Owners self-report to the EPA's Portfolio Manager.",
+          "ai_use": "unknown",
+          "redistribution": "attribution_required",
+          "attribution": "City and County of Denver",
+          "terms_reviewed": "2026-11-04"
+        },
+        {
           "source_id": "co-sos-entities",
           "publisher": "Colorado Department of State",
           "title": "Business Entities in Colorado (Colorado Information Marketplace dataset 4ykn-tg5h)",
@@ -206,7 +296,7 @@
           "license": "Public domain (dataset license on data.colorado.gov); the portal's Terms of Service require the State of Colorado disclaimer where the data is used",
           "ai_use": "unknown",
           "redistribution": "attribution_required",
-          "attribution": "Colorado Department of State (CDOS), via the Colorado Information Marketplace",
+          "attribution": "Colorado Department of State (CDOS), via the Colorado Information Marketplace. The data made available here has been modified for use from its original source, which is the State of Colorado. THE STATE OF COLORADO MAKES NO REPRESENTATIONS OR WARRANTY AS TO THE COMPLETENESS, ACCURACY, TIMELINESS, OR CONTENT OF ANY DATA MADE AVAILABLE THROUGH THIS SITE. THE STATE OF COLORADO EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE. The data is subject to change as modifications and updates are complete. It is understood that the information contained in the Web feed is being used at one's own risk.",
           "terms_reviewed": "2026-11-02"
         }
       ],

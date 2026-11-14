@@ -1,6 +1,6 @@
 {
   "about": "Which fact groups each county the hosted registry serves holds, for what share of its parcels, and which roll years with the value type and files of each. Computed from the registry files by packages/tools/src/fields.ts (scripts/site/gen-fields.ts); a parcel counts for a group when the file holds at least one fact of the group for it. Owners of record are organisations only: natural persons are never stored.",
-  "pack_built_at": "2026-11-13T16:34:05.736Z",
+  "pack_built_at": "2026-11-14T05:58:45.534Z",
   "groups": [
     {
       "key": "owner_of_record",
@@ -121,6 +121,60 @@
       ]
     },
     {
+      "fips": "06067",
+      "name": "Sacramento County",
+      "state": "CA",
+      "parcels": 20053,
+      "as_of": "2026-11-01",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 0,
+          "share": 0
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": []
+    },
+    {
       "fips": "06075",
       "name": "San Francisco County",
       "state": "CA",
@@ -236,8 +290,8 @@
           "share": 0
         },
         "energy_benchmarks": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 820,
+          "share": 0.061
         },
         "entity_links": {
           "parcels": 9562,
@@ -1417,6 +1471,150 @@
               "dated": "file",
               "roll": null,
               "parcels": 18077
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "13089",
+      "name": "DeKalb County",
+      "state": "GA",
+      "parcels": 11357,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 9179,
+          "share": 0.808
+        },
+        "owner_mailing_address": {
+          "parcels": 8491,
+          "share": 0.748
+        },
+        "market_value": {
+          "parcels": 11236,
+          "share": 0.989
+        },
+        "appraised_value": {
+          "parcels": 11236,
+          "share": 0.989
+        },
+        "building_facts": {
+          "parcels": 0,
+          "share": 0
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 11236,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ga-dekalb-parcels",
+              "filename": "csv",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-12",
+              "dated": "file",
+              "roll": null,
+              "parcels": 11236
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "18097",
+      "name": "Marion County",
+      "state": "IN",
+      "parcels": 20626,
+      "as_of": "2026-11-09",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 16130,
+          "share": 0.782
+        },
+        "owner_mailing_address": {
+          "parcels": 14762,
+          "share": 0.716
+        },
+        "market_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "appraised_value": {
+          "parcels": 20543,
+          "share": 0.996
+        },
+        "building_facts": {
+          "parcels": 0,
+          "share": 0
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 20543,
+          "value_types": ["appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "in-marion-parcels",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 20543
             }
           ]
         }
@@ -3224,31 +3422,31 @@
       ]
     },
     {
-      "fips": "36005",
-      "name": "Bronx County",
-      "state": "NY",
-      "parcels": 17331,
-      "as_of": "2026-05-15",
+      "fips": "26125",
+      "name": "Oakland County",
+      "state": "MI",
+      "parcels": 26122,
+      "as_of": "2026-11-09",
       "groups": {
         "owner_of_record": {
-          "parcels": 14659,
-          "share": 0.846
+          "parcels": 0,
+          "share": 0
         },
         "owner_mailing_address": {
           "parcels": 0,
           "share": 0
         },
         "market_value": {
-          "parcels": 17331,
-          "share": 1
+          "parcels": 0,
+          "share": 0
         },
         "appraised_value": {
-          "parcels": 17331,
-          "share": 1
+          "parcels": 24340,
+          "share": 0.932
         },
         "building_facts": {
-          "parcels": 16387,
-          "share": 0.946
+          "parcels": 234,
+          "share": 0.009
         },
         "neighborhood_and_class": {
           "parcels": 0,
@@ -3269,6 +3467,78 @@
         "energy_benchmarks": {
           "parcels": 0,
           "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 24340,
+          "value_types": ["appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "mi-oakland-parcels",
+              "filename": "query",
+              "as_of": "2026-11-09",
+              "read_on": "2026-11-09",
+              "dated": "read",
+              "roll": null,
+              "parcels": 24340
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "36005",
+      "name": "Bronx County",
+      "state": "NY",
+      "parcels": 17331,
+      "as_of": "2026-09-30",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 14659,
+          "share": 0.846
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 17331,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 17331,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 16574,
+          "share": 0.956
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 17266,
+          "share": 0.996
+        },
+        "recorded_sales": {
+          "parcels": 8533,
+          "share": 0.492
+        },
+        "deeds_and_mortgages": {
+          "parcels": 13276,
+          "share": 0.766
+        },
+        "energy_benchmarks": {
+          "parcels": 3943,
+          "share": 0.228
         },
         "entity_links": {
           "parcels": 10802,
@@ -3300,7 +3570,7 @@
       "name": "Kings County",
       "state": "NY",
       "parcels": 60100,
-      "as_of": "2026-05-15",
+      "as_of": "2026-09-30",
       "groups": {
         "owner_of_record": {
           "parcels": 39609,
@@ -3319,28 +3589,28 @@
           "share": 1
         },
         "building_facts": {
-          "parcels": 57039,
-          "share": 0.949
+          "parcels": 58562,
+          "share": 0.974
         },
         "neighborhood_and_class": {
           "parcels": 0,
           "share": 0
         },
         "zoning": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 59742,
+          "share": 0.994
         },
         "recorded_sales": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 20772,
+          "share": 0.346
         },
         "deeds_and_mortgages": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 45794,
+          "share": 0.762
         },
         "energy_benchmarks": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 4227,
+          "share": 0.07
         },
         "entity_links": {
           "parcels": 31264,
@@ -3372,7 +3642,7 @@
       "name": "New York County",
       "state": "NY",
       "parcels": 42087,
-      "as_of": "2026-05-15",
+      "as_of": "2026-09-30",
       "groups": {
         "owner_of_record": {
           "parcels": 32679,
@@ -3391,28 +3661,28 @@
           "share": 1
         },
         "building_facts": {
-          "parcels": 41667,
-          "share": 0.99
+          "parcels": 41797,
+          "share": 0.993
         },
         "neighborhood_and_class": {
           "parcels": 0,
           "share": 0
         },
         "zoning": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 41881,
+          "share": 0.995
         },
         "recorded_sales": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 12569,
+          "share": 0.299
         },
         "deeds_and_mortgages": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 31017,
+          "share": 0.737
         },
         "energy_benchmarks": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 6258,
+          "share": 0.149
         },
         "entity_links": {
           "parcels": 22397,
@@ -3444,7 +3714,7 @@
       "name": "Queens County",
       "state": "NY",
       "parcels": 40080,
-      "as_of": "2026-05-15",
+      "as_of": "2026-09-30",
       "groups": {
         "owner_of_record": {
           "parcels": 26771,
@@ -3463,28 +3733,28 @@
           "share": 1
         },
         "building_facts": {
-          "parcels": 38003,
-          "share": 0.948
+          "parcels": 38736,
+          "share": 0.966
         },
         "neighborhood_and_class": {
           "parcels": 0,
           "share": 0
         },
         "zoning": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 39835,
+          "share": 0.994
         },
         "recorded_sales": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 14697,
+          "share": 0.367
         },
         "deeds_and_mortgages": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 29872,
+          "share": 0.745
         },
         "energy_benchmarks": {
-          "parcels": 0,
-          "share": 0
+          "parcels": 2852,
+          "share": 0.071
         },
         "entity_links": {
           "parcels": 20694,
@@ -3516,7 +3786,7 @@
       "name": "Richmond County",
       "state": "NY",
       "parcels": 5035,
-      "as_of": "2026-05-15",
+      "as_of": "2026-09-30",
       "groups": {
         "owner_of_record": {
           "parcels": 3737,
@@ -3535,8 +3805,80 @@
           "share": 1
         },
         "building_facts": {
-          "parcels": 4610,
-          "share": 0.916
+          "parcels": 4692,
+          "share": 0.932
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 5021,
+          "share": 0.997
+        },
+        "recorded_sales": {
+          "parcels": 2533,
+          "share": 0.503
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 223,
+          "share": 0.044
+        },
+        "entity_links": {
+          "parcels": 2583,
+          "share": 0.513
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2027,
+          "parcels": 5035,
+          "value_types": ["market", "appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ny-nyc-dof",
+              "filename": "fy27_tc234.zip",
+              "as_of": "2026-05-15",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 5035
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "37183",
+      "name": "Wake County",
+      "state": "NC",
+      "parcels": 9634,
+      "as_of": "2026-05-17",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 8382,
+          "share": 0.87
+        },
+        "owner_mailing_address": {
+          "parcels": 7766,
+          "share": 0.806
+        },
+        "market_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "appraised_value": {
+          "parcels": 9634,
+          "share": 1
+        },
+        "building_facts": {
+          "parcels": 9628,
+          "share": 0.999
         },
         "neighborhood_and_class": {
           "parcels": 0,
@@ -3559,25 +3901,97 @@
           "share": 0
         },
         "entity_links": {
-          "parcels": 2583,
-          "share": 0.513
+          "parcels": 0,
+          "share": 0
         }
       },
       "roll_years": [
         {
-          "tax_year": 2027,
-          "parcels": 5035,
+          "tax_year": null,
+          "parcels": 9634,
+          "value_types": ["appraised"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "nc-wake-parcels",
+              "filename": "North_Carolina_Parcels_(Polygons).csv",
+              "as_of": "2026-05-17",
+              "read_on": "2026-11-03",
+              "dated": "file",
+              "roll": null,
+              "parcels": 9634
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "42003",
+      "name": "Allegheny County",
+      "state": "PA",
+      "parcels": 35302,
+      "as_of": "2026-11-02",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 35161,
+          "share": 0.996
+        },
+        "appraised_value": {
+          "parcels": 35151,
+          "share": 0.996
+        },
+        "building_facts": {
+          "parcels": 558,
+          "share": 0.016
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": 2026,
+          "parcels": 35161,
           "value_types": ["market", "appraised"],
           "preliminary": false,
           "files": [
             {
-              "source_id": "ny-nyc-dof",
-              "filename": "fy27_tc234.zip",
-              "as_of": "2026-05-15",
+              "source_id": "pa-allegheny-assessments",
+              "filename": "data.csv",
+              "as_of": "2026-11-02",
               "read_on": "2026-11-03",
               "dated": "file",
               "roll": null,
-              "parcels": 5035
+              "parcels": 35161
             }
           ]
         }
@@ -5526,6 +5940,438 @@
       ]
     },
     {
+      "fips": "49001",
+      "name": "Beaver County",
+      "state": "UT",
+      "parcels": 168,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 168,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 139,
+          "share": 0.827
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 168,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 168
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49005",
+      "name": "Cache County",
+      "state": "UT",
+      "parcels": 2092,
+      "as_of": "2026-10-13",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 2092,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 2072,
+          "share": 0.99
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 2092,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-10-13",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 2092
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49011",
+      "name": "Davis County",
+      "state": "UT",
+      "parcels": 2583,
+      "as_of": "2025-11-26",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 2583,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 2583,
+          "share": 1
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 2583,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-11-26",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 2583
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49013",
+      "name": "Duchesne County",
+      "state": "UT",
+      "parcels": 546,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 546,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 403,
+          "share": 0.738
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 546,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 546
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49017",
+      "name": "Garfield County",
+      "state": "UT",
+      "parcels": 188,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 188,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 123,
+          "share": 0.654
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 188,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 188
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49019",
+      "name": "Grand County",
+      "state": "UT",
+      "parcels": 62,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 62,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 57,
+          "share": 0.919
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 62,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 62
+            }
+          ]
+        }
+      ]
+    },
+    {
       "fips": "49023",
       "name": "Juab County",
       "state": "UT",
@@ -5598,6 +6444,510 @@
       ]
     },
     {
+      "fips": "49025",
+      "name": "Kane County",
+      "state": "UT",
+      "parcels": 258,
+      "as_of": "2026-10-13",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 258,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 250,
+          "share": 0.969
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 258,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-10-13",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 258
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49027",
+      "name": "Millard County",
+      "state": "UT",
+      "parcels": 368,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 367,
+          "share": 0.997
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 360,
+          "share": 0.978
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 367,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 367
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49029",
+      "name": "Morgan County",
+      "state": "UT",
+      "parcels": 160,
+      "as_of": "2026-10-05",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 160,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 152,
+          "share": 0.95
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 160,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-10-05",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 160
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49031",
+      "name": "Piute County",
+      "state": "UT",
+      "parcels": 66,
+      "as_of": "2026-10-13",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 66,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 53,
+          "share": 0.803
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 66,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-10-13",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 66
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49033",
+      "name": "Rich County",
+      "state": "UT",
+      "parcels": 281,
+      "as_of": "2026-10-13",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 120,
+          "share": 0.427
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 54,
+          "share": 0.192
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 120,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-10-13",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 120
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49035",
+      "name": "Salt Lake County",
+      "state": "UT",
+      "parcels": 30756,
+      "as_of": "2026-09-29",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 30756,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 23915,
+          "share": 0.778
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 30756,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-09-29",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 30756
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49041",
+      "name": "Sevier County",
+      "state": "UT",
+      "parcels": 582,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 582,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 558,
+          "share": 0.959
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 582,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 582
+            }
+          ]
+        }
+      ]
+    },
+    {
       "fips": "49043",
       "name": "Summit County",
       "state": "UT",
@@ -5664,6 +7014,438 @@
               "dated": "file",
               "roll": null,
               "parcels": 1169
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49045",
+      "name": "Tooele County",
+      "state": "UT",
+      "parcels": 617,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 617,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 555,
+          "share": 0.9
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 617,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 617
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49047",
+      "name": "Uintah County",
+      "state": "UT",
+      "parcels": 1937,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 1937,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 1073,
+          "share": 0.554
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 1937,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 1937
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49049",
+      "name": "Utah County",
+      "state": "UT",
+      "parcels": 13639,
+      "as_of": "2026-09-30",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 13639,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 10590,
+          "share": 0.776
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 13639,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-09-30",
+              "read_on": "2026-11-06",
+              "dated": "file",
+              "roll": null,
+              "parcels": 13639
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49053",
+      "name": "Washington County",
+      "state": "UT",
+      "parcels": 8400,
+      "as_of": "2026-09-30",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 8399,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 8400,
+          "share": 1
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 8399,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-09-30",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 8399
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49055",
+      "name": "Wayne County",
+      "state": "UT",
+      "parcels": 117,
+      "as_of": "2025-10-23",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 117,
+          "share": 1
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 117,
+          "share": 1
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 117,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2025-10-23",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 117
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fips": "49057",
+      "name": "Weber County",
+      "state": "UT",
+      "parcels": 3629,
+      "as_of": "2026-09-29",
+      "groups": {
+        "owner_of_record": {
+          "parcels": 0,
+          "share": 0
+        },
+        "owner_mailing_address": {
+          "parcels": 0,
+          "share": 0
+        },
+        "market_value": {
+          "parcels": 3519,
+          "share": 0.97
+        },
+        "appraised_value": {
+          "parcels": 0,
+          "share": 0
+        },
+        "building_facts": {
+          "parcels": 3609,
+          "share": 0.994
+        },
+        "neighborhood_and_class": {
+          "parcels": 0,
+          "share": 0
+        },
+        "zoning": {
+          "parcels": 0,
+          "share": 0
+        },
+        "recorded_sales": {
+          "parcels": 0,
+          "share": 0
+        },
+        "deeds_and_mortgages": {
+          "parcels": 0,
+          "share": 0
+        },
+        "energy_benchmarks": {
+          "parcels": 0,
+          "share": 0
+        },
+        "entity_links": {
+          "parcels": 0,
+          "share": 0
+        }
+      },
+      "roll_years": [
+        {
+          "tax_year": null,
+          "parcels": 3519,
+          "value_types": ["market"],
+          "preliminary": false,
+          "files": [
+            {
+              "source_id": "ut-ugrc-lir",
+              "filename": "csv",
+              "as_of": "2026-09-29",
+              "read_on": "2026-11-07",
+              "dated": "file",
+              "roll": null,
+              "parcels": 3519
             }
           ]
         }

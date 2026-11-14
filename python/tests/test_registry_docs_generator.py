@@ -134,7 +134,7 @@ class CoverageMapGenerator(unittest.TestCase):
             self.assertEqual(row.get("area"), partial.get(c["fips"]), c["name"])
         self.assertEqual(data["counties"]["25025"]["area"], "the City of Boston")
         self.assertIn("11001", hosted)
-        self.assertEqual([f for f in hosted if f.startswith("49")], ["49023", "49043"])
+        self.assertEqual([f for f in hosted if f.startswith("49")], sorted(c["fips"] for c in pack["counties"] if c["fips"].startswith("49")))
         self.assertEqual(len([f for f in hosted if f.startswith("24")]), 24)
         # Texas: exactly the pack's Texas counties, never Tarrant (48439), which the pack withholds
         texas = [f for f in hosted if f.startswith("48")]

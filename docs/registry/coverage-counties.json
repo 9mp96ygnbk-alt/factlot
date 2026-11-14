@@ -9,8 +9,8 @@
   },
   "counts": {
     "audited_load": 3,
-    "cited_load": 86,
-    "hosted": 62
+    "cited_load": 61,
+    "hosted": 87
   },
   "geography": "US Census 2020 county FIPS codes (spec/registry/county-names.tsv, 3,235 county equivalents incl. territories)",
   "counties": {
@@ -31,7 +31,7 @@
     "06067": {
       "name": "Sacramento County",
       "state": "CA",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ca-sacramento-assessor",
       "commercial_parcels": 20053,
       "organisation_owners_row": 0,
@@ -39,8 +39,8 @@
       "entity_links": "none",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-11-01",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/hosted-pack-2026-11-14.md"
     },
     "06075": {
       "name": "San Francisco County",
@@ -199,30 +199,30 @@
     "13089": {
       "name": "DeKalb County",
       "state": "GA",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ga-dekalb-parcels",
-      "commercial_parcels": 11351,
-      "organisation_owners_row": 9157,
+      "commercial_parcels": 11357,
+      "organisation_owners_row": 9179,
       "owner_names": "yes",
       "entity_links": "none: no Georgia entity registry loaded",
       "owner_link_rate_audited": null,
-      "data_as_of": "2026-11-01",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "data_as_of": "2026-11-09",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/hosted-pack-2026-11-14.md"
     },
     "18097": {
       "name": "Marion County",
       "state": "IN",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "in-marion-parcels",
-      "commercial_parcels": 20630,
-      "organisation_owners_row": 16092,
+      "commercial_parcels": 20626,
+      "organisation_owners_row": 16130,
       "owner_names": "yes",
       "entity_links": "none: no Indiana entity registry loaded",
       "owner_link_rate_audited": null,
-      "data_as_of": "2026-11-03",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "data_as_of": "2026-11-09",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/hosted-pack-2026-11-14.md"
     },
     "24001": {
       "name": "Allegany County",
@@ -578,16 +578,16 @@
     "26125": {
       "name": "Oakland County",
       "state": "MI",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "mi-oakland-parcels",
-      "commercial_parcels": 26124,
+      "commercial_parcels": 26122,
       "organisation_owners_row": 0,
       "owner_names": "no (blank in the file)",
       "entity_links": "none",
       "owner_link_rate_audited": null,
-      "data_as_of": "2026-11-03",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "data_as_of": "2026-11-09",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/hosted-pack-2026-11-14.md"
     },
     "27053": {
       "name": "Hennepin County",
@@ -641,7 +641,7 @@
       "owner_names": "yes",
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
-      "data_as_of": "2026-05-15",
+      "data_as_of": "2026-09-30",
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
@@ -935,7 +935,7 @@
       "owner_names": "yes",
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
-      "data_as_of": "2026-05-15",
+      "data_as_of": "2026-09-30",
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
@@ -1033,7 +1033,7 @@
       "owner_names": "yes",
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
-      "data_as_of": "2026-05-15",
+      "data_as_of": "2026-09-30",
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
@@ -1173,7 +1173,7 @@
       "owner_names": "yes",
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
-      "data_as_of": "2026-05-15",
+      "data_as_of": "2026-09-30",
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
@@ -1201,7 +1201,7 @@
       "owner_names": "yes",
       "entity_links": "87,825 linked to the New York Department of State file (whole row)",
       "owner_link_rate_audited": "75.59%",
-      "data_as_of": "2026-05-15",
+      "data_as_of": "2026-09-30",
       "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ny-nyc-dof.md"
     },
@@ -1488,21 +1488,21 @@
     "37183": {
       "name": "Wake County",
       "state": "NC",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "nc-wake-parcels",
       "commercial_parcels": 9634,
-      "organisation_owners_row": 8372,
+      "organisation_owners_row": 8382,
       "owner_names": "yes",
       "entity_links": "none: no North Carolina entity registry loaded",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-05-17",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/hosted-pack-2026-11-14.md"
     },
     "42003": {
       "name": "Allegheny County",
       "state": "PA",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "pa-allegheny-assessments",
       "commercial_parcels": 35302,
       "organisation_owners_row": 0,
@@ -1510,8 +1510,8 @@
       "entity_links": "none: no owner names",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-11-02",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "docs/registry/sources/hosted-pack-2026-11-14.md"
     },
     "42091": {
       "name": "Montgomery County",
@@ -1825,7 +1825,7 @@
     "49001": {
       "name": "Beaver County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 168,
       "organisation_owners_row": 0,
@@ -1833,13 +1833,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49005": {
       "name": "Cache County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 2092,
       "organisation_owners_row": 0,
@@ -1847,13 +1847,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-13",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49011": {
       "name": "Davis County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 2583,
       "organisation_owners_row": 0,
@@ -1861,13 +1861,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-11-26",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49013": {
       "name": "Duchesne County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 546,
       "organisation_owners_row": 0,
@@ -1875,27 +1875,27 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49017": {
       "name": "Garfield County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 188,
-      "organisation_owners_row": 0,
-      "owner_names": "no (not in the file)",
-      "entity_links": "none",
+      "organisation_owners_row": null,
+      "owner_names": null,
+      "entity_links": null,
       "owner_link_rate_audited": null,
-      "data_as_of": "2026-09-30",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "data_as_of": "2025-10-23",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "site/_data/hosted.json"
     },
     "49019": {
       "name": "Grand County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 62,
       "organisation_owners_row": 0,
@@ -1903,7 +1903,7 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49023": {
@@ -1923,7 +1923,7 @@
     "49025": {
       "name": "Kane County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 258,
       "organisation_owners_row": 0,
@@ -1931,13 +1931,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-13",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49027": {
       "name": "Millard County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 368,
       "organisation_owners_row": 0,
@@ -1945,13 +1945,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49029": {
       "name": "Morgan County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 160,
       "organisation_owners_row": 0,
@@ -1959,13 +1959,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-05",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49031": {
       "name": "Piute County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 66,
       "organisation_owners_row": 0,
@@ -1973,13 +1973,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-13",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49033": {
       "name": "Rich County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 281,
       "organisation_owners_row": 0,
@@ -1987,27 +1987,27 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-10-13",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49035": {
       "name": "Salt Lake County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 30756,
       "organisation_owners_row": null,
-      "owner_names": "no (not in the file)",
-      "entity_links": "none",
+      "owner_names": null,
+      "entity_links": null,
       "owner_link_rate_audited": null,
-      "data_as_of": "2026-09-30",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "data_as_of": "2026-09-29",
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "site/_data/hosted.json"
     },
     "49041": {
       "name": "Sevier County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 582,
       "organisation_owners_row": 0,
@@ -2015,7 +2015,7 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49043": {
@@ -2035,7 +2035,7 @@
     "49045": {
       "name": "Tooele County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 617,
       "organisation_owners_row": 0,
@@ -2043,13 +2043,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49047": {
       "name": "Uintah County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 1937,
       "organisation_owners_row": 0,
@@ -2057,27 +2057,27 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49049": {
       "name": "Utah County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 13639,
       "organisation_owners_row": null,
-      "owner_names": "no (not in the file)",
-      "entity_links": "none",
+      "owner_names": null,
+      "entity_links": null,
       "owner_link_rate_audited": null,
       "data_as_of": "2026-09-30",
-      "hosted": false,
-      "evidence": "docs/registry/tier2/README.md"
+      "hosted": "hosted on api.factlot.com",
+      "evidence": "site/_data/hosted.json"
     },
     "49053": {
       "name": "Washington County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 8400,
       "organisation_owners_row": 0,
@@ -2085,13 +2085,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-09-30",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49055": {
       "name": "Wayne County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 117,
       "organisation_owners_row": 0,
@@ -2099,13 +2099,13 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2025-10-23",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "49057": {
       "name": "Weber County",
       "state": "UT",
-      "class": "cited_load",
+      "class": "hosted",
       "source_id": "ut-ugrc-lir",
       "commercial_parcels": 3629,
       "organisation_owners_row": 0,
@@ -2113,7 +2113,7 @@
       "entity_links": "0 ownership links",
       "owner_link_rate_audited": null,
       "data_as_of": "2026-09-29",
-      "hosted": false,
+      "hosted": "hosted on api.factlot.com",
       "evidence": "docs/registry/sources/ut-ugrc-lir.md"
     },
     "53053": {
@@ -2301,16 +2301,34 @@
       "reason": "data as-of 2024-07-17 is 848 days before 2026-11-12 (over 400)"
     },
     {
+      "area": "Garfield County (49017)",
+      "state": "UT",
+      "source_id": "ut-ugrc-lir",
+      "reason": "statewide or multi-county aggregate: the record gives no per-county count"
+    },
+    {
       "area": "Iron County (49021)",
       "state": "UT",
       "source_id": "ut-ugrc-lir",
       "reason": "data as-of 2024-07-18 is 847 days before 2026-11-12 (over 400)"
     },
     {
+      "area": "Salt Lake County (49035)",
+      "state": "UT",
+      "source_id": "ut-ugrc-lir",
+      "reason": "statewide or multi-county aggregate: the record gives no per-county count"
+    },
+    {
       "area": "Sanpete County (49039)",
       "state": "UT",
       "source_id": "ut-ugrc-lir",
       "reason": "record says the count is incomplete: Sanpete's layer leaves 9,620 of 12,976 rows without a class, so its 33 commercial parcels are a floor."
+    },
+    {
+      "area": "Utah County (49049)",
+      "state": "UT",
+      "source_id": "ut-ugrc-lir",
+      "reason": "statewide or multi-county aggregate: the record gives no per-county count"
     },
     {
       "area": "Wasatch County (49051)",

@@ -573,14 +573,11 @@
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "Montgomery 15,584; Allegheny 35,302"
-        },
-        {
-          "doc": "docs/registry/sources/pa-allegheny-assessments.md",
-          "quote": "Organisation owners stored (current owner-of-record facts): 0"
+          "doc": "docs/registry/sources/hosted-pack-2026-11-14.md",
+          "quote": "Allegheny County, PA (`pa-allegheny-assessments`): 35,302 commercial parcels; 0 with an organisation owner of record; data as of 2026-11-02"
         }
-      ]
+      ],
+      "as_of_override": "2026-11-02"
     },
     {
       "source_id": "ma-massgis-parcels",
@@ -672,42 +669,36 @@
       "state": "IN",
       "area": "Marion County",
       "kind": "load",
-      "parcels": 20630,
-      "org_owners": 16092,
+      "parcels": 20626,
+      "org_owners": 16130,
       "owner_names": "yes",
       "entity_links": "none: no Indiana entity registry loaded",
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "IN | in-marion-parcels | Marion | 20,630 | yes"
-        },
-        {
-          "doc": "docs/registry/sources/in-marion-parcels.md",
-          "quote": "Organisation owners stored (current owner-of-record facts): 16,092"
+          "doc": "docs/registry/sources/hosted-pack-2026-11-14.md",
+          "quote": "Marion County, IN (`in-marion-parcels`): 20,626 commercial parcels; 16,130 with an organisation owner of record; data as of 2026-11-09"
         }
-      ]
+      ],
+      "as_of_override": "2026-11-09"
     },
     {
       "source_id": "mi-oakland-parcels",
       "state": "MI",
       "area": "Oakland County",
       "kind": "load",
-      "parcels": 26124,
+      "parcels": 26122,
       "org_owners": 0,
       "owner_names": "no (blank in the file)",
       "entity_links": "none",
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "MI | mi-oakland-parcels | Oakland | 26,124 | no (blank in the file)"
-        },
-        {
-          "doc": "docs/registry/sources/mi-oakland-parcels.md",
-          "quote": "Organisation owners stored (current owner-of-record facts): 0"
+          "doc": "docs/registry/sources/hosted-pack-2026-11-14.md",
+          "quote": "Oakland County, MI (`mi-oakland-parcels`): 26,122 commercial parcels; 0 with an organisation owner of record; data as of 2026-11-09"
         }
-      ]
+      ],
+      "as_of_override": "2026-11-09"
     },
     {
       "source_id": "nc-wake-parcels",
@@ -715,20 +706,17 @@
       "area": "Wake County",
       "kind": "load",
       "parcels": 9634,
-      "org_owners": 8372,
+      "org_owners": 8382,
       "owner_names": "yes",
       "entity_links": "none: no North Carolina entity registry loaded",
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "NC | nc-wake-parcels (NC OneMap statewide) | Wake | 9,634 | yes"
-        },
-        {
-          "doc": "docs/registry/sources/nc-wake-parcels.md",
-          "quote": "Organisation owners stored (current owner-of-record facts): 8,372"
+          "doc": "docs/registry/sources/hosted-pack-2026-11-14.md",
+          "quote": "Wake County, NC (`nc-wake-parcels`): 9,634 commercial parcels; 8,382 with an organisation owner of record; data as of 2026-05-17"
         }
-      ]
+      ],
+      "as_of_override": "2026-05-17"
     },
     {
       "source_id": "tn-davidson-assessor",
@@ -756,21 +744,18 @@
       "state": "GA",
       "area": "DeKalb County",
       "kind": "load",
-      "parcels": 11351,
-      "org_owners": 9157,
+      "parcels": 11357,
+      "org_owners": 9179,
       "owner_names": "yes",
       "entity_links": "none: no Georgia entity registry loaded",
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "GA | ga-dekalb-parcels | DeKalb | 11,351 | yes"
-        },
-        {
-          "doc": "docs/registry/sources/ga-dekalb-parcels.md",
-          "quote": "Organisation owners stored (current owner-of-record facts): 9,157"
+          "doc": "docs/registry/sources/hosted-pack-2026-11-14.md",
+          "quote": "DeKalb County, GA (`ga-dekalb-parcels`): 11,357 commercial parcels; 9,179 with an organisation owner of record; data as of 2026-11-09"
         }
-      ]
+      ],
+      "as_of_override": "2026-11-09"
     },
     {
       "source_id": "ca-sacramento-assessor",
@@ -784,19 +769,16 @@
       "notes": "",
       "cites": [
         {
-          "doc": "docs/registry/tier2/README.md",
-          "quote": "CA | ca-sacramento-assessor | Sacramento | 20,053 | no"
-        },
-        {
-          "doc": "docs/registry/sources/ca-sacramento-assessor.md",
-          "quote": "Organisation owners stored (current owner-of-record facts): 0"
+          "doc": "docs/registry/sources/hosted-pack-2026-11-14.md",
+          "quote": "Sacramento County, CA (`ca-sacramento-assessor`): 20,053 commercial parcels; 0 with an organisation owner of record; data as of 2026-11-01"
         }
-      ]
+      ],
+      "as_of_override": "2026-11-01"
     },
     {
       "source_id": "ut-ugrc-lir",
       "state": "UT",
-      "area": "Salt Lake County",
+      "area": "Salt Lake County (49035)",
       "kind": "load",
       "parcels": 30756,
       "org_owners": null,
@@ -813,7 +795,7 @@
     {
       "source_id": "ut-ugrc-lir",
       "state": "UT",
-      "area": "Utah County",
+      "area": "Utah County (49049)",
       "kind": "load",
       "parcels": 13639,
       "org_owners": null,
@@ -1004,7 +986,7 @@
     {
       "source_id": "ut-ugrc-lir",
       "state": "UT",
-      "area": "Garfield County",
+      "area": "Garfield County (49017)",
       "kind": "load",
       "parcels": 188,
       "org_owners": 0,
@@ -1322,7 +1304,13 @@
     "tx-comptroller-franchise": "Partly: hosted on api.factlot.com for the entities that own a hosted Texas parcel",
     "ny-dos-entities": "Partly: hosted on api.factlot.com for the entities that own a hosted New York parcel",
     "co-sos-entities": "Partly: hosted on api.factlot.com for the entities that own a hosted Colorado parcel",
-    "ct-sos-entities": "Partly: hosted on api.factlot.com for the entities that own a hosted Connecticut parcel"
+    "ct-sos-entities": "Partly: hosted on api.factlot.com for the entities that own a hosted Connecticut parcel",
+    "ny-nyc-dcp-pluto": "Yes: hosted on api.factlot.com for the New York City parcels",
+    "ny-nyc-dof-condo": "Yes: hosted on api.factlot.com for the New York City parcels",
+    "ny-nyc-dof-sales": "Yes: hosted on api.factlot.com for the New York City parcels",
+    "ny-nyc-dof-acris": "Yes: hosted on api.factlot.com for the New York City parcels (organisation party names only)",
+    "ny-nyc-dob-ll84": "Yes: hosted on api.factlot.com for the New York City parcels",
+    "co-denver-energize-benchmarking": "Yes: hosted on api.factlot.com for the Denver parcels"
   },
   "hosted_areas": {
     "md-sdat-real-property": {
@@ -1330,8 +1318,30 @@
       "text": "Yes: hosted on api.factlot.com (all Maryland jurisdictions)"
     },
     "ut-ugrc-lir": {
-      "areas": ["49023", "49043"],
-      "text": "Yes: hosted on api.factlot.com (Juab and Summit counties only)"
+      "areas": [
+        "49001",
+        "49005",
+        "49011",
+        "49013",
+        "49017",
+        "49019",
+        "49023",
+        "49025",
+        "49027",
+        "49029",
+        "49031",
+        "49033",
+        "49035",
+        "49041",
+        "49043",
+        "49045",
+        "49047",
+        "49049",
+        "49053",
+        "49055",
+        "49057"
+      ],
+      "text": "Yes: hosted on api.factlot.com (21 of Utah's counties)"
     },
     "tx-harris-cad": {
       "areas": "all",
@@ -1428,6 +1438,30 @@
     "ct-parcel-cama-layer": {
       "areas": "all",
       "text": "Yes: hosted on api.factlot.com"
+    },
+    "ca-sacramento-assessor": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (no owner names: the public file has none)"
+    },
+    "ga-dekalb-parcels": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "in-marion-parcels": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "mi-oakland-parcels": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (no owner names: the public file has none)"
+    },
+    "nc-wake-parcels": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com"
+    },
+    "pa-allegheny-assessments": {
+      "areas": "all",
+      "text": "Yes: hosted on api.factlot.com (no owner names: the public file has none)"
     }
   },
   "withheld_areas": {

@@ -456,7 +456,11 @@ async function main(): Promise<void> {
         continue;
       }
       ok(status === 200, `${label}: HTTP ${status}`);
-      for (const [k, v] of Object.entries(c.expect ?? {}))
+      const expected = {
+        ...c.expect,
+        ...(paid() ? c.expect_paid : c.expect_free),
+      };
+      for (const [k, v] of Object.entries(expected))
         ok(
           same(at(json, k), v),
           `${label} ${k}: got ${JSON.stringify(at(json, k))}`,
