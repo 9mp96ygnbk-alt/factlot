@@ -46,7 +46,7 @@ import {
 import type { DurableObjectNamespaceLike } from "./limiter.ts";
 import { WATCH_LIMITS, watchEnabled, type PlanId } from "./plans.ts";
 import { sign } from "./recovery.ts";
-import { REGISTRY_RUN_URL } from "./registry.ts";
+import { REGISTRY_RUN_URL, withholdFacts } from "./registry.ts";
 import type { Env, Fetcher, WatchService } from "./types.ts";
 import { forgetWatch } from "./watch-forget.ts";
 import {
@@ -148,7 +148,9 @@ function readOf(o: unknown): SubjectRead {
     | { ok: true; result: Json }
     | { ok: false; error?: { error?: string; message?: string } }
     | null;
-  if (out && out.ok === true) return { found: true, record: out.result };
+  // The same facts the API withholds from every answer stay out of what a watch list stores and compares.
+  if (out && out.ok === true)
+    return { found: true, record: withholdFacts(out.result) };
   if (out && out.ok === false && out.error?.error === "NotFound")
     return { found: false, message: String(out.error.message ?? "not found") };
   return {
