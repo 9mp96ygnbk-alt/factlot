@@ -182,6 +182,9 @@ export function hostedAddressMissOf(
   miss: Row,
 ): Row {
   const out = { ...miss };
+  // A withheld county among the place's counties is said not to be served, whether or not the query named a state
+  // ("4200 S Hulen St, 76109").
+  out.message = `${String(out.message)}${withheldTail(scope, cov, out.place_counties)}`;
   if (out.state_loaded !== true) return out;
   for (const c of cov.counties) {
     const fips = `${c.state_fips}${c.county_fips}`;
@@ -194,6 +197,33 @@ export function hostedAddressMissOf(
       out.message = `${String(out.message)}${partialTail(cov, fips, p)}`;
   }
   return out;
+}
+
+/** Why the withheld counties among a place's counties are not served, as sentences to append ("" for none). */
+function withheldTail(
+  scope: HostedScope,
+  cov: RegistryCoverage,
+  counties: unknown,
+): string {
+  if (!Array.isArray(counties)) return "";
+  return counties
+    .map((c) => withheldMessage(scope, cov, String(c)))
+    .filter((m): m is string => m !== undefined)
+    .map((m) => `. ${m}`)
+    .join("");
+}
+
+/** registry_search_address's answer with results for the hosted registry: a note naming a withheld county says why. */
+export function hostedAddressFoundOf(
+  scope: HostedScope,
+  cov: RegistryCoverage,
+  found: Row,
+): Row {
+  if (typeof found.note !== "string") return found;
+  return {
+    ...found,
+    note: `${found.note}${withheldTail(scope, cov, found.place_counties)}`,
+  };
 }
 
 export function hostedEntityMiss(
@@ -361,6 +391,8 @@ export function hostedOutcome<T extends Outcome>(
     );
   else if (tool === "registry_search_address" && r.coverage !== undefined)
     r.coverage = hostedAddressMissOf(scope, cov, r.coverage as Row);
+  else if (tool === "registry_search_address")
+    out.result = hostedAddressFoundOf(scope, cov, r);
   else if (tool === "registry_search_entities" && r.coverage !== undefined)
     r.coverage = hostedEntitiesMiss(scope, cov);
   else if (tool === "registry_owned_by" && r.coverage !== undefined) {

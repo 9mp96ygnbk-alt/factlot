@@ -113,6 +113,15 @@ class Normalization(unittest.TestCase):
             self.assertEqual(address_range_matches(query.split(" "), urn, label, key), hit, f"{query} / {label}")
         for query, street in vectors["address_street_words"]:
             self.assertEqual(address_street_words(address_query(query)["tokens"]), street, query)
+        from factlot.registry.coverage import address_found, address_miss, address_place_counties, address_place_differs
+        for query, where, pc in vectors["address_place_counties"]:
+            self.assertEqual(address_place_counties(address_place_with(query, where)), pc, query)
+        for query, rows, differs in vectors["address_place_differs"]:
+            self.assertEqual(address_place_differs(address_place(query), rows), differs, query)
+        for query, where, rows, found in vectors["address_found"]:
+            self.assertEqual(address_found(query, where, rows), found, query)
+        for query, where, miss in vectors["address_place_misses"]["cases"]:
+            self.assertEqual(address_miss(vectors["address_place_misses"]["coverage"], query, where, None), miss, query)
         for rows, order in vectors["address_card_orders"]:
             self.assertEqual([u for u, _ in sorted(rows, key=lambda r: address_card_key(r[0], r[1]))], order)
         for label, facts, card in vectors["address_cards"]:
@@ -136,13 +145,58 @@ class Normalization(unittest.TestCase):
         self.assertIsNone(county_name("48999"))
 
     def test_city_and_zip_county_table_matches_its_tsv(self):
-        from factlot.registry.address_places import place_counties
-        tsv = Path(__file__).resolve().parents[2] / "spec" / "registry" / "address-places.tsv"
-        rows = [line.split("\t") for line in tsv.read_text("utf-8").splitlines() if line and not line.startswith("#")]
+        from factlot.registry.address_places import (PLACE_COUNTIES_SOURCE, census_place_counties,
+                                                     label_any_counties, label_place_counties, place_counties,
+                                                     place_states, zip_counties)
+        spec = Path(__file__).resolve().parents[2] / "spec" / "registry"
+
+        def read(name):
+            return [ln.split("\t") for ln in (spec / name).read_text("utf-8").splitlines() if ln and not ln.startswith("#")]
+
+        rows = read("address-places.tsv")
         self.assertGreater(len(rows), 1000)
-        for st, place, counties in rows:
-            self.assertEqual(place_counties(st, place), counties.split(" "), place)
+        for st, place, kept, rest in rows:
+            self.assertEqual(label_place_counties(st, place), kept.split(" ") if kept else None, place)
+            self.assertEqual(label_any_counties(st, place), sorted(f"{kept} {rest}".split()), place)
         self.assertIsNone(place_counties("TX", "NO SUCH CITY"))
+        self.assertIsNone(label_any_counties("TX", "NO SUCH CITY"))
+        self.assertIsNone(label_any_counties("TX", "TX"))
+        zips = read("zip-counties.tsv")
+        self.assertGreater(len(zips), 30000)
+        for zip5, counties in zips:
+            self.assertEqual(zip_counties(zip5), counties.split(" "), zip5)
+        places = read("census-place-counties.tsv")
+        self.assertGreater(len(places), 30000)
+        for st, name, counties in places:
+            self.assertEqual(census_place_counties(st, name), counties.split(" "), (st, name))
+        self.assertEqual(place_counties("TX", "SAN ANTONIO"), ["48029", "48091", "48325"])
+        self.assertEqual(place_counties("TX", "78205"), ["48029"])
+        self.assertIsNone(place_counties("NY", "78205"))
+        self.assertIn("TX", place_states("SAN ANTONIO"))
+        self.assertEqual(census_place_counties("UT", "SALT LAKE CITY"), ["49035"])
+        self.assertIsNone(census_place_counties("TX", "TEXAS"))
+        self.assertEqual(census_place_counties("NV", "CARSON CITY"), ["32510"])
+        from factlot.registry.address_places import zip_prefix_states
+        self.assertIsNone(zip_counties("10118"))
+        self.assertEqual(zip_prefix_states("10118"), ["NY"])
+        self.assertEqual(zip_prefix_states("bad"), [])
+        self.assertIn("census.gov", PLACE_COUNTIES_SOURCE)
+
+    def test_address_place_generator_reads_names_once(self):
+        import importlib.util
+        path = Path(__file__).resolve().parents[2] / "scripts" / "gen-address-places.py"
+        spec = importlib.util.spec_from_file_location("gen_address_places", path)
+        gen = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gen)
+        for name, key in (("Salt Lake City city", "SALT LAKE CITY"), ("Texas City city", "TEXAS CITY"),
+                          ("Jersey Village city", "JERSEY VILLAGE"), ("Carson City", "CARSON CITY"),
+                          ("Juneau city and borough", "JUNEAU"), ("Milford city (balance)", "MILFORD"),
+                          ("St. Louis city", "ST LOUIS"), ("Spring CDP", "SPRING"),
+                          ("Copperton metro township", "COPPERTON")):
+            self.assertEqual(gen.place_key(name), key, name)
+        self.assertIsNone(gen.label_city("3400 S TEXAS AVE, TX TX 78520"))
+        self.assertIsNone(gen.label_city("3400 S TEXAS AVE, TX"))
+        self.assertEqual(gen.label_city("1 MAIN ST, HARLINGEN, TX 78550"), "HARLINGEN")
 
     def test_owner_tails_apostrophes_and_abbreviations_share_one_key(self):
         same = [

@@ -7,7 +7,7 @@ from difflib import SequenceMatcher
 from typing import Any
 
 from ..ids import address_tokens
-from .address_places import place_counties
+from .address_places import label_place_counties
 
 # Texas State Property Tax Code categories kept by default (data policy §3):
 # B multifamily, F1 commercial real property, F2 industrial/manufacturing real property.
@@ -1716,7 +1716,7 @@ def address_query_with_place(query: str) -> str:
     # The place starts at the first word from which a city the city table knows in the state read after it begins;
     # words before it (a bare unit number) stay in the street line.
     at = next((i for i in range(len(rest)) if (p := address_place("x, " + " ".join(rest[i:])))["state"] is not None
-               and p["city"] is not None and place_counties(p["state"], p["city"]) is not None), None)
+               and p["city"] is not None and label_place_counties(p["state"], p["city"]) is not None), None)
     if at is None:
         return query
     return " ".join(q["tokens"][:end + at]) + ", " + " ".join(rest[at:])

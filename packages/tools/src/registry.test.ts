@@ -9,7 +9,16 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { placeCounties } from "./address_places.ts";
+import {
+  PLACE_COUNTIES_SOURCE,
+  censusPlaceCounties,
+  labelAnyCounties,
+  labelPlaceCounties,
+  placeCounties,
+  placeStates,
+  zipCounties,
+  zipPrefixStates,
+} from "./address_places.ts";
 import { countyName } from "./county_names.ts";
 
 import {
@@ -18,12 +27,17 @@ import {
   registryFacts,
   registryGet,
   type AddressCard,
+  type RegistryCoverage,
 } from "./registry.ts";
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_WITHHELD_COUNTIES,
   addressCard,
   addressCardCompare,
+  addressFound,
+  addressMiss,
+  addressPlaceCounties,
+  addressPlaceDiffers,
   addressPlace,
   addressPlaceRank,
   addressPlaceWith,
@@ -642,6 +656,22 @@ test("name and address normalization match the Python vectors", () => {
     address_range_matches: [string, string, string, string, boolean][];
     address_street_words: [string, string[] | null][];
     address_card_orders: [[string, Record<string, unknown>][], string[]][];
+    address_place_counties: [string, Record<string, string>, unknown][];
+    address_place_differs: [
+      string,
+      { urn: string; label?: string }[],
+      boolean[],
+    ][];
+    address_found: [
+      string,
+      Record<string, string>,
+      Record<string, unknown>[],
+      unknown,
+    ][];
+    address_place_misses: {
+      coverage: RegistryCoverage;
+      cases: [string, Record<string, string>, unknown][];
+    };
     address_cards: [
       string | null,
       { predicate: string; value: unknown }[],
@@ -693,6 +723,26 @@ test("name and address normalization match the Python vectors", () => {
     assert.deepEqual(
       addressStreetWords(addressQuery(query).tokens),
       street,
+      query,
+    );
+  for (const [query, where, pc] of v.address_place_counties)
+    assert.deepEqual(
+      addressPlaceCounties(addressPlaceWith(query, where)),
+      pc,
+      query,
+    );
+  for (const [query, rows, differs] of v.address_place_differs)
+    assert.deepEqual(
+      addressPlaceDiffers(addressPlace(query), rows),
+      differs,
+      query,
+    );
+  for (const [query, where, rows, found] of v.address_found)
+    assert.deepEqual(addressFound(query, where, rows), found, query);
+  for (const [query, where, miss] of v.address_place_misses.cases)
+    assert.deepEqual(
+      addressMiss(v.address_place_misses.coverage, query, where, null),
+      miss,
       query,
     );
   for (const [rows, order] of v.address_card_orders)
@@ -1233,9 +1283,65 @@ test("the city and ZIP code county table matches its TSV", () => {
     .filter((l) => l && !l.startsWith("#"))
     .map((l) => l.split("\t"));
   assert.ok(rows.length > 1000);
-  for (const [st, place, counties] of rows)
-    assert.deepEqual(placeCounties(st!, place!), counties!.split(" "), place);
+  for (const [st, place, kept, rest] of rows) {
+    assert.deepEqual(
+      labelPlaceCounties(st!, place!),
+      kept ? kept.split(" ") : null,
+      place,
+    );
+    assert.deepEqual(
+      labelAnyCounties(st!, place!),
+      `${kept} ${rest}`.trim().split(" ").sort(),
+      place,
+    );
+  }
   assert.equal(placeCounties("TX", "NO SUCH CITY"), null);
+  assert.equal(labelAnyCounties("TX", "NO SUCH CITY"), null);
+  // A bare state is no city.
+  assert.equal(labelAnyCounties("TX", "TX"), null);
+});
+
+test("the Census ZIP code and place county tables match their TSVs", () => {
+  const read = (name: string) =>
+    readFileSync(join(spec, name), "utf8")
+      .split("\n")
+      .filter((l) => l && !l.startsWith("#"))
+      .map((l) => l.split("\t"));
+  const zips = read("zip-counties.tsv");
+  assert.ok(zips.length > 30000);
+  for (const [zip, counties] of zips)
+    assert.deepEqual(zipCounties(zip!), counties!.split(" "), zip);
+  const places = read("census-place-counties.tsv");
+  assert.ok(places.length > 30000);
+  for (const [st, name, counties] of places)
+    assert.deepEqual(
+      censusPlaceCounties(st!, name!),
+      counties!.split(" "),
+      `${st} ${name}`,
+    );
+  // Both tables together: a city in several counties lists them all; a ZIP code keeps to the state.
+  assert.deepEqual(placeCounties("TX", "SAN ANTONIO"), [
+    "48029",
+    "48091",
+    "48325",
+  ]);
+  assert.deepEqual(placeCounties("TX", "78205"), ["48029"]);
+  assert.equal(placeCounties("NY", "78205"), null);
+  assert.ok(placeStates("SAN ANTONIO").includes("TX"));
+  // One legal description is left out of a Census name, never more: "Salt Lake City city" is SALT LAKE CITY,
+  // "Texas City city" TEXAS CITY (not TEXAS), and Carson City, NV has none to leave out.
+  assert.deepEqual(censusPlaceCounties("UT", "SALT LAKE CITY"), ["49035"]);
+  assert.equal(censusPlaceCounties("UT", "SALT LAKE"), null);
+  assert.deepEqual(censusPlaceCounties("TX", "TEXAS CITY"), ["48071", "48167"]);
+  assert.equal(censusPlaceCounties("TX", "TEXAS"), null);
+  assert.deepEqual(censusPlaceCounties("TX", "JERSEY VILLAGE"), ["48201"]);
+  assert.deepEqual(censusPlaceCounties("NV", "CARSON CITY"), ["32510"]);
+  assert.deepEqual(censusPlaceCounties("AK", "JUNEAU"), ["02110"]);
+  // A ZIP code that is no ZCTA (the Empire State Building's) lies where its first three digits' ZCTAs do.
+  assert.equal(zipCounties("10118"), null);
+  assert.deepEqual(zipPrefixStates("10118"), ["NY"]);
+  assert.deepEqual(zipPrefixStates("bad"), []);
+  assert.match(PLACE_COUNTIES_SOURCE, /census\.gov/);
 });
 
 test("address search: a query without a comma keeps its unit, and a miss claims only what the index shows", () => {

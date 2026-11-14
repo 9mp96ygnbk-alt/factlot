@@ -348,6 +348,35 @@ export const HOSTED_REGISTRY_CASES: {
     },
     has_predicates: ["ownership.owner_of_record"],
   },
+  // A city that lies wholly in counties the hosted registry does not hold (Bexar, Comal, Medina): a miss that says
+  // so first. The search still ran over every Texas county held, so it is an answer that found nothing (counted
+  // past the hourly guard), not a free one. A Houston address the registry holds only in Ector County: the result
+  // is marked.
+  {
+    tool: "registry_search_address",
+    arguments: { query: "4000 Medical Dr, San Antonio, TX", limit: 3 },
+    expect: {
+      "coverage.reason": "county_not_loaded",
+      "coverage.state_loaded": true,
+      "coverage.county_loaded": null,
+      "coverage.place_counties.0": "48029",
+    },
+    expect_match: {
+      "coverage.message": "SAN ANTONIO, TX lies in Bexar County",
+    },
+  },
+  {
+    tool: "registry_search_address",
+    arguments: { query: "801 N Grant Ave, Houston, TX", limit: 3 },
+    expect: {
+      "results.0.urn": "fl:parcel:us-48135:06200-00050-00000",
+      "results.0.place_differs": true,
+      "place_counties.1": "48201",
+    },
+    expect_match: {
+      note: "these matches are outside the counties HOUSTON, TX lies in",
+    },
+  },
   // Pro and Team only: without such a key each answers PlanRequired (isPaidOnlyCall), unmetered. Values from the
   // release-2026-11-13 files the pack of 2026-11-13 is built from (dc.db, work/tx.db), read with runTool.
   {

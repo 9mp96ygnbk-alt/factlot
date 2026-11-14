@@ -458,13 +458,41 @@ parcel's label, so a label that leaves out the city or carries a malformed ZIP c
 rest; this changes the order only, never which parcels are returned. `spec/registry/normalize.json`
 (`address_places`, `address_place_ranks`) pins the reading and the order in both languages.
 
+**The counties a place lies in.** `placeCounties` (`place_counties` in Python) gives the counties a
+city or ZIP code lies in, from three generated tables: the US Census Bureau's 2020 ZIP Code
+Tabulation Area to county relationship file (`spec/registry/zip-counties.tsv`: the counties holding
+at least 5% of a ZCTA's land, or its largest part), its 2020 places by county file
+(`spec/registry/census-place-counties.tsv`: every incorporated or census-designated place, by its
+name without its legal description, with every county it lies in; places of one name in a state
+together; a name loses "(balance)" and one legal description, never more, so "Salt Lake City city"
+is SALT LAKE CITY), and the cities and ZIP codes of registry parcel labels
+(`spec/registry/address-places.tsv`, which knows the labels' own spellings such as BROOKLYN: the
+counties holding at least 3 and 5% of a place's labelled parcels, and apart from them every other
+county holding any). `scripts/gen-address-places.py --census DIR --retrieved YYYY-MM-DD` builds the
+Census tables and records their source, vintage, the retrieval date given and hash; the Census
+files are works of the US government. A city named without a state is placed only when one state has
+a place of that name; a state's code is never a city, nor a state's name when no state is named
+("801 N Grant Ave, Texas"). When a query names a city or ZIP code, a result carries
+`place_differs: true` when its own label names neither that ZIP code nor that city and its county
+is outside every county the tables know the place lies in, in the result's state (a ZIP code the
+Census tables place only in other states, by its ZCTA or, for one that is none such as 10118, by
+the ZCTAs of its first three digits, counts as known there, with no county); where the tables
+know none there, nothing is said. When every result carries it and the tables know the place's
+counties, `note` says the matches are outside them ("these matches are outside the counties
+HOUSTON, TX lies in (…)") and `place_counties` lists them.
+
 **Misses that say why.** An empty answer's `coverage` carries `reason` and a message: the named
-state is not loaded (`state_not_loaded`); the named county is not, or every county known to hold
-the named city's or ZIP code's parcels is not (`county_not_loaded`, with `place_counties`; the
-table `spec/registry/address-places.tsv` is built from registry parcel labels by
-`scripts/gen-address-places.py`, and a city it does not know is not mentioned); the query names no
-house number or street type (`no_street`); a street type alone was searched
-(`street_type_alone`); no address on the street is in the index for the state (`street_not_found`);
+state is not loaded (`state_not_loaded`); the named county is not, or every county the named city
+or ZIP code lies in is not and no county the registry holds has a parcel whose label names it,
+however few (`county_not_loaded`, with `place_counties`; the message names the
+place's counties and the counties of that state the registry holds, and the hosted registry says
+why a withheld county is not served). Only a named `county_fips` gives `county_loaded: false`: a
+city or ZIP code never filters, so that search still covered every county held and its miss is an
+answer that found nothing, and a search kept to a held `county_fips` is not judged by the place's
+counties at all. When the place lies partly in counties the registry does not hold, a street or
+no-match miss names those; when it lies only in such counties but parcels the registry holds
+elsewhere are labelled with it, the miss names those held counties too. Otherwise: the query names no house number or street type
+(`no_street`); a street type alone was searched (`street_type_alone`); no address on the street is in the index for the state (`street_not_found`);
 the house number is on the street but not with every other word of the query (`other_words`); the
 index shows the street but no such house number on it (`house_number_not_found`, with `street` and
 `nearest_house_numbers`, the nearest numbers held on it below and above, in the named ZIP code or
