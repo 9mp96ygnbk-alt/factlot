@@ -67,12 +67,26 @@ const PARTY_ROLES = ["grantors", "grantees", "borrowers", "lenders"] as const;
 
 type Fact = { predicate?: unknown; value?: unknown; document_id?: unknown };
 
-/** An owner of record the answer-time person rule reads as a natural person ("DOE, JANE CO TRUST"). */
+/**
+ * Contact and account markers after which a stored name often carries a person ("<CO> LLC C/O JANE DOE",
+ * "EQUITY TRUST CO FBO JOHN DOE", "DOE JOHN IRA", "U/W/O JANE DOE", "ATTN JOHN DOE", "% JOHN DOE"). Until the
+ * registry files are purged with the corrected rule, a name carrying one is withheld whole: this also hides some
+ * organisations ("<CO> LLC C/O <MANAGER> LLC"), which is the price of not reading the name after the marker.
+ */
+const PERSON_MARKERS =
+  /(\bC\s*\/\s*O\b|\bCARE OF\b|\bATTN\b|\bATTENTION\b|\bF\s*\/?\s*B\s*\/?\s*O\b|\bIRA\b|\bCUSTODIAN\b|\bU\s*\/\s*W\b|\bUWO\b|(?:^|[^\d.\s]\s*|\s)%\s*[A-Z])/i;
+
+/** A name the API does not serve as an owner or a party: one the person rule reads as a person, or one with a marker. */
+export function nameWithheld(name: string): boolean {
+  return nameReadsAsPerson(name) || PERSON_MARKERS.test(name);
+}
+
+/** An owner of record the API does not serve ("DOE, JANE CO TRUST", "<CO> LLC C/O JANE DOE"). */
 function personOwner(f: Fact): boolean {
   return (
     f.predicate === "ownership.owner_of_record" &&
     typeof f.value === "string" &&
-    nameReadsAsPerson(f.value)
+    nameWithheld(f.value)
   );
 }
 
@@ -92,7 +106,7 @@ function withholdParties(value: unknown): unknown {
     const names = v[role];
     if (!Array.isArray(names)) continue;
     const kept = names.filter(
-      (n) => !(typeof n === "string" && nameReadsAsPerson(n)),
+      (n) => !(typeof n === "string" && nameWithheld(n)),
     );
     const dropped = names.length - kept.length;
     if (!dropped) continue;

@@ -106,6 +106,7 @@ import {
   NARROWING_UNAVAILABLE,
   TX_EQUITY_BATCH_TOOL,
   registryRunner,
+  nameWithheld,
 } from "./registry.ts";
 import {
   handle,
@@ -3110,6 +3111,31 @@ describe("registry runner", () => {
       got.result.relationships.map((r) => r.from_urn),
       ["fl:entity:us-tx:8"],
     );
+  });
+
+  it("withholds owner and party names with a contact or account marker, and keeps plain companies", () => {
+    for (const name of [
+      "316 EXAMPLE DR LLC C/O JANE DOE",
+      "EXAMPLE LLC C / O JOHN Q PUBLIC",
+      "EQUITY TRUST CO FBO JANE DOE",
+      "DOE JOHN IRA",
+      "PENSCO TRUST COMPANY CUSTODIAN",
+      "EXAMPLE LLC ATTN JOHN DOE",
+      "U/W/O JANE DOE",
+      "% JOHN DOE",
+      "EXAMPLE REALTY LLC %JANE DOE",
+    ])
+      assert.equal(nameWithheld(name), true, name);
+    for (const name of [
+      "1000 LOUISIANA LP",
+      "TPI LCTC RETAIL LLC (84.4121%)",
+      "PHELAN ELEVEN B LLC 1%",
+      "CENTRO/IA CENTRAL STATION LLC",
+      "FANNIN & RUSK ASSOC LP",
+      "MERIDEN REALTY LLC 97.75%",
+      "WELLS FARGO BANK NA AS TRUSTEE",
+    ])
+      assert.equal(nameWithheld(name), false, name);
   });
 
   it("throws on a failed or malformed answer so the catalog reports RegistryUnavailable", async () => {
