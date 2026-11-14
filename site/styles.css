@@ -3038,6 +3038,93 @@ h3 > .cite {
   cursor: progress;
 }
 
+/* The same form on the home page and the lookup pages: the address, the state, the button. */
+.try-row .try-state {
+  flex: 0 0 auto;
+  width: 5.5rem;
+}
+
+.hero-lookup {
+  max-width: 34rem;
+  margin: 1.75rem 0 0;
+}
+
+.hero-lookup + .actions {
+  margin-top: 1rem;
+}
+
+/* ---------- Lookup pages (rendered by the Worker) ---------- */
+
+.lookup h1 {
+  max-width: 24ch;
+  overflow-wrap: anywhere;
+}
+
+.lookup-note {
+  max-width: 46rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* One match: its address as the heading, what tells it apart as readouts. */
+.matches {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 60rem;
+  margin: 1.5rem 0 2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.match {
+  margin: 0;
+  padding: 1.1rem 1.25rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.match h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.match-urn {
+  margin: 0.2rem 0 0.85rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.match dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem 1.5rem;
+  margin: 0;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--line-2);
+}
+
+.match dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.match dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .try-chips {
   display: flex;
   flex-wrap: wrap;
@@ -3236,6 +3323,10 @@ h3 > .cite {
 @media (max-width: 30rem) {
   .try-row {
     flex-direction: column;
+  }
+
+  .try-row .try-state {
+    width: auto;
   }
 
   .try-ids {

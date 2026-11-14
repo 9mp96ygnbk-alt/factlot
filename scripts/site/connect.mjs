@@ -154,6 +154,20 @@ export function connectBody(raw, version) {
 ${nav}
 </ul>
 ${groups}
+<h2 id="no-connector">No connector? Open a web address</h2>
+<p>
+  An assistant or a program that can open a web address but cannot add a connector, send a POST
+  or run a script can still read the registry. A GET to a lookup address answers a page of cited
+  facts, with no key:
+</p>
+<pre><code>${esc(d.lookup_pages.search_url.replace("{address}", "1000+Louisiana+St"))}&amp;state=TX
+${esc(d.lookup_pages.record_url.replace("{county}", "us-48201").replace("{parcel_id}", "0011440000001"))}</code></pre>
+<ul class="plain">
+<li><strong>JSON:</strong> ${esc(d.lookup_pages.json)}</li>
+<li><strong>Keys:</strong> ${esc(d.lookup_pages.auth)}</li>
+<li><strong>Counting:</strong> ${esc(d.lookup_pages.counting)}</li>
+</ul>
+<p>A person can use the same address from the form at <a href="/lookup/">factlot.com/lookup/</a>.</p>
 <h2 id="check">Check the connection</h2>
 <p>See <a href="/mcp-server/#check">check the connection</a> on the MCP server page, or
 <a href="/try/">try a lookup</a> in the browser.</p>

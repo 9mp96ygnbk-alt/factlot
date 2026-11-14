@@ -95,6 +95,8 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
+import { propertyPath } from "../../registry/src/page-rules.ts";
+
 import { legacyRedirect } from "./legacy-paths.ts";
 import {
   lifecycleEnabled,
@@ -102,7 +104,19 @@ import {
   onFreeKeyAnswer,
   onFreeKeyLimit,
 } from "./lifecycle.ts";
-import { propertyPagesRoute, type PagesEnv } from "./property-pages.ts";
+import {
+  asLookupCaller,
+  isLookupPath,
+  lookupOnApiHost,
+  lookupRoute,
+} from "./lookup-pages.ts";
+import {
+  countyPlaces,
+  propertyPagesEnabled,
+  propertyPagesRoute,
+  sourceIds,
+  type PagesEnv,
+} from "./property-pages.ts";
 import { withRouteHint } from "./route-hint.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import {
@@ -1156,6 +1170,56 @@ async function route(
       defer: deferWith(opts),
       waitUntil: opts.waitUntil,
     }))!;
+
+  // Lookup pages (lookup-pages.ts): a search or a record at a web address, on the site host. Each
+  // is answered by this API's own registry call, sent back through this router as the caller
+  // (their address and Authorization header), so it is counted, given back, limited per minute
+  // and cut to the free view exactly as that call is: the pages have no meter of their own.
+  if (isLookupPath(path)) {
+    // On the API host: sent to the site host, after the same refusal of a credential in the address
+    // and with the same headers as every lookup answer.
+    if (isApiHost(host))
+      return request.method === "GET" || request.method === "HEAD"
+        ? lookupOnApiHost(request, url, site)
+        : apiError(
+            405,
+            "MethodNotAllowed",
+            "GET this page",
+            `GET ${site}/lookup/`,
+            {},
+            { allow: "GET, HEAD" },
+          );
+    const registry = env.REGISTRY;
+    return lookupRoute(request, url, path, {
+      site,
+      freeKey: freeKeyEnabled(env),
+      callApi: (apiPath, input) =>
+        route(asLookupCaller(request, apiBase, apiPath, input), env, api, opts),
+      // A parcel's public property page, asked of the pages' own route (its limit, its cache,
+      // its rule for which sources may be republished): nothing here decides that again. The
+      // probe is a HEAD from the caller's address, so it uses one of that address's property
+      // pages a minute (PROPERTY_PAGES_PER_MINUTE). When they are used up (or the probe cannot be
+      // answered) it says no page, and the record is looked up and counted as a lookup instead:
+      // such a parcel may then cost a lookup it would not otherwise, never the other way round.
+      publicPage: async (urn) => {
+        const page = propertyPath(urn);
+        if (!page || !propertyPagesEnabled(env as PagesEnv)) return null;
+        const probe = await propertyPagesRoute(
+          new Request(`${site}${page}`, {
+            method: "HEAD",
+            headers: { "cf-connecting-ip": clientAddress(request) },
+          }),
+          env as PagesEnv,
+          page,
+          opts,
+        );
+        return probe?.status === 200 ? page : null;
+      },
+      places: async () =>
+        registry ? countyPlaces(registry, now()) : new Map(),
+      sourceIds: async (refs) => (registry ? sourceIds(registry, refs) : {}),
+    });
+  }
 
   // Public property pages and their sitemaps (property-pages.ts; off unless PROPERTY_PAGES_ENABLED).
   if (!isApiHost(host)) {

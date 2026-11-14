@@ -394,6 +394,23 @@ async function countyNames(
   return counties;
 }
 
+/**
+ * The name and state of every loaded county, by region (us-48201), as registry_coverage gives them
+ * (a call the hosted API never counts). Kept until the pack changes. An empty map when the registry
+ * cannot be asked: a page then shows the region code.
+ */
+export async function countyPlaces(
+  registry: Fetcher,
+  now: number,
+): Promise<Map<string, { name: string; state: string }>> {
+  try {
+    return await countyNames(registry, await packVersion(registry, now));
+  } catch (err) {
+    if (err instanceof Unavailable) return new Map();
+    throw err;
+  }
+}
+
 export async function sourceIds(
   registry: Fetcher,
   refs: SourceRef[],
@@ -448,10 +465,13 @@ type LimitedRecord = PageRecord & {
 };
 
 /** The recorded transfer a free record keeps (limitSales leaves at most one): a sale or a deed. */
-const TRANSFER_PREDICATES = ["transaction.sale", "transaction.deed"] as const;
+export const TRANSFER_PREDICATES = [
+  "transaction.sale",
+  "transaction.deed",
+] as const;
 
 /** The source documents behind one fact, as page-rules.ts reads them. */
-function factRefs(f: Fact, subject: string): SourceRef[] {
+export function factRefs(f: Fact, subject: string): SourceRef[] {
   const sources = f.provenance?.sources ?? [];
   if (sources.length === 0)
     return [{ document_id: "", subject, as_of: f.as_of ?? "", rights: null }];
@@ -684,6 +704,13 @@ export interface RenderInput {
   sourceOf: (documentId: string) => string | null;
   /** The newest recorded sale or deed of the free record, when its source allows republication. */
   sale?: Fact | null;
+  /**
+   * Set when the sheet is the answer to a lookup request (lookup-pages.ts) and not a published
+   * page: it is then never indexed, has no canonical address, and says so under its heading.
+   * `note` is HTML the caller built from fixed words and escaped values. `paid`: the caller's key
+   * is Pro or Team, so the page leaves out what such a key adds (their JSON answer holds it).
+   */
+  lookup?: { note: string; paid?: boolean };
 }
 
 /** The page's HTML (pure: tests call it directly). Every value from the registry is escaped. */
@@ -925,11 +952,12 @@ export function renderPropertyPage(input: RenderInput): string {
         ]
       : []),
   ];
-  const pro = proLines.length
-    ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
+  const pro =
+    proLines.length && !input.lookup?.paid
+      ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
 ${proLines.join("\n")}
 <p>See <a href="/pricing/">pricing</a>.</p>`
-    : "";
+      : "";
 
   const shownIds = new Set(
     [...docs.values()]
@@ -1026,7 +1054,11 @@ ${valueCard.join("\n")}
 <meta name="color-scheme" content="light dark" />
 <title>${e(title)}</title>
 <meta name="description" content="${e(description)}" />
-${address ? "" : '<meta name="robots" content="noindex" />\n'}<link rel="canonical" href="${e(canonical)}" />
+${
+  input.lookup
+    ? '<meta name="robots" content="noindex" />'
+    : `${address ? "" : '<meta name="robots" content="noindex" />\n'}<link rel="canonical" href="${e(canonical)}" />`
+}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 ${headLinks()}
 <link rel="stylesheet" href="/styles.css" />
@@ -1039,9 +1071,9 @@ ${siteHeader()}
 <div class="wrap doc has-toc">
 <header class="doc-head${card ? " has-figure" : ""}">
 <div class="doc-title">
-<p class="small breadcrumbs"><a href="/">FactLot</a> › <a href="${e(market.href)}">${e(market.label)}</a> › Property</p>
+<p class="small breadcrumbs"><a href="/">FactLot</a> › ${input.lookup ? '<a href="/lookup/">Look up a property</a> › Record' : `<a href="${e(market.href)}">${e(market.label)}</a> › Property`}</p>
 <h1 id="page-title">${e(h1)}</h1>
-<p class="lede">A commercial parcel in ${e(placeText || place.region)}, as its public records describe it. FactLot ID <code>${e(rec.urn)}</code>.</p>
+<p class="lede">A commercial parcel in ${e(placeText || place.region)}, as its public records describe it. FactLot ID <code>${e(rec.urn)}</code>.</p>${input.lookup ? `\n<p class="small lookup-note">${input.lookup.note}</p>` : ""}
 </div>
 ${card}
 </header>
@@ -1058,7 +1090,7 @@ ${sourcesHtml}
 ${notices.length ? `<h2 id="notices">Source notices</h2>\n${notices.map((n) => `<p class="small">${n}</p>`).join("\n")}` : ""}
 <h2 id="more">More</h2>
 <ul>
-${market.href === "/coverage/" ? "" : `<li><a href="${e(market.href)}">${e(market.label)}</a></li>\n`}<li><a href="/try/">Try a lookup</a></li>
+${market.href === "/coverage/" ? "" : `<li><a href="${e(market.href)}">${e(market.label)}</a></li>\n`}<li>${input.lookup ? '<a href="/lookup/">Look up another property</a>' : '<a href="/try/">Try a lookup</a>'}</li>
 <li><a href="/coverage/">Coverage: every county and what is hosted</a></li>
 <li><a href="/mcp-server/">Connect your agent (MCP server)</a></li>
 </ul>

@@ -28,6 +28,9 @@ The answer is a $9,750,000 maximum loan, bound by loan-to-value (the coverage te
 allow $10.5 million), with every intermediate step, its formula, and the versioned formula ID
 `calc.debt_sizing@3` so an agent can cite exactly how the number was made.
 
+A property record needs no client at all: `https://factlot.com/lookup/?q=1000+Louisiana+St&state=TX`
+answers a page of cited facts (add `&format=json` for the API's JSON), with no key.
+
 Check what your agent read from a lease the same way: it extracts each term with the exact quote
 and page, and `doc_verify_facts` confirms the quote is on that page and states the value, then
 returns cited facts or the reason it could not

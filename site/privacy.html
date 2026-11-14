@@ -24,7 +24,7 @@
         <div class="wrap">
           <h1>Privacy</h1>
           <p class="small">
-            Effective 13 November 2026. The revision history is at the end.
+            Effective 14 November 2026. The revision history is at the end.
           </p>
           <p>
             FactLot collects as little as it can. This notice covers
@@ -67,7 +67,15 @@
             your browser. Cloudflare, which hosts it, processes your IP address,
             browser user agent and the page you ask for, to deliver the page and
             protect the site from abuse. Cloudflare may keep request logs under
-            its own privacy policy; FactLot keeps no access log of its own.
+            its own privacy policy; FactLot keeps no access log of its own. The
+            lookup pages, which run no script, also carry what you look up in
+            the page address: the address searched (such as
+            /lookup/?q=1200+Main+St) or the parcel ID (such as
+            /lookup/us-48201/0011440000001). Each is answered by the hosted API
+            (see below). When a request fails, FactLot's error logs record only
+            the error's name, so they hold neither; its page-view totals record
+            only the group of pages; and Cloudflare's request logs may hold
+            either.
           </p>
           <h3>The hosted API</h3>
           <ul class="plain">
@@ -358,7 +366,8 @@
               text is processed in memory to answer the request and is not
               stored or logged. The one exception is a report you build with
               <code>report_create</code>: the generated file is kept for 24
-              hours (see "The hosted API" above).
+              hours (see "The hosted API" above). A lookup page carries what you
+              look up in its page address instead (see "The website" above).
             </li>
             <li>
               Request headers, other than reading the key to authorise the
@@ -744,6 +753,12 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              14 November 2026: described the lookup pages, which carry the
+              address searched or the parcel ID in the page address, and what
+              FactLot's logs, its page-view totals and Cloudflare's request logs
+              keep of it.
+            </li>
             <li>
               13 November 2026: described the hourly tally of registry answers
               that found nothing and were not counted as lookups, and the daily

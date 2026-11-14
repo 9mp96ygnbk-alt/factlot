@@ -1429,7 +1429,7 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
         ["PLAN_PAID_ONLY_LIST", "PLAN_CHECKOUT_PRO"],
       ],
       ["site/_content/mcp.html", ["PLAN_PAID_ONLY", "PLAN_LOOKUP_COUNTED"]],
-      ["site/_content/try.html", ["PLAN_LOOKUP_COUNTED"]],
+      ["site/_content/try.html", ["PLAN_LOOKUP_COUNTED", "PLAN_LOOKUP_RULE"]],
     ] as const)
       for (const k of keys)
         assert.ok(read(f).includes(`{{${k}}}`), `${f} uses ${k}`);

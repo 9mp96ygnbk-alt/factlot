@@ -19,6 +19,10 @@ import { CONTACT, REPO } from "../../deploy/cloudflare/src/contact.ts";
 import { legacyRedirect } from "../../deploy/cloudflare/src/legacy-paths.ts";
 import { page } from "../../deploy/cloudflare/src/pages.ts";
 import {
+  ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  LOOKUP_RULE,
+} from "../../deploy/cloudflare/src/plans.ts";
+import {
   notFoundPage,
   renderPropertyPage,
 } from "../../deploy/cloudflare/src/property-pages.ts";
@@ -576,7 +580,7 @@ describe("the brand images", () => {
 // page changes its hash: update it in the same commit as the change, on purpose.
 const LEGAL_TEXT = {
   "privacy.html":
-    "cee617c962bbcc3d2b943976b0547f6aa397463555590294314c388e135cb57e",
+    "dd2a8b01997bdc3839649e2449c073a80e08cdcbb1fcdd418dcd1b98c21c9bbc",
   "terms.html":
     "b0b31795eec011641812cdfb55f4797b5024579fb83d04b3b9c010fd3087a726",
 };
@@ -584,7 +588,7 @@ const LEGAL_TEXT = {
 // words. Only the chrome outside <main> was meant to change when the pages took the shell.
 const LEGAL_MAIN = {
   "privacy.html":
-    "142ab26a4b29f18b7298fe5b6272401f46b19b00996293cdaab8bf370ab1ae25",
+    "41a123671f50bfdd6dd41b1e806abfdff2b143bac314ff64690ade341ffde78d",
   "terms.html":
     "ebb871c0546158487d91eb1a1537ef0bd1676cb8c53b570d5ff6b6b4b4bc5e31",
 };
@@ -756,6 +760,105 @@ describe("the hand-written sources", () => {
     const security = words(read("site/_content/security.html"));
     assert.ok(security.includes("There is no SOC 2 report yet"));
     assert.ok(security.includes("FactLot is run by one person"));
+  });
+
+  it("the home page and the try page look up through a form that needs no script", () => {
+    for (const [file, id] of [
+      ["site/index.html", "hero-q"],
+      ["site/_content/try.html", "try-q"],
+    ] as const) {
+      const html = read(file).replace(/\s+/g, " ");
+      const form = /<form\b[^>]*action="\/lookup\/"[^>]*>[\s\S]*?<\/form>/.exec(
+        html,
+      )?.[0];
+      assert.ok(form, `${file}: a form that goes to /lookup/`);
+      assert.match(form, /<form\b[^>]*method="get"/, file);
+      assert.match(
+        form,
+        new RegExp(`<input [^>]*id="${id}" [^>]*name="q" [^>]*maxlength="200"`),
+        file,
+      );
+      assert.match(form, /<button class="button primary" type="submit"/, file);
+      assert.doesNotMatch(form, /<input[^>]*name="(?:key|token)"/i, file);
+    }
+    // The home page's form also takes the state, as the lookup pages' own form does.
+    assert.match(
+      read("site/index.html").replace(/\s+/g, " "),
+      /<input class="try-state" name="state" type="text" maxlength="40"/,
+    );
+    const tryPage = read("site/_content/try.html").replace(/\s+/g, " ");
+    assert.ok(
+      tryPage.includes(
+        "With JavaScript off, the Look up button opens the answer as a plain page",
+      ),
+    );
+    assert.ok(!tryPage.includes("This page needs JavaScript"));
+  });
+
+  it("lookup pages may be fetched, are named to machines, and are in no sitemap", () => {
+    const robots = read("site/robots.txt");
+    assert.match(robots, /^User-agent: \*\nAllow: \/$/m);
+    assert.doesNotMatch(robots, /Disallow: \/lookup/);
+    for (const f of ["llms.txt", "site/llms.txt"])
+      assert.ok(
+        read(f).includes(
+          "https://factlot.com/lookup/?q=<address> (&format=json for JSON)",
+        ),
+        f,
+      );
+    const connect = json<{
+      lookup_pages: Record<string, string | string[]>;
+    }>("site/_data/connect.json").lookup_pages;
+    assert.equal(connect.search_url, "https://factlot.com/lookup/?q={address}");
+    assert.equal(
+      connect.record_url,
+      "https://factlot.com/lookup/{county}/{parcel_id}",
+    );
+    assert.deepEqual(connect.place_parameters, [
+      "state",
+      "city",
+      "zip",
+      "county",
+    ]);
+    assert.match(String(connect.auth), /never in the address/);
+    // How a lookup page is counted: the allowance from plans.ts, and the one-line rule from plans.ts
+    // (LOOKUP_RULE, with its hourly limit), never a sentence of its own about searches that find nothing.
+    assert.ok(
+      String(connect.counting).includes(
+        `(${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} a day per IP address without a key)`,
+      ),
+    );
+    assert.ok(String(connect.counting).endsWith(LOOKUP_RULE));
+    const tryBullet = /<strong>A lookup page<\/strong>[\s\S]*?<\/li>/.exec(
+      read("site/_content/try.html"),
+    )![0];
+    assert.ok(tryBullet.includes("{{PLAN_LOOKUP_RULE}}"));
+    assert.ok(
+      read("deploy/cloudflare/src/lookup-pages.ts").includes(
+        "${e(LOOKUP_RULE)}",
+      ),
+    );
+    for (const text of [
+      String(connect.counting),
+      tryBullet,
+      read("deploy/cloudflare/src/lookup-pages.ts"),
+    ])
+      assert.doesNotMatch(text, /(?:finds|found) nothing is not counted/);
+    // A record with a public page is checked on the caller's property pages a minute; once those
+    // are used up it is looked up and counted, so no page says it is never counted.
+    for (const text of [
+      String(connect.counting),
+      tryBullet,
+      read("deploy/cloudflare/src/lookup-pages.ts"),
+    ]) {
+      assert.doesNotMatch(
+        text.replace(/\s+/g, " "),
+        /page (?:is sent to that page and )?is not counted|public page costs nothing|unless the parcel has a public page/,
+      );
+      assert.match(text.replace(/\s+/g, " "), /usually/);
+    }
+    for (const f of ["site/_content/mcp.html", "README.md"])
+      assert.ok(read(f).includes("https://factlot.com/lookup/?q="), f);
   });
 
   it("the home page takes the Texas sentence from the Texas page and does not type it", () => {
@@ -1212,6 +1315,38 @@ describe("the built site", () => {
           f.slice(out.length),
         );
       }
+      // Lookup pages are the Worker's: the build makes no /lookup/ file, lists none in the
+      // sitemap, and the connect page and connect.json say how to open one.
+      assert.ok(!existsSync(`${out}/lookup`));
+      assert.ok(
+        !readFileSync(`${out}/sitemap.xml`, "utf8").includes("/lookup"),
+      );
+      const connectPage = readFileSync(`${out}/connect/index.html`, "utf8");
+      assert.ok(
+        connectPage.includes(
+          '<h2 id="no-connector">No connector? Open a web address</h2>',
+        ),
+      );
+      assert.ok(
+        connectPage.includes(
+          "https://factlot.com/lookup/?q=1000+Louisiana+St&amp;state=TX\nhttps://factlot.com/lookup/us-48201/0011440000001",
+        ),
+      );
+      const connectJson = JSON.parse(
+        readFileSync(`${out}/connect.json`, "utf8"),
+      ) as { lookup_pages: { search_url: string; counting: string } };
+      assert.equal(
+        connectJson.lookup_pages.search_url,
+        "https://factlot.com/lookup/?q={address}",
+      );
+      assert.ok(
+        words(connectPage).includes(connectJson.lookup_pages.counting),
+        "the page states the counting rule connect.json gives",
+      );
+      assert.match(
+        readFileSync(`${out}/index.html`, "utf8"),
+        /<form\s+class="try-form lookup-form hero-lookup"\s+action="\/lookup\/"\s+method="get"\s*>/,
+      );
       const coverage = readFileSync(`${out}/coverage/index.html`, "utf8");
       assert.equal(coverage.split('class="covsvg inset"').length - 1, 3);
       const texasHub = readFileSync(`${out}/texas/index.html`, "utf8");

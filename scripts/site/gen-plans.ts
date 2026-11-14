@@ -69,6 +69,7 @@ export function plansData() {
     })),
     paid_only_text: paidOnlyText(),
     lookup_counted: QUOTA_RULES.counted,
+    lookup_rule: LOOKUP_RULE,
   };
 }
 
