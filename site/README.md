@@ -8,7 +8,7 @@ licence text beside it. The
 execute, and one same-origin file, `/try/freekey.js`, on the pricing and MCP server pages, which
 shows the free-key link when the API offers a free key. The build fails on any other script. The
 site has no lookup form: the address lookup at `/try/` and `/lookup/` was withdrawn on
-14 November 2026 and the Worker sends those addresses to `/coverage/`.
+14 November 2026; the Worker sends `/try/` to `/texas/` and `/lookup/` to `/coverage/`.
 
 - `site/` holds the hand-written pages (`index.html`, `privacy.html`, `terms.html`, `404.html`),
   `styles.css`, `fonts/`, icons, `robots.txt`, the IndexNow key file, and `llms.txt` (a copy of the

@@ -366,7 +366,7 @@ async function apiChecks(harness: Harness): Promise<void> {
     `${page.status} ${(await page.text()).slice(0, 200)}`,
   );
 
-  // The withdrawn website lookup: /try/ and /lookup/ go to the coverage page on both hosts, and
+  // The withdrawn website lookup: /try/ goes to the Texas page and /lookup/ to coverage, and
   // nothing is looked up (the day's allowance is unchanged).
   const leftToday = async () => {
     const r = await get("https://api.factlot.com/v1/registry/coverage", {
@@ -377,17 +377,25 @@ async function apiChecks(harness: Harness): Promise<void> {
     return Number(r.headers.get("x-factlot-registry-quota-remaining"));
   };
   const before = await leftToday();
-  for (const u of [
-    "https://factlot.com/try/",
-    "https://factlot.com/lookup/?q=100+Main+Street&state=TX",
-    "https://factlot.com/lookup/us-48999/0001-000-0001?format=json",
-    "https://api.factlot.com/lookup/?q=100+Main+Street&state=TX",
-  ]) {
+  for (const [u, to] of [
+    ["https://factlot.com/try/?q=100+Main+Street", "/texas/"],
+    ["https://factlot.com/lookup/?q=100+Main+Street&state=TX", "/coverage/"],
+    [
+      "https://factlot.com/lookup/us-48999/0001-000-0001?format=json",
+      "/coverage/",
+    ],
+    [
+      "https://api.factlot.com/lookup/?q=100+Main+Street&state=TX",
+      "/coverage/",
+    ],
+  ] as const) {
     const r = await get(u, { redirect: "manual" });
     expect(
-      r.status === 302 &&
-        r.headers.get("location") === "https://factlot.com/coverage/",
-      `withdrawn lookup ${u} goes to /coverage/`,
+      r.status === 301 &&
+        r.headers.get("location") === `https://factlot.com${to}` &&
+        r.headers.get("cache-control") === "no-store" &&
+        r.headers.get("referrer-policy") === "no-referrer",
+      `withdrawn lookup ${u} goes to ${to}, unstored and unreferred`,
       `${r.status} ${r.headers.get("location")}`,
     );
   }

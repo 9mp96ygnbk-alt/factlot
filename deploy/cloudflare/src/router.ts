@@ -249,6 +249,24 @@ export const isRetiredLookupPath = (path: string): boolean =>
   path === "/lookup" ||
   path.startsWith("/lookup/");
 
+/**
+ * Where a withdrawn lookup address goes, permanently, without its query. An old address can carry
+ * a property address in its query, so the answer is never stored, indexed or sent on as a referrer.
+ */
+export function retiredLookupRedirect(site: string, path: string): Response {
+  const to =
+    path === "/try" || path.startsWith("/try/") ? "/texas/" : "/coverage/";
+  return new Response(null, {
+    status: 301,
+    headers: {
+      location: `${site}${to}`,
+      "cache-control": "no-store",
+      "referrer-policy": "no-referrer",
+      "x-robots-tag": "noindex",
+    },
+  });
+}
+
 function withContentSignal(res: Response): Response {
   if (res.headers.has("content-signal") || res.status === 101) return res;
   try {
@@ -1207,11 +1225,12 @@ async function route(
   // The website's lookup by address (/try/ and /lookup/) was withdrawn on 14 November 2026: the
   // hosted registry holds 18 of Texas's 254 counties and a few other regions, commercial parcels
   // only, so a form that accepts any address answered most of them with nothing or with a parcel
-  // somewhere else. Old addresses go to the coverage page, on both hosts; nothing is looked up.
-  // The registry tools themselves (REST and MCP) are unchanged.
+  // somewhere else. Old addresses (sent in email, so kept for good) go to the Texas page (/try/,
+  // whose audience was Texas tax staff) or the coverage page (/lookup/), on both hosts, with the
+  // query dropped; nothing is looked up. The registry tools themselves (REST and MCP) are unchanged.
   if (isRetiredLookupPath(path))
     return request.method === "GET" || request.method === "HEAD"
-      ? Response.redirect(`${site}/coverage/`, 302)
+      ? retiredLookupRedirect(site, path)
       : apiError(
           405,
           "MethodNotAllowed",

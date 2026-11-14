@@ -20,7 +20,9 @@ env.BINDING.method`); choose explicitly.
 
 `/try/` and `/lookup/` (the website's address lookup) were withdrawn on 14 November 2026: the hosted
 registry covers a minority of counties, so a form that accepts any address mostly answered with
-nothing or with a parcel elsewhere. The router sends both, on either host, to `/coverage/` (302).
+nothing or with a parcel elsewhere. The router answers both, on either host and with any query, with a 301 that drops the query:
+`/try/` to `/texas/` (its links went out in email to Texas tax staff) and `/lookup/` to `/coverage/`,
+with `no-store`, `no-referrer` and `noindex`.
 The registry tools over REST and MCP are unchanged.
 
 ## Usage counters

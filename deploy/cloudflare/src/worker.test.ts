@@ -1503,27 +1503,31 @@ describe("router", () => {
     );
   });
 
-  it("sends the withdrawn website lookup (/try/, /lookup/) to the coverage page on both hosts, looking nothing up", async () => {
+  it("sends the withdrawn website lookup (/try/ to /texas/, /lookup/ to /coverage/) on both hosts, looking nothing up", async () => {
     const { api, seen } = innerApi();
     const e = env({ ASSETS: { fetch: async () => new Response("site") } });
-    for (const u of [
-      "https://factlot.com/try/",
-      "https://factlot.com/try",
-      "https://factlot.com/try/?q=1000+Louisiana+St",
-      "https://factlot.com/try/try.js",
-      "https://factlot.com/lookup/",
-      "https://factlot.com/lookup",
-      "https://factlot.com/lookup/?q=1+Main+St&state=TX",
-      "https://factlot.com/lookup/us-48201/0011440000001?format=json",
-      "https://api.factlot.com/lookup/?q=1+Main+St",
-    ]) {
+    for (const [u, to] of [
+      ["https://factlot.com/try/", "/texas/"],
+      ["https://factlot.com/try", "/texas/"],
+      ["https://factlot.com/try/?q=1000+Louisiana+St", "/texas/"],
+      ["https://factlot.com/try/try.js", "/texas/"],
+      ["https://api.factlot.com/try/?q=1000+Louisiana+St", "/texas/"],
+      ["https://factlot.com/lookup/", "/coverage/"],
+      ["https://factlot.com/lookup", "/coverage/"],
+      ["https://factlot.com/lookup/?q=1+Main+St&state=TX", "/coverage/"],
+      [
+        "https://factlot.com/lookup/us-48201/0011440000001?format=json",
+        "/coverage/",
+      ],
+      ["https://api.factlot.com/lookup/?q=1+Main+St", "/coverage/"],
+    ] as const) {
       const res = await handle(new Request(u), e, api);
-      assert.equal(res.status, 302, u);
-      assert.equal(
-        res.headers.get("location"),
-        "https://factlot.com/coverage/",
-        u,
-      );
+      assert.equal(res.status, 301, u);
+      assert.equal(res.headers.get("location"), `https://factlot.com${to}`, u);
+      // The query (an address) is dropped, and the answer is never stored, indexed or referred on.
+      assert.equal(res.headers.get("cache-control"), "no-store", u);
+      assert.equal(res.headers.get("referrer-policy"), "no-referrer", u);
+      assert.equal(res.headers.get("x-robots-tag"), "noindex", u);
       assert.equal(
         res.headers.get("content-signal"),
         "search=yes, ai-input=yes, ai-train=no",
