@@ -104,7 +104,12 @@ import {
   onFreeKeyAnswer,
   onFreeKeyLimit,
 } from "./lifecycle.ts";
-import { asLookupCaller, isLookupPath, lookupRoute } from "./lookup-pages.ts";
+import {
+  asLookupCaller,
+  isLookupPath,
+  lookupOnApiHost,
+  lookupRoute,
+} from "./lookup-pages.ts";
 import {
   countyPlaces,
   propertyPagesEnabled,
@@ -1171,9 +1176,11 @@ async function route(
   // (their address and Authorization header), so it is counted, given back, limited per minute
   // and cut to the free view exactly as that call is: the pages have no meter of their own.
   if (isLookupPath(path)) {
+    // On the API host: sent to the site host, after the same refusal of a credential in the address
+    // and with the same headers as every lookup answer.
     if (isApiHost(host))
       return request.method === "GET" || request.method === "HEAD"
-        ? Response.redirect(`${site}${url.pathname}${url.search}`, 302)
+        ? lookupOnApiHost(request, url, site)
         : apiError(
             405,
             "MethodNotAllowed",

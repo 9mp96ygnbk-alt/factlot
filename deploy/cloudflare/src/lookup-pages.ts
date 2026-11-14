@@ -316,6 +316,25 @@ export function credentialInAddress(url: URL, json: boolean): Response | null {
   return null;
 }
 
+/**
+ * A lookup address asked of the API host (a GET or HEAD): sent to the same address on the site host
+ * with a 302 that carries the headers of every lookup answer (no-store, noindex, no-referrer). A
+ * parameter named like a credential is refused first, so its value is never put in a Location header.
+ */
+export function lookupOnApiHost(
+  request: Request,
+  url: URL,
+  site: string,
+): Response {
+  const refused = credentialInAddress(url, wantsJson(request, url));
+  if (refused) return refused;
+  const to = `${site}${url.pathname}${url.search}`;
+  return new Response(null, {
+    status: 302,
+    headers: headersOf("text/plain; charset=utf-8", { location: to }),
+  });
+}
+
 /** An answer of this module's own, as JSON or as a page. */
 function fail(
   json: boolean,

@@ -937,6 +937,31 @@ describe("lookup pages: hostile input and privacy", () => {
       onApi.headers.get("location"),
       "https://factlot.com/lookup/?q=100+Main+Street&state=TX",
     );
+    // The redirect carries the headers every lookup answer has.
+    for (const res of [
+      onApi,
+      await w.get(MAIN_TX_PATH, { host: "api.factlot.com", method: "HEAD" }),
+    ]) {
+      assert.equal(res.headers.get("cache-control"), "no-store");
+      assert.equal(res.headers.get("referrer-policy"), "no-referrer");
+      assert.equal(res.headers.get("x-robots-tag"), "noindex");
+    }
+    // A credential in the address is refused on the API host too, before any redirect, unechoed.
+    const secret = "fl_live_abcdefSECRETvalue123";
+    for (const param of ["key", "x-api-key", "api-key", "access_token"]) {
+      for (const accept of ["text/html", "application/json"]) {
+        const r = await w.get(`/lookup/?q=1+Main&${param}=${secret}`, {
+          host: "api.factlot.com",
+          accept,
+        });
+        assert.equal(r.status, 400, param);
+        assert.equal(r.headers.get("location"), null, param);
+        assert.equal(r.headers.get("referrer-policy"), "no-referrer", param);
+        assert.equal(r.headers.get("cache-control"), "no-store", param);
+        assert.equal(r.headers.get("x-robots-tag"), "noindex", param);
+        assert.ok(!(await r.text()).includes("SECRET"), param);
+      }
+    }
     assert.equal(await w.usedToday(), 0);
   });
 });

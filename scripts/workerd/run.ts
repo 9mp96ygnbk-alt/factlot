@@ -377,6 +377,35 @@ async function apiChecks(harness: Harness): Promise<void> {
     "lookup page ?format=json is the API's record, one lookup",
     j,
   );
+  // On the API host a lookup address goes to the site host with the lookup answers' headers, and
+  // one that carries a credential in its address is refused first, the value never repeated.
+  const moved = await get(
+    "https://api.factlot.com/lookup/?q=100+Main+Street&state=TX",
+    { redirect: "manual", headers: { accept: "text/html" } },
+  );
+  expect(
+    moved.status === 302 &&
+      moved.headers.get("location") ===
+        "https://factlot.com/lookup/?q=100+Main+Street&state=TX" &&
+      moved.headers.get("cache-control") === "no-store" &&
+      moved.headers.get("referrer-policy") === "no-referrer" &&
+      moved.headers.get("x-robots-tag") === "noindex",
+    "lookup address on the API host goes to the site host, unstored and unreferred",
+    `${moved.status} ${moved.headers.get("location")}`,
+  );
+  const keyed = await get(
+    "https://api.factlot.com/lookup/?q=1+Main&key=fl_live_abcdefSECRETvalue123",
+    { redirect: "manual", headers: { accept: "text/html" } },
+  );
+  const keyedText = await keyed.text();
+  expect(
+    keyed.status === 400 &&
+      keyed.headers.get("location") === null &&
+      keyed.headers.get("referrer-policy") === "no-referrer" &&
+      !keyedText.includes("SECRET"),
+    "a key in a lookup address on the API host is refused, not redirected or echoed",
+    `${keyed.status} ${keyed.headers.get("location")}`,
+  );
 
   // MCP initialize and tools/list.
   const mcp = (body: unknown, extra: Record<string, string> = {}) =>
