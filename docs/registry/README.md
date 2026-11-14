@@ -490,7 +490,8 @@ why a withheld county is not served). Only a named `county_fips` gives `county_l
 city or ZIP code never filters, so that search still covered every county held and its miss is an
 answer that found nothing, and a search kept to a held `county_fips` is not judged by the place's
 counties at all. When the place lies partly in counties the registry does not hold, a street or
-no-match miss names those. Otherwise: the query names no house number or street type
+no-match miss names those; when it lies only in such counties but parcels the registry holds
+elsewhere are labelled with it, the miss names those held counties too. Otherwise: the query names no house number or street type
 (`no_street`); a street type alone was searched (`street_type_alone`); no address on the street is in the index for the state (`street_not_found`);
 the house number is on the street but not with every other word of the query (`other_words`); the
 index shows the street but no such house number on it (`house_number_not_found`, with `street` and

@@ -3206,16 +3206,19 @@ export function addressMiss(
   const unheld = pc ? pc.counties.filter((c) => !held.has(c)) : [];
   // The place lies only in counties the registry does not hold: no county it holds is one the tables give the place,
   // nor holds a parcel whose label names it, however few (a label is never denied).
+  const labelledHeld = pc
+    ? (
+        labelAnyCounties(
+          pc.state,
+          pc.name.startsWith("ZIP code ") ? place!.zip! : pc.name,
+        ) ?? []
+      ).filter((c) => held.has(c))
+    : [];
   const outside =
     pc !== null &&
     states.includes(pc.state) &&
     unheld.length === pc.counties.length &&
-    !(
-      labelAnyCounties(
-        pc.state,
-        pc.name.startsWith("ZIP code ") ? place!.zip! : pc.name,
-      ) ?? []
-    ).some((c) => held.has(c));
+    labelledHeld.length === 0;
   if (pc && states.includes(pc.state)) out.place_counties = pc.counties;
   if (st && !loaded) {
     reason = "state_not_loaded";
@@ -3268,10 +3271,13 @@ export function addressMiss(
         `${hint.street}${at} is in this registry, but not number ${hint.number}; the nearest numbers on it are ${hint.nearest.join(" and ")}${away}`,
       );
     } else reason = "no_match";
-    // A place partly in counties the registry does not hold: which ones.
+    // A place partly in counties the registry does not hold: which ones. When every county it lies in is one, the
+    // place is still not wholly outside because labels of parcels held elsewhere name it: say where.
     if (pc && states.includes(pc.state) && unheld.length)
       parts.push(
-        `${pc.name}, ${pc.state} also lies in ${countyList(unheld)}, which this registry does not hold`,
+        unheld.length < pc.counties.length
+          ? `${pc.name}, ${pc.state} also lies in ${countyList(unheld)}, which this registry does not hold`
+          : `${pc.name}, ${pc.state} lies in ${countyList(unheld)}, which this registry does not hold, but the labels of parcels it holds in ${countyList(labelledHeld)} name it`,
       );
     if (!oneWord) parts.push(ADDRESS_SCOPE_NOTE);
     message = `no parcel matched${at}: ${parts.join("; ")}. ${holds}`;

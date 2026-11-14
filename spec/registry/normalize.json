@@ -2815,7 +2815,7 @@
           "loaded_states": ["TX"],
           "place_counties": ["48157"],
           "reason": "no_match",
-          "message": "no parcel matched in TX: SUGAR LAND, TX also lies in Fort Bend County, TX (48157), which this registry does not hold; the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of TX this registry holds Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
+          "message": "no parcel matched in TX: SUGAR LAND, TX lies in Fort Bend County, TX (48157), which this registry does not hold, but the labels of parcels it holds in Harris County, TX (48201) name it; the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of TX this registry holds Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
         }
       ],
       [

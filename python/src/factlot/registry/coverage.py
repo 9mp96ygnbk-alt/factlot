@@ -353,9 +353,10 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
     unheld = [c for c in pc["counties"] if c not in held] if pc else []
     # The place lies only in counties the registry does not hold: no county it holds is one the tables give the
     # place, nor holds a parcel whose label names it, however few (a label is never denied).
+    labelled_held = [c for c in label_any_counties(
+        pc["state"], place["zip"] if pc["name"].startswith("ZIP code ") else pc["name"]) or [] if c in held] if pc else []
     outside = (pc is not None and pc["state"] in states and len(unheld) == len(pc["counties"])
-               and not any(c in held for c in label_any_counties(
-                   pc["state"], place["zip"] if pc["name"].startswith("ZIP code ") else pc["name"]) or []))
+               and not labelled_held)
     if pc and pc["state"] in states:
         out["place_counties"] = pc["counties"]
     if st and not loaded:
@@ -405,10 +406,15 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
                          f"numbers on it are {' and '.join(str(n) for n in hint['nearest'])}{away}")
         else:
             reason = "no_match"
-        # A place partly in counties the registry does not hold: which ones.
+        # A place partly in counties the registry does not hold: which ones. When every county it lies in is one,
+        # the place is still not wholly outside because labels of parcels held elsewhere name it: say where.
         if pc and pc["state"] in states and unheld:
-            parts.append(f"{pc['name']}, {pc['state']} also lies in {_county_list(unheld)}, which this registry does "
-                         "not hold")
+            if len(unheld) < len(pc["counties"]):
+                parts.append(f"{pc['name']}, {pc['state']} also lies in {_county_list(unheld)}, which this registry "
+                             "does not hold")
+            else:
+                parts.append(f"{pc['name']}, {pc['state']} lies in {_county_list(unheld)}, which this registry does "
+                             f"not hold, but the labels of parcels it holds in {_county_list(labelled_held)} name it")
         if not one_word:
             parts.append(ADDRESS_SCOPE_NOTE)
         message = f"no parcel matched{at}: {'; '.join(parts)}. {holds}"
