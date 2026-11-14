@@ -72,8 +72,8 @@
             the page address: the address searched (such as
             /lookup/?q=1200+Main+St) or the parcel ID (such as
             /lookup/us-48201/0011440000001). Each is answered by the hosted API
-            (see below). FactLot's own logs leave out query strings, so they do
-            not hold an address searched this way; its page-view totals record
+            (see below). When a request fails, FactLot's error logs record only
+            the error's name, so they hold neither; its page-view totals record
             only the group of pages; and Cloudflare's request logs may hold
             either.
           </p>
