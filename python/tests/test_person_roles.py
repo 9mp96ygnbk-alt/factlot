@@ -298,6 +298,24 @@ class MailingPurge(unittest.TestCase):
         self.assertEqual(self.reg.purge_person_owners()["person_mailing_leads"], 0, "idempotent")
         self.assertEqual(privacy_scan.scan(self.path)["person_mailing_leads"], 0)
 
+    def test_a_line_the_scrub_leaves_unreadable_is_purged_so_the_scan_comes_clean(self):
+        roll = [ParcelRecord("999", "0001-000-0003", "F1", account="A3", situs_address="3 Oak Street",
+                             owner_name="EXAMPLE WIND LLC")]
+        self.reg.ingest_parcels(roll, self.snap, state_fips="48")
+        urn = factlot.parcel_id("48", "999", "0001-000-0003").urn
+        # Readable before the scrub; the scrubbed contact piece leaves "BLDG, 120 MAIN ST, ..." which is not.
+        address = "C/O EXAMPLE CLEAN ENERGY INC QUEEN CHARLOTTE BLDG, 120 MAIN ST, ANYTOWN, VA 22902-5613"
+        self.assertIsNone(mailing_address_withheld(address, "EXAMPLE WIND LLC"))
+        self.reg.db.execute(
+            "INSERT INTO facts SELECT fact_id || 'm', subject, 'ownership.owner_mailing_address', ?, unit, as_of, method, "
+            "confidence, document_id, locator FROM facts WHERE subject = ? AND predicate = 'ownership.owner_of_record'",
+            (json.dumps(address), urn))
+        self.reg.db.commit()
+        self.reg.purge_person_owners()
+        self.assertEqual(self._mailing(urn), [])
+        self.assertEqual(privacy_scan.scan(self.path)["person_mailing_leads"], 0)
+        self.assertEqual(self.reg.purge_person_owners()["person_mailing_leads"], 0, "idempotent")
+
 
 if __name__ == "__main__":
     unittest.main()

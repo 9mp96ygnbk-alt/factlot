@@ -1874,21 +1874,9 @@ class Registry:
             if cur.rowcount == 0:  # the rewritten fact is already there
                 self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
         # A mailing address whose leading line names a person or cannot be read, before any contact name in it is
-        # scrubbed (``mailing_address_withheld``).
-        for name_predicate, mailing in (("ownership.owner_of_record", "ownership.owner_mailing_address"),
-                                        ("entity.legal_name", "entity.mailing_address")):
-            doomed: list[str] = []  # read as a stream, deleted after, so the read never sees its own deletes
-            for r in self.db.execute(
-                    "SELECT m.fact_id, m.value_json, (SELECT n.value_json FROM facts n WHERE n.subject = m.subject "
-                    "AND n.document_id = m.document_id AND n.predicate = ? LIMIT 1) AS name_json FROM facts m "
-                    "WHERE m.predicate = ?", (name_predicate, mailing)):
-                address = json.loads(r["value_json"])
-                name = json.loads(r["name_json"]) if r["name_json"] is not None else None
-                if isinstance(address, str) and mailing_address_withheld(address, name if isinstance(name, str) else None):
-                    doomed.append(r["fact_id"])
-            for fact_id in doomed:
-                result["person_mailing_leads"] += self.db.execute(
-                    "DELETE FROM facts WHERE fact_id = ?", (fact_id,)).rowcount
+        # scrubbed (``mailing_address_withheld``), and again after: a scrubbed contact piece can leave a leading
+        # line that cannot be read ("% <CONTACT>, <WORD>, 1 MAIN ST, ..." becomes "<WORD>, 1 MAIN ST, ...").
+        result["person_mailing_leads"] += self._purge_person_mailing_leads()
         rows = self.db.execute(
             f"SELECT fact_id, subject, predicate, value_json, document_id FROM facts WHERE predicate IN "
             f"({','.join('?' * len(MAILING_PREDICATES))})", MAILING_PREDICATES).fetchall()
@@ -1907,6 +1895,7 @@ class Registry:
                                    r["fact_id"]))
             if cur.rowcount == 0:  # the scrubbed fact is already there
                 self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
+        result["person_mailing_leads"] += self._purge_person_mailing_leads()
         for name_predicate, mailing in (("ownership.owner_of_record", "ownership.owner_mailing_address"),
                                         ("entity.legal_name", "entity.mailing_address")):
             for r in self.db.execute(
@@ -1920,6 +1909,25 @@ class Registry:
                         (r["subject"], r["document_id"], mailing)).rowcount
         self.db.commit()
         return result
+
+    def _purge_person_mailing_leads(self) -> int:
+        """Delete owner and entity mailing addresses whose leading line names a person or cannot be read
+        (``mailing_address_withheld``); the count deleted."""
+        deleted = 0
+        for name_predicate, mailing in (("ownership.owner_of_record", "ownership.owner_mailing_address"),
+                                        ("entity.legal_name", "entity.mailing_address")):
+            doomed: list[str] = []  # read as a stream, deleted after, so the read never sees its own deletes
+            for r in self.db.execute(
+                    "SELECT m.fact_id, m.value_json, (SELECT n.value_json FROM facts n WHERE n.subject = m.subject "
+                    "AND n.document_id = m.document_id AND n.predicate = ? LIMIT 1) AS name_json FROM facts m "
+                    "WHERE m.predicate = ?", (name_predicate, mailing)):
+                address = json.loads(r["value_json"])
+                name = json.loads(r["name_json"]) if r["name_json"] is not None else None
+                if isinstance(address, str) and mailing_address_withheld(address, name if isinstance(name, str) else None):
+                    doomed.append(r["fact_id"])
+            for fact_id in doomed:
+                deleted += self.db.execute("DELETE FROM facts WHERE fact_id = ?", (fact_id,)).rowcount
+        return deleted
 
     def stats(self) -> dict[str, int]:
         q = lambda sql: self.db.execute(sql).fetchone()[0]  # noqa: E731
