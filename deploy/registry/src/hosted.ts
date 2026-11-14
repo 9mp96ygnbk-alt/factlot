@@ -182,8 +182,10 @@ export function hostedAddressMissOf(
   miss: Row,
 ): Row {
   const out = { ...miss };
-  if (out.state_loaded !== true) return out;
+  // A withheld county among the place's counties is said not to be served, whether or not the query named a state
+  // ("4200 S Hulen St, 76109").
   out.message = `${String(out.message)}${withheldTail(scope, cov, out.place_counties)}`;
+  if (out.state_loaded !== true) return out;
   for (const c of cov.counties) {
     const fips = `${c.state_fips}${c.county_fips}`;
     const p = partialOf(scope, fips);

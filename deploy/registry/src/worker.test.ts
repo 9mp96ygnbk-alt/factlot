@@ -795,6 +795,14 @@ test("a withheld county and an entity registry served in part", async () => {
     /ZIP code 76109, TX lies in Tarrant County, TX \(48439\)/,
   );
   assert.match(String(fwCov.message), withheld);
+  // The same ZIP code without a state: the state is not one the query names, and the county is still withheld.
+  const bare = await call("registry_search_address", {
+    query: "4200 S Hulen St, 76109",
+  });
+  const bareCov = bare.result!.coverage as Row;
+  assert.equal(bareCov.state_loaded, null);
+  assert.deepEqual(bareCov.place_counties, ["48439"]);
+  assert.match(String(bareCov.message), withheld);
   const cov = await call("registry_coverage", {});
   const hosted = cov.result!.hosted as {
     withheld_counties: Row[];
