@@ -1023,6 +1023,23 @@ describe("lookup pages: hostile input and privacy", () => {
       assert.equal(res.headers.get("referrer-policy"), "no-referrer");
       assert.equal(res.headers.get("x-robots-tag"), "noindex");
     }
+    // The redirect carries only the parameters a lookup page reads, never anything else given.
+    const extra = await w.get(
+      "/lookup/?q=1+Main&s=fl_x_SECRET&pwd=SECRET&sig=SECRET&city=Houston&format=json",
+      { host: "api.factlot.com" },
+    );
+    assert.equal(extra.status, 302);
+    assert.equal(
+      extra.headers.get("location"),
+      "https://factlot.com/lookup/?q=1+Main&city=Houston&format=json",
+    );
+    const record = await w.get(`${MAIN_TX_PATH}?sig=SECRET`, {
+      host: "api.factlot.com",
+    });
+    assert.equal(
+      record.headers.get("location"),
+      `https://factlot.com${MAIN_TX_PATH}`,
+    );
     // A credential in the address is refused on the API host too, before any redirect, unechoed.
     const secret = "fl_live_abcdefSECRETvalue123";
     for (const param of ["key", "x-api-key", "api-key", "access_token"]) {

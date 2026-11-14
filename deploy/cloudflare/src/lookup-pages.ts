@@ -347,9 +347,10 @@ export function credentialInAddress(url: URL, json: boolean): Response | null {
 }
 
 /**
- * A lookup address asked of the API host (a GET or HEAD): sent to the same address on the site host
- * with a 302 that carries the headers of every lookup answer (no-store, noindex, no-referrer). A
- * parameter named like a credential is refused first, so its value is never put in a Location header.
+ * A lookup address asked of the API host (a GET or HEAD): sent to the same path on the site host with
+ * a 302 that carries the headers of every lookup answer (no-store, noindex, no-referrer). A parameter
+ * named like a credential is refused first, and the Location carries only the parameters a lookup
+ * page reads (q, the place fields, format), so nothing else of the address is repeated.
  */
 export function lookupOnApiHost(
   request: Request,
@@ -358,7 +359,14 @@ export function lookupOnApiHost(
 ): Response {
   const refused = credentialInAddress(url, wantsJson(request, url));
   if (refused) return refused;
-  const to = `${site}${url.pathname}${url.search}`;
+  // Only the parameters a lookup page reads go on: nothing else of the address is repeated.
+  const u = new URLSearchParams();
+  for (const p of [...SEARCH_PARAMS, "format"]) {
+    const v = url.searchParams.get(p);
+    if (v !== null) u.set(p, v);
+  }
+  const query = u.toString();
+  const to = `${site}${url.pathname}${query ? `?${query}` : ""}`;
   return new Response(null, {
     status: 302,
     headers: headersOf("text/plain; charset=utf-8", { location: to }),
