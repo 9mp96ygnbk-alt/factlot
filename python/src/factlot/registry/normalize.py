@@ -1143,7 +1143,7 @@ _LEAD_MARKER = re.compile(
 _LEAD_MARKER_INSIDE = re.compile(r"(?<![A-Z0-9])(?:C\s*/\s*O|CARE\s+OF|ATTN|ATTENTION|ATT|%)(?![A-Z0-9])[\s:.\-]*", re.I)
 # Words that begin the box or route part of an address.
 _BOX_START = frozenset("PO POB PMB DRAWER BOX".split())
-_ROUTE_START = frozenset("RR HC CMR PSC".split())
+_ROUTE_START = frozenset("RR HC CMR PSC RT RTE ROUTE HWY HIGHWAY".split())
 _NUMBER_WORDS = frozenset("ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN ELEVEN TWELVE TWENTY THIRTY FIFTY HUNDRED "
                           "FIRST".split())
 # Street types written short: a line ending in one is a street ("JOHN F KENNEDY BLVD", "MARTIN LUTHER KING JR DR", "SAN
