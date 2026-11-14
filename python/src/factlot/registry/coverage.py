@@ -267,8 +267,8 @@ def _held_county_names(cov: dict[str, Any], st: str) -> str:
 def address_place_differs(place: dict[str, Any], results: list[dict[str, Any]]) -> list[bool]:
     """Which results lie outside the counties of the place the query names (``addressPlaceDiffers`` in TS): never one
     whose own label has the query's ZIP code or city (``address_place_rank`` 0 or 1); otherwise one whose county is
-    in none of the counties the tables know, in its state, for the query's ZIP code or city, and holds no parcel
-    labelled with it (``label_any_counties``); one where they know neither does not."""
+    in none of the counties the tables know, in its state, for the query's ZIP code or city; one where they know
+    neither does not."""
     city = address_place_city(place)
     asked = {**place, "city": city}
     keys = [k for k in (place["zip"], city) if k is not None]
@@ -286,7 +286,7 @@ def address_place_differs(place: dict[str, Any], results: list[dict[str, Any]]) 
             counties = place_counties(st, k) if st else None
             if not counties:
                 continue
-            if fips in counties or fips in (label_any_counties(st, k) or []):
+            if fips in counties:
                 break
             known = True
         else:

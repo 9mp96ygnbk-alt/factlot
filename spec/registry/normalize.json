@@ -2478,7 +2478,17 @@
           "label": "1 MAIN ST, ODESSA TX"
         }
       ],
-      [false, true]
+      [true, true]
+    ],
+    [
+      "100 Wilshire Blvd, Thousand Oaks, CA",
+      [
+        {
+          "urn": "fl:parcel:us-06037:4291001035",
+          "label": "100 WILSHIRE BLVD, SANTA MONICA 90401"
+        }
+      ],
+      [true]
     ]
   ],
   "address_found": [
@@ -2626,6 +2636,27 @@
             "label": "4250 PATRIOT DR, COPPELL (DALLAS CO) TX 76051"
           }
         ]
+      }
+    ],
+    [
+      "100 Wilshire Blvd, Thousand Oaks, CA",
+      {},
+      [
+        {
+          "urn": "fl:parcel:us-06037:4291001035",
+          "label": "100 WILSHIRE BLVD, SANTA MONICA 90401"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-06037:4291001035",
+            "label": "100 WILSHIRE BLVD, SANTA MONICA 90401",
+            "place_differs": true
+          }
+        ],
+        "note": "these matches are outside the counties THOUSAND OAKS, CA lies in (Ventura County, CA (06111))",
+        "place_counties": ["06111"]
       }
     ]
   ],

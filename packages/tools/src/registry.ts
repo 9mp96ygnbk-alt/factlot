@@ -3082,9 +3082,9 @@ function heldCountyNames(cov: RegistryCoverage, st: string): string {
  * Which results lie outside the counties of the place the query names (`address_place_differs` in Python). A result
  * whose own label has the query's ZIP code or city (`addressPlaceRank` 0 or 1) never does. Otherwise it does when
  * the tables know, in the result's state, the counties of the query's ZIP code or city (`placeCounties`, the Census
- * tables and the registry's labels) and the result's county, from its URN, is in none of those known nor holds any
- * parcel labelled with the place (`labelAnyCounties`); when they know neither there, it does not (nothing is
- * claimed of a place the tables do not know).
+ * tables and the registry's labels) and the result's county, from its URN, is in none of those known; when they
+ * know neither there, it does not (nothing is claimed of a place the tables do not know). A few stray labels do not
+ * put a county in the place: the result's own label is what counts.
  */
 export function addressPlaceDiffers(
   place: AddressPlace,
@@ -3103,11 +3103,7 @@ export function addressPlaceDiffers(
     for (const k of keys) {
       const counties = st ? placeCounties(st, k) : null;
       if (!counties) continue;
-      if (
-        counties.includes(fips) ||
-        labelAnyCounties(st!, k)?.includes(fips) === true
-      )
-        return false;
+      if (counties.includes(fips)) return false;
       known = true;
     }
     return known;
