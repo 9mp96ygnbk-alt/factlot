@@ -16,6 +16,7 @@ import type { Manifest } from "../../deploy/registry/src/format.ts";
 import { countyName } from "../../packages/tools/src/county_names.ts";
 
 import { FIELDS_DATA, fieldsData, writeFieldsData } from "./gen-fields.ts";
+import { fieldsSentences } from "./fields.mjs";
 import {
   DATA_FILE as MCP_DATA_FILE,
   mcpDataCurrent,
@@ -240,20 +241,26 @@ async function main(argv: string[]): Promise<void> {
     }
     const r = renderHosted(text, data, ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY);
     if (!r.found) problems.push(`${rel}: no hosted text marked`);
+    // llms.txt's line on field availability names the places with no owners (fields.mjs).
+    r.text = r.text.replace(/^Fields differ by county.*$/m, () =>
+      fieldsSentences(
+        JSON.parse(readFileSync(join(root, FIELDS_DATA), "utf8")),
+        data,
+      ),
+    );
     if (r.text !== text) {
       writeFileSync(join(root, rel), r.text);
       changed.push(rel);
     }
   }
   if (changed.length) {
-    spawnSync(
-      "npx",
-      ["prettier", "--write", ...changed.filter((f) => /\.(html|md)$/.test(f))],
-      {
+    // Only the HTML and Markdown files are formatted; with none, prettier would wait on standard input.
+    const formatted = changed.filter((f) => /\.(html|md)$/.test(f));
+    if (formatted.length)
+      spawnSync("npx", ["prettier", "--write", ...formatted], {
         cwd: root,
         stdio: "inherit",
-      },
-    );
+      });
     console.log(`rewrote ${changed.join(", ")}`);
   }
   if (problems.length) {

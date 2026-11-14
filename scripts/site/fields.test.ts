@@ -8,7 +8,8 @@ import { describe, it } from "node:test";
 import { buildCoverageCatalog } from "./coverage-catalog.mjs";
 import {
   ALL_BUT_MAX,
-  FIELDS_SENTENCES,
+  fieldsSentences,
+  noOwnerPlaces,
   cellText,
   partText,
   townListYears,
@@ -75,11 +76,18 @@ describe("field availability", () => {
       ),
     );
   });
-  it("what llms.txt says of Los Angeles and San Francisco is what the data holds", () => {
+  it("what llms.txt says of owners is what the data holds", () => {
+    const hostedData = JSON.parse(read("site/_data/hosted.json"));
+    const places = noOwnerPlaces(fields, hostedData);
     for (const fips of ["06037", "06075"])
       assert.equal(row(fips).groups.owner_of_record.share, 0, fips);
+    assert.ok(places.includes("Los Angeles County"));
+    assert.ok(places.includes("San Francisco"));
     for (const file of ["llms.txt", "site/llms.txt"])
-      assert.ok(read(file).includes(FIELDS_SENTENCES), file);
+      assert.ok(
+        read(file).includes(fieldsSentences(fields, hostedData)),
+        `${file}: run scripts/site/gen-hosted.ts --text`,
+      );
   });
   it("Travis: 2026 with both values, 2022 to 2025 market value only", () => {
     assert.equal(

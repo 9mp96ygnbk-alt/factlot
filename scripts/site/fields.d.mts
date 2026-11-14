@@ -1,7 +1,8 @@
 import type { FieldsCounty, FieldsData } from "./gen-fields.ts";
 
-export const FIELDS_LEAD: string;
-export const FIELDS_SENTENCES: string;
+export function noOwnerPlaces(fields: unknown, hosted: unknown): string[];
+export function fieldsLead(fields: unknown, hosted: unknown): string;
+export function fieldsSentences(fields: unknown, hosted: unknown): string;
 export const SHORT: Record<string, string>;
 export const TOWN_LIST_SOURCES: Set<string>;
 export const ALL_BUT_MAX: number;

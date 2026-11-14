@@ -1011,7 +1011,10 @@ describe("hosted registry figures (site/_data/hosted.json)", async () => {
       notices.includes("THE STATE OF COLORADO MAKES NO REPRESENTATIONS"),
     );
     assert.match(markets.marketLinks(d), /href="\/new-york-city\/"/);
-    assert.match(line, /: 419 parcels in 20 counties in 8 states, on every plan/);
+    assert.match(
+      line,
+      /: 419 parcels in 20 counties in 8 states, on every plan/,
+    );
     assert.match(line, /Tarrant County is not served by the hosted registry/);
   });
 });

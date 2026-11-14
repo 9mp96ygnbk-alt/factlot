@@ -68,7 +68,7 @@ import {
   marketTitle,
   sourceNotices,
 } from "./market-pages.mjs";
-import { FIELDS_LEAD, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
+import { fieldsLead, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
 import {
   CONTACT,
   OPERATOR,
@@ -1232,7 +1232,7 @@ ${Object.keys(byState)
         COV_MAX_AGE: String(cov.max_age_days),
         COV_TABLE: table,
         COV_N_PIPELINE: String(n.audited_load + n.cited_load),
-        COV_FIELDS_LEAD: esc(FIELDS_LEAD),
+        COV_FIELDS_LEAD: esc(fieldsLead(fieldsJson, hostedJson)),
         COV_FIELDS_TABLE: hostedFieldsTable(fieldsJson),
         COV_REPO: REPO,
         COV_MARKETS: marketLinks(hostedJson),

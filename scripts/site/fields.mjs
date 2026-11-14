@@ -3,6 +3,8 @@
 // county pages call these, and site.test.ts calls the same functions, so no page states a field the data does not
 // hold.
 
+import { placeLabel } from "./hosted.mjs";
+
 const esc = (s) =>
   String(s)
     .replaceAll("&", "&amp;")
@@ -12,13 +14,38 @@ const esc = (s) =>
 const int = new Intl.NumberFormat("en-US");
 
 /**
- * What llms.txt says of field availability (both copies), and the coverage page's lead to its table. It points to the
- * coverage page, which holds the table whatever the hosted pack carries.
+ * The hosted places none of whose counties holds an owner of record (fields.json's owner_of_record share is 0 for
+ * each), by the names the pages give them (hosted.mjs placeLabel), in hosted.json's order.
  */
-export const FIELDS_LEAD =
-  "Fields differ by county (Los Angeles and San Francisco have no owners).";
-export const FIELDS_SENTENCES =
-  "Fields differ by county (Los Angeles and San Francisco have no owners): shares and roll years at https://factlot.com/coverage/#fields.";
+export function noOwnerPlaces(fields, hosted) {
+  const share = new Map(
+    fields.counties.map((c) => [c.fips, c.groups?.owner_of_record?.share ?? 0]),
+  );
+  return hosted.places
+    .filter((p) => p.counties.every((f) => (share.get(f) ?? 0) === 0))
+    .map((p) => placeLabel(hosted, p));
+}
+
+/** "Fields differ by county (Maryland, ... and Allegheny County (PA) have no owners)." */
+const noOwners = (fields, hosted) => {
+  const places = noOwnerPlaces(fields, hosted);
+  if (!places.length) return "Fields differ by county";
+  const and =
+    places.length === 1
+      ? places[0]
+      : `${places.slice(0, -1).join(", ")} and ${places.at(-1)}`;
+  return `Fields differ by county (${and} ${places.length === 1 ? "has" : "have"} no owners)`;
+};
+
+/** The coverage page's lead to its table. */
+export const fieldsLead = (fields, hosted) => `${noOwners(fields, hosted)}.`;
+
+/**
+ * What llms.txt says of field availability (both copies, as its line that starts "Fields differ by county"). It
+ * points to the coverage page, which holds the table whatever the hosted pack carries.
+ */
+export const fieldsSentences = (fields, hosted) =>
+  `${noOwners(fields, hosted)}: shares and roll years at https://factlot.com/coverage/#fields.`;
 
 /** Short column headings, in fields.json's group order. */
 export const SHORT = {
