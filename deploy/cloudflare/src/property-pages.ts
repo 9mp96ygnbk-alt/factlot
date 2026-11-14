@@ -707,9 +707,10 @@ export interface RenderInput {
   /**
    * Set when the sheet is the answer to a lookup request (lookup-pages.ts) and not a published
    * page: it is then never indexed, has no canonical address, and says so under its heading.
-   * `note` is HTML the caller built from fixed words and escaped values.
+   * `note` is HTML the caller built from fixed words and escaped values. `paid`: the caller's key
+   * is Pro or Team, so the page leaves out what such a key adds (their JSON answer holds it).
    */
-  lookup?: { note: string };
+  lookup?: { note: string; paid?: boolean };
 }
 
 /** The page's HTML (pure: tests call it directly). Every value from the registry is escaped. */
@@ -951,11 +952,12 @@ export function renderPropertyPage(input: RenderInput): string {
         ]
       : []),
   ];
-  const pro = proLines.length
-    ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
+  const pro =
+    proLines.length && !input.lookup?.paid
+      ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
 ${proLines.join("\n")}
 <p>See <a href="/pricing/">pricing</a>.</p>`
-    : "";
+      : "";
 
   const shownIds = new Set(
     [...docs.values()]

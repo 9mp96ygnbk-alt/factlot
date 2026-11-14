@@ -735,11 +735,33 @@ describe("lookup pages: the allowance", () => {
       res.headers.get("x-factlot-registry-quota-remaining"),
       String(PLANS.pro.registryLookupsPerMonth - 1),
     );
+    const proHtml = await res.text();
     assert.ok(
-      strip(await res.text()).includes(
+      strip(proHtml).includes(
         `${(PLANS.pro.registryLookupsPerMonth - 1).toLocaleString("en-US")} of ${PLANS.pro.registryLookupsPerMonth.toLocaleString("en-US")} registry lookups left this month for this key&#39;s subscription, shared by all of its keys`,
       ),
     );
+    // A paid caller is not told what a paid key adds: one line sends them to the JSON answer,
+    // and the page is still the free view (no earlier roll year is written into it).
+    assert.ok(!proHtml.includes('id="pro"'));
+    assert.ok(!proHtml.includes("What a Pro or Team key adds"));
+    assert.ok(
+      proHtml.includes(
+        `This page shows the free view; this key's full answer is at <a href="${MAIN_TX_PATH}?format=json" rel="nofollow">`,
+      ),
+    );
+    const freeHtml = await (
+      await w.get(MAIN_TX_PATH, { ip: "198.51.100.20" })
+    ).text();
+    assert.ok(freeHtml.includes('<h2 id="pro">'));
+    assert.ok(!freeHtml.includes("This page shows the free view"));
+    const strippedOf = (html: string) =>
+      html
+        .replace(/<p class="small lookup-note">[\s\S]*?<\/p>/, "")
+        .replace(/<h2 id="pro">[\s\S]*?(?=<h2 )/, "")
+        .replace(/<li><a href="#pro">[^<]*<\/a><\/li>/, "")
+        .replace(/\n+/g, "\n");
+    assert.equal(strippedOf(proHtml), strippedOf(freeHtml));
     // The key's month was charged, not the address's day.
     assert.equal(await w.usedToday(), 0);
     // A paid caller's JSON holds every roll year, as the API gives it to them.

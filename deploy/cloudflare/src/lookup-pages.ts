@@ -717,8 +717,9 @@ async function record(
   const body = parse(await res.text()) as Json | undefined;
   if (res.status !== 200 || !body || typeof body !== "object")
     return apiErrorPage(res, body, deps, "", "", keyed);
-  // The page is the free view whoever asks: the current roll year, the newest sale or deed, and the
-  // lines that say what a paid key adds. (A paid caller's JSON answer holds the rest.)
+  // The page is the free view whoever asks: the current roll year and the newest sale or deed. No
+  // value a paid key adds is ever written into a page. A free caller is told what a paid key adds;
+  // a Pro or Team caller, whose key was charged for the full answer, is sent to its JSON address.
   const rec = limitSales(limitHistory(body)) as PageRecord;
   if (rec?.urn !== urn)
     return fail(
@@ -729,6 +730,7 @@ async function record(
       "The registry answered with something that is not this parcel's record. Retry in a few seconds.",
     );
   const headers = passed(res);
+  const paid = callerOf(headers, keyed) === "paid";
   const region = regionOf(urn);
   const place = (await deps.places()).get(region) ?? {
     name: region,
@@ -757,10 +759,13 @@ async function record(
       note: [
         "This record is one registry lookup.",
         quotaLine(headers, keyed),
-        jsonLine(recordJsonHref(urn), "registry_get"),
+        paid
+          ? `This page shows the free view; this key's full answer is at <a href="${e(recordJsonHref(urn))}" rel="nofollow"><code>${e(recordJsonHref(urn))}</code></a> (the hosted API's <code>registry_get</code> answer, with the key sent in the <code>Authorization</code> header).`
+          : jsonLine(recordJsonHref(urn), "registry_get"),
       ]
         .filter(Boolean)
         .join(" "),
+      paid,
     },
   });
   return new Response(html, { status: 200, headers: htmlHeaders(headers) });
