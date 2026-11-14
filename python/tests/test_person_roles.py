@@ -299,3 +299,38 @@ class MailingPurge(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SharedVectors(unittest.TestCase):
+    """The vectors both person rules read (``spec/registry/person-names.json``; the TypeScript twin reads them too)."""
+
+    def test_both_rules_agree_on_the_shared_vectors(self):
+        vectors = json.loads((Path(__file__).resolve().parents[2] / "spec" / "registry" / "person-names.json").read_text())
+        for name in vectors["persons"]:
+            self.assertFalse(is_organization(name), name)
+        for name in vectors["organizations"]:
+            self.assertTrue(is_organization(name), name)
+
+    def test_a_long_or_adversarial_name_is_read_in_linear_time(self):
+        import time
+        for name in ("A, " * 700, "ZELLBY, " + "A " * 1000 + ",", "ACME LLC " * 250, "A & " * 600, "C/O " * 500,
+                     "(" + "A " * 1000, "X" * 2000):
+            t = time.perf_counter()
+            is_organization(name)
+            organization_part(name)
+            self.assertLess(time.perf_counter() - t, 0.5, name[:20])
+
+    def test_a_name_over_the_cap_is_withheld_when_its_rest_carries_a_marker(self):
+        self.assertFalse(is_organization("ACME HOLDINGS LLC " + "X " * 200 + "C/O PAT ZELLBY"))
+        self.assertTrue(is_organization("ACME HOLDINGS LLC " + "X " * 200))
+
+    def test_the_first_house_number_starts_the_street(self):
+        self.assertEqual(mailing_address_withheld("PAT EXAMPLE 100 MAIN ST 2ND FLOOR, EXAMPLEVILLE, NY", "ACME LLC"),
+                         "person")
+
+    def test_maintain_refuses_a_missing_file(self):
+        from factlot.registry import maintain
+        missing = Path(tempfile.mkdtemp()) / "nothing.db"
+        with self.assertRaises(SystemExit):
+            maintain.run(str(missing), purge_persons=True)
+        self.assertFalse(missing.exists(), "no empty registry is created")

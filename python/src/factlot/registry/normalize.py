@@ -42,7 +42,7 @@ _CO_ROLE = (rf"(?:{_ROLE_QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRT|TRTE|TRTEES?|TRU
 # Tokens that mark an organisation rather than a natural person.
 _ENTITY_TOKENS = re.compile(
     rf"\b(LLC|LLP|LP|INC|CORP|CO(?! {_CO_ROLE})|(?<=TRUST )CO|(?<=BANK )CO|(?<=TITLE )CO|(?<=SAVINGS )CO|(?<=GUARANTY )CO|(?<=FIDUCIARY )CO|(?<=ABSTRACT )CO|LTD|PLLC|PC|PARTNERS|PARTNERSHIP|PROPERTIES|PROPERTY|HOLDINGS|"
-    r"REALTY|INVESTMENTS?|FUND|CAPITAL|VENTURES?|ASSOCIATES|GROUP|BANK|CHURCH|ASSOCIATION|"
+    r"REALTY|INVESTMENTS?|FUND|CAPITAL|VENTURES?|ASSOCIATES|GROUP|BANK|BANCORP|BANCSHARES|CHURCH|ASSOCIATION|"
     r"FOUNDATION|DISTRICT|AUTHORITY|ISD|COUNTY|CITY|STATE|UNIVERSITY|HOSPITAL|REIT|"
     r"REAL ESTATE INVESTMENT TRUST)\b"
 )
@@ -235,6 +235,10 @@ _INSTITUTION_NAME_WORDS = frozenset(
     "TABERNACLE CHAPEL COMMUNITY APARTMENTS".split())
 
 
+# Given names that are also churches' names ("GRACE CHURCH", "EMMANUEL CHURCH").
+_CHURCH_NAMES = frozenset("GRACE CHRISTIAN JESUS EMMANUEL IMMANUEL TRINITY FAITH HOPE MERCY JOY ANGEL".split())
+
+
 def _is_surname_collision(s: str) -> bool:
     """Whether a cleaned name is a person whose surname is one of ``_SURNAME_WORDS``."""
     tokens = s.split()
@@ -253,7 +257,10 @@ def _is_surname_collision(s: str) -> bool:
     if sum(t in _SURNAME_WORDS for t in tokens) != 1 or not 2 <= len(tokens) <= 4:
         return False
     rest = [t for t in tokens if t not in _SURNAME_WORDS]
-    return _only_given_names(rest)
+    # "PAT CHURCH", "MARY A BANK", "BANK, PAT": the given names of the longer list, but not a church's own ("GRACE")
+    return (any(t in _TRADE_NAME_GIVEN_NAMES and t not in _CHURCH_NAMES for t in rest)
+            and all(t in _TRADE_NAME_GIVEN_NAMES or t in _NAME_SUFFIXES or (len(t) == 1 and t.isalpha())
+                    for t in rest))
 
 
 def _only_given_names(tokens: list[str]) -> bool:
@@ -425,7 +432,8 @@ _PROBATE = re.compile(
 _TRUST_WORD = r"(?:TRUSTS?|TRST|TR)"
 # Personal trusts, written out or as the rolls abbreviate them. Apostrophes have become spaces ("SURVIVOR S").
 _PERSONAL_TRUST_MARK = re.compile(
-    r"\b(?:REVOCABLE|IRREVOCABLE|REVOC|IRREVOC|IRREV|RVCBLE|INTER ?VIVOS|TESTAMENTARY|TESTAMENTRY|TESTMENTARY|QTIP|QPRT|"
+    r"\b(?:REVOCABLE|IRREVOCABLE|REVOC|IRREVOC|IRREV|IRRV|IRREVCBLE|RVCBLE|INTER ?VIVOS|TESTAMENTARY|TESTAMENTRY|"
+    r"TESTMENTARY|QTIP|QPRT|"
     r"CRUT|CRAT)\b"
     r"|\bREV (?:LIV|LIVING|LVG|TR|TRUST|TRST|FAM|FAMILY|DEC|DECL|DECLARATION)\b|\bIRR (?:TR|TRUST)\b"
     r"|(?<!\bSENIOR )(?<!\bASSISTED )(?<!\bINDEPENDENT )\b(?:LIVING|LIV|LVG) (?:TR|TRUST|TRST|REV)\b"
@@ -434,7 +442,7 @@ _PERSONAL_TRUST_MARK = re.compile(
     rf"DECEDENTS?|DECEDENT S|SPOUSAL|DYNASTY|GRANTOR|SPECIAL NEEDS|SUPPLEMENTAL NEEDS|CHILDRENS|CHILDREN S|"
     rf"GRANDCHILDRENS|GRANDCHILDREN S|SPENDTHRIFT|GENERATION SKIPPING|GST|CHARITABLE REMAINDER(?: UNITRUST)?"
     rf"(?: ANNUITY)?|CHARITABLE LEAD(?: ANNUITY)?) {_TRUST_WORD}\b|\bMARITAL DEDUCTION\b|\bUNITRUST\b"
-    r"|\b(?:SEPARATE|COMMUNITY) PROPERTY\b")
+    r"|\b(?:SEPARATE|SEPERATE|COMMUNITY) PROPERTY\b")
 # Dated or "under agreement" forms: personal when the name also has a trust or trustee word.
 _TRUST_INSTRUMENT_MARK = re.compile(
     r"\b(?:DTD|U A|U T A|U D T|U A D|U W|UTA|UDT|UTD|UAD|UTAD|DATED|AGREEMENT DATED|DECLARATION OF TRUST)\b")
@@ -446,7 +454,7 @@ _BOARD_OF_TRUSTEES = re.compile(r"\b(?:THE )?(?:BOARD|BD|BRD) OF (?:TRUSTEES|TRS
 _TRUSTEE = re.compile(
     rf"\b(?:AS )?(?:(?:{_ROLE_QUALIFIER}|INDIVIDUALLY AND AS|INDIVIDUALLY AND|INDENTURE|COLLATERAL|OWNER|"
     r"SEPARATE|CERTIFICATE|INSTITUTIONAL|LIQUIDATING|PLAN|DELAWARE|ADMINISTRATIVE) )*"
-    r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS|(?<=\bCO )TRUS|(?<=\bSUCCESSOR )TRUS)\b"
+    r"(?:TRUSTEES?|TTEES?|TRSTEES?|TRSTE|TRUSTE|TRS|TRTS|TR(?= OF\b)|(?<=\bCO )TRUS|(?<=\bSUCCESSOR )TRUS)\b"
     r"(?! (?:CO|COMPANY|CORP|SERVICES|SERVICING)\b)"
     r"(?: (?:OF|FOR|UNDER|U A|U T A|UNDER THE|OF THE|FOR THE|OF THAT|U D T))?"
     # An executor, administrator, personal representative, guardian, conservator, committee or receiver: a role only
@@ -560,7 +568,7 @@ _STREET_WORD = frozenset("ST STREET DR DRIVE AVE AVENUE RD ROAD BLVD BOULEVARD P
                          "HIGHWAY FWY FREEWAY TRL TRAIL PL PLACE CIR CIRCLE LOOP SQ SQUARE TER TERRACE PLZ PLAZA".split())
 _CONNECTORS = frozenset("AND OF THE A".split())
 _TRUST_WORDS = frozenset("TR TRUST TRUSTS TRST TRUSTEE TRUSTEES".split())
-_FOR_BENEFIT_OF = re.compile(r"\b(?:FBO|F B O|CFBO|C F B O|IRA|ROTH|SEP IRA|HSA)\b")
+_FOR_BENEFIT_OF = re.compile(r"\b(?:FBO|F B O|CFBO|C F B O|IRA|ROTH|SEP IRA|SEP|HSA|CUST)\b")
 # Words that make a co-owner's name an organisation's or a place's ("ACME LLC AND EXAMPLE HOUSING DEVELOPMENT").
 # (With ``NAME_STOP_TOKENS``, defined below.)
 _CO_OWNER_ORG_WORDS = (_GENERIC_BUSINESS_WORDS | _LP_CONTEXT | _STREET_WORD
@@ -766,6 +774,7 @@ def person_carrying_class(name: str) -> str | None:
     ("<person> TRUSTEE", "TRUSTEES OF <person>", "<bank> AS TRUSTEE OF <person> TRUST") or ``wrapper`` ("<company>
     LLC <person> REV TR"). For the measurement and the purge report; ``is_organization`` is the rule.
     """
+    name = name[:_NAME_READ_CAP]
     cls = _person_carrying(_clean_for_rule(name))
     if cls is None and _is_organization_core(name) and raw_person_reading(name):
         return "person_in_name"
@@ -818,6 +827,8 @@ def _clean_for_rule(name: str) -> str:
         if pattern == r"\bL P\b" and not (_DOTTED_LP.search(raw) or spaced_lp):
             continue
         s = re.sub(pattern, repl, s)
+    if re.search(r"\bP\.\s*C\.?\s*$", raw):
+        s = re.sub(r"\bP C$", "PC", s)  # "EXAMPLE P.C.": a professional corporation written with dots
     return _canonical_tokens(s)
 
 
@@ -854,6 +865,8 @@ def _institution_as_trustee(s: str) -> bool:
 
 _STRONG_MARKER = re.compile("|".join([
     r"\bC\s*/\s*O\b", r"\bC\.\s*O\.",
+    # "<CO> INC CO <NAME>": a bare CO after a legal form routes to what follows (not "CO-TRUSTEE")
+    r"(?:(?<=LLC)|(?<=INC)|(?<=CORP)|(?<=LTD)|(?<=\bLP)|(?<=LLP))\.?,?\s+CO\b(?!\s*-?\s*" + _CO_ROLE + r")(?=\s+[A-Z])",
     r"(?:(?<=LLC)|(?<=INC)|(?<=CORP)|(?<=LTD)|(?<=\bLP)|(?<=\bCO))\.?,?\s+C\s+O\b",
     r"\bCARE\s+OF\b", r"\bATTN\b:?", r"\bATTEN\b:?", r"\bATTENTION\b:?", r"\bATT\s*:", "%",
     r"(?:(?<=LLC)|(?<=INC)|(?<=CORP)|(?<=LTD)|(?<=\bLP)|(?<=\bCO))\.?\s*,?\s+BY\b:?", r",\s*BY\b:?",
@@ -989,20 +1002,31 @@ def _pieces_name_a_person(name: str) -> bool:
     return False
 
 
+def _comma_name(part: str) -> tuple[str, str] | None:
+    """"SURNAME, REST" split at the first comma without a backtracking pattern, or None."""
+    i = part.find(",")
+    if i < 0:
+        return None
+    head, rest = part[:i].strip(), part[i + 1:].rstrip(" ,\t").strip()
+    if not re.fullmatch(r"[A-Z'-]{2,}", head) or not re.fullmatch(r"[A-Z][A-Z .]*", rest):
+        return None
+    return head, rest
+
+
 def _co_owner_is_person(text: str) -> bool:
     """A person among co-owners joined by "&" or AND: after a company ("ACME LLC & PAT EXAMPLE", read alone), or first,
     before a company ("EXAMPLE PAT Q & ACME REALTY")."""
-    parts = re.split(r"\s*(?:&|\bAND\b)\s*", text.upper())
+    parts = re.split(r"\s*(?:&|\+|\bAND\b)\s*", text.upper())
     if len(parts) < 2:
         return False
     # a co-owner written "SURNAME, GIVEN ..." with no organisation word: the word after the comma is a listed given name,
     # or an initial or a second word follows it (not "SMITH, JONES & BROWN LLP", a firm named for its partners)
     for part in parts:
-        m = re.match(r"^\s*([A-Z'-]{2,})\s*,\s*([A-Z][A-Z .]*?)\s*,?\s*$", part)
+        m = _comma_name(part)
         if not m:
             continue
-        after = _clean_for_rule(m.group(2)).split()
-        words = _clean_for_rule(m.group(1)).split() + after
+        after = _clean_for_rule(m[1]).split()
+        words = _clean_for_rule(m[0]).split() + after
         if (not after or _organization_reading(" ".join(words))
                 or any(t in _CO_OWNER_ORG_WORDS or t in _PIECE_DESCRIPTOR_WORDS or t in NAME_STOP_TOKENS for t in words)):
             continue
@@ -1011,6 +1035,8 @@ def _co_owner_is_person(text: str) -> bool:
             return True
     first_raw = re.sub(r"\([^()]*\)?", " ", parts[0])
     first = _clean_for_rule(first_raw).split()
+    if len(first) >= 3 and first[-1] in ("JR", "SR", "II", "III", "EST", "OF"):
+        first = first[:-1]  # "EXAMPLE PAT Q JR & ACME LLC": a suffix after the person
     second = _clean_for_rule(parts[1])
     rest = _clean_for_rule(" ".join(parts[1:]))
     plain = bool(first) and not _organization_reading(" ".join(first)) and not any(t in _CO_OWNER_ORG_WORDS for t in first)
@@ -1115,6 +1141,61 @@ def _person_at_head(s: str) -> bool:
             and (len(t) == 3 or t[3] == "OF"))
 
 
+_OFFICE = re.compile(r"\s*,?\s+(?:AS\s+)?(?:SHERIFF|REFEREE|CITY\s+MARSHAL|MARSHAL|PUBLIC\s+ADMINISTRATOR)\b")
+_SURNAME_ORG_WORD = re.compile(r"^(?:CHURCH|CITY|COUNTY|STATE|BANK)\s+([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+[A-Z]\b)?\.?\s*$")
+
+
+def _plain_name_word(x: str | None) -> bool:
+    return (x is not None and len(x) > 1 and x.isalpha() and x not in _CO_OWNER_ORG_WORDS
+            and x not in _PIECE_DESCRIPTOR_WORDS and not _ENTITY_TOKENS.fullmatch(x)
+            and not _organization_reading(x))
+
+
+def _own_firm(rest: list[str]) -> bool:
+    return all(x in _GENERIC_AFTER_AND or _LEGAL_FORM.fullmatch(x) or x in ("THE", "AND") for x in rest)
+
+
+def _person_around(name: str) -> bool:
+    """A person named at the head of a name before a company or an office, with no "&" ("EXAMPLE, PAT Q <OTHER WORDS>
+    LLC", "EXAMPLE, PAT FOR ACME LLC", "EXAMPLE PAT Q ACME LP", "EXAMPLE PAT Q STATE OF", "PAT EXAMPLE, REFEREE",
+    "EXAMPLE AS SHERIFF OF THE CITY, PAT"); a bank or a company followed by "EXAMPLE, PAT Q [JR]"; "CHURCH EXAMPLE,
+    PAT"; and a trust named for a person ("PAT Q EXAMPLE 2001 REALTY TRUST"). The twin of ``personAround`` in
+    packages/tools/src/person-names.ts."""
+    u = _raw_upper(name).strip()
+    office = _OFFICE.search(u)
+    if office and office.start() > 0:  # the office alone ("SHERIFF OF THE CITY ...") stays
+        who = [t for t in _clean_for_rule(u[:office.start()]).split() if t != "BY"]
+        if (1 <= len(who) <= 4 and all(t.isalpha() for t in who) and not _organization_reading(" ".join(who))
+                and not any(t in _CO_OWNER_ORG_WORDS or t in _PIECE_DESCRIPTOR_WORDS or t == "THE" for t in who)):
+            return True
+    t = _clean_for_rule(u).split()
+    comma = re.match(r"^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([A-Z])\b\.?)?", u)
+    if comma and _plain_name_word(_clean_for_rule(comma.group(1))) and _plain_name_word(comma.group(2)):
+        rest = _clean_for_rule(u[comma.end():]).split()
+        if ((comma.group(2) in _TRADE_NAME_GIVEN_NAMES or comma.group(3)) and rest
+                and _organization_reading(" ".join(rest)) and not _own_firm(rest)
+                and not re.match(r"^\s*(?:&|AND\b)", u[comma.end():])):
+            return True
+    if (len(t) >= 4 and _plain_name_word(t[0]) and t[1] in _TRADE_NAME_GIVEN_NAMES and len(t[2]) == 1
+            and t[2] not in "AI" and _organization_reading(" ".join(t[3:])) and not _own_firm(t[3:])):
+        return True
+    tail = re.search(r"([A-Z'-]{2,})\s*,\s*([A-Z]{2,})((?:\s+[A-Z]\b\.?)?)(?:\s+(?:JR|SR|II|III)\.?)?\s*$", u)
+    if (tail and tail.start() > 0 and _plain_name_word(_clean_for_rule(tail.group(1)))
+            and _plain_name_word(tail.group(2)) and _organization_reading(_clean_for_rule(u[:tail.start()]))
+            and (tail.group(2) in _TRADE_NAME_GIVEN_NAMES or tail.group(3).strip())):
+        return True
+    church = _SURNAME_ORG_WORD.match(u)
+    if church and _plain_name_word(_clean_for_rule(church.group(1))) and church.group(2) in _TRADE_NAME_GIVEN_NAMES:
+        return True
+    if (t and t[0] in _TRADE_NAME_GIVEN_NAMES and 4 <= len(t) <= 6
+            and " ".join(t[-2:]) in ("REALTY TRUST", "PROPERTY TRUST", "INVESTMENT TRUST", "BUSINESS TRUST",
+                                     "NOMINEE TRUST")
+            and not _LEGAL_FORM.search(" ".join(t))
+            and all((len(x) == 1 and x.isalpha()) or re.fullmatch(r"\d{4}", x) or _plain_name_word(x) for x in t[1:-2])):
+        return True
+    return False
+
+
 def raw_person_reading(name: str) -> bool:
     """Whether a name's pieces, read on the raw string, name a natural person (see the section comment): a piece after a
     contact, account or role marker; a person-shaped piece between separators; a co-owner after a company; a name
@@ -1128,12 +1209,20 @@ def raw_person_reading(name: str) -> bool:
     main = parts[0]
     if not re.search(r"[A-Z]", main):
         return False
-    if _pieces_name_a_person(main) or _co_owner_is_person(_raw_upper(main)) or _person_after_comma(main):
+    if (_person_around(main) or _pieces_name_a_person(main) or _co_owner_is_person(_raw_upper(main))
+            or _person_after_comma(main)):
         return True
     whole = " ".join(_split_pieces(" ".join(_split_pieces(re.sub(r"[()]", " ", _raw_upper(main)), _STRONG_MARKER)),
                                    _WEAK_SEPARATOR))
     s = _clean_for_rule(whole)
     return _person_at_head(s) or _plain_words_after_form(s)
+
+
+# The longest name the rule reads in full; past it, the cut is read and any marker or role in the rest withholds.
+_NAME_READ_CAP = 300
+_SIGNAL = re.compile(r"\bC\s*/\s*O\b|\bATTN\b|\bCARE OF\b|%|\bF\s*/?\s*B\s*/?\s*O\b|\bIRA\b|\bU\s*/\s*W\b|"
+                     r"\bTRUSTEES?\b|\bTTEE\b|\bESTATE OF\b|\bHEIRS?\b|\bEXECUT\w*|\bGUARDIAN\b|\bREVOCABLE\b|"
+                     r"\bLIVING TRUST\b|\bFAMILY TRUST\b", re.I)
 
 
 def is_organization(name: str) -> bool:
@@ -1155,6 +1244,8 @@ def is_organization(name: str) -> bool:
     person named, a numbered land trust, a board of trustees of an institution and a REIT, business or statutory
     trust stay organisations.
     """
+    if len(name) > _NAME_READ_CAP:
+        return is_organization(name[:_NAME_READ_CAP]) and not _SIGNAL.search(name[_NAME_READ_CAP - 20:])
     if not _is_organization_core(name):
         return False
     return not raw_person_reading(name)
@@ -1596,8 +1687,8 @@ def _street_start(tokens: list[str]) -> int | None:
             return i
         if t in _ROUTE_START and any(c.isdigit() for c in "".join(tokens[i + 1:i + 2])):
             return i
-    # A house number inside the segment: the last digit-led token followed by a word ("PAT Q EXAMPLE 33 MILL RD").
-    for i in range(len(tokens) - 2, 0, -1):
+    # A house number inside the segment: the first digit-led token followed by a word ("PAT Q EXAMPLE 33 MILL RD").
+    for i in range(1, len(tokens) - 1):  # the first one: "PAT EXAMPLE 100 MAIN ST 2ND FLOOR" starts at 100
         if tokens[i][0].isdigit() and tokens[i + 1][0].isalpha() and tokens[i + 1] not in _LEGAL_TOKENS:
             return i
     return None

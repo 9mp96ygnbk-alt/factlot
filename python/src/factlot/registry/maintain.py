@@ -35,6 +35,7 @@ import argparse
 import json
 import sys
 import time
+from pathlib import Path
 from typing import Any, Callable
 
 from .store import Registry
@@ -56,6 +57,8 @@ def _cleaners(reg: Registry) -> list[tuple[str, Callable[[str], str]]]:
 def run(db_path: str, *, purge_persons: bool = False, clean_names: bool = False, rebuild_names: bool = False,
         link: bool = False, queue_fuzzy: bool = False, rebuild_addresses: bool = False, buildings: bool = False,
         coverage: bool = False, log: Callable[[str, dict[str, Any]], None] | None = None) -> dict[str, Any]:
+    if not Path(db_path).is_file():
+        raise SystemExit(f"no such registry file: {db_path}")  # Registry() would create an empty one
     reg = Registry(db_path)
     out: dict[str, Any] = {}
 

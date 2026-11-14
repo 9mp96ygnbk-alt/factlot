@@ -1877,15 +1877,18 @@ class Registry:
         # scrubbed (``mailing_address_withheld``).
         for name_predicate, mailing in (("ownership.owner_of_record", "ownership.owner_mailing_address"),
                                         ("entity.legal_name", "entity.mailing_address")):
+            doomed: list[str] = []  # read as a stream, deleted after, so the read never sees its own deletes
             for r in self.db.execute(
                     "SELECT m.fact_id, m.value_json, (SELECT n.value_json FROM facts n WHERE n.subject = m.subject "
                     "AND n.document_id = m.document_id AND n.predicate = ? LIMIT 1) AS name_json FROM facts m "
-                    "WHERE m.predicate = ?", (name_predicate, mailing)).fetchall():
+                    "WHERE m.predicate = ?", (name_predicate, mailing)):
                 address = json.loads(r["value_json"])
                 name = json.loads(r["name_json"]) if r["name_json"] is not None else None
                 if isinstance(address, str) and mailing_address_withheld(address, name if isinstance(name, str) else None):
-                    result["person_mailing_leads"] += self.db.execute(
-                        "DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],)).rowcount
+                    doomed.append(r["fact_id"])
+            for fact_id in doomed:
+                result["person_mailing_leads"] += self.db.execute(
+                    "DELETE FROM facts WHERE fact_id = ?", (fact_id,)).rowcount
         rows = self.db.execute(
             f"SELECT fact_id, subject, predicate, value_json, document_id FROM facts WHERE predicate IN "
             f"({','.join('?' * len(MAILING_PREDICATES))})", MAILING_PREDICATES).fetchall()
