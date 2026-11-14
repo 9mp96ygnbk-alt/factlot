@@ -185,20 +185,26 @@ def _rows(path: Path) -> list[list[str]]:
 
 
 def _zip_data() -> str:
-    """ZCTAs ascending, each the difference from the one before and, when they change, its counties."""
-    out, prev, last = [], 0, None
+    """One line per first two digits, each after a newline: "NN=" and the ZCTAs beginning so, ascending,
+    comma-separated, each the difference from the one before (the first from NN000) and, when they change (always
+    for the first), ":" and its counties. A lookup decodes one line."""
+    by: dict[str, list[str]] = defaultdict(list)
+    prev: dict[str, tuple[int, str | None]] = {}
     for z, counties in _rows(ZIP_TSV):
-        out.append(str(int(z) - prev) if counties == last else f"{int(z) - prev}:{counties}")
-        prev, last = int(z), counties
-    return ",".join(out)
+        head = z[:2]
+        at, last = prev.get(head, (int(head) * 1000, None))
+        by[head].append(str(int(z) - at) if counties == last else f"{int(z) - at}:{counties}")
+        prev[head] = (int(z), counties)
+    return "".join(f"\n{head}={','.join(items)}" for head, items in by.items())
 
 
 def _place_data() -> str:
-    """One line per state: STATE=name:county codes|..., each county by its last 3 digits."""
+    """One line per state, each after a newline: STATE=name:county codes|..., each county by its last 3 digits. A
+    lookup decodes one state's line."""
     by: dict[str, list[str]] = defaultdict(list)
     for st, key, counties in _rows(PLACE_TSV):
         by[st].append(f"{key}:{' '.join(c[2:] for c in counties.split(' '))}")
-    return "\n".join(f"{st}={'|'.join(items)}" for st, items in by.items())
+    return "".join(f"\n{st}={'|'.join(items)}" for st, items in by.items())
 
 
 def _source() -> str:
@@ -208,7 +214,7 @@ def _source() -> str:
 
 def write_tables() -> None:
     lines = [ln for ln in TSV.read_text("utf-8").splitlines() if ln and not ln.startswith("#")]
-    body = "\n".join(lines)
+    body = "".join(f"\n{ln}" for ln in lines) + "\n"
     zips, places, source = _zip_data(), _place_data(), _source()
     ts_fips = ", ".join(f'{st}: "{f}"' for f, st in STATE_BY_FIPS.items())
     py_fips = ", ".join(f'"{st}": "{f}"' for f, st in STATE_BY_FIPS.items())
