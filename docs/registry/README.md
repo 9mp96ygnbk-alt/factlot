@@ -464,9 +464,12 @@ Tabulation Area to county relationship file (`spec/registry/zip-counties.tsv`: t
 at least 5% of a ZCTA's land, or its largest part), its 2020 places by county file
 (`spec/registry/census-place-counties.tsv`: every incorporated or census-designated place, by its
 name without its legal description, with every county it lies in; places of one name in a state
-together), and the cities and ZIP codes of registry parcel labels (`spec/registry/address-places.tsv`,
-which knows the labels' own spellings such as BROOKLYN). `scripts/gen-address-places.py --census`
-builds the Census tables and records their source, vintage, retrieval date and hash; the Census
+together; a name loses "(balance)" and one legal description, never more, so "Salt Lake City city"
+is SALT LAKE CITY), and the cities and ZIP codes of registry parcel labels
+(`spec/registry/address-places.tsv`, which knows the labels' own spellings such as BROOKLYN: the
+counties holding at least 3 and 5% of a place's labelled parcels, and apart from them every other
+county holding any). `scripts/gen-address-places.py --census DIR --retrieved YYYY-MM-DD` builds the
+Census tables and records their source, vintage, the retrieval date given and hash; the Census
 files are works of the US government. A city named without a state is placed only when one state has
 a place of that name. When a query names a city or ZIP code, a result outside every county it lies
 in carries `place_differs: true`, and when every result does, `note` says so and `place_counties`

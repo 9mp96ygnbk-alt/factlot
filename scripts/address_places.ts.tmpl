@@ -5,7 +5,8 @@
 /** Where the Census tables come from (`PLACE_COUNTIES_SOURCE` in Python). */
 export const PLACE_COUNTIES_SOURCE = @SOURCE@;
 
-// Lines of state, city or ZIP code, and space-separated 5-digit county FIPS codes, tab-separated.
+// Lines of state, city or ZIP code, the space-separated 5-digit county FIPS codes holding at least 3 and 5% of its
+// labelled parcels, and the other counties holding any of them, tab-separated (either list may be empty).
 const LABELS = @LABELS@;
 // ZCTAs ascending, comma-separated: the difference from the one before, and ":" with its counties when they change.
 const ZIPS = @ZIPS@;
@@ -13,24 +14,49 @@ const ZIPS = @ZIPS@;
 const PLACES = @PLACES@;
 const FIPS: Record<string, string> = { @FIPS@ };
 
-let labels: Map<string, string[]> | undefined;
+let labels: Map<string, [string[] | null, string[]]> | undefined;
 let zips: Map<string, string[]> | undefined;
 let places: Map<string, string[]> | undefined;
 let statesOf: Map<string, string[]> | undefined;
 
-/** The counties holding a city's or ZIP code's parcels in a state in the registry's labels, or null (`label_place_counties` in Python). */
+function labelRow(
+  state: string,
+  place: string,
+): [string[] | null, string[]] | undefined {
+  if (!labels) {
+    labels = new Map();
+    for (const line of LABELS.split("\n")) {
+      const [st, key, kept, rest] = line.split("\t");
+      labels.set(`${st}|${key}`, [
+        kept ? kept.split(" ") : null,
+        rest ? rest.split(" ") : [],
+      ]);
+    }
+  }
+  return labels.get(`${state}|${place}`);
+}
+
+/**
+ * The counties holding at least 3 and 5% of the parcels whose registry label names a city or ZIP code in a state, or
+ * null (`label_place_counties` in Python).
+ */
 export function labelPlaceCounties(
   state: string,
   place: string,
 ): string[] | null {
-  if (!labels) {
-    labels = new Map();
-    for (const line of LABELS.split("\n")) {
-      const [st, key, counties] = line.split("\t");
-      labels.set(`${st}|${key}`, counties!.split(" "));
-    }
-  }
-  return labels.get(`${state}|${place}`) ?? null;
+  return labelRow(state, place)?.[0] ?? null;
+}
+
+/**
+ * Every county holding any parcel whose registry label names a city or ZIP code in a state, however few, or null
+ * (`label_any_counties` in Python).
+ */
+export function labelAnyCounties(
+  state: string,
+  place: string,
+): string[] | null {
+  const row = labelRow(state, place);
+  return row ? [...(row[0] ?? []), ...row[1]].sort() : null;
 }
 
 /** The counties (5-digit FIPS) a ZIP Code Tabulation Area lies in, or null (`zip_counties` in Python). */

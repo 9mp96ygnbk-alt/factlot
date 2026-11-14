@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import {
   PLACE_COUNTIES_SOURCE,
   censusPlaceCounties,
+  labelAnyCounties,
   labelPlaceCounties,
   placeCounties,
   placeStates,
@@ -1277,13 +1278,22 @@ test("the city and ZIP code county table matches its TSV", () => {
     .filter((l) => l && !l.startsWith("#"))
     .map((l) => l.split("\t"));
   assert.ok(rows.length > 1000);
-  for (const [st, place, counties] of rows)
+  for (const [st, place, kept, rest] of rows) {
     assert.deepEqual(
       labelPlaceCounties(st!, place!),
-      counties!.split(" "),
+      kept ? kept.split(" ") : null,
       place,
     );
+    assert.deepEqual(
+      labelAnyCounties(st!, place!),
+      `${kept} ${rest}`.trim().split(" ").sort(),
+      place,
+    );
+  }
   assert.equal(placeCounties("TX", "NO SUCH CITY"), null);
+  assert.equal(labelAnyCounties("TX", "NO SUCH CITY"), null);
+  // A bare state is no city.
+  assert.equal(labelAnyCounties("TX", "TX"), null);
 });
 
 test("the Census ZIP code and place county tables match their TSVs", () => {
@@ -1313,6 +1323,15 @@ test("the Census ZIP code and place county tables match their TSVs", () => {
   assert.deepEqual(placeCounties("TX", "78205"), ["48029"]);
   assert.equal(placeCounties("NY", "78205"), null);
   assert.ok(placeStates("SAN ANTONIO").includes("TX"));
+  // One legal description is left out of a Census name, never more: "Salt Lake City city" is SALT LAKE CITY,
+  // "Texas City city" TEXAS CITY (not TEXAS), and Carson City, NV has none to leave out.
+  assert.deepEqual(censusPlaceCounties("UT", "SALT LAKE CITY"), ["49035"]);
+  assert.equal(censusPlaceCounties("UT", "SALT LAKE"), null);
+  assert.deepEqual(censusPlaceCounties("TX", "TEXAS CITY"), ["48071", "48167"]);
+  assert.equal(censusPlaceCounties("TX", "TEXAS"), null);
+  assert.deepEqual(censusPlaceCounties("TX", "JERSEY VILLAGE"), ["48201"]);
+  assert.deepEqual(censusPlaceCounties("NV", "CARSON CITY"), ["32510"]);
+  assert.deepEqual(censusPlaceCounties("AK", "JUNEAU"), ["02110"]);
   assert.match(PLACE_COUNTIES_SOURCE, /census\.gov/);
 });
 

@@ -1,9 +1,10 @@
 """Generate the city and ZIP code tables registry_search_address uses to name the counties a place lies in.
 
     python3 scripts/gen-address-places.py [REGISTRY.db ...]
-    python3 scripts/gen-address-places.py --census DIR
+    python3 scripts/gen-address-places.py --census DIR --retrieved YYYY-MM-DD
 
-With --census and a folder holding the US Census Bureau files named in CENSUS_FILES, rewrites
+With --census, a folder holding the US Census Bureau files named in CENSUS_FILES and the date they were retrieved
+(recorded as given, so a rerun on the same files writes the same tables), rewrites
 spec/registry/zip-counties.tsv (each ZIP Code Tabulation Area and the counties holding at least ZCTA_MIN_SHARE of
 its land, or its largest part) and spec/registry/census-place-counties.tsv (each place, incorporated or census
 designated, by state and by its name without its legal description, with every county it lies in), recording the
@@ -12,12 +13,15 @@ and in the public domain.
 
 With registry files, rewrites spec/registry/address-places.tsv from the situs addresses of their parcels: for each
 state, city and ZIP code a parcel label names, the counties (5-digit FIPS, from the parcel URNs) holding at least
-MIN_PARCELS of its parcels and at least MIN_SHARE of them. Only the city or ZIP code and the county are kept, never
-an address. Then writes the TypeScript and Python tables from the TSV; both are tested against it, so regenerate
+MIN_PARCELS of its parcels and at least MIN_SHARE of them, then the other counties holding any of its parcels (so that
+a miss never says a place lies only in counties the registry does not hold when one it holds has a parcel labelled
+with it). A city or ZIP code with no county of the first kind is kept only when the Census tables know it. Only the
+city or ZIP code and the county are kept, never an address. Then writes the TypeScript and Python tables from the TSV; both are tested against it, so regenerate
 rather than edit them.
 
 A city is the last comma part of a label after its ZIP code and state ("1 MAIN ST, HOUSTON, TX 77002", "633 W 5TH ST,
-LOS ANGELES CA 90071"): one to five words of letters. A label without a comma gives its ZIP code only. A ZIP code is
+LOS ANGELES CA 90071"): one to five words of letters, and not a state code ("1 MAIN ST, TX TX"). A label without a
+comma gives its ZIP code only. A ZIP code is
 the 5 digits ending the label.
 """
 
@@ -44,11 +48,13 @@ CENSUS_FILES = {
               "US Census Bureau, 2020 Census FIPS Codes for Places by County"),
 }
 ZCTA_MIN_SHARE = 0.05
-# The legal or statistical description a Census place name ends with ("San Antonio city", "Spring CDP").
-_PLACE_SUFFIX = re.compile(r"\s+(?:city and borough|consolidated government \(balance\)|metropolitan government "
-                           r"\(balance\)|unified government \(balance\)|metro government \(balance\)|\(balance\)|"
-                           r"city|town|village|borough|CDP|comunidad|zona urbana|municipality|township|corporation|"
-                           r"plantation|government)$", re.I)
+# The legal or statistical description a Census place name ends with ("San Antonio city", "Spring CDP"), after
+# "(balance)": lower case (or CDP) in the Census files, so a name's own capitalised word stays ("Carson City",
+# "Texas City city"). The earliest match wins, so "Juneau city and borough" loses "city and borough".
+_PLACE_BALANCE = re.compile(r"\s+\(balance\)$")
+_PLACE_SUFFIX = re.compile(r"\s+(?:city and borough|consolidated government|metropolitan government|unified government|"
+                           r"metro government|metro township|urban county|zona urbana|comunidad|city|town|village|"
+                           r"borough|CDP|municipality|township|corporation|plantation|government)$")
 TS_OUT = ROOT / "packages" / "tools" / "src" / "address_places.ts"
 PY_OUT = ROOT / "python" / "src" / "factlot" / "registry" / "address_places.py"
 MIN_PARCELS = 3
@@ -74,6 +80,7 @@ def label_zip(label: str) -> str | None:
 
 
 def label_city(label: str) -> str | None:
+    """The city a label names after its street line, or None (see the module docstring)."""
     s = label.upper()
     if "," not in s:
         return None
@@ -88,6 +95,8 @@ def label_city(label: str) -> str | None:
             parts.pop()
     w = parts[-1] if parts else []
     if not w or len(w) > 5 or not all(re.fullmatch(r"[A-Z]+", x) for x in w):
+        return None
+    if len(w) == 1 and w[0] in STATE_BY_FIPS.values():
         return None
     return " ".join(w)
 
@@ -105,43 +114,42 @@ def write_tsv(dbs: list[str]) -> None:
                 if key:
                     counts[(st, key)][county] += 1
         db.close()
+    census = {(st, key) for st, key, _ in _rows(PLACE_TSV)} | {z for z, _ in _rows(ZIP_TSV)}
     rows = []
     for (st, key), c in sorted(counts.items()):
         total = sum(c.values())
         kept = sorted(f for f, n in c.items() if n >= MIN_PARCELS and n / total >= MIN_SHARE)
-        if kept:
-            rows.append(f"{st}\t{key}\t{' '.join(kept)}")
+        rest = sorted(f for f in c if f not in kept)
+        if kept or (st, key) in census or key in census:
+            rows.append(f"{st}\t{key}\t{' '.join(kept)}\t{' '.join(rest)}")
     names = ", ".join("/".join(Path(d).parts[-2:]) for d in dbs)
     head = ("# Counties holding the parcels of each city and ZIP code that registry parcel labels name "
-            "(scripts/gen-address-places.py): state, city or ZIP code, 5-digit county FIPS codes.\n"
-            f"# Built from {len(dbs)} registry files ({names}); a county is kept with at least {MIN_PARCELS} of the "
-            f"place's parcels and {MIN_SHARE:.0%} of them.\n")
+            "(scripts/gen-address-places.py): state, city or ZIP code, 5-digit county FIPS codes holding at least "
+            f"{MIN_PARCELS} of the place's parcels and {MIN_SHARE:.0%} of them, the other counties holding any of "
+            "them (either list may be empty).\n"
+            f"# Built from {len(dbs)} registry files ({names}); a place with no county of the first kind is kept "
+            "only when the Census tables know it.\n")
     TSV.write_text(head + "\n".join(rows) + "\n", "utf-8")
 
 
-def _census_head(kind: str, folder: Path, what: str) -> str:
+def _census_head(kind: str, folder: Path, what: str, retrieved: str) -> str:
     import hashlib
-    from datetime import date
     name, url, title = CENSUS_FILES[kind]
     digest = hashlib.sha256((folder / name).read_bytes()).hexdigest()
     return (f"# {what} (scripts/gen-address-places.py --census).\n"
             f"# Source: {title} ({name}), {url}; a work of the US government, in the public domain.\n"
-            f"# Vintage 2020; retrieved {date.today().isoformat()}; sha256 {digest}.\n")
+            f"# Vintage 2020; retrieved {retrieved}; sha256 {digest}.\n")
 
 
 def place_key(name: str) -> str:
-    """A Census place name as an address query names the city: its legal description left out, upper case, words of
-    letters and digits ("St. Louis city" is "ST LOUIS")."""
-    n = name
-    for _ in range(3):
-        m = _PLACE_SUFFIX.sub("", n)
-        if m == n:
-            break
-        n = m
+    """A Census place name as an address query names the city: "(balance)" and then one legal description left out,
+    never more, upper case, words of letters and digits ("St. Louis city" is "ST LOUIS", "Salt Lake City city" is
+    "SALT LAKE CITY", "Carson City" stays "CARSON CITY")."""
+    n = _PLACE_SUFFIX.sub("", _PLACE_BALANCE.sub("", name), count=1)
     return " ".join(w for w in _WORDS.split(n.upper()) if w)
 
 
-def write_census(folder: Path) -> None:
+def write_census(folder: Path, retrieved: str) -> None:
     import csv
     land: dict[str, dict[str, int]] = defaultdict(dict)
     with open(folder / CENSUS_FILES["zcta"][0], encoding="utf-8-sig", newline="") as f:
@@ -156,7 +164,7 @@ def write_census(folder: Path) -> None:
         kept = sorted(c for c, a in parts.items() if a == top or a / total >= ZCTA_MIN_SHARE)
         rows.append(f"{z}\t{' '.join(kept)}")
     head = _census_head("zcta", folder, "Counties holding each ZIP Code Tabulation Area: ZCTA, 5-digit county FIPS "
-                        f"codes (those holding at least {ZCTA_MIN_SHARE:.0%} of its land, or its largest part)")
+                        f"codes (those holding at least {ZCTA_MIN_SHARE:.0%} of its land, or its largest part)", retrieved)
     ZIP_TSV.write_text(head + "\n".join(rows) + "\n", "utf-8")
     fips = {v: k for k, v in STATE_BY_FIPS.items()}
     places: dict[tuple[str, str], set[str]] = defaultdict(set)
@@ -168,7 +176,7 @@ def write_census(folder: Path) -> None:
     rows = [f"{st}\t{key}\t{' '.join(sorted(c))}" for (st, key), c in sorted(places.items())]
     head = _census_head("place", folder, "Counties each place lies in: state, the place's name as a query names it "
                         "(its legal description left out; places of one name in a state together), 5-digit county "
-                        "FIPS codes")
+                        "FIPS codes", retrieved)
     PLACE_TSV.write_text(head + "\n".join(rows) + "\n", "utf-8")
 
 
@@ -217,8 +225,11 @@ def _js_string(s: str) -> str:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 2 and sys.argv[1] == "--census":
-        write_census(Path(sys.argv[2]))
+    if len(sys.argv) > 1 and sys.argv[1] == "--census":
+        if len(sys.argv) != 5 or sys.argv[3] != "--retrieved" or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}",
+                                                                                   sys.argv[4]):
+            sys.exit("usage: gen-address-places.py --census DIR --retrieved YYYY-MM-DD")
+        write_census(Path(sys.argv[2]), sys.argv[4])
     elif len(sys.argv) > 1:
         write_tsv(sys.argv[1:])
     write_tables()

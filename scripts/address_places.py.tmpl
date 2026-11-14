@@ -14,22 +14,34 @@ _ZIPS = @ZIPS@
 _PLACES = @PLACES@
 _FIPS = {@FIPS@}
 
-_labels: dict[str, list[str]] | None = None
+_labels: dict[str, tuple[list[str] | None, list[str]]] | None = None
 _zips: dict[str, list[str]] | None = None
 _places: dict[str, list[str]] | None = None
 _states_of: dict[str, list[str]] = {}
 
 
-def label_place_counties(state: str, place: str) -> list[str] | None:
-    """The counties holding a city's or ZIP code's parcels in a state in the registry's labels, or None
-    (``labelPlaceCounties`` in TypeScript)."""
+def _label_row(state: str, place: str) -> tuple[list[str] | None, list[str]] | None:
     global _labels
     if _labels is None:
         _labels = {}
         for line in _LABELS.split("\n"):
-            st, key, counties = line.split("\t")
-            _labels[f"{st}|{key}"] = counties.split(" ")
+            st, key, kept, rest = line.split("\t")
+            _labels[f"{st}|{key}"] = (kept.split(" ") if kept else None, rest.split(" ") if rest else [])
     return _labels.get(f"{state}|{place}")
+
+
+def label_place_counties(state: str, place: str) -> list[str] | None:
+    """The counties holding at least 3 and 5% of the parcels whose registry label names a city or ZIP code in a
+    state, or None (``labelPlaceCounties`` in TypeScript)."""
+    row = _label_row(state, place)
+    return row[0] if row else None
+
+
+def label_any_counties(state: str, place: str) -> list[str] | None:
+    """Every county holding any parcel whose registry label names a city or ZIP code in a state, however few, or
+    None (``labelAnyCounties`` in TypeScript)."""
+    row = _label_row(state, place)
+    return sorted((row[0] or []) + row[1]) if row else None
 
 
 def zip_counties(zip5: str) -> list[str] | None:
