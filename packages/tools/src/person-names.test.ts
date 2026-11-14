@@ -1,7 +1,9 @@
 // nameReadsAsPerson (person-names.ts): the answer-time person rule for owner and document-party names.
 // Every name here is invented; none is a real person's.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { nameReadsAsPerson } from "./person-names.ts";
 
@@ -70,6 +72,19 @@ describe("nameReadsAsPerson: persons", () => {
     "ACME LP & ZELLBY QUORVIN & PAT EXAMPLE",
     "ACME LLC & PAT",
     "ACME LLC & ZEBEDIAH",
+    "ZELLBY, QUORN M & SU H & EXAMPLE OAKS LLC",
+    "ZELLBY, ANITA & ZELLBY, MARTIN & EXAMPLE PROPERTIES LP",
+    "EXAMPLE CHURCH TR & ZELLBY, QUORN J &",
+    "CHURCH QUORVIN E",
+    "ZELLBY PAT SR & PAT JR CO-TRTEES",
+    "ZELLBY QUORN & ZELLBY MARY CO TRT",
+    "MARY ZELLBY CO-TRUSSTEE",
+    "ACME CORPORATION N. ZELLBY",
+    "ACME & CO P ZELLBY",
+    "PAT E. ZELLBY & ZELLBY PROPERTIES 20",
+    "ZELLBY MARY L & EXAMPLE LTD",
+    "ZELLBY DONNA S & EXAMPLE & PAINT LTD",
+    "ZELLBY PAT & EST MARY (INC)",
     "ACME LLC ZELLBY, QUORVIN P III",
     "ACME CO., QUORVIN ZELLBY",
     "ACME LLC ZELLBY QUORVIN DARVEN",
@@ -157,7 +172,14 @@ describe("nameReadsAsPerson: organisations", () => {
     "EXAMPLE BANK & TRUST",
     "SMITH & SONS INC",
     "SMITH & SONS LLC",
+    "ZELLBY, QUORN & EXAMPLE LLP",
+    "CHURCH OF GOD 7TH DAY",
+    "CITY OF EXAMPLEVILLE P",
+    "PAT Q ZELLBY & CO",
     "ACME LLC & CO",
+    "ACME INC & AFFILIATES",
+    "ACME LLC & SUBSIDIARIES",
+    "ACME LLC & OTHERS",
     "EXAMPLE HOLDINGS NORTH AMERICA",
     "EXAMPLE PROPERTIES OF TEXAS",
     "QUEST IRA INC",
@@ -177,4 +199,51 @@ describe("nameReadsAsPerson: organisations", () => {
   for (const name of organisations)
     it(`"${name}" is an organisation`, () =>
       assert.equal(nameReadsAsPerson(name), false));
+});
+
+describe("nameReadsAsPerson: the vectors shared with the registry's rule", () => {
+  const vectors = JSON.parse(
+    readFileSync(
+      fileURLToPath(
+        new URL("../../../spec/registry/person-names.json", import.meta.url),
+      ),
+      "utf8",
+    ),
+  ) as { persons: string[]; organizations: string[] };
+  for (const name of vectors.persons)
+    it(`"${name}" is a person`, () =>
+      assert.equal(nameReadsAsPerson(name), true));
+  for (const name of vectors.organizations)
+    it(`"${name}" is an organisation`, () =>
+      assert.equal(nameReadsAsPerson(name), false));
+});
+
+describe("nameReadsAsPerson: time", () => {
+  it("reads a long or adversarial name in linear time", () => {
+    for (const name of [
+      "A, ".repeat(700),
+      "ZELLBY, " + "A ".repeat(1000) + ",",
+      "ACME LLC ".repeat(250),
+      "A & ".repeat(600),
+      "C/O ".repeat(500),
+      "(" + "A ".repeat(1000),
+      "X".repeat(2000),
+    ]) {
+      const t = performance.now();
+      nameReadsAsPerson(name);
+      assert.ok(performance.now() - t < 250, `${name.slice(0, 20)}…`);
+    }
+  });
+  it("withholds a name over the cap when its rest carries a marker", () => {
+    assert.equal(
+      nameReadsAsPerson(
+        "ACME HOLDINGS LLC " + "X ".repeat(200) + "C/O PAT ZELLBY",
+      ),
+      true,
+    );
+    assert.equal(
+      nameReadsAsPerson("ACME HOLDINGS LLC " + "X ".repeat(200)),
+      false,
+    );
+  });
 });

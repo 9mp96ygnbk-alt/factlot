@@ -40,7 +40,7 @@ const GIVEN = new Set(
 );
 const QUALIFIER =
   "(?:CO|SUCCESSOR|SUC|SUCC|SOLE|SPECIAL|TEMPORARY|TEMPOARY|TEMP|PRELIMINARY|INDEPENDENT|ANCILLARY|SUBSTITUTE|ALTERNATE|INTERIM|ACTING|DOMICILIARY|JOINT)";
-const CO_ROLE = `(?:${QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRS?|TRU|TTEES?|TRUS|TRUSTS?|TRST|TRSUTEES?|GENERAL PARTNERS?|PARTNER|OWNERS?|TENANTS?|ADMIN|EXEC|EXE|EXECUT|EXECUTORS?|EXECUTRIX|EXRS?|ADMINISTRATORS?|ADMINISTRATRIX|ADMRS?|PERSONAL REPRESENTATIVES?|PERSONAL REP|GUARDIANS?|CONSERVATORS?|COMMITTEE|RECEIVERS?|T$)\\b`;
+const CO_ROLE = `(?:${QUALIFIER} )*(?:TRUSTEES?|TRUSTEER|TRT|TRTE|TRTEES?|TRUSSTEES?|TRUSTE|TRSTE|TRSTEES?|TRS?|TRU|TTEES?|TRUS|TRUSTS?|TRST|TRSUTEES?|GENERAL PARTNERS?|PARTNER|OWNERS?|TENANTS?|ADMIN|EXEC|EXE|EXECUT|EXECUTORS?|EXECUTRIX|EXRS?|ADMINISTRATORS?|ADMINISTRATRIX|ADMRS?|PERSONAL REPRESENTATIVES?|PERSONAL REP|GUARDIANS?|CONSERVATORS?|COMMITTEE|RECEIVERS?|T$)\\b`;
 /** "CO" is "Company" unless a role follows it; after TRUST or BANK it is always "Company". */
 const CO = `(?:CO(?! ${CO_ROLE})|(?<=\\b(?:TRUST|BANK|TITLE|SAVINGS|GUARANTY|FIDUCIARY|ABSTRACT) )CO)`;
 const LEGAL_FORM = new RegExp(
@@ -60,9 +60,9 @@ const ORGANIZATION = new RegExp(
     "\\bBUSINESS TRUST\\b|\\bSTATUTORY TRUST\\b|\\bDST\\b|\\b(?:TITLE|SAVINGS|GUARANTY) (?:AND )?TRUST\\b|\\bTRUST (?:CO|COMPANY)\\b|\\bNATIONAL ASSOCIATION\\b",
     "\\bHOA\\b|\\bHOMEOWNERS\\b|\\bHOME OWNERS\\b|\\bPROPERTY OWNERS\\b|\\bOWNERS (?:ASSN|ASSOCIATION)\\b",
     "\\b(?:\\w*BANK\\w*|BANC\\w*|TRUST|SAVINGS|FINANCIAL|NATIONAL|CITIZENS|MELLON|MBNA)\\b.*\\bN A$",
-    "\\b\\w*BANK\\w*\\b|\\bBANC\\w*\\b|\\b(?:CITIMORTGAGE|JPMORGAN|HSBC|WELLS FARGO)\\b",
+    "\\b(?:BANK|BANC|BANCORP|BANCSHARES|CITIBANK|BANKUNITED|BANKBOSTON|BANKNORTH|CITIMORTGAGE|JPMORGAN|HSBC|WELLS FARGO)\\b",
     // abbreviations rolls use for the same words
-    "\\b(?:PPTY|PPTYS|PPTIES|PPRTIES|RLTY|PTNR|PTNRS|PRTNRS|PTNRSHP|PRTNRSHP|PRTSP|PRTSHP|ASSOCS?|ASSN|HLDGS?|MGMT|APTS|CP|CRP|INVS?|INVTS|ENTS?|DEVEL|DEV)\\b",
+    "\\b(?:PPTY|PPTYS|PPTIES|PPRTIES|RLTY|PTNR|PTNRS|PRTNRS|PTNRSHP|PRTNRSHP|PRTSP|PRTSHP|ASSOCS?|ASSN|HLDGS?|MGMT|APTS|CP|CRP|INVS?|INVTS|ENTS?|DEVEL)\\b",
   ].join("|"),
 );
 /** Words that make what follows a company's name an organisation, an institution, a street or a property, not a person. */
@@ -108,6 +108,9 @@ function clean(value: string): string {
     .replace(/\bLIMITED LIABILITY PARTNERSHIP\b/g, "LLP")
     .replace(/\bLIMITED PARTNERSHIP\b/g, "LP")
     .replace(/\bL P$/g, "LP")
+    .replace(/\bPTNR\b/g, "PARTNER")
+    .replace(/\b(?:PTNRS|PRTNRS)\b/g, "PARTNERS")
+    .replace(/\bP C$/g, "PC")
     .replace(/\bINCORPORATED\b/g, "INC")
     .replace(/\bCORPORATION\b/g, "CORP")
     .replace(/\bCOMPANY\b/g, "CO")
@@ -144,6 +147,16 @@ function personAfterCompany(s: string): boolean {
       t,
     ),
   );
+  // "ACME INC EXAMPLE PAT Q TRUST #1": a person's trust after the company, numbered or not
+  if (
+    tail.some(
+      (_, i) =>
+        given(i) &&
+        initial(i + 1) &&
+        /^(?:TRUST|TR|TRST)$/.test(tail[i + 2] ?? ""),
+    )
+  )
+    return true;
   if (
     !street &&
     !tail.some((t) => /\d/.test(t)) &&
@@ -151,7 +164,7 @@ function personAfterCompany(s: string): boolean {
   )
     return true;
   // "... PROPERTIES OF <PLACE>", "... LLC, A DELAWARE ...", "... PARTNERSHIP TO END ...", "... LLC AS TO 50%"
-  if (/^(?:OF|A|AN|TO|FOR|IN|AT|ON|AS|ITS|FKA|AKA|NKA|F|N)$/.test(tail[0]!))
+  if (/^(?:OF|A|AN|TO|FOR|IN|AT|ON|AS|ITS|FKA|AKA|NKA)$/.test(tail[0]!))
     return false;
   // "N V", "S A" (a foreign legal form), "III A GP" (a fund's number and its general partner)
   if (
@@ -195,8 +208,9 @@ function personAfterCompany(s: string): boolean {
     // not a legal form ("... REALTY <PROPERTY LABEL>") only a given name, or a comma (personAfterComma), says person
     return (
       words.length >= 2 &&
-      last[0] !== "CO" &&
-      new RegExp(`^(?:${LEGAL_FORM.source})$`).test(last[0])
+      ((last[0] !== "CO" &&
+        new RegExp(`^(?:${LEGAL_FORM.source})$`).test(last[0])) ||
+        words.some((t) => /^[B-HJ-Z]$/.test(t))) // after a bare CO only with an initial
     );
   });
 }
@@ -260,7 +274,7 @@ const DESCRIPTOR_WORDS = new Set(
 );
 /** Generic words that may follow "&" in a company's own name ("SMITH & SONS", "EXAMPLE BANK & TRUST"). */
 const GENERIC_AFTER_AND = new Set(
-  "CO COMPANY SON SONS BROTHERS BROS DAUGHTERS TRUST TR SAVINGS LOAN ASSOCIATES ASSOCS PARTNERS ASSOCIATION NA N A".split(
+  "AFFILIATES AFFILIATE SUBSIDIARIES SUBSIDIARY OTHERS ASSIGNS ASSIGNEES SUCCESSORS SUCCESSOR HEIRS COMPANIES ENTITIES CO COMPANY SON SONS BROTHERS BROS DAUGHTERS TRUST TR SAVINGS LOAN ASSOCIATES ASSOCS PARTNERS ASSOCIATION NA N A".split(
     " ",
   ),
 );
@@ -289,6 +303,8 @@ const STRONG_MARKER = new RegExp(
     "\\bC\\s*/\\s*O\\b",
     "\\bC\\.\\s*O\\.",
     `(?<=(?:${LEGAL_FORM.source})\\.?,?)\\s+C\\s+O\\b`,
+    // "<CO> INC CO <NAME>": a bare CO after a legal form routes to what follows
+    `(?<=\\b(?:LLC|INC|CORP|LTD|LP|LLP|PLLC)\\.?,?)\\s+CO\\b(?! ${CO_ROLE})(?=\\s+[A-Z])`,
     "\\bCARE\\s+OF\\b",
     "\\bATTN\\b:?",
     "\\bATTEN\\b:?",
@@ -352,9 +368,20 @@ function personShaped(piece: string): boolean {
 /** Whether one marker piece names a natural person: what is left once its role words are read away is not an
  *  organisation. A piece that is only a share, a number, a street, a routing, a role or initials names no one. */
 function pieceIsPerson(piece: string): boolean {
+  // "C/O PAT Q EXAMPLE ESQ ...": a lawyer named before the firm
+  const head = clean(piece).split(" ");
+  const esq = head.indexOf("ESQ");
+  if (
+    esq > 0 &&
+    head.slice(0, esq).some((t) => GIVEN.has(t) || /^[B-HJ-Z]$/.test(t))
+  )
+    return true;
   const words = clean(piece)
     .split(" ")
     .filter((t) => t !== "" && !ROLE_WORDS.has(t));
+  // an account number after a name ("FBO PAT EXAMPLE 126306"): the name is read without it
+  while (words.length > 1 && /^\d+$/.test(words[words.length - 1]!))
+    words.pop();
   if (words.length === 0) return false;
   if (words.some((t) => /\d/.test(t))) return false; // a share, an account number or a street
   if (words.every((t) => NEUTRAL_WORDS.has(t) || t.length === 1)) return false;
@@ -401,6 +428,16 @@ function piecesNameAPerson(value: string): boolean {
     )
   )
     return true;
+  // "EXAMPLE PAT & EST MARY (INC)": a legal form in parentheses after persons' names
+  if (
+    asides.length > 0 &&
+    asides.every((a) =>
+      /^(?:LLC|INC|CORP|LTD|LP|LLP|CO|PC|PLLC)?$/.test(clean(a)),
+    ) &&
+    clean(outside) !== "" &&
+    !ORGANIZATION.test(clean(outside))
+  )
+    return true;
   const strong = splitOn(outside, STRONG_MARKER);
   for (const s of strong) {
     // a slash between two letters is an abbreviation ("R/E", "S/C", "A/C"), not a separator
@@ -431,29 +468,95 @@ function piecesNameAPerson(value: string): boolean {
 }
 
 /** "&" after a company's name starts a new owner: "ACME LLC & PAT EXAMPLE", "EXAMPLE FOUNDATION AND PAT EXAMPLE". */
+/** "SURNAME, REST" split at the first comma, without a backtracking pattern: [surname, rest] or undefined. */
+function commaName(part: string): [string, string] | undefined {
+  const i = part.indexOf(",");
+  if (i < 0) return undefined;
+  const head = part.slice(0, i).trim();
+  const rest = part
+    .slice(i + 1)
+    .replace(/[\s,]+$/, "")
+    .trim();
+  if (!/^[A-Z'-]{2,}$/.test(head) || !/^[A-Z][A-Z .]*$/.test(rest))
+    return undefined;
+  return [head, rest];
+}
+
 function coOwnerIsPerson(value: string): boolean {
-  const parts = value.toUpperCase().split(/\s*(?:&|\bAND\b)\s*/);
+  const parts = value.toUpperCase().split(/\s*(?:&|\+|\bAND\b)\s*/);
+  // A co-owner written "SURNAME, GIVEN ..." with no organisation word, beside others: "EXAMPLE, PAT Q & ACME LLC",
+  // "ACME CHURCH TR & EXAMPLE, PAT Q". The word after the comma is a listed given name, or an initial or a second word
+  // follows it (not "SMITH, JONES & BROWN LLP", a firm named for its partners).
+  if (parts.length > 1)
+    for (const part of parts) {
+      const m = commaName(part);
+      if (!m) continue;
+      const after = clean(m[1])
+        .split(" ")
+        .filter((t) => t !== "");
+      if (after.length === 0) continue;
+      const words = [clean(m[0]), ...after];
+      if (
+        ORGANIZATION.test(words.join(" ")) ||
+        words.some((t) => NOT_A_PERSON_TAIL.has(t) || DESCRIPTOR_WORDS.has(t))
+      )
+        continue;
+      if (
+        GIVEN.has(after[0]!) ||
+        after.length >= 2 ||
+        after.some((t) => /^[B-HJ-Z]$/.test(t))
+      )
+        return true;
+    }
   // A person first, then a company: "EXAMPLE PAT Q & ACME REALTY", "EXAMPLE, PAT & ACME LLC" (not "PAT EXAMPLE &
   // SONS INC", "SMITH C AND G PROPERTIES LTD", "THE PAT & MARY EXAMPLE FOUNDATION").
   if (parts.length > 1) {
     const raw0 = parts[0]!.replace(/\([^()]*\)?/g, " ");
-    const first = clean(raw0).split(" ");
-    const second = clean(parts[1]!);
-    if (
+    // "EXAMPLE PAT Q JR & ACME LLC", "EXAMPLE PAT Q EST & ACME LLC": a suffix after the person
+    const first = clean(raw0)
+      .split(" ")
+      .filter(
+        (t, i, a) =>
+          !(
+            i >= 2 &&
+            i === a.length - 1 &&
+            /^(?:JR|SR|II|III|EST|OF)$/.test(t)
+          ),
+      );
+    const rest = clean(parts.slice(1).join(" "));
+    const plain =
       !ORGANIZATION.test(first.join(" ")) &&
-      !first.some((t) => NOT_A_PERSON_TAIL.has(t)) &&
-      ((first.length >= 3 &&
+      !first.some((t) => NOT_A_PERSON_TAIL.has(t));
+    const initialForm =
+      (first.length >= 3 &&
         first.length <= 4 &&
         /^[B-HJ-Z]$/.test(first[first.length - 1]!) &&
         first.some((t) => GIVEN.has(t))) ||
-        /^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}/.test(raw0.trim())) &&
-      second
+      (first.length === 3 &&
+        GIVEN.has(first[0]!) &&
+        /^[B-HJ-Z]$/.test(first[1]!) &&
+        /^[A-Z]{2,}$/.test(first[2]!)); // "EXAMPLE PAT Q & ACME LTD", "PAT Q EXAMPLE & EXAMPLE PROPERTIES 20"
+    // "EXAMPLE, PAT & ACME LLC", but not "SMITH, EXAMPLE & QUIN, LLC" (a firm named for its partners)
+    const commaForm =
+      /^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}/.test(raw0.trim()) &&
+      clean(parts[1]!)
         .split(" ")
         .filter(
           (t) =>
             !/^(?:LLC|LLP|LP|INC|CORP|LTD|PLLC|PC|CO|PROFESSIONAL)$/.test(t),
         ).length >= 2 &&
-      ORGANIZATION.test(second)
+      ORGANIZATION.test(clean(parts[1]!));
+    // "PAT Q EXAMPLE & CO", "PAT Q EXAMPLE & SONS INC": the company is the person's own firm
+    const ownFirm = rest
+      .split(" ")
+      .every(
+        (t) =>
+          GENERIC_AFTER_AND.has(t) ||
+          /^(?:INC|LLC|LTD|CORP|LP|LLP|CO|PC|PLLC|THE)$/.test(t),
+      );
+    if (
+      plain &&
+      ((initialForm && !ownFirm && ORGANIZATION.test(rest)) || commaForm)
     )
       return true;
   }
@@ -489,6 +592,23 @@ function coOwnerIsPerson(value: string): boolean {
 function surnameCollision(s: string): boolean {
   const t = s.split(" ");
   if (!/^(?:CHURCH|CITY|COUNTY|STATE|BANK)$/.test(t[0] ?? "")) return false;
+  // "CHURCH QUIN E": the surname, a name and an initial, whatever the name
+  if (
+    t.length >= 3 &&
+    t.length <= 4 &&
+    !t.includes("OF") &&
+    /^[B-HJ-Z]$/.test(t[t.length - 1]!) &&
+    t
+      .slice(1, -1)
+      .every(
+        (x) =>
+          /^[A-Z]{2,}$/.test(x) &&
+          !NOT_A_PERSON_TAIL.has(x) &&
+          !DESCRIPTOR_WORDS.has(x),
+      ) &&
+    !ORGANIZATION.test(t.slice(1).join(" "))
+  )
+    return true;
   if (!GIVEN.has(t[1] ?? "") || t[1] === "JESUS") return false;
   if (t.some((x) => DESCRIPTOR_WORDS.has(x))) return false;
   const rest = t.slice(1).filter((x) => x !== "AND");
@@ -544,8 +664,165 @@ function personAfterComma(value: string): boolean {
   return words.length >= 2 || GIVEN.has(words[0]!);
 }
 
+/** Given names that are also churches' names ("GRACE CHURCH", "EMMANUEL CHURCH"). */
+const CHURCH_NAMES = new Set(
+  "GRACE CHRISTIAN JESUS EMMANUEL IMMANUEL TRINITY FAITH HOPE MERCY JOY ANGEL".split(
+    " ",
+  ),
+);
+const OFFICE =
+  /\s*,?\s+(?:AS\s+)?(?:SHERIFF|REFEREE|CITY\s+MARSHAL|MARSHAL|PUBLIC\s+ADMINISTRATOR)\b/;
+
+/**
+ * A person named at the head of a name before a company or an office, with no "&": "EXAMPLE, PAT Q <OTHER WORDS>
+ * LLC", "EXAMPLE, PAT FOR ACME LLC", "EXAMPLE PAT Q ACME LP", "EXAMPLE PAT Q STATE OF", "PAT EXAMPLE, REFEREE",
+ * "EXAMPLE AS SHERIFF OF THE CITY, PAT"; a bank or a company followed by "EXAMPLE, PAT Q [JR]"; "CHURCH EXAMPLE,
+ * PAT"; and a trust named for a person ("PAT Q EXAMPLE 2001 REALTY TRUST").
+ */
+function personAround(value: string): boolean {
+  const u = rawUpper(value).trim();
+  // an officer named before the office ("PAT EXAMPLE, REFEREE"); the office alone ("SHERIFF OF ...") stays
+  const office = OFFICE.exec(u);
+  if (office && office.index > 0) {
+    const who = clean(u.slice(0, office.index))
+      .split(" ")
+      .filter((t) => t !== "" && t !== "BY");
+    if (
+      who.length >= 1 &&
+      who.length <= 4 &&
+      who.every((t) => /^[A-Z]+$/.test(t)) &&
+      !ORGANIZATION.test(who.join(" ")) &&
+      !who.some(
+        (t) =>
+          NOT_A_PERSON_TAIL.has(t) || DESCRIPTOR_WORDS.has(t) || t === "THE",
+      )
+    )
+      return true;
+  }
+  const t = clean(u).split(" ");
+  const plainWord = (x: string | undefined) =>
+    x !== undefined &&
+    /^[A-Z]{2,}$/.test(x) &&
+    !NOT_A_PERSON_TAIL.has(x) &&
+    !DESCRIPTOR_WORDS.has(x) &&
+    !ORGANIZATION.test(x);
+  const ownFirm = (rest: string[]) =>
+    rest.every(
+      (x) =>
+        GENERIC_AFTER_AND.has(x) ||
+        /^(?:INC|LLC|LTD|CORP|LP|LLP|CO|PC|PLLC|THE|AND)$/.test(x),
+    );
+  // "EXAMPLE, PAT [Q] <OTHER WORDS> LLC" and "EXAMPLE, PAT FOR ACME LLC" (a listed given name or an initial)
+  const comma = /^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([A-Z])\b\.?)?/.exec(u);
+  if (comma && plainWord(clean(comma[1]!)) && plainWord(comma[2]!)) {
+    const rest = clean(u.slice(comma[0].length))
+      .split(" ")
+      .filter((x) => x !== "");
+    if (
+      (GIVEN.has(comma[2]!) || comma[3] !== undefined) &&
+      rest.length > 0 &&
+      ORGANIZATION.test(rest.join(" ")) &&
+      !ownFirm(rest) &&
+      !/^\s*(?:&|AND\b)/.test(u.slice(comma[0].length))
+    )
+      return true;
+  }
+  // "EXAMPLE PAT Q <OTHER COMPANY> LP", "EXAMPLE PAT Q STATE OF"
+  if (
+    t.length >= 4 &&
+    plainWord(t[0]) &&
+    GIVEN.has(t[1]!) &&
+    /^[B-HJ-Z]$/.test(t[2]!) &&
+    ORGANIZATION.test(t.slice(3).join(" ")) &&
+    !ownFirm(t.slice(3))
+  )
+    return true;
+  // "<BANK> [NA] EXAMPLE, PAT [Q] [JR]" at the end
+  const tail =
+    /([A-Z'-]{2,})\s*,\s*([A-Z]{2,})((?:\s+[A-Z]\b\.?)?)(?:\s+(?:JR|SR|II|III)\.?)?\s*$/.exec(
+      u,
+    );
+  if (
+    tail &&
+    tail.index > 0 &&
+    plainWord(clean(tail[1]!)) &&
+    plainWord(tail[2]!)
+  ) {
+    const before = clean(u.slice(0, tail.index));
+    if (
+      ORGANIZATION.test(before) &&
+      (GIVEN.has(tail[2]!) || tail[3]!.trim() !== "")
+    )
+      return true;
+  }
+  // "CHURCH EXAMPLE, PAT": a surname that is an organisation word, then "SURNAME, GIVEN"
+  const church =
+    /^(?:CHURCH|CITY|COUNTY|STATE|BANK)\s+([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+[A-Z]\b)?\.?\s*$/.exec(
+      u,
+    );
+  if (church && plainWord(clean(church[1]!)) && GIVEN.has(church[2]!))
+    return true;
+  // "PAT Q EXAMPLE [2001] REALTY TRUST", "PAT Q EXAMPLE REAL PROPERTY TRUST": a trust named for a person, no legal form
+  const kind = /^REAL (?:PROPERTY|ESTATE) TRUST$/.test(t.slice(-3).join(" "))
+    ? 3
+    : /^(?:REALTY|PROPERTY|INVESTMENT|BUSINESS|NOMINEE) TRUST$/.test(
+          t.slice(-2).join(" "),
+        )
+      ? 2
+      : 0;
+  if (
+    kind > 0 &&
+    GIVEN.has(t[0] ?? "") &&
+    !LEGAL_FORM.test(t.join(" ")) &&
+    t.length >= 2 + kind &&
+    t.length <= 4 + kind &&
+    t
+      .slice(1, -kind)
+      .every((x) => /^[A-Z]$/.test(x) || /^\d{4}$/.test(x) || plainWord(x))
+  )
+    return true;
+  // a surname that is an organisation word among given names ("PAT CHURCH", "MARY A BANK", "BANK, PAT"), each
+  // co-owner on its own ("PAT Q BANK & MARY R BANK"), before a trustee's role ("PAT BANK, AS TRUSTEE")
+  const roleWord = /^(?:AS|TRUSTEE|TRUSTEES|TTEE|TR)$/;
+  for (const piece of t.join(" ").split(/\bAND\b/)) {
+    const named = piece.split(" ").filter((x) => x !== "");
+    while (named.length > 2 && roleWord.test(named[named.length - 1]!))
+      named.pop();
+    if (
+      named.length >= 2 &&
+      named.length <= 4 &&
+      named.filter((x) => /^(?:BANK|CHURCH|CITY|COUNTY|STATE)$/.test(x))
+        .length === 1 &&
+      named.some((x) => GIVEN.has(x) && !CHURCH_NAMES.has(x)) &&
+      named.every(
+        (x) =>
+          /^(?:BANK|CHURCH|CITY|COUNTY|STATE)$/.test(x) ||
+          GIVEN.has(x) ||
+          /^[A-Z]$/.test(x) ||
+          /^(?:JR|SR|II|III|IV)$/.test(x),
+      )
+    )
+      return true;
+  }
+  return false;
+}
+
+/** The longest name both rules read in full; past it, the cut is read and any marker or role in the rest withholds. */
+export const NAME_READ_CAP = 300;
+const SIGNAL =
+  /\bC\s*\/\s*O\b|\bATTN\b|\bCARE OF\b|%|\bF\s*\/?\s*B\s*\/?\s*O\b|\bIRA\b|\bU\s*\/\s*W\b|\bTRUSTEES?\b|\bTTEE\b|\bESTATE OF\b|\bHEIRS?\b|\bEXECUT\w*|\bGUARDIAN\b|\bREVOCABLE\b|\bLIVING TRUST\b|\bFAMILY TRUST\b/i;
+
 /** Whether an owner-of-record or document-party name reads as a natural person (see the module comment). */
 export function nameReadsAsPerson(value: string): boolean {
+  if (value.length > NAME_READ_CAP)
+    return (
+      readsAsPerson(value.slice(0, NAME_READ_CAP)) ||
+      SIGNAL.test(value.slice(NAME_READ_CAP - 20))
+    );
+  return readsAsPerson(value);
+}
+
+function readsAsPerson(value: string): boolean {
   // Only markers are read after "doing business as": a trade name is often a plain word ("ACME LLC DBA PAT'S PIZZA").
   const [main, ...tails] = value.split(/\bD\s*[/.]?\s*B\s*[/.]?\s*A\b/i);
   for (const tail of tails) {
@@ -553,6 +830,15 @@ export function nameReadsAsPerson(value: string): boolean {
     if (pieces.length > 1 && pieces.slice(1).some(pieceIsPerson)) return true;
   }
   if (!/[A-Z]/i.test(main!)) return true;
+  // a person-style trust or fiduciary, read before the markers are taken away ("... TRUST U/W/O")
+  const whole0 = clean(main!);
+  if (
+    !companyNamedLikeATrust(whole0) &&
+    !companyAsTrustee(whole0) &&
+    ownerNamesAPerson(main!)
+  )
+    return true;
+  if (personAround(main!)) return true;
   if (piecesNameAPerson(main!)) return true;
   if (coOwnerIsPerson(main!) || personAfterComma(main!)) return true;
   // the whole, with its markers and separators read as spaces
