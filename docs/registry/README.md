@@ -481,7 +481,8 @@ HOUSTON, TX lies in (…)") and `place_counties` lists them.
 
 **Misses that say why.** An empty answer's `coverage` carries `reason` and a message: the named
 state is not loaded (`state_not_loaded`); the named county is not, or every county the named city
-or ZIP code lies in is not (`county_not_loaded`, with `place_counties`; the message names the
+or ZIP code lies in is not and no county the registry holds has a parcel whose label names it,
+however few (`county_not_loaded`, with `place_counties`; the message names the
 place's counties and the counties of that state the registry holds, and the hosted registry says
 why a withheld county is not served). Only a named `county_fips` gives `county_loaded: false`: a
 city or ZIP code never filters, so that search still covered every county held and its miss is an

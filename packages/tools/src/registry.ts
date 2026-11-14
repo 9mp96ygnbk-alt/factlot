@@ -3196,6 +3196,18 @@ export function addressMiss(
   // A search kept to a county (county_fips) is judged by that county alone: the place's counties are not read.
   const pc = county === null ? addressPlaceCounties(place) : null;
   const unheld = pc ? pc.counties.filter((c) => !held.has(c)) : [];
+  // The place lies only in counties the registry does not hold: no county it holds is one the tables give the place,
+  // nor holds a parcel whose label names it, however few (a label is never denied).
+  const outside =
+    pc !== null &&
+    states.includes(pc.state) &&
+    unheld.length === pc.counties.length &&
+    !(
+      labelAnyCounties(
+        pc.state,
+        pc.name.startsWith("ZIP code ") ? place!.zip! : pc.name,
+      ) ?? []
+    ).some((c) => held.has(c));
   if (pc && states.includes(pc.state)) out.place_counties = pc.counties;
   if (st && !loaded) {
     reason = "state_not_loaded";
@@ -3210,11 +3222,7 @@ export function addressMiss(
     reason = "county_not_loaded";
     out.county_loaded = false;
     message = `no parcel matched${at}: ${countyLabel(county.slice(0, 2), county.slice(2))} is not loaded in this registry. ${holds}`;
-  } else if (
-    pc &&
-    states.includes(pc.state) &&
-    unheld.length === pc.counties.length
-  ) {
+  } else if (outside) {
     // The place lies wholly in counties the registry does not hold. The search still ran over every county held
     // in the state (a city or ZIP code never filters), so this is a miss inside loaded coverage: no
     // county_loaded: false.

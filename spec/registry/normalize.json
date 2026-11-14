@@ -2739,6 +2739,52 @@
           "reason": "no_match",
           "message": "no parcel matched in TX: the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of TX this registry holds Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
         }
+      ],
+      [
+        "1 Main St, Sugar Land, TX",
+        {},
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "place_counties": ["48157"],
+          "reason": "no_match",
+          "message": "no parcel matched in TX: SUGAR LAND, TX also lies in Fort Bend County, TX (48157), which this registry does not hold; the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of TX this registry holds Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
+        }
+      ],
+      [
+        "1 Main St, Rockwall, TX 75032",
+        {},
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "place_counties": ["48397"],
+          "reason": "county_not_loaded",
+          "message": "no parcel matched in TX: ZIP code 75032, TX lies in Rockwall County, TX (48397), which this registry does not hold. Of TX this registry holds: Harris County, Dallas County"
+        }
+      ],
+      [
+        "1 Nowhere Rd, TX",
+        {},
+        {
+          "state": null,
+          "state_loaded": null,
+          "loaded_states": ["TX"],
+          "reason": "no_match",
+          "message": "no parcel matched: the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Loaded: Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
+        }
+      ],
+      [
+        "1 Nowhere Rd, Texas",
+        {},
+        {
+          "state": null,
+          "state_loaded": null,
+          "loaded_states": ["TX"],
+          "reason": "no_match",
+          "message": "no parcel matched: the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Loaded: Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
+        }
       ]
     ]
   }
