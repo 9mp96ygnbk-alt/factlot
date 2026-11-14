@@ -157,7 +157,6 @@ const FACT_LABEL = {
   "parcel.local_use_code": "local use code",
   "parcel.tax_year": "tax year",
   "ownership.owner_of_record": "owner of record",
-  "ownership.owner_mailing_address": "owner mailing address",
   "zoning.district": "zoning district",
 };
 

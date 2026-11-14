@@ -67,7 +67,12 @@ import {
   marketTitle,
   sourceNotices,
 } from "./market-pages.mjs";
-import { FIELDS_LEAD, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
+import {
+  FIELDS_LEAD,
+  hostedFieldsTable,
+  placeFieldsText,
+  servedFields,
+} from "./fields.mjs";
 import {
   CONTACT,
   OPERATOR,
@@ -849,7 +854,8 @@ const geo = readJson(geoRel);
 // What each hosted county has and lacks (site/_data/fields.json, scripts/site/gen-fields.ts), for the Texas county
 // pages, the market pages and the coverage page.
 const fieldsRel = "site/_data/fields.json";
-const fieldsJson = readJson(fieldsRel);
+// Only what the hosted API serves: the groups it withholds (fields.mjs NOT_SERVED) are dropped here.
+const fieldsJson = servedFields(readJson(fieldsRel));
 const fieldLabels = Object.fromEntries(
   fieldsJson.groups.map((g) => [g.key, g.label]),
 );
