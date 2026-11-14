@@ -1459,7 +1459,61 @@ describe("router", () => {
       api,
     );
     assert.equal(res.status, 200);
-    assert.match(await res.text(), /User-agent: \*\nAllow: \//);
+    const text = await res.text();
+    assert.match(
+      text,
+      /^Content-Signal: search=yes, ai-input=yes, ai-train=no$/m,
+    );
+    assert.match(text, /^User-agent: \*$/m);
+    assert.match(text, /^Disallow: \/$/m);
+    assert.match(text, /^Allow: \/openapi\.json$/m);
+    assert.doesNotMatch(text, /ai-train=yes/);
+  });
+
+  it("names its content signal on every answer: no AI training anywhere, lookup answers not for search", async () => {
+    const { api } = innerApi();
+    const get = (u: string, init?: RequestInit) =>
+      handle(new Request(u, init), env({ ASSETS: assets }), api);
+    for (const u of [
+      "https://factlot.com/",
+      "https://factlot.com/robots.txt",
+      "https://factlot.com/pricing/",
+      "https://factlot.com/no-such-page/",
+      "https://api.factlot.com/health",
+      "https://api.factlot.com/v1/plans",
+      "https://api.factlot.com/robots.txt",
+    ]) {
+      const res = await get(u);
+      assert.equal(
+        res.headers.get("content-signal"),
+        "search=yes, ai-input=yes, ai-train=no",
+        u,
+      );
+    }
+    const mcp = await get("https://api.factlot.com/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    });
+    assert.equal(
+      mcp.headers.get("content-signal"),
+      "search=yes, ai-input=yes, ai-train=no",
+    );
+    for (const u of [
+      "https://factlot.com/lookup/",
+      "https://factlot.com/lookup/?q=1+Main+St",
+      "https://factlot.com/lookup",
+    ]) {
+      const res = await get(u);
+      assert.equal(
+        res.headers.get("content-signal"),
+        "search=no, ai-input=yes, ai-train=no",
+        u,
+      );
+    }
   });
 
   it("redirects retired site addresses permanently and serves every other page as before", async () => {

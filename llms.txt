@@ -40,7 +40,7 @@ Downloads: registry sample on real data, https://github.com/9mp96ygnbk-alt/factl
 - [OpenAPI 3.1](https://api.factlot.com/openapi.json): every tool; [OpenAPI 3.0](https://api.factlot.com/openapi-3.0.json): at most 30 operations for Custom GPT Actions (`?operations=all` for every tool)
 - [Tool reference](https://github.com/9mp96ygnbk-alt/factlot/blob/main/spec/schemas/tools.json): every tool's name, description and input schema
 - [Registry guide](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/README.md): what the registry holds, [coverage by county](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/coverage.md), [rights per source](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/registry/rights.md)
-- [Try a lookup](https://factlot.com/try/): a cited record by address, free; as a URL: https://factlot.com/lookup/?q=<address> (&format=json for JSON)
+- [Try a lookup](https://factlot.com/try/): a cited record by address, free; not for crawlers: https://factlot.com/lookup/?q=<address> (&format=json for JSON)
 - [Calculators](https://factlot.com/calculators/): worked examples and audit trails
 - [Agent guide](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/agents.md): which tool to call when
 - [Document verification](https://github.com/9mp96ygnbk-alt/factlot/blob/main/docs/document-verification.md): textual checks; they do not find terms the agent missed

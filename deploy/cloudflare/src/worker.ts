@@ -16,7 +16,7 @@ import { CLAIM_POLL_MS } from "./claim.ts";
 import { ANONYMOUS_REQUESTS_PER_MINUTE } from "./plans.ts";
 import { registryRunner } from "./registry.ts";
 import { lifecycleSweep } from "./lifecycle.ts";
-import { handle } from "./router.ts";
+import { CONTENT_SIGNAL, handle } from "./router.ts";
 import { scheduledJobs } from "./scheduled.ts";
 import type { Env, Fetcher } from "./types.ts";
 import { objectWatch, runWatchCheck } from "./watch-check.ts";
@@ -95,7 +95,10 @@ export default {
         JSON.stringify({ error: "InternalError", message: "unexpected error" }),
         {
           status: 500,
-          headers: { "content-type": "application/json; charset=utf-8" },
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "content-signal": CONTENT_SIGNAL,
+          },
         },
       );
     }
