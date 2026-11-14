@@ -559,7 +559,7 @@ async function search(
 <h1 id="page-title">Look up a commercial property</h1>
 <p class="lede">Type an address in a hosted county and get the public record: the parcel, its roll values, its owner of record when that is an organisation, each with the file it was read from.</p>
 ${form()}
-<p class="small">A search is one registry lookup and opening a record is another, of the ${e(int.format(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY))} a day the free tier allows per IP address. ${e(LOOKUP_RULE)} A record that has a public page costs nothing.</p>
+<p class="small">A search is one registry lookup and opening a record is another, of the ${e(int.format(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY))} a day the free tier allows per IP address. ${e(LOOKUP_RULE)} A record that has a public page usually costs nothing: it goes to that page.</p>
 <p class="small">For a program: the same addresses answer JSON with <code>?format=json</code> or <code>Accept: application/json</code>, for example <code>/lookup/?q=1000+Louisiana+St&amp;state=TX&amp;format=json</code>.</p>
 <p><a href="/coverage/">Coverage: every county and what is hosted</a> · <a href="/try/">Try a lookup</a> · <a href="/connect/">Connect an assistant</a></p>`,
     );
@@ -675,7 +675,7 @@ ${form(q, state)}
 <h1 id="page-title">${e(n)} ${results.length === 1 ? "parcel matches" : "parcels match"} “${e(q)}”</h1>
 <p class="lede">${e(why)}</p>
 ${form(q, state)}
-<p class="small lookup-note">${["This search is one registry lookup; opening a record is another, unless the parcel has a public page.", quota, asJson].filter(Boolean).join(" ")}</p>
+<p class="small lookup-note">${["This search is one registry lookup; opening a record is another, usually none when the parcel has a public page.", quota, asJson].filter(Boolean).join(" ")}</p>
 <ol class="matches">
 ${results.map((r) => matchCard(r, places)).join("\n")}
 </ol>

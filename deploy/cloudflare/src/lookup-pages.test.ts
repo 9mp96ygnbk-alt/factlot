@@ -468,6 +468,11 @@ describe("lookup pages: a search", () => {
     assert.match(html, /<meta name="robots" content="noindex" \/>/);
     // How a search is counted, in the one-line rule of plans.ts (with its hourly limit).
     assert.ok(strip(html).includes(LOOKUP_RULE));
+    assert.ok(
+      strip(html).includes(
+        "A record that has a public page usually costs nothing: it goes to that page.",
+      ),
+    );
     const head = await w.get("/lookup/?q=100+Main+Street&state=TX", {
       method: "HEAD",
     });

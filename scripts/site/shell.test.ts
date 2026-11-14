@@ -844,6 +844,19 @@ describe("the hand-written sources", () => {
       read("deploy/cloudflare/src/lookup-pages.ts"),
     ])
       assert.doesNotMatch(text, /(?:finds|found) nothing is not counted/);
+    // A record with a public page is checked on the caller's property pages a minute; once those
+    // are used up it is looked up and counted, so no page says it is never counted.
+    for (const text of [
+      String(connect.counting),
+      tryBullet,
+      read("deploy/cloudflare/src/lookup-pages.ts"),
+    ]) {
+      assert.doesNotMatch(
+        text.replace(/\s+/g, " "),
+        /page (?:is sent to that page and )?is not counted|public page costs nothing|unless the parcel has a public page/,
+      );
+      assert.match(text.replace(/\s+/g, " "), /usually/);
+    }
     for (const f of ["site/_content/mcp.html", "README.md"])
       assert.ok(read(f).includes("https://factlot.com/lookup/?q="), f);
   });
