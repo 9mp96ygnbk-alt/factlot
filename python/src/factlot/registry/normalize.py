@@ -29,7 +29,7 @@ _SUFFIXES = [
 # Words that qualify a fiduciary's role: "CO-SUCCESSOR TRUSTEE", "TEMPORARY CO-GUARDIAN", "CO-PRELIMINARY EXECUTOR",
 # "SUCCESSOR CO-TRUS[TEE]" (cut short by the record).
 _ROLE_QUALIFIER = (r"(?:CO|SUCCESSOR|SUCCESSORS|SUC|SUCC|SOLE|SPECIAL|TEMPORARY|TEMPOARY|TEMP|PRELIMINARY|INDEPENDENT|"
-                   r"ANCILLARY|SUBSTITUTE|ALTERNATE|INTERIM|ACTING|DOMICILIARY|JOINT|INDEP)")
+                   r"ANCILLARY|SUBSTITUTE|ALTERNATE|INTERIM|ACTING|DOMICILIARY|JOINT|INDEP|COURT APPOINTED)")
 # Fiduciary roles that a natural person holds for an estate, a ward or a trust (besides trustee, in ``_TRUSTEE``).
 _FIDUCIARY_ROLE = (r"(?:EXECUTORS?|EXECUTRIX|EXECUTRICES|EXECUTRIXES|EXRS?|ADMINISTRATORS?|ADMINISTRATRIX|"
                    r"ADMINISTRATRICES|ADMRS?|ADMRX|ADMX|PERSONAL REPRESENTATIVES?|PERSONAL REP|PERS REPS?|GUARDIANS?|"
@@ -356,6 +356,9 @@ VICTOR VIJAY VIKRAM VINCENT VINCENZO VINOD VIOLA VIPUL VIRGIL VIRGINIA VIVIAN WA
 WENDELL WENDY WESLEY WILBUR WILLARD WILLIAM WILLIE WILLIS WILMA WINIFRED WINSTON YAAKOV YEHOSHUA YEHUDA YISROEL
 YITZCHAK YITZCHOK YOGESH YOLANDA YOSEF YOSSI YVETTE YVONNE ZACHARY ZEV
 """.split())
+# The trade-name and personal-style readings keep the shorter list: with the longer one, "<GIVEN> <SURNAME> COMPANY"
+# (an old company named for its founder) would read as a sole proprietor's name.
+_SOLE_PROPRIETOR_GIVEN_NAMES = _TRADE_NAME_GIVEN_NAMES
 _TRADE_NAME_GIVEN_NAMES = _TRADE_NAME_GIVEN_NAMES | _MORE_GIVEN_NAMES
 # Words a person's name part never holds here: legal forms, connectors, ordinals, directions, and words that name
 # an institution, a place or a business (with ``NAME_STOP_TOKENS``, ``_LP_CONTEXT`` and ``_ENTITY_TOKENS``).
@@ -373,7 +376,7 @@ def _sole_proprietor_trade_name(s: str) -> bool:
     """Whether a cleaned name is a person's name and a generic business word (``_GENERIC_BUSINESS_WORDS``).
 
     The name, without a trailing "ET AL", must be two name words (surname and given name, either order, the given
-    name one of ``_TRADE_NAME_GIVEN_NAMES``), at most one middle initial or suffix (JR, SR, II, ...), then one
+    name one of ``_SOLE_PROPRIETOR_GIVEN_NAMES``), at most one middle initial or suffix (JR, SR, II, ...), then one
     generic business word. Any legal form, "AND", "OF",
     a digit, an ordinal or a word that names a place, an institution or a business keeps the usual reading.
     """
@@ -392,7 +395,7 @@ def _sole_proprietor_trade_name(s: str) -> bool:
                     or t in _GENERIC_BUSINESS_WORDS)
     if len(names) != 2 or len(extras) > 1:
         return False
-    if not any(t in _TRADE_NAME_GIVEN_NAMES for t in names):
+    if not any(t in _SOLE_PROPRIETOR_GIVEN_NAMES for t in names):
         return False
     return not any(t in _NOT_A_NAME_WORD or t in NAME_STOP_TOKENS or t in _LP_CONTEXT
                    or t in _GENERIC_BUSINESS_WORDS for t in names)
@@ -561,7 +564,7 @@ def _person_in_side(tokens: list[str]) -> bool:
 _SIDE_ANCHOR = re.compile(rf"{_LEGAL_FORM.pattern}|\b(?:COUNTY|CITY|TOWN|STATE|VILLAGE|BOROUGH)\b")
 # Words before a given name that make it part of a place's or a surname's name ("SAN ANTONIO", "ST JOHN", "D'ANGELO",
 # "A VIRGINIA corporation").
-_BEFORE_GIVEN_NOT_A_PERSON = frozenset("SAN SANTA ST SAINT FORT FT PORT MOUNT MT LAKE CAPE A AN D O MORGAN".split())
+_BEFORE_GIVEN_NOT_A_PERSON = frozenset("SAN SANTA ST SAINT FORT FT PORT MOUNT MT LAKE CAPE A AN D O MORGAN VIRGIN".split())
 # A street line or a property's label after a company's name ("ACME LLC - 300 EXAMPLE DR", "ACME LLC RS 12 PAT"):
 # not a person, unless the account is held for one ("... FBO PAT EXAMPLE IRA 1234").
 _STREET_WORD = frozenset("ST STREET DR DRIVE AVE AVENUE RD ROAD BLVD BOULEVARD PKWY PARKWAY LN LANE WAY CT COURT HWY "
@@ -605,7 +608,10 @@ def _person_after_anchor(s: str, anchor: re.Pattern[str]) -> bool:
         return True  # an account held for a person
     if _INSTITUTION_WORD.search(text) and not _FOR_BENEFIT_OF.search(text):
         return False
-    if not any(t in _STREET_WORD for t in tail) and any(
+    if any(given(i, t) and initial(i + 1) and i + 2 < len(tail) and tail[i + 2] in ("TRUST", "TR", "TRST")
+           for i, t in enumerate(tail)):
+        return True  # "ACME INC EXAMPLE PAT Q TRUST #1": a person's trust after the company, numbered or not
+    if not any(t in _STREET_WORD or any(c.isdigit() for c in t) for t in tail) and any(
             given(i, t) and (initial(i + 1) or initial(i - 1)) for i, t in enumerate(tail)):
         return True  # PAT Q EXAMPLE, EXAMPLE PAT Q
     if (_ENTITY_TOKENS.search(text) or any(not t.isalpha() for t in tail)
@@ -617,7 +623,8 @@ def _person_after_anchor(s: str, anchor: re.Pattern[str]) -> bool:
     if tail[0] == "AND":
         words = tail[1:]
         own = [t for t in words if len(t) > 2]
-        return 2 <= len(words) <= 4 and not (own and all(t in head for t in own))
+        return (2 <= len(words) <= 4 and not (own and all(t in head for t in own))
+                and not any(t in _PIECE_DESCRIPTOR_WORDS for t in words))
     return False
 
 
@@ -864,7 +871,7 @@ def _institution_as_trustee(s: str) -> bool:
 # also stand inside companies' names a piece counts only when it is shaped like a person's name.
 
 _STRONG_MARKER = re.compile("|".join([
-    r"\bC\s*/\s*O\b", r"\bC\.\s*O\.",
+    r"\bC\s*/\s*O\b", r"\bC\.\s*O\b\.?",
     # "<CO> INC CO <NAME>": a bare CO after a legal form routes to what follows (not "CO-TRUSTEE")
     r"(?:(?<=LLC)|(?<=INC)|(?<=CORP)|(?<=LTD)|(?<=\bLP)|(?<=LLP))\.?,?\s+CO\b(?!\s*-?\s*" + _CO_ROLE + r")(?=\s+[A-Z])",
     r"(?:(?<=LLC)|(?<=INC)|(?<=CORP)|(?<=LTD)|(?<=\bLP)|(?<=\bCO))\.?,?\s+C\s+O\b",
@@ -897,7 +904,9 @@ _PIECE_DESCRIPTOR_WORDS = frozenset(
     "COMPANIES INDUSTRIES SUPPLY SYSTEMS SOLUTIONS TECHNOLOGIES REFINING REFG CHEM CHEMICAL STATION STUDENTS DATA "
     "CENTERS MANAGEMENT MGMT ENTERPRISES ENTERPRISE SERVICES SERVICE PROPERTIES PROPERTY REALTY HOLDINGS INVESTMENTS "
     "DEVELOPMENT APARTMENTS HOUSING CENTER PLAZA PARK HOTEL STORAGE INTERNATIONAL NATIONAL AMERICA AMERICAN GROUP "
-    "PARTNERS ASSOCIATES CAPITAL VENTURES EQUITIES COMMERCIAL INDUSTRIAL RETAIL OFFICE LAND CATTLE FEE".split())
+    "PARTNERS ASSOCIATES CAPITAL VENTURES EQUITIES COMMERCIAL INDUSTRIAL RETAIL OFFICE LAND CATTLE FEE PPTY PPTYS "
+    "PPTIES PPRTIES RLTY PTNR PTNRS PRTNRS PTNRSHP PRTNRSHP PRTSP PRTSHP ASSOCS ASSOC ASSN HLDGS HLDG APTS CP CRP INVS "
+    "INVTS ENT ENTS DEVEL REAL ESTATE ESTA EST FEDERATION NSHP PNSHP".split())
 _COMPANY_ROLE_WORDS = frozenset(
     "ATTORNEY FACT TRUSTEE TRUSTEES TTEE TR SUCCESSOR ADMINISTRATOR ADMINISTRATIVE COLLATERAL INDENTURE EXECUTOR "
     "CUSTODIAN SERVICER SUBSERVICER AGENT NOMINEE LENDER BORROWER GRANTOR GRANTEE ASSIGNEE ASSIGNOR SUCCESSORS "
@@ -968,12 +977,18 @@ def _piece_is_person(piece: str) -> bool:
     if (any(t in _PIECE_DESCRIPTOR_WORDS or (t in _CO_OWNER_ORG_WORDS and t != "CO") for t in words)
             and not any(t in _TRADE_NAME_GIVEN_NAMES or t == "AND" for t in words)):
         return False
-    if len(words) == 1 and words[0] not in _TRADE_NAME_GIVEN_NAMES:
-        return False
+    content = [t for t in words if t not in _PIECE_NEUTRAL_WORDS]
+    if len(content) <= 1 and not (content and content[0] in _TRADE_NAME_GIVEN_NAMES):
+        return False  # one plain word ("AN OFFICER OF THE US" once its role is read away): a fragment
     if words[-1] in _STATE_CODES:
         return False
     text = " ".join(words)
-    return _co_owner_is_person(text) or not _is_organization_core(text)
+    if _co_owner_is_person(text):
+        return True
+    if (_ENTITY_TOKENS.search(text) or _structurally_organization(text)
+            or any(t in _PIECE_DESCRIPTOR_WORDS or (t in _CO_OWNER_ORG_WORDS and t != "CO") for t in words)):
+        return False  # a company's own words: "C/O EXAMPLE MANAGEMENT", "- SERIES <NAME>"
+    return not _is_organization_core(text)
 
 
 def _pieces_name_a_person(name: str) -> bool:
@@ -1047,7 +1062,7 @@ def _co_owner_is_person(text: str) -> bool:
     comma_form = (bool(re.match(r"^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}", first_raw.strip()))
                   and len([t for t in second.split() if not _LEGAL_FORM.fullmatch(t) and t != "PROFESSIONAL"]) >= 2
                   and _organization_reading(second))
-    own_firm = all(t in _GENERIC_AFTER_AND or _LEGAL_FORM.fullmatch(t) or t == "THE" for t in rest.split())
+    own_firm = all(t in _GENERIC_AFTER_AND or _LEGAL_FORM.fullmatch(t) or t == "THE" or len(t) == 1 for t in rest.split())
     if plain and ((initial_form and not own_firm and _organization_reading(rest)) or comma_form):
         return True  # not "SMITH, EXAMPLE & QUIN, LLC": a firm named for its partners
     for i in range(1, len(parts)):
@@ -1112,6 +1127,10 @@ def _plain_words_after_form(s: str) -> bool:
         return False
     if "".join(tail) in ("CORP", "LLC", "INC", "LTD", "LLP", "LP", "CO"):
         return False  # a legal form cut in two: "COR P"
+    while len(tail) >= 2 and "".join(tail[-2:]) in ("LP", "LC", "PC", "PA", "NA") or len(tail) >= 3 and "".join(tail[-3:]) == "LLC":
+        tail = tail[:-3] if "".join(tail[-3:]) == "LLC" else tail[:-2]  # "... PAPERMILL L P": the form spaced out
+    if not tail:
+        return False
     for piece in " ".join(tail).split(" AND "):
         p = [t for t in piece.split() if t and t != "THE"]
         if not p or any(any(c.isdigit() for c in t) or t in _CO_OWNER_ORG_WORDS or t in _COMPANY_ROLE_WORDS
@@ -1138,6 +1157,7 @@ def _person_at_head(s: str) -> bool:
     t = s.split()
     return (len(t) >= 3 and t[0] in _TRADE_NAME_GIVEN_NAMES and len(t[1]) == 1 and t[1].isalpha()
             and len(t[2]) > 1 and t[2].isalpha() and t[2] not in _CO_OWNER_ORG_WORDS
+            and not _ENTITY_TOKENS.fullmatch(t[2]) and not _LEGAL_FORM.fullmatch(t[2])
             and (len(t) == 3 or t[3] == "OF"))
 
 
@@ -1152,7 +1172,7 @@ def _plain_name_word(x: str | None) -> bool:
 
 
 def _own_firm(rest: list[str]) -> bool:
-    return all(x in _GENERIC_AFTER_AND or _LEGAL_FORM.fullmatch(x) or x in ("THE", "AND") for x in rest)
+    return all(x in _GENERIC_AFTER_AND or _LEGAL_FORM.fullmatch(x) or x in ("THE", "AND") or len(x) == 1 for x in rest)
 
 
 def _person_around(name: str) -> bool:
@@ -1169,15 +1189,16 @@ def _person_around(name: str) -> bool:
                 and not any(t in _CO_OWNER_ORG_WORDS or t in _PIECE_DESCRIPTOR_WORDS or t == "THE" for t in who)):
             return True
     t = _clean_for_rule(u).split()
-    comma = re.match(r"^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([A-Z])\b\.?)?", u)
-    if comma and _plain_name_word(_clean_for_rule(comma.group(1))) and _plain_name_word(comma.group(2)):
+    comma = re.match(r"^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([B-HJ-Z])\b\.?)?", u)
+    if (comma and _plain_name_word(_clean_for_rule(comma.group(1))) and _plain_name_word(comma.group(2))
+            and not _BANKING_WORD.match(_clean_for_rule(comma.group(1))) and comma.group(2) not in ("NA", "N")):
         rest = _clean_for_rule(u[comma.end():]).split()
         if ((comma.group(2) in _TRADE_NAME_GIVEN_NAMES or comma.group(3)) and rest
                 and _organization_reading(" ".join(rest)) and not _own_firm(rest)
                 and not re.match(r"^\s*(?:&|AND\b)", u[comma.end():])):
             return True
     if (len(t) >= 4 and _plain_name_word(t[0]) and t[1] in _TRADE_NAME_GIVEN_NAMES and len(t[2]) == 1
-            and t[2] not in "AI" and _organization_reading(" ".join(t[3:])) and not _own_firm(t[3:])):
+            and t[2].isalpha() and t[2] not in "AI" and _organization_reading(" ".join(t[3:])) and not _own_firm(t[3:])):
         return True
     tail = re.search(r"([A-Z'-]{2,})\s*,\s*([A-Z]{2,})((?:\s+[A-Z]\b\.?)?)(?:\s+(?:JR|SR|II|III)\.?)?\s*$", u)
     if (tail and tail.start() > 0 and _plain_name_word(_clean_for_rule(tail.group(1)))
@@ -1187,12 +1208,14 @@ def _person_around(name: str) -> bool:
     church = _SURNAME_ORG_WORD.match(u)
     if church and _plain_name_word(_clean_for_rule(church.group(1))) and church.group(2) in _TRADE_NAME_GIVEN_NAMES:
         return True
-    if (t and t[0] in _TRADE_NAME_GIVEN_NAMES and 4 <= len(t) <= 6
-            and " ".join(t[-2:]) in ("REALTY TRUST", "PROPERTY TRUST", "INVESTMENT TRUST", "BUSINESS TRUST",
-                                     "NOMINEE TRUST")
+    kind = (3 if " ".join(t[-3:]) in ("REAL PROPERTY TRUST", "REAL ESTATE TRUST")
+            else 2 if " ".join(t[-2:]) in ("REALTY TRUST", "PROPERTY TRUST", "INVESTMENT TRUST", "BUSINESS TRUST",
+                                           "NOMINEE TRUST") else 0)
+    if (kind and t[0] in _TRADE_NAME_GIVEN_NAMES and 2 + kind <= len(t) <= 4 + kind
             and not _LEGAL_FORM.search(" ".join(t))
-            and all((len(x) == 1 and x.isalpha()) or re.fullmatch(r"\d{4}", x) or _plain_name_word(x) for x in t[1:-2])):
-        return True
+            and all((len(x) == 1 and x.isalpha()) or re.fullmatch(r"\d{4}", x) or _plain_name_word(x)
+                    for x in t[1:-kind])):
+        return True  # "PAT Q EXAMPLE [2001] REALTY TRUST", "PAT Q EXAMPLE REAL PROPERTY TRUST"
     return False
 
 
@@ -1266,7 +1289,7 @@ _FAMILY_WORDS = frozenset("FAMILY FAMILIES ESTATE HEIRS".split())
 def personal_style_organization(name: str) -> bool:
     """Whether an organisation's name reads as a person's or a family's ("JOHN SMITH LLC", "SMITH FAMILY LP",
     "SMITH J R HOLDINGS LLC"): the name is an organisation (``is_organization``), and apart from its legal form
-    and business words it holds a given name (``_TRADE_NAME_GIVEN_NAMES``), FAMILY/ESTATE/HEIRS, or is one
+    and business words it holds a given name (``_SOLE_PROPRIETOR_GIVEN_NAMES``), FAMILY/ESTATE/HEIRS, or is one
     surname and two initials. Such an owner is kept (it is a legal organisation), but its mailing address is not stored or
     served, because for a one-person company it is most often the person's home (data policy section 3).
     Deliberately broad: a company named for its founder ("DAVID WEEKLEY HOMES") loses only its mailing address.
@@ -1279,7 +1302,7 @@ def personal_style_organization(name: str) -> bool:
              and t not in _GENERIC_BUSINESS_WORDS and t not in _LP_CONTEXT]
     if any(t in _FAMILY_WORDS for t in tokens) or _PERSONAL_TRUST_MARK.search(" ".join(tokens)):
         return True  # "SMITH FAMILY LP", "SMITH REVOCABLE HOLDINGS LLC"
-    if any(t in _TRADE_NAME_GIVEN_NAMES for t in words):
+    if any(t in _SOLE_PROPRIETOR_GIVEN_NAMES for t in words):
         return True
     # A surname and two initials ("SMITH J R"), nothing else: "J P MORGAN CHASE BANK" and "A T T" are not.
     initials = [t for t in words if len(t) == 1 and t.isalpha()]

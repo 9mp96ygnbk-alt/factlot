@@ -108,6 +108,8 @@ function clean(value: string): string {
     .replace(/\bLIMITED LIABILITY PARTNERSHIP\b/g, "LLP")
     .replace(/\bLIMITED PARTNERSHIP\b/g, "LP")
     .replace(/\bL P$/g, "LP")
+    .replace(/\bPTNR\b/g, "PARTNER")
+    .replace(/\b(?:PTNRS|PRTNRS)\b/g, "PARTNERS")
     .replace(/\bP C$/g, "PC")
     .replace(/\bINCORPORATED\b/g, "INC")
     .replace(/\bCORPORATION\b/g, "CORP")
@@ -145,6 +147,16 @@ function personAfterCompany(s: string): boolean {
       t,
     ),
   );
+  // "ACME INC EXAMPLE PAT Q TRUST #1": a person's trust after the company, numbered or not
+  if (
+    tail.some(
+      (_, i) =>
+        given(i) &&
+        initial(i + 1) &&
+        /^(?:TRUST|TR|TRST)$/.test(tail[i + 2] ?? ""),
+    )
+  )
+    return true;
   if (
     !street &&
     !tail.some((t) => /\d/.test(t)) &&
@@ -359,6 +371,9 @@ function pieceIsPerson(piece: string): boolean {
   const words = clean(piece)
     .split(" ")
     .filter((t) => t !== "" && !ROLE_WORDS.has(t));
+  // an account number after a name ("FBO PAT EXAMPLE 126306"): the name is read without it
+  while (words.length > 1 && /^\d+$/.test(words[words.length - 1]!))
+    words.pop();
   if (words.length === 0) return false;
   if (words.some((t) => /\d/.test(t))) return false; // a share, an account number or a street
   if (words.every((t) => NEUTRAL_WORDS.has(t) || t.length === 1)) return false;
@@ -739,37 +754,48 @@ function personAround(value: string): boolean {
     );
   if (church && plainWord(clean(church[1]!)) && GIVEN.has(church[2]!))
     return true;
-  // "PAT Q EXAMPLE [2001] REALTY TRUST": a trust named for a person, with no legal form
+  // "PAT Q EXAMPLE [2001] REALTY TRUST", "PAT Q EXAMPLE REAL PROPERTY TRUST": a trust named for a person, no legal form
+  const kind = /^REAL (?:PROPERTY|ESTATE) TRUST$/.test(t.slice(-3).join(" "))
+    ? 3
+    : /^(?:REALTY|PROPERTY|INVESTMENT|BUSINESS|NOMINEE) TRUST$/.test(
+          t.slice(-2).join(" "),
+        )
+      ? 2
+      : 0;
   if (
+    kind > 0 &&
     GIVEN.has(t[0] ?? "") &&
-    /^(?:REALTY|PROPERTY|INVESTMENT|BUSINESS|NOMINEE) TRUST$/.test(
-      t.slice(-2).join(" "),
-    ) &&
     !LEGAL_FORM.test(t.join(" ")) &&
-    t.length >= 4 &&
-    t.length <= 6 &&
+    t.length >= 2 + kind &&
+    t.length <= 4 + kind &&
     t
-      .slice(1, -2)
+      .slice(1, -kind)
       .every((x) => /^[A-Z]$/.test(x) || /^\d{4}$/.test(x) || plainWord(x))
   )
     return true;
-  // a surname that is an organisation word among given names: "PAT CHURCH", "MARY A BANK", "BANK, PAT"
-  const named = t.filter((x) => x !== "");
-  if (
-    named.length >= 2 &&
-    named.length <= 4 &&
-    named.filter((x) => /^(?:BANK|CHURCH|CITY|COUNTY|STATE)$/.test(x))
-      .length === 1 &&
-    named.some((x) => GIVEN.has(x) && !CHURCH_NAMES.has(x)) &&
-    named.every(
-      (x) =>
-        /^(?:BANK|CHURCH|CITY|COUNTY|STATE)$/.test(x) ||
-        GIVEN.has(x) ||
-        /^[A-Z]$/.test(x) ||
-        /^(?:JR|SR|II|III|IV)$/.test(x),
+  // a surname that is an organisation word among given names ("PAT CHURCH", "MARY A BANK", "BANK, PAT"), each
+  // co-owner on its own ("PAT Q BANK & MARY R BANK"), before a trustee's role ("PAT BANK, AS TRUSTEE")
+  const roleWord = /^(?:AS|TRUSTEE|TRUSTEES|TTEE|TR)$/;
+  for (const piece of t.join(" ").split(/\bAND\b/)) {
+    const named = piece.split(" ").filter((x) => x !== "");
+    while (named.length > 2 && roleWord.test(named[named.length - 1]!))
+      named.pop();
+    if (
+      named.length >= 2 &&
+      named.length <= 4 &&
+      named.filter((x) => /^(?:BANK|CHURCH|CITY|COUNTY|STATE)$/.test(x))
+        .length === 1 &&
+      named.some((x) => GIVEN.has(x) && !CHURCH_NAMES.has(x)) &&
+      named.every(
+        (x) =>
+          /^(?:BANK|CHURCH|CITY|COUNTY|STATE)$/.test(x) ||
+          GIVEN.has(x) ||
+          /^[A-Z]$/.test(x) ||
+          /^(?:JR|SR|II|III|IV)$/.test(x),
+      )
     )
-  )
-    return true;
+      return true;
+  }
   return false;
 }
 
@@ -796,6 +822,14 @@ function readsAsPerson(value: string): boolean {
     if (pieces.length > 1 && pieces.slice(1).some(pieceIsPerson)) return true;
   }
   if (!/[A-Z]/i.test(main!)) return true;
+  // a person-style trust or fiduciary, read before the markers are taken away ("... TRUST U/W/O")
+  const whole0 = clean(main!);
+  if (
+    !companyNamedLikeATrust(whole0) &&
+    !companyAsTrustee(whole0) &&
+    ownerNamesAPerson(main!)
+  )
+    return true;
   if (personAround(main!)) return true;
   if (piecesNameAPerson(main!)) return true;
   if (coOwnerIsPerson(main!) || personAfterComma(main!)) return true;
