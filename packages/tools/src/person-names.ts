@@ -473,22 +473,40 @@ function coOwnerIsPerson(value: string): boolean {
   if (parts.length > 1) {
     const raw0 = parts[0]!.replace(/\([^()]*\)?/g, " ");
     const first = clean(raw0).split(" ");
-    const second = clean(parts[1]!);
-    if (
+    const rest = clean(parts.slice(1).join(" "));
+    const plain =
       !ORGANIZATION.test(first.join(" ")) &&
-      !first.some((t) => NOT_A_PERSON_TAIL.has(t)) &&
-      ((first.length >= 3 &&
+      !first.some((t) => NOT_A_PERSON_TAIL.has(t));
+    const initialForm =
+      (first.length >= 3 &&
         first.length <= 4 &&
         /^[B-HJ-Z]$/.test(first[first.length - 1]!) &&
         first.some((t) => GIVEN.has(t))) ||
-        /^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}/.test(raw0.trim())) &&
-      second
+      (first.length === 3 &&
+        GIVEN.has(first[0]!) &&
+        /^[B-HJ-Z]$/.test(first[1]!) &&
+        /^[A-Z]{2,}$/.test(first[2]!)); // "EXAMPLE PAT Q & ACME LTD", "PAT Q EXAMPLE & EXAMPLE PROPERTIES 20"
+    // "EXAMPLE, PAT & ACME LLC", but not "SMITH, EXAMPLE & QUIN, LLC" (a firm named for its partners)
+    const commaForm =
+      /^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}/.test(raw0.trim()) &&
+      clean(parts[1]!)
         .split(" ")
         .filter(
           (t) =>
             !/^(?:LLC|LLP|LP|INC|CORP|LTD|PLLC|PC|CO|PROFESSIONAL)$/.test(t),
         ).length >= 2 &&
-      ORGANIZATION.test(second)
+      ORGANIZATION.test(clean(parts[1]!));
+    // "PAT Q EXAMPLE & CO", "PAT Q EXAMPLE & SONS INC": the company is the person's own firm
+    const ownFirm = rest
+      .split(" ")
+      .every(
+        (t) =>
+          GENERIC_AFTER_AND.has(t) ||
+          /^(?:INC|LLC|LTD|CORP|LP|LLP|CO|PC|PLLC|THE)$/.test(t),
+      );
+    if (
+      plain &&
+      ((initialForm && !ownFirm && ORGANIZATION.test(rest)) || commaForm)
     )
       return true;
   }

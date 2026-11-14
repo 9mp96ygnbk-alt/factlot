@@ -1012,12 +1012,17 @@ def _co_owner_is_person(text: str) -> bool:
     first_raw = re.sub(r"\([^()]*\)?", " ", parts[0])
     first = _clean_for_rule(first_raw).split()
     second = _clean_for_rule(parts[1])
-    if (first and not _organization_reading(" ".join(first)) and not any(t in _CO_OWNER_ORG_WORDS for t in first)
-            and ((3 <= len(first) <= 4 and len(first[-1]) == 1 and first[-1] not in "AI" and first[-1].isalpha()
-                  and any(t in _TRADE_NAME_GIVEN_NAMES for t in first))
-                 or re.match(r"^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}", first_raw.strip()))
-            and len([t for t in second.split() if not _LEGAL_FORM.fullmatch(t) and t not in ("PROFESSIONAL",)]) >= 2
-            and _organization_reading(second)):
+    rest = _clean_for_rule(" ".join(parts[1:]))
+    plain = bool(first) and not _organization_reading(" ".join(first)) and not any(t in _CO_OWNER_ORG_WORDS for t in first)
+    initial_form = ((3 <= len(first) <= 4 and len(first[-1]) == 1 and first[-1] not in "AI" and first[-1].isalpha()
+                     and any(t in _TRADE_NAME_GIVEN_NAMES for t in first))
+                    or (len(first) == 3 and first[0] in _TRADE_NAME_GIVEN_NAMES and len(first[1]) == 1
+                        and first[1] not in "AI" and len(first[2]) > 1))  # "PAT Q EXAMPLE & EXAMPLE PROPERTIES 20"
+    comma_form = (bool(re.match(r"^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}", first_raw.strip()))
+                  and len([t for t in second.split() if not _LEGAL_FORM.fullmatch(t) and t != "PROFESSIONAL"]) >= 2
+                  and _organization_reading(second))
+    own_firm = all(t in _GENERIC_AFTER_AND or _LEGAL_FORM.fullmatch(t) or t == "THE" for t in rest.split())
+    if plain and ((initial_form and not own_firm and _organization_reading(rest)) or comma_form):
         return True  # not "SMITH, EXAMPLE & QUIN, LLC": a firm named for its partners
     for i in range(1, len(parts)):
         before = _clean_for_rule(parts[i - 1])
