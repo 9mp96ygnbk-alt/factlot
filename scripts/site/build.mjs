@@ -21,7 +21,6 @@ import {
   exampleDescription,
   exampleTitle,
   otherDistrictsTable,
-  tryTexasLinks,
   valueCountyCount,
   hubExampleLinks,
   countWord,
@@ -68,7 +67,12 @@ import {
   marketTitle,
   sourceNotices,
 } from "./market-pages.mjs";
-import { FIELDS_LEAD, hostedFieldsTable, placeFieldsText } from "./fields.mjs";
+import {
+  FIELDS_LEAD,
+  hostedFieldsTable,
+  placeFieldsText,
+  servedFields,
+} from "./fields.mjs";
 import {
   CONTACT,
   OPERATOR,
@@ -394,7 +398,9 @@ const WORKER_PATHS = [
   "/health",
   "/v1",
   "/billing",
+  // The withdrawn website lookup: the Worker sends /try/ and /lookup/ to /coverage/.
   "/lookup",
+  "/try",
 ];
 const workerPath = (p) =>
   WORKER_PATHS.some((w) => p === w || p.startsWith(`${w}/`));
@@ -558,40 +564,6 @@ addPage(
     "site/_data/rest-reference.json",
     "scripts/site/rest-reference.mjs",
     "spec/schemas/tools.json",
-  ],
-);
-
-// --- /try/ ----------------------------------------------------------------------------------------
-// One address search against the hosted free tier, from the visitor's browser. The page calls the
-// same-origin /v1/registry routes the Worker already serves on factlot.com; /try/try.js is its only
-// script and is copied from site/try/.
-
-addPage(
-  {
-    urlPath: "/try/",
-    title: "Try a lookup: cited property records, no key | FactLot",
-    description:
-      "Look up a commercial property by address on FactLot's hosted free tier: parcel ID, situs address, roll values, building facts and the source citations, with the raw JSON an agent receives.",
-    h1: "Try a lookup",
-    crumbs: [["/try/", "Try a lookup"]],
-    body: fill(read("site/_content/try.html"), {
-      ...PLAN_VARS,
-      TEXAS_LINKS: tryTexasLinks(
-        readJson("site/_data/texas-counties.json").counties,
-        readJson("site/_data/texas-examples.json").examples.map(
-          (e) => e.county,
-        ),
-      ),
-    }),
-    scripts: ["/try/try.js", "/try/freekey.js"],
-  },
-  [
-    "site/_content/try.html",
-    "site/_data/texas-counties.json",
-    "scripts/site/texas-pages.mjs",
-    "site/try/try.js",
-    "site/try/freekey.js",
-    "site/_data/plans.json",
   ],
 );
 
@@ -882,7 +854,8 @@ const geo = readJson(geoRel);
 // What each hosted county has and lacks (site/_data/fields.json, scripts/site/gen-fields.ts), for the Texas county
 // pages, the market pages and the coverage page.
 const fieldsRel = "site/_data/fields.json";
-const fieldsJson = readJson(fieldsRel);
+// Only what the hosted API serves: the groups it withholds (fields.mjs NOT_SERVED) are dropped here.
+const fieldsJson = servedFields(readJson(fieldsRel));
 const fieldLabels = Object.fromEntries(
   fieldsJson.groups.map((g) => [g.key, g.label]),
 );

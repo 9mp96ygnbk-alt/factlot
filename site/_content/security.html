@@ -352,10 +352,9 @@
   <li>
     The API does not send a <code>Strict-Transport-Security</code> header, and
     the static site sends no <code>Content-Security-Policy</code> header (its
-    only scripts are two same-origin files under /try/: the one behind the Try a
-    lookup page, which writes API answers as text, never as HTML, and the one
-    that shows the free key link when the API offers it). The plain-HTTP
-    redirect above is what protects first visits.
+    only script is a same-origin file, /try/freekey.js, that shows the free key
+    link when the API offers it). The plain-HTTP redirect above is what protects
+    first visits.
   </li>
   <li>
     Enterprise customers can ask about a signed data-processing agreement and
@@ -377,7 +376,9 @@
   <li>
     When the owner of record is a natural person, the registry keeps the parcel
     but drops the person's name, mailing address and any ownership link. It is
-    built to keep organisations and to exclude natural persons' names.
+    built to keep organisations and to exclude natural persons' names. The
+    hosted API serves no mailing address at all, an organisation's included,
+    because the first line of one can name a person.
   </li>
   <li>
     Owners that a source withheld (for example under Texas Tax Code §25.025) are

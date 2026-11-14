@@ -20,10 +20,6 @@ export function hubCountyLinks(
   counties: unknown[],
   exampleSlugs: string[],
 ): string;
-export function tryTexasLinks(
-  counties: unknown[],
-  exampleSlugs: string[],
-): string;
 export function valueCountyCount(counties: unknown[]): string;
 export function hubExampleLinks(
   counties: unknown[],

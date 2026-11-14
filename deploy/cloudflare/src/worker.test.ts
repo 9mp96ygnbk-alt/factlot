@@ -6,7 +6,6 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 import { createHandler } from "@factlot/server";
@@ -1503,18 +1502,53 @@ describe("router", () => {
       mcp.headers.get("content-signal"),
       "search=yes, ai-input=yes, ai-train=no",
     );
-    for (const u of [
-      "https://factlot.com/lookup/",
-      "https://factlot.com/lookup/?q=1+Main+St",
-      "https://factlot.com/lookup",
-    ]) {
-      const res = await get(u);
+  });
+
+  it("sends the withdrawn website lookup (/try/ to /texas/, /lookup/ to /coverage/) on both hosts, looking nothing up", async () => {
+    const { api, seen } = innerApi();
+    const e = env({ ASSETS: { fetch: async () => new Response("site") } });
+    for (const [u, to] of [
+      ["https://factlot.com/try/", "/texas/"],
+      ["https://factlot.com/try", "/texas/"],
+      ["https://factlot.com/try/?q=1000+Louisiana+St", "/texas/"],
+      ["https://factlot.com/try/try.js", "/texas/"],
+      ["https://api.factlot.com/try/?q=1000+Louisiana+St", "/texas/"],
+      ["https://factlot.com/lookup/", "/coverage/"],
+      ["https://factlot.com/lookup", "/coverage/"],
+      ["https://factlot.com/lookup/?q=1+Main+St&state=TX", "/coverage/"],
+      [
+        "https://factlot.com/lookup/us-48201/0011440000001?format=json",
+        "/coverage/",
+      ],
+      ["https://api.factlot.com/lookup/?q=1+Main+St", "/coverage/"],
+    ] as const) {
+      const res = await handle(new Request(u), e, api);
+      assert.equal(res.status, 301, u);
+      assert.equal(res.headers.get("location"), `https://factlot.com${to}`, u);
+      // The query (an address) is dropped, and the answer is never stored, indexed or referred on.
+      assert.equal(res.headers.get("cache-control"), "no-store", u);
+      assert.equal(res.headers.get("referrer-policy"), "no-referrer", u);
+      assert.equal(res.headers.get("x-robots-tag"), "noindex", u);
       assert.equal(
         res.headers.get("content-signal"),
-        "search=no, ai-input=yes, ai-train=no",
+        "search=yes, ai-input=yes, ai-train=no",
         u,
       );
     }
+    const post = await handle(
+      new Request("https://factlot.com/lookup/", { method: "POST" }),
+      e,
+      api,
+    );
+    assert.equal(post.status, 405);
+    assert.equal(seen.length, 0, "no registry call");
+    // The free-key script under /try/ is still a file of the site.
+    const script = await handle(
+      new Request("https://factlot.com/try/freekey.js"),
+      e,
+      api,
+    );
+    assert.equal(await script.text(), "site");
   });
 
   it("redirects retired site addresses permanently and serves every other page as before", async () => {
@@ -1526,7 +1560,7 @@ describe("router", () => {
       ["https://factlot.com/markets/phoenix?x=1", "/coverage/"],
       ["https://factlot.com/questions/office-rent-in-el-paso", "/texas/"],
       ["https://factlot.com/buildings/fl:building:us-48201:abc", "/coverage/"],
-      ["https://factlot.com/search?q=a", "/try/"],
+      ["https://factlot.com/search?q=a", "/coverage/"],
       ["https://factlot.com/for-ai/", "/connect/"],
     ] as const) {
       const res = await get(from);
@@ -1902,7 +1936,7 @@ describe("router", () => {
   });
 });
 
-describe("same-origin registry lookups for the /try/ page", () => {
+describe("same-origin registry calls on factlot.com", () => {
   const post = (
     host: string,
     path: string,
@@ -1935,7 +1969,11 @@ describe("same-origin registry lookups for the /try/ page", () => {
       assert.equal(await r.text(), '{"ok":true}', path);
     }
     assert.equal(seen.length, 2);
-    const page = await handle(new Request("https://factlot.com/try/"), e, api);
+    const page = await handle(
+      new Request("https://factlot.com/coverage/"),
+      e,
+      api,
+    );
     assert.equal(await page.text(), "site");
   });
 
@@ -11177,15 +11215,9 @@ describe("lifecycle emails", () => {
           s.fetchImpl,
         )
       ).text();
-      assert.match(
-        page,
-        /href="https:\/\/factlot\.com\/try\/\?q=1000%20Louisiana%20St"/,
-      );
-      assert.match(page, /Back to your lookup/);
-      assert.match(
-        mail.sent[0]!.text,
-        /Back to your lookup: https:\/\/factlot\.com\/try\/\?q=1000%20Louisiana%20St/,
-      );
+      // A search alone has no page to go back to: the website's lookup was withdrawn.
+      assert.doesNotMatch(page, /\/try\/|Back to your lookup/);
+      assert.doesNotMatch(mail.sent[0]!.text, /\/try\/|Back to your lookup/);
       // A parcel: the property page when those are on.
       const s2 = stripe();
       await start(e, `&urn=${encodeURIComponent(PARCEL)}`, s2);
@@ -11262,86 +11294,6 @@ describe("lifecycle emails", () => {
         /Back to your lookup|try\/\?q=|lifecycle_emails/,
       );
       assert.doesNotMatch(mail.sent[0]!.text, /Back to your lookup/);
-    });
-  });
-
-  describe("/try/?q=", () => {
-    const src = readFileSync(
-      fileURLToPath(new URL("../../../site/try/try.js", import.meta.url)),
-      "utf8",
-    );
-    const heads: unknown[] = [];
-    /** Run try.js in a stub page; the bodies of the fetches it makes. */
-    function runTry(search: string): string[] {
-      const bodies: string[] = [];
-      heads.length = 0;
-      const node = () => {
-        const n: Record<string, unknown> = {
-          children: [],
-          value: "",
-          textContent: "",
-          disabled: false,
-          firstChild: null,
-          addEventListener() {},
-          appendChild() {},
-          setAttribute(k: string, v: string) {
-            ((n.attrs ??= {}) as Record<string, string>)[k] = v;
-          },
-        };
-        return n;
-      };
-      const ids: Record<string, ReturnType<typeof node>> = {};
-      const sandbox = {
-        document: {
-          location: { search },
-          head: { appendChild: (n: unknown) => heads.push(n) },
-          getElementById: (id: string) => (ids[id] ??= node()),
-          createElement: () => node(),
-          createTextNode: () => node(),
-          querySelectorAll: () => [],
-        },
-        fetch: (_u: string, init: { body: string }) => {
-          bodies.push(init.body);
-          return new Promise(() => {});
-        },
-        Array,
-        JSON,
-        String,
-        Object,
-        Promise,
-        decodeURIComponent,
-        setTimeout,
-        clearTimeout,
-      };
-      vm.runInNewContext(src, sandbox);
-      return bodies;
-    }
-    it("runs no lookup without the parameter, or with nothing left of it", () => {
-      for (const s of [
-        "",
-        "?",
-        "?x=1",
-        "?q=",
-        "?q=%3C%3E%40%40",
-        "?Q=1000+Main",
-        "?q=%E0%A4%A",
-      ])
-        assert.deepEqual(runTry(s), [], s);
-    });
-    it("runs the lookup on load with the cleaned text", () => {
-      const bodies = runTry("?q=1000+Louisiana+St");
-      assert.deepEqual(
-        bodies.map((b) => JSON.parse(b)),
-        [{ query: "1000 Louisiana St", limit: 5 }],
-      );
-    });
-    it("sanitises: markup, an email address and a key lose their characters; length is limited", () => {
-      const [a] = runTry(
-        `?q=${encodeURIComponent("<img src=x onerror=1> a@b.com fl_free_" + "y".repeat(300))}`,
-      );
-      const q = (JSON.parse(a!) as { query: string }).query;
-      assert.ok(q.length <= 120, `${q.length}`);
-      assert.doesNotMatch(q, /[<>@_=]/);
     });
   });
 
@@ -11821,7 +11773,7 @@ describe("lifecycle emails", () => {
       assert.equal(claims, 0);
     });
 
-    it("F4: links in mail keep their trailing punctuation out of the anchor, and /try/ queries are kept out of search indexes", () => {
+    it("F4: links in mail keep their trailing punctuation out of the anchor", () => {
       const { html } = body([
         "See https://factlot.com/try/?q=O%27Brien'. Then (https://factlot.com/x).",
       ]);
@@ -11835,19 +11787,6 @@ describe("lifecycle emails", () => {
       );
       assert.equal(encodeQuery("1200 Main St."), "1200%20Main%20St%2E");
       assert.equal(encodeQuery("O'Brien-Way"), "O%27Brien%2DWay");
-      const robots = readFileSync(
-        fileURLToPath(new URL("../../../site/robots.txt", import.meta.url)),
-        "utf8",
-      );
-      assert.match(robots, /^Disallow: \/try\/\?q=$/m);
-    });
-
-    it("F4: try.js adds a noindex robots tag only when it runs a lookup from a link", () => {
-      const src = readFileSync(
-        fileURLToPath(new URL("../../../site/try/try.js", import.meta.url)),
-        "utf8",
-      );
-      assert.match(src, /setAttribute\("content", "noindex"\)/);
     });
 
     it("F2: the key email does not promise notes to an address that has stopped", async () => {

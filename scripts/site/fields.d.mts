@@ -19,3 +19,5 @@ export function placeFieldsText(
   labels: Record<string, string>,
 ): string;
 export function hostedFieldsTable(data: FieldsData): string;
+export const NOT_SERVED: Set<string>;
+export function servedFields(data: FieldsData): FieldsData;

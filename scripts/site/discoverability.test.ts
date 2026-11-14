@@ -15,6 +15,7 @@ import {
   ID_SYSTEMS,
   loadSourceConfigs,
 } from "./coverage-catalog.mjs";
+import { servedFields } from "./fields.mjs";
 
 const root = new URL("../../", import.meta.url);
 const rootPath = decodeURIComponent(root.pathname);
@@ -82,7 +83,8 @@ describe("coverage catalog (/coverage.json)", () => {
     }).urn;
   const cat = buildCoverageCatalog({
     hosted,
-    fields: json("site/_data/fields.json"),
+    // As the build gives it: only the fact groups the hosted API serves.
+    fields: servedFields(json("site/_data/fields.json")),
     configs,
     toolNames,
     version,

@@ -1,17 +1,9 @@
 // The build's last check of the folder it wrote: every internal link resolves to a file of the site, nothing
-// loads from another origin, the only scripts are JSON-LD and the /try/ files, JSON-LD parses, and no
+// loads from another origin, the only scripts are JSON-LD and the /try/ free-key file, JSON-LD parses, and no
 // placeholder is left unfilled. build.mjs fails on any problem this returns.
 
 import fs from "node:fs";
 import path from "node:path";
-
-/**
- * Link targets that are no file of the site because the Worker answers them itself: the lookup pages
- * (/lookup/?q=..., /lookup/<county>/<parcel id>). Nothing else the Worker answers is exempt, so a link
- * to a mistyped API or billing path still fails the build.
- */
-export const workerAnswered = (p) =>
-  p === "/lookup" || p.startsWith("/lookup/");
 
 /** Whether the site link `u` (starting "/") resolves in the built folder `out`. */
 export function linkResolves(out, u) {
@@ -19,7 +11,6 @@ export function linkResolves(out, u) {
   const f = path.join(out, p);
   return (
     p === "/" ||
-    workerAnswered(p.replace(/\/+$/, "")) ||
     fs.existsSync(path.join(f, "index.html")) ||
     (fs.existsSync(f) && fs.statSync(f).isFile()) ||
     fs.existsSync(`${f}.html`)

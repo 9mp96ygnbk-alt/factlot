@@ -795,8 +795,10 @@ describe("property pages: a permitted-source parcel", () => {
     );
     assert.ok(html.includes("CC-BY-4.0"));
     // Links and the standing line.
-    for (const href of ["/coverage/", "/try/", "/mcp-server/", "/pricing/"])
+    for (const href of ["/coverage/", "/mcp-server/", "/pricing/"])
       assert.ok(html.includes(`href="${href}"`), href);
+    // The website lookup is withdrawn: no page links to it.
+    assert.ok(!/href="[^"]*\/(try|lookup)\//.test(html), "no lookup link");
     assert.ok(
       html.includes(
         "is not an appraisal or an opinion of value, not legal or tax advice",

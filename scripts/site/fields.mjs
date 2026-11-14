@@ -20,10 +20,30 @@ export const FIELDS_LEAD =
 export const FIELDS_SENTENCES =
   "Fields differ by county (Los Angeles and San Francisco have no owners): shares and roll years at https://factlot.com/coverage/#fields.";
 
+/**
+ * Fact groups the registry files hold but the hosted API does not serve, so no page states them: every owner and
+ * entity mailing address is withheld from every answer (deploy/cloudflare/src/registry.ts, withholdFacts), because a
+ * name on a mailing address's first line can be a person's. `servedFields` drops them from fields.json's data.
+ */
+export const NOT_SERVED = new Set(["owner_mailing_address"]);
+
+/** fields.json without the groups in NOT_SERVED, in its groups list and in every county's groups. */
+export function servedFields(data) {
+  return {
+    ...data,
+    groups: data.groups.filter((g) => !NOT_SERVED.has(g.key)),
+    counties: data.counties.map((c) => ({
+      ...c,
+      groups: Object.fromEntries(
+        Object.entries(c.groups).filter(([g]) => !NOT_SERVED.has(g)),
+      ),
+    })),
+  };
+}
+
 /** Short column headings, in fields.json's group order. */
 export const SHORT = {
   owner_of_record: "Owner of record",
-  owner_mailing_address: "Owner mailing address (organisations)",
   market_value: "Market value",
   appraised_value: "Appraised value",
   building_facts: "Building facts",
