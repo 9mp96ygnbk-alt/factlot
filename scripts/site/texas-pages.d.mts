@@ -52,3 +52,4 @@ export function renderTexasRolls(
   text: string,
   counties: unknown[],
 ): { text: string; found: number };
+export function priorRollNote(c: unknown): string;

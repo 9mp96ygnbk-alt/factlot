@@ -28,6 +28,7 @@ import {
 } from "./gen-plans.ts";
 import {
   countyBody,
+  priorRollNote,
   exampleBody,
   OTHER_DISTRICTS,
   otherDistrictsTable,
@@ -430,6 +431,31 @@ describe("texas county pages", () => {
       );
       assert.ok(hubLinks.includes(`/texas/${c.slug}/`), `hub links ${c.slug}`);
     }
+  });
+  it("say what the earlier roll years are where they differ from the current roll", () => {
+    const travis = counties.find((c) => c.slug === "travis")!;
+    const dallas = counties.find((c) => c.slug === "dallas")!;
+    const harris = counties.find((c) => c.slug === "harris")!;
+    const travisBody = flatten(countyBody(travis, tpl, true));
+    assert.ok(travisBody.includes("as submitted on the date shown for each"));
+    assert.ok(travisBody.includes("Texas Comptroller (EARS)"));
+    assert.ok(travisBody.includes("They hold market value only"));
+    const earlier = travis.rolls.slice(0, -1);
+    assert.ok(
+      priorRollNote(travis).includes(
+        `(tax years ${earlier[0]!.tax_year} to ${earlier[earlier.length - 1]!.tax_year})`,
+      ),
+    );
+    assert.ok(
+      flatten(countyBody(dallas, tpl, true)).includes(
+        "hold market value only: the district's certified export",
+      ),
+    );
+    assert.equal(priorRollNote(harris), "");
+    assert.equal(
+      priorRollNote({ ...travis, rolls: travis.rolls.slice(-1) }),
+      "",
+    );
   });
   it("state exactly the numbers in texas-counties.json", () => {
     for (const c of counties) {

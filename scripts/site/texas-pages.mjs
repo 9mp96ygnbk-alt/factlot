@@ -69,6 +69,27 @@ const rollSpan = (c) => {
   return first === last ? `tax year ${last}` : `tax years ${first} to ${last}`;
 };
 
+// What a county's earlier roll years are, where it differs from the current roll's export (docs/registry/texas-sources.md,
+// "Prior-year rolls"). Keyed by roll source; shown under the roll-years table when the county holds earlier years.
+const PRIOR_ROLL_NOTES = {
+  "tx-travis-cad": (span) =>
+    `The earlier roll years (${span}) are the appraisal rolls Travis Central Appraisal District submitted to the Texas Comptroller (EARS), as submitted on the date shown for each: a value the appraisal review board or a later supplement changed afterwards is not reflected. They hold market value only; the submission has no appraised value.`,
+  "tx-dallas-cad": (span) =>
+    `The earlier roll years (${span}) hold market value only: the district's certified export for those years has no separate appraised value.`,
+};
+
+/** The note about a county's earlier roll years, or "" when it has none or holds one roll year. */
+export function priorRollNote(c) {
+  const note = PRIOR_ROLL_NOTES[c.source_id];
+  if (!note || c.rolls.length < 2) return "";
+  const prior = c.rolls.slice(0, -1);
+  const first = prior[0].tax_year;
+  const last = prior[prior.length - 1].tax_year;
+  return note(
+    first === last ? `tax year ${last}` : `tax years ${first} to ${last}`,
+  );
+}
+
 export function countyDescription(c) {
   if (!hasValues(c))
     return `What FactLot hosts for ${c.name} County, Texas: ${int.format(c.hosted_parcels)} commercial parcels from the ${c.publisher} roll (data as of ${longDate(c.data_as_of)}; the publisher's file has no values), the source and its terms, and the tools that answer for the county.`;
@@ -95,7 +116,7 @@ export function countyBody(c, template, hasExample, fieldsText) {
 <tbody>
 ${rolls}
 </tbody>
-</table>`
+</table>${priorRollNote(c) ? `\n<p>${esc(priorRollNote(c))}</p>` : ""}`
     : `<p>${esc(c.name)} County holds <strong>${int.format(c.hosted_parcels)}</strong> commercial parcels in the hosted registry, from the roll file as of ${longDate(c.data_as_of)}. Values are not in the publisher's file, so the registry holds no market value, appraised value or tax year for these parcels. It holds the account number, situs address, state property category, local use code and, where the file names an organisation, the owner of record. Every fact cites the roll file it was read from.</p>`;
   const fieldsHtml = fieldsText
     ? `\n<p>${esc(fieldsText)} <a href="/coverage/#fields">Every hosted county, field by field</a>.</p>`
