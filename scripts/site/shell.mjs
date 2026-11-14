@@ -23,7 +23,6 @@ export const sourceTitle = (title) =>
 export const NAV = [
   ["/calculators/", "Calculators"],
   ["/mcp-server/", "MCP server"],
-  ["/connect/", "Connect"],
   ["/coverage/", "Coverage"],
   ["/texas/", "Texas"],
   ["/pricing/", "Pricing"],

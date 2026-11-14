@@ -1118,7 +1118,9 @@ describe("connect page and connect.json", async () => {
       });
       const page = readFileSync(`${out}/connect/index.html`, "utf8");
       assert.ok(
-        page.includes('<a href="/connect/" aria-current="page">Connect</a>'),
+        page.includes(
+          '<a href="/connect/" aria-current="page">Get started</a>',
+        ),
       );
       const built = JSON.parse(readFileSync(`${out}/connect.json`, "utf8"));
       const { rest, ...others } = built as { rest: { routes: unknown[] } };
