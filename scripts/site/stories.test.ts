@@ -151,7 +151,7 @@ describe("story page", () => {
     assert.ok(text.includes("fewer than 10 parcels"));
   });
   it("links the hosted tools, and the county page only when the county is hosted", () => {
-    assert.ok(body.includes('<a href="/try/">'));
+    assert.ok(body.includes('<a href="/connect/">'));
     assert.ok(!body.includes('href="/texas/'));
     assert.ok(
       storyBody(story, stamp, "harris").includes('href="/texas/harris/"'),

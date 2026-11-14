@@ -16,42 +16,12 @@ of an entry module that is not a handler, or a binding whose shape differs from 
 decide what a binding is by probing its properties (`"x" in env.BINDING`, `typeof
 env.BINDING.method`); choose explicitly.
 
-## Lookup pages
+## Retired lookup pages
 
-`GET /lookup/?q=<address>` (optional `state`, `city`, `zip`, `county`) and
-`GET /lookup/<county>/<parcel id>` on the site host answer a search or a record as a page, or as
-the API's JSON with `?format=json` or `Accept: application/json`. Code: `src/lookup-pages.ts`.
-
-- Counting. A page is answered by this Worker's own API call, sent back through the router as the
-  caller (their address and `Authorization` header): `registry_search_address` for a search,
-  `registry_get` for a record. It is counted, given back, limited per minute and cut to the free
-  view exactly as that call is, on the same meters, and the module has no meter of its own. A
-  search that finds one parcel under the batch lookup's rule redirects to its record; a record
-  that has a public property page redirects to that page before anything is counted (the property
-  pages' own route is asked, with its own per-address limit and cache). That check uses one of the
-  caller's property pages a minute; once they are used up, or when it cannot be answered, such a
-  record is looked up and counted like any other: it may then cost a lookup it would not
-  otherwise, never the other way round. A HEAD looks nothing up.
-- Never published. Every answer carries `Cache-Control: no-store`, `X-Robots-Tag: noindex` and
-  `Referrer-Policy: no-referrer`; the pages are in no sitemap; `robots.txt` disallows `/lookup`
-  for crawlers (a person's browser, and an agent using the API, MCP or a connector, are not
-  crawlers and are unaffected).
-- Content signals (https://contentsignals.org/): every answer from this Worker carries
-  `Content-Signal: search=yes, ai-input=yes, ai-train=no` (set once in `router.ts` `handle`), and
-  a lookup answer `search=no, ai-input=yes, ai-train=no`. Both `robots.txt` files (the site's,
-  `site/robots.txt`, and the API host's, `API_ROBOTS` in `router.ts`) say the same: pages may be
-  indexed and read to answer a question, nothing may be used to train or fine-tune AI models, and
-  crawlers that collect only for training are disallowed by name. The API host disallows
-  everything to crawlers except its OpenAPI files and `/.well-known/`. These are requests, not
-  locks: blocking training crawlers at the edge is a Cloudflare setting (AI Crawl Control,
-  Training: Disallow) in the account.
-- The address searched is in the query string, which `redact_query_string` keeps out of Workers
-  Logs; a record's path holds the county and the parcel id. The usage counters see `/lookup` and
-  `/lookup/*` only. A query parameter named like a credential (`key`, `token`, ...), or any
-  value holding a key (`fl_live_`, `fl_free_`), is refused before anything is looked up, and its
-  value is not written into the answer.
-- On the API host the same paths redirect (302) to the site host, with the same headers, after the
-  same refusal of a credential-like parameter, so its value is never put in a `Location` header.
+`/try/` and `/lookup/` (the website's address lookup) were withdrawn on 14 November 2026: the hosted
+registry covers a minority of counties, so a form that accepts any address mostly answered with
+nothing or with a parcel elsewhere. The router sends both, on either host, to `/coverage/` (302).
+The registry tools over REST and MCP are unchanged.
 
 ## Usage counters
 

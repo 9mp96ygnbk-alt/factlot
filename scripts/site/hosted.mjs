@@ -308,7 +308,6 @@ export const HOSTED_FILES = [
   "site/index.html",
   "site/_content/coverage.html",
   "site/_content/mcp.html",
-  "site/_content/try.html",
   "README.md",
   "docs/getting-started.md",
   "docs/agents.md",

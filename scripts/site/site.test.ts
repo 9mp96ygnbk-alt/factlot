@@ -33,7 +33,6 @@ import {
   OTHER_DISTRICTS,
   otherDistrictsTable,
   hubHostedTable,
-  tryTexasLinks,
   hubRollSentence,
   hubCountyLinks,
   texasRollsText,
@@ -224,7 +223,7 @@ describe("home page", () => {
     const developer = html.indexOf('id="hero-title"');
     assert.ok(promises > 0 && developer > promises);
     const top = html.slice(promises, developer);
-    for (const href of ["/texas/", "/mcp-server/", "/try/"])
+    for (const href of ["/texas/", "/mcp-server/", "/connect/"])
       assert.ok(top.includes(`href="${href}"`), href);
     assert.ok(/unequal-appraisal\s+arithmetic/.test(top));
     assert.ok(/Free, no key/.test(top));
@@ -294,7 +293,6 @@ describe("texas hub", () => {
       "§41.43(b)(3) and §42.26(a)(3)",
       "Excel file",
       "{{VALUE_COUNTY_COUNT}}",
-      'href="/try/"',
       'href="#examples"',
       'href="/pricing/"',
       "property tax consultants, tax attorneys",
@@ -613,7 +611,6 @@ describe("free key links", () => {
   const js = read("site/try/freekey.js");
   const pages = {
     pricing: read("site/_content/pricing.html"),
-    try: read("site/_content/try.html"),
     mcp: read("site/_content/mcp.html"),
   };
   it("are hidden in the page source, and only the script shows them", () => {
@@ -649,114 +646,37 @@ describe("free key links", () => {
   });
 });
 
-describe("/try/ page", () => {
-  const FORBIDDEN = [
-    "median_adjusted_value",
-    "subject_minus_median",
-    "over_assess",
-    "equity_candidates",
-    "calc_tx_unequal_appraisal",
-  ];
-  const html = read("site/_content/try.html");
-  const js = read("site/try/try.js");
-
-  it("calls only same-origin routes (two registry routes and reports), with no key, storage or HTML injection", () => {
-    const paths = [...js.matchAll(/"(\/v1\/[^"]*)"/g)].map((m) => m[1]);
-    assert.deepEqual(paths.sort(), [
-      "/v1/registry/get",
-      "/v1/registry/search_address",
-      "/v1/reports",
-    ]);
-    assert.ok(!/https?:\/\//.test(js), "no absolute URL in the script");
-    for (const bad of [
-      "authorization",
-      "api_key",
-      "localStorage",
-      "sessionStorage",
-      "document.cookie",
-      "innerHTML",
-      "outerHTML",
-      "insertAdjacentHTML",
-      "eval(",
-    ])
-      assert.ok(!js.toLowerCase().includes(bad.toLowerCase()), bad);
-    assert.match(js, /credentials: "omit"/);
-  });
-  it("shows the API's history and sales notes as text with a link to /pricing/, only when present", () => {
-    assert.match(js, /\[record\.history_note, record\.sales_note\]/);
-    assert.match(js, /typeof n !== "string" \|\| !n\) return;/);
-    assert.match(js, /class: "note try-history"/);
-    assert.match(
-      js,
-      /class: "button primary",\s+href: "\/pricing\/",\s+text: "Plans and limits"/,
-    );
-    // The note is the same sentence the Worker writes, minus the trailing address.
-    const note =
-      "4 earlier roll years, 2022 to 2025, are available with a Pro or Team key: https://factlot.com/pricing/";
-    assert.equal(
-      note.replace(/:\s*https?:\/\/\S+\s*$/, "."),
-      "4 earlier roll years, 2022 to 2025, are available with a Pro or Team key.",
-    );
-  });
-  it("says what the Texas tools do for a Texas record and links its worked example or the hub", () => {
-    assert.match(js, /\^fl:parcel:us-\(48\\d\{3\}\):/);
-    assert.match(js, /class: "note try-texas"/);
-    assert.ok(js.includes("#try-texas-links li[data-fips]"));
-    const data = JSON.parse(read("site/_data/texas-counties.json")) as {
-      counties: { slug: string; county_fips: string; rolls: unknown[] }[];
-    };
-    const links = tryTexasLinks(data.counties, ["harris", "dallas"]);
-    assert.ok(html.includes("{{TEXAS_LINKS}}"));
-    assert.ok(
-      links.includes(
-        '<li data-fips="48201"><a href="/texas/harris/example/">Harris County worked example</a></li>',
-      ),
-    );
-    assert.ok(links.includes('data-fips="48113"'));
-    // A county without an example points at the hub; one with no values has no entry.
-    assert.ok(
-      links.includes(
-        '<li data-fips="48453"><a href="/texas/">Texas tools</a></li>',
-      ),
-    );
-    const noValues = data.counties.filter((c) => c.rolls.length === 0);
-    assert.ok(noValues.length > 0);
-    for (const c of noValues)
-      assert.ok(!links.includes(`data-fips="48${c.county_fips}"`), c.slug);
-    assert.ok(links.startsWith('<ul id="try-texas-links" hidden>'));
-  });
-  it("prints a year without a thousands separator", () => {
-    assert.match(
-      js,
-      /YEAR_PREDICATES = \["parcel\.year_built", "parcel\.tax_year"\]/,
-    );
-    assert.match(
-      js,
-      /YEAR_PREDICATES\.indexOf\(f\.predicate\) !== -1\) return String\(v\);/,
-    );
-  });
-  it("shows no calculator result for a real property", () => {
-    for (const f of FORBIDDEN) {
-      assert.ok(!html.includes(f), `try.html has ${f}`);
-      assert.ok(!js.includes(f), `try.js has ${f}`);
+describe("the withdrawn website lookup (/try/, /lookup/)", () => {
+  // Withdrawn on 14 November 2026: the hosted registry holds a minority of counties, so a form
+  // that took any address mostly answered with nothing or a parcel elsewhere. No page may link to
+  // it, promise it or list it; the Worker sends both addresses to /coverage/.
+  const LOOKUP_HREF =
+    /href="(?:https:\/\/factlot\.com)?\/(?:try|lookup)\/?(?:[?"#]|index)/;
+  it("is not linked or promised by any hand-written page or llms.txt", () => {
+    for (const f of [
+      "site/index.html",
+      "site/_content/texas.html",
+      "site/_content/market.html",
+      "site/_content/mcp.html",
+      "site/_content/pricing.html",
+      "site/_content/coverage.html",
+      "site/llms.txt",
+      "llms.txt",
+      "README.md",
+    ]) {
+      const text = read(f);
+      assert.ok(!LOOKUP_HREF.test(text), `${f} links the lookup`);
+      assert.ok(
+        !/factlot\.com\/(?:try|lookup)\//.test(text),
+        `${f} names the lookup`,
+      );
+      assert.ok(!/Try a lookup|Look up a commercial property/.test(text), f);
     }
-  });
-  it("names the free quota, the pricing link and the coverage link", () => {
-    assert.match(html, /25 registry lookups a day per IP address/);
-    assert.equal(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY, 25);
-    assert.ok(js.includes('"/pricing/"') && js.includes('"/coverage/"'));
-    assert.ok(html.includes('href="/mcp-server/"'));
-  });
-  it("carries the disclaimers word for word", () => {
-    const flat = html.replace(/\s+/g, " ");
-    for (const sentence of SENTENCES) assert.ok(flat.includes(sentence));
-  });
-  it("is linked from the home page and listed in llms.txt", () => {
-    assert.ok(read("site/index.html").includes('href="/try/"'));
-    assert.ok(read("llms.txt").includes("https://factlot.com/try/"));
+    assert.ok(!existsSync(new URL("site/try/try.js", root)));
+    assert.ok(!existsSync(new URL("site/_content/try.html", root)));
   });
   it(
-    "is built into the site with no external resource",
+    "is not built, linked from any built page, or in the sitemap",
     { skip: !existsSync(new URL("packages/tools/dist/index.js", root)) },
     () => {
       const out = mkdtempSync(`${tmpdir()}/factlot-site-`);
@@ -764,34 +684,29 @@ describe("/try/ page", () => {
         cwd: root,
         stdio: "pipe",
       });
-      const page = readFileSync(`${out}/try/index.html`, "utf8");
-      const script = readFileSync(`${out}/try/try.js`, "utf8");
-      assert.equal(script, js);
-      const scripts = [...page.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
-      assert.ok(scripts.includes('<script src="/try/try.js" defer>'));
-      for (const tag of scripts)
-        assert.ok(
-          tag === '<script src="/try/try.js" defer>' ||
-            tag === '<script src="/try/freekey.js" defer>' ||
-            tag === '<script type="application/ld+json">',
-          tag,
-        );
-      const loaded = [
-        ...page.matchAll(
-          /<(?:script|link|img|iframe|source|video|audio|object|embed)\b[^>]*>/g,
-        ),
-      ]
-        .map((m) => m[0])
-        .filter((tag) => !tag.includes('rel="canonical"'));
-      for (const tag of loaded)
-        assert.ok(!/(?:src|href|srcset)="(?:https?:)?\/\//.test(tag), tag);
-      assert.ok(!/@import|url\(\s*["']?https?:/.test(page));
-      for (const f of FORBIDDEN) assert.ok(!page.includes(f), f);
-      assert.ok(
-        page.includes('<a href="/try/" aria-current="page">Try it</a>'),
-      );
+      assert.ok(!existsSync(`${out}/try/index.html`));
+      assert.ok(!existsSync(`${out}/try/try.js`));
+      assert.ok(existsSync(`${out}/try/freekey.js`));
       const sitemap = readFileSync(`${out}/sitemap.xml`, "utf8");
-      assert.ok(sitemap.includes("<loc>https://factlot.com/try/</loc>"));
+      assert.ok(!/\/(?:try|lookup)\//.test(sitemap));
+      const walk = (dir: string): string[] =>
+        readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+          d.isDirectory()
+            ? walk(`${dir}/${d.name}`)
+            : d.name.endsWith(".html") ||
+                d.name.endsWith(".txt") ||
+                d.name.endsWith(".json")
+              ? [`${dir}/${d.name}`]
+              : [],
+        );
+      for (const f of walk(out)) {
+        const text = readFileSync(f, "utf8");
+        assert.ok(!LOOKUP_HREF.test(text), `${f} links the lookup`);
+        assert.ok(
+          !/factlot\.com\/(?:try|lookup)\//.test(text),
+          `${f} names the lookup`,
+        );
+      }
     },
   );
 });
@@ -1180,10 +1095,9 @@ describe("connect page and connect.json", async () => {
     );
   });
 
-  it("is linked from the home page, the MCP page, the try page, llms.txt and the connectors guide", () => {
+  it("is linked from the home page, the MCP page, llms.txt and the connectors guide", () => {
     assert.ok(read("site/index.html").includes('href="/connect/"'));
     assert.ok(read("site/_content/mcp.html").includes('href="/connect/"'));
-    assert.ok(read("site/_content/try.html").includes('href="/connect/"'));
     assert.ok(read("llms.txt").includes("https://factlot.com/connect/"));
     assert.ok(
       read("site/llms.txt").includes("https://factlot.com/connect.json"),
@@ -1371,7 +1285,6 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
     const files = [
       "README.md",
       "llms-install.md",
-      "site/try/try.js",
       ...[
         "docs",
         "connectors",
@@ -1395,10 +1308,6 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
         f,
       );
     }
-    assert.match(
-      read("site/try/try.js"),
-      /finds nothing \(up to an hourly limit\)/,
-    );
   });
   it("README, the docs and llms.txt state the same two sentences (run scripts/site/gen-plans.ts)", () => {
     for (const f of PLAN_FILES) {
@@ -1429,7 +1338,6 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
         ["PLAN_PAID_ONLY_LIST", "PLAN_CHECKOUT_PRO"],
       ],
       ["site/_content/mcp.html", ["PLAN_PAID_ONLY", "PLAN_LOOKUP_COUNTED"]],
-      ["site/_content/try.html", ["PLAN_LOOKUP_COUNTED", "PLAN_LOOKUP_RULE"]],
     ] as const)
       for (const k of keys)
         assert.ok(read(f).includes(`{{${k}}}`), `${f} uses ${k}`);

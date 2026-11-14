@@ -28,7 +28,7 @@ export const NAV = [
   ["/texas/", "Texas"],
   ["/pricing/", "Pricing"],
   [`${REPO}/blob/main/docs/getting-started.md`, "Docs"],
-  ["/try/", "Try it"],
+  ["/connect/", "Get started"],
 ];
 
 /** The trust package, in reading order: how it is run, what is promised, how numbers are proven. */
@@ -118,7 +118,6 @@ export function siteFooter({ base = "", stories = false } = {}) {
 ${column(
   "Product",
   [
-    ["/try/", "Try a lookup"],
     ["/calculators/", "Calculators"],
     ["/mcp-server/", "MCP server"],
     ["/connect/", "Connect"],

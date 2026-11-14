@@ -180,8 +180,8 @@ export function backParams(back?: Back): string {
 
 /**
  * Where the success page and the welcome email send the buyer back to: the parcel's page when
- * property pages are on, else the try page run on the same address. Undefined when there is
- * nothing to go back to.
+ * property pages are on. Undefined when there is nothing to go back to (a search alone has no page
+ * since the website's lookup was withdrawn).
  */
 export function backLink(
   site: string,
@@ -196,11 +196,7 @@ export function backLink(
       href: `${site}${path}`,
       label: "Back to the property you were viewing",
     };
-  if (back.q)
-    return {
-      href: `${site}/try/?q=${encodeQuery(back.q)}`,
-      label: "Back to your lookup",
-    };
+  // A search (back.q) has no page to go back to: the website's lookup was withdrawn.
   return undefined;
 }
 
@@ -306,7 +302,7 @@ export function withheldMessage(c: PromoContext, f: WithheldFacts): Built {
 export function unusedFreeMessage(c: PromoContext): Built {
   return promo(c, "Your FactLot key: a one-question test", [
     "You have a free FactLot key and it has not made a lookup yet.",
-    `The shortest test: connect it to your assistant (${c.site}/mcp-server/) and ask about a commercial building you know. Every fact names the public file it came from, so you can check the answer. Or look up one address with no setup: ${c.site}/try/`,
+    `The shortest test: connect it to your assistant (${c.site}/mcp-server/) and ask about a commercial building you know. Every fact names the public file it came from, so you can check the answer.`,
     `If connecting was the obstacle, reply with the assistant you use and we will send the exact steps.`,
   ]);
 }

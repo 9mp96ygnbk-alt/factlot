@@ -24,7 +24,7 @@ const SECTION = new Map([
 
 /** Old utility pages and the pages that took their place. */
 const REPLACED = new Map([
-  ["search", "/try/"],
+  ["search", "/coverage/"],
   ["for-ai", "/connect/"],
 ]);
 

@@ -5,11 +5,10 @@ tracking. Its two typefaces are served from the site itself: Instrument Sans and
 variable Latin `woff2` files in `site/fonts/`, each under the SIL Open Font License 1.1 with its
 licence text beside it. The
 `<script>` elements are `application/ld+json` blocks (schema.org data), which the browser does not
-execute, and one same-origin file, `/try/try.js`, on the Try a lookup page (`/try/`). That page posts
-to the Worker's own `/v1/registry/search_address` and `/v1/registry/get` routes on the page's origin,
-and, when a visitor asks for the one-page sheet, to `/v1/reports`; it asks `/property/...` with
-HEAD whether a parcel has a public page. It needs no CORS and no key, and the free tier meters it
-like any other keyless caller. The build fails on any other script.
+execute, and one same-origin file, `/try/freekey.js`, on the pricing and MCP server pages, which
+shows the free-key link when the API offers a free key. The build fails on any other script. The
+site has no lookup form: the address lookup at `/try/` and `/lookup/` was withdrawn on
+14 November 2026 and the Worker sends those addresses to `/coverage/`.
 
 - `site/` holds the hand-written pages (`index.html`, `privacy.html`, `terms.html`, `404.html`),
   `styles.css`, `fonts/`, icons, `robots.txt`, the IndexNow key file, and `llms.txt` (a copy of the
@@ -21,7 +20,7 @@ like any other keyless caller. The build fails on any other script.
   county boundaries as the coverage map.
 - `docs/assets/` holds the sources of `social-preview.png` (1200 by 630) and the README images.
   The icons are rasterised from `favicon.svg`.
-- `site/_content/` holds the prose for generated pages: `mcp.html`, `try.html`, `texas-protest-deadline.html`,
+- `site/_content/` holds the prose for generated pages: `mcp.html`, `texas-protest-deadline.html`,
   and `calculators/` (one fragment per calculator page plus `manifest.json`).
 - `scripts/site/build.mjs` copies `site/` without the `.md` notes and anything whose name starts
   with `_`, at any depth (and writes `styles.css` without its comments and the white space between
