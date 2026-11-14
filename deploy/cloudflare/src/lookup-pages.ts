@@ -67,17 +67,13 @@ const PLACE_FIELDS = [
   ["zip", "postal_code", 10],
   ["county", "county_fips", 5],
 ] as const;
-/** Query parameters that look like a credential: a request carrying one is refused. */
-const KEY_PARAMS = new Set([
-  "key",
-  "api_key",
-  "apikey",
-  "token",
-  "access_token",
-  "authorization",
-  "auth",
-  "bearer",
-]);
+/**
+ * A query parameter whose name looks like a credential (key, x-api-key, access-token, client_secret,
+ * auth, password, bearer, ...): a request carrying one is refused, and its value is never echoed.
+ */
+const CREDENTIAL_PARAM = /key|token|secret|auth|passw|bearer/i;
+/** The query parameters a search reads, the only ones a link built from a request carries. */
+const SEARCH_PARAMS = ["q", ...PLACE_FIELDS.map(([param]) => param)] as const;
 /** The API's answer headers a lookup answer passes on. */
 const PASSED_HEADERS = [
   "retry-after",
@@ -288,11 +284,36 @@ function countedLine(body: Json | undefined): string {
 const jsonLine = (href: string, tool: string): string =>
   `The same answer as JSON, for a program that can open a web address: <a href="${e(href)}" rel="nofollow"><code>${e(href)}</code></a> (the hosted API's <code>${tool}</code> answer).`;
 
-/** This request's address with format=json added. */
-function jsonHref(url: URL): string {
-  const u = new URL(url.pathname + url.search, "https://x.invalid");
-  u.searchParams.set("format", "json");
-  return u.pathname + u.search;
+/**
+ * The JSON address of a search: its own parameters (q and the place fields) and format=json, nothing
+ * else of the request's address, so no other parameter is ever written into a page.
+ */
+function searchJsonHref(url: URL): string {
+  const u = new URLSearchParams();
+  for (const p of SEARCH_PARAMS) {
+    const v = clean(url.searchParams.get(p));
+    if (v !== "") u.set(p, v);
+  }
+  u.set("format", "json");
+  return `/lookup/?${u.toString()}`;
+}
+
+/** The JSON address of a record: its path and format=json. */
+const recordJsonHref = (urn: string): string =>
+  `${lookupPath(urn)}?format=json`;
+
+/** The answer to a request whose address carries a parameter named like a credential, else null. */
+export function credentialInAddress(url: URL, json: boolean): Response | null {
+  for (const k of url.searchParams.keys())
+    if (CREDENTIAL_PARAM.test(k))
+      return fail(
+        json,
+        400,
+        "KeyInAddress",
+        "A key does not go in a page address",
+        "A FactLot key is sent in the Authorization header, never in a page address, where browsers and logs keep it. Nothing was looked up. If the key in that address is real, replace it from your account page.",
+      );
+  return null;
 }
 
 /** An answer of this module's own, as JSON or as a page. */
@@ -549,7 +570,7 @@ ${form()}
   const entry = (step.done ? step.value : {}) as Json;
   const results = (Array.isArray(body.results) ? body.results : []) as Json[];
   const quota = quotaLine(headers);
-  const asJson = jsonLine(jsonHref(url), "registry_search_address");
+  const asJson = jsonLine(searchJsonHref(url), "registry_search_address");
 
   if (results.length === 0) {
     const cov = (body.coverage ?? {}) as Json;
@@ -686,7 +707,7 @@ async function record(
       note: [
         "This record is one registry lookup.",
         quotaLine(headers),
-        jsonLine(jsonHref(url), "registry_get"),
+        jsonLine(recordJsonHref(urn), "registry_get"),
       ]
         .filter(Boolean)
         .join(" "),
@@ -718,15 +739,8 @@ export async function lookupRoute(
       headers: headersOf("text/plain; charset=utf-8", { allow: "GET, HEAD" }),
     });
   // A key is never read from a page address, and one that arrives in it is not looked up with.
-  for (const k of url.searchParams.keys())
-    if (KEY_PARAMS.has(k.toLowerCase()))
-      return fail(
-        json,
-        400,
-        "KeyInAddress",
-        "A key does not go in a page address",
-        "A FactLot key is sent in the Authorization header, never in a page address, where browsers and logs keep it. Nothing was looked up. If the key in that address is real, replace it from your account page.",
-      );
+  const refused = credentialInAddress(url, json);
+  if (refused) return refused;
   // A HEAD (a link preview, a prefetch) is told what a GET would be, and looks nothing up.
   if (request.method === "HEAD")
     return new Response(null, {

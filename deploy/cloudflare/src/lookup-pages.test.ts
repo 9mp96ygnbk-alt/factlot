@@ -810,6 +810,86 @@ describe("lookup pages: hostile input and privacy", () => {
     assert.ok(html.includes('value="5 &quot;Main&quot; &lt;St&gt;"'));
   });
 
+  it("refuses any parameter named like a credential, whatever its spelling, and never echoes it", async () => {
+    const w = world();
+    const secret = "fl_live_abcdefSECRETvalue123";
+    apiCalls.length = 0;
+    for (const param of [
+      "x-api-key",
+      "api-key",
+      "API_KEY",
+      "apiKey",
+      "access-token",
+      "id_token",
+      "client_secret",
+      "secret",
+      "auth",
+      "x-authorization",
+      "password",
+      "passwd",
+      "bearer",
+    ])
+      for (const path of [
+        `/lookup/?q=1+Main&${param}=${secret}`,
+        `/lookup/?q=1+Main&${param}=${secret}&format=json`,
+        `${MAIN_TX_PATH}?${param}=${secret}`,
+        `/lookup/?${param}=${secret}`,
+      ]) {
+        const r = await w.get(path);
+        assert.equal(r.status, 400, path);
+        const body = await r.text();
+        assert.ok(!body.includes(secret) && !body.includes("SECRET"), path);
+        assert.ok(!r.headers.get("location"), path);
+        assert.equal(r.headers.get("referrer-policy"), "no-referrer", path);
+      }
+    assert.deepEqual(apiCalls, []);
+    assert.equal(await w.usedToday(), 0);
+  });
+
+  it("builds a page's JSON link from the search's own parameters only", async () => {
+    const w = world();
+    const extra = "&utm_source=zzqq&ref=zzqq&format=html&page=zzqq";
+    const list = await (
+      await w.get(`/lookup/?q=500+Market+Street&state=TX${extra}`)
+    ).text();
+    assert.ok(!list.includes("zzqq"));
+    assert.ok(
+      list.includes(
+        '<a href="/lookup/?q=500+Market+Street&amp;state=TX&amp;format=json" rel="nofollow">',
+      ),
+    );
+    const miss = await (
+      await w.get(
+        `/lookup/?q=999+Main+Street&city=Example+City&zip=77002&county=48999&state=TX${extra}`,
+      )
+    ).text();
+    assert.ok(!miss.includes("zzqq"));
+    assert.ok(
+      miss.includes(
+        "/lookup/?q=999+Main+Street&amp;state=TX&amp;city=Example+City&amp;zip=77002&amp;county=48999&amp;format=json",
+      ),
+    );
+    // A record's JSON link is its path and format=json, whatever else its address held.
+    const rec = await (await w.get(`${MAIN_TX_PATH}?ref=zzqq`)).text();
+    assert.ok(!rec.includes("zzqq"));
+    assert.ok(rec.includes(`href="${MAIN_TX_PATH}?format=json"`));
+    // Every link and form these pages write leads to /lookup/ with q and state at most.
+    for (const html of [list, miss, rec])
+      for (const [, href] of html.matchAll(
+        /(?:href|action)="(\/lookup[^"]*)"/g,
+      )) {
+        const u = new URL(
+          href!.replaceAll("&amp;", "&"),
+          "https://factlot.com",
+        );
+        for (const k of u.searchParams.keys())
+          assert.ok(
+            ["q", "state", "city", "zip", "county", "format"].includes(k),
+            href,
+          );
+      }
+  });
+
   it("caps the query and the place fields before anything is looked up", async () => {
     const w = world();
     apiCalls.length = 0;
