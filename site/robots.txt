@@ -1,10 +1,12 @@
 # FactLot welcomes search engines, and AI assistants that read a page to answer a person's
 # question with a citation. Nothing on this site may be used to train or fine-tune AI models:
 # the registry's facts come from public records whose publishers set the terms of their use.
-# Lookup answers (/lookup/, /try/?q=) are answers to one person's request, not pages to crawl.
+# Lookup answers (/lookup/, /try/?q=) are answers to one person's request, not pages to crawl;
+# an assistant that follows these rules when a person asks it to open a page is kept out of them
+# too, and should use FactLot's connector or API instead (https://factlot.com/connect/).
 # Content signals: https://contentsignals.org/
-Content-Signal: search=yes, ai-input=yes, ai-train=no
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 Disallow: /billing/
 Disallow: /try/?q=
@@ -18,6 +20,7 @@ User-agent: Google-Extended
 User-agent: Applebot-Extended
 User-agent: meta-externalagent
 User-agent: Bytespider
+Content-Signal: search=no, ai-input=no, ai-train=no
 Disallow: /
 
 Sitemap: https://factlot.com/sitemap.xml

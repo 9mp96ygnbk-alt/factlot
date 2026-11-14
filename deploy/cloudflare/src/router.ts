@@ -240,8 +240,8 @@ const API_EXACT = new Set([
 const API_ROBOTS = `# api.factlot.com serves FactLot's REST API, OpenAPI and MCP endpoint to programs. Docs: https://factlot.com/
 # Its answers are answers to one caller's request, not pages to crawl, and nothing here may be
 # used to train or fine-tune AI models. Content signals: https://contentsignals.org/
-Content-Signal: search=yes, ai-input=yes, ai-train=no
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /openapi.json
 Allow: /openapi-3.0.json
 Allow: /.well-known/

@@ -156,9 +156,11 @@ ${nav}
 ${groups}
 <h2 id="no-connector">No connector? Open a web address</h2>
 <p>
-  An assistant or a program that can open a web address but cannot add a connector, send a POST
-  or run a script can still read the registry. A GET to a lookup address answers a page of cited
-  facts, with no key:
+  A program that can open a web address but cannot add a connector, send a POST or run a script
+  can still read the registry, and so can a person in a browser. A GET to a lookup address
+  answers a page of cited facts, with no key. Lookup addresses are answers to one request, not
+  pages to crawl: robots.txt asks crawlers, and assistants that follow it, not to fetch them, so
+  an AI assistant should use one of the connections above:
 </p>
 <pre><code>${esc(d.lookup_pages.search_url.replace("{address}", "1000+Louisiana+St"))}&amp;state=TX
 ${esc(d.lookup_pages.record_url.replace("{county}", "us-48201").replace("{parcel_id}", "0011440000001"))}</code></pre>

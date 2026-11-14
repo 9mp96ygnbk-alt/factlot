@@ -797,7 +797,10 @@ describe("the hand-written sources", () => {
 
   it("lookup pages are kept from crawlers and training, are named to machines, and are in no sitemap", () => {
     const robots = read("site/robots.txt");
-    assert.match(robots, /^User-agent: \*\nAllow: \/$/m);
+    assert.match(
+      robots,
+      /^User-agent: \*\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \/$/m,
+    );
     assert.match(robots, /^Disallow: \/lookup$/m);
     assert.match(
       robots,
@@ -807,7 +810,7 @@ describe("the hand-written sources", () => {
     for (const f of ["llms.txt", "site/llms.txt"])
       assert.ok(
         read(f).includes(
-          "https://factlot.com/lookup/?q=<address> (&format=json for JSON)",
+          "not for crawlers: https://factlot.com/lookup/?q=<address> (&format=json for JSON)",
         ),
         f,
       );
