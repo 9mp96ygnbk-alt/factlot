@@ -474,7 +474,9 @@ files are works of the US government. A city named without a state is placed onl
 a place of that name; a state's code is never a city, nor a state's name when no state is named
 ("801 N Grant Ave, Texas"). When a query names a city or ZIP code, a result carries
 `place_differs: true` when its own label names neither that ZIP code nor that city and its county
-is outside every county the tables know the place lies in, in the result's state; where the tables
+is outside every county the tables know the place lies in, in the result's state (a ZIP code the
+Census tables place only in other states, by its ZCTA or, for one that is none such as 10118, by
+the ZCTAs of its first three digits, counts as known there, with no county); where the tables
 know none there, nothing is said. When every result carries it and the tables know the place's
 counties, `note` says the matches are outside them ("these matches are outside the counties
 HOUSTON, TX lies in (…)") and `place_counties` lists them.

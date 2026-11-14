@@ -20,6 +20,7 @@ import {
   placeCounties,
   placeStates,
   zipCounties,
+  zipPrefixStates,
 } from "./address_places.ts";
 import { countyName } from "./county_names.ts";
 import {
@@ -3083,8 +3084,10 @@ function heldCountyNames(cov: RegistryCoverage, st: string): string {
  * whose own label has the query's ZIP code or city (`addressPlaceRank` 0 or 1) never does. Otherwise it does when
  * the tables know, in the result's state, the counties of the query's ZIP code or city (`placeCounties`, the Census
  * tables and the registry's labels) and the result's county, from its URN, is in none of those known; when they
- * know neither there, it does not (nothing is claimed of a place the tables do not know). A few stray labels do not
- * put a county in the place: the result's own label is what counts.
+ * know neither there, it does not (nothing is claimed of a place the tables do not know). A ZIP code the Census
+ * tables place only in other states (by its ZCTA, or when it is none by the ZCTAs of its first three digits,
+ * `zipPrefixStates`) is known there too, with no county. A few stray labels do not put a county in
+ * the place: the result's own label is what counts.
  */
 export function addressPlaceDiffers(
   place: AddressPlace,
@@ -3102,6 +3105,15 @@ export function addressPlaceDiffers(
     let known = false;
     for (const k of keys) {
       const counties = st ? placeCounties(st, k) : null;
+      // A ZIP code that lies only in other states (none of its counties in this one, or placeCounties would hold them),
+      // or that is no ZCTA and whose first three digits' ZCTAs all lie in other states.
+      if (!counties && k === place.zip && st) {
+        const all = zipCounties(k);
+        const states = all
+          ? all.map((c) => statePostal(c.slice(0, 2)))
+          : zipPrefixStates(k);
+        if (states.length && !states.includes(st)) known = true;
+      }
       if (!counties) continue;
       if (counties.includes(fips)) return false;
       known = true;

@@ -176,6 +176,10 @@ class Normalization(unittest.TestCase):
         self.assertEqual(census_place_counties("UT", "SALT LAKE CITY"), ["49035"])
         self.assertIsNone(census_place_counties("TX", "TEXAS"))
         self.assertEqual(census_place_counties("NV", "CARSON CITY"), ["32510"])
+        from factlot.registry.address_places import zip_prefix_states
+        self.assertIsNone(zip_counties("10118"))
+        self.assertEqual(zip_prefix_states("10118"), ["NY"])
+        self.assertEqual(zip_prefix_states("bad"), [])
         self.assertIn("census.gov", PLACE_COUNTIES_SOURCE)
 
     def test_address_place_generator_reads_names_once(self):

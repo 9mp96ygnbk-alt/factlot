@@ -17,7 +17,7 @@ import sqlite3
 from typing import Any
 
 from .county_names import county_name
-from .address_places import label_any_counties, place_counties, place_states, zip_counties
+from .address_places import label_any_counties, place_counties, place_states, zip_counties, zip_prefix_states
 from .normalize import (ADDRESS_ONE_WORD_CANDIDATES, STATE_BY_FIPS, STATE_NAMES, STATES, address_place_rank,
                         address_place_with, address_query, address_query_with_place)
 
@@ -267,8 +267,9 @@ def _held_county_names(cov: dict[str, Any], st: str) -> str:
 def address_place_differs(place: dict[str, Any], results: list[dict[str, Any]]) -> list[bool]:
     """Which results lie outside the counties of the place the query names (``addressPlaceDiffers`` in TS): never one
     whose own label has the query's ZIP code or city (``address_place_rank`` 0 or 1); otherwise one whose county is
-    in none of the counties the tables know, in its state, for the query's ZIP code or city; one where they know
-    neither does not."""
+    in none of the counties the tables know, in its state, for the query's ZIP code or city (a ZIP code the Census
+    tables place only in other states, by its ZCTA or else its first three digits' ZCTAs, is known there, with no
+    county); one where they know neither does not."""
     city = address_place_city(place)
     asked = {**place, "city": city}
     keys = [k for k in (place["zip"], city) if k is not None]
@@ -284,6 +285,13 @@ def address_place_differs(place: dict[str, Any], results: list[dict[str, Any]]) 
         known = differs = False
         for k in keys:
             counties = place_counties(st, k) if st else None
+            # A ZIP code that lies only in other states (none of its counties in this one), or that is no ZCTA and
+            # whose first three digits' ZCTAs all lie in other states.
+            if not counties and k == place["zip"] and st:
+                every = zip_counties(k)
+                states = [state_postal(c[:2]) for c in every] if every else zip_prefix_states(k)
+                if states and st not in states:
+                    known = True
             if not counties:
                 continue
             if fips in counties:

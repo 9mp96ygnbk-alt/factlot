@@ -71,6 +71,16 @@ def zip_counties(zip5: str) -> list[str] | None:
     return zips.get(zip5)
 
 
+def zip_prefix_states(zip5: str) -> list[str]:
+    """The states of the ZIP Code Tabulation Areas sharing a ZIP code's first three digits, in code order
+    (``zipPrefixStates`` in TypeScript): where a ZIP code that is no ZCTA (one building's, a post office box's) lies."""
+    if zip_counties(zip5) is None and not (len(zip5) == 5 and zip5.isascii() and zip5.isdigit()):
+        return []
+    out = {st for z, counties in _zip_lines.get(zip5[:2], {}).items() if z.startswith(zip5[:3])
+           for c in counties for st, f in _FIPS.items() if c.startswith(f)}
+    return sorted(out)
+
+
 def census_place_counties(state: str, city: str) -> list[str] | None:
     """The counties (5-digit FIPS) the Census places of that name in a state lie in, or None
     (``censusPlaceCounties`` in TypeScript)."""

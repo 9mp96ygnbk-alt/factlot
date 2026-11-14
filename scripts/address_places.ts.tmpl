@@ -86,6 +86,21 @@ export function zipCounties(zip: string): string[] | null {
   return zips.get(zip) ?? null;
 }
 
+/**
+ * The states of the ZIP Code Tabulation Areas sharing a ZIP code's first three digits, in code order
+ * (`zip_prefix_states` in Python): where a ZIP code that is no ZCTA (one building's, a post office box's) lies.
+ */
+export function zipPrefixStates(zip: string): string[] {
+  if (zipCounties(zip) === null && !/^[0-9]{5}$/.test(zip)) return [];
+  const out = new Set<string>();
+  for (const [z, counties] of zipLines.get(zip.slice(0, 2)) ?? [])
+    if (z.startsWith(zip.slice(0, 3)))
+      for (const c of counties)
+        for (const [st, f] of Object.entries(FIPS))
+          if (c.startsWith(f)) out.add(st);
+  return [...out].sort();
+}
+
 /** The counties (5-digit FIPS) the Census places of that name in a state lie in, or null (`census_place_counties` in Python). */
 export function censusPlaceCounties(
   state: string,

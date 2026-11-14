@@ -17,6 +17,7 @@ import {
   placeCounties,
   placeStates,
   zipCounties,
+  zipPrefixStates,
 } from "./address_places.ts";
 import { countyName } from "./county_names.ts";
 
@@ -1336,6 +1337,10 @@ test("the Census ZIP code and place county tables match their TSVs", () => {
   assert.deepEqual(censusPlaceCounties("TX", "JERSEY VILLAGE"), ["48201"]);
   assert.deepEqual(censusPlaceCounties("NV", "CARSON CITY"), ["32510"]);
   assert.deepEqual(censusPlaceCounties("AK", "JUNEAU"), ["02110"]);
+  // A ZIP code that is no ZCTA (the Empire State Building's) lies where its first three digits' ZCTAs do.
+  assert.equal(zipCounties("10118"), null);
+  assert.deepEqual(zipPrefixStates("10118"), ["NY"]);
+  assert.deepEqual(zipPrefixStates("bad"), []);
   assert.match(PLACE_COUNTIES_SOURCE, /census\.gov/);
 });
 
