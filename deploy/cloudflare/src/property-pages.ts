@@ -54,7 +54,7 @@ import {
 } from "./gating.ts";
 import { escapeHtml } from "./html.ts";
 import { addressSubject } from "./limiter.ts";
-import { REGISTRY_RUN_URL } from "./registry.ts";
+import { REGISTRY_RUN_URL, withholdFacts } from "./registry.ts";
 import { noticesFor } from "./source-notices.ts";
 import type { Env, Fetcher } from "./types.ts";
 import {
@@ -345,7 +345,7 @@ async function run(
     throw new Unavailable("registry");
   if (!o.ok && o.error?.error === "RegistryUnavailable")
     throw new Unavailable("registry");
-  return o;
+  return o.ok ? withholdFacts(o) : o;
 }
 
 let version: { registry: Fetcher; at: number; builtAt: string } | undefined;

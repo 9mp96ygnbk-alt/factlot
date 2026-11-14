@@ -2989,6 +2989,59 @@ describe("registry runner", () => {
     ]);
   });
 
+  it("serves no mailing address: owner and entity mailing-address facts are taken out of every answer", async () => {
+    const fact = (predicate: string, value: string) => ({
+      id: predicate,
+      subject: "fl:parcel:us-48027:1",
+      predicate,
+      value,
+    });
+    const answer = {
+      urn: "fl:parcel:us-48027:1",
+      facts: [
+        fact("ownership.owner_of_record", "EXAMPLE HOLDINGS LLC"),
+        fact(
+          "ownership.owner_mailing_address",
+          "JANE DOE TRUSTEE, 1 MAIN ST, AUSTIN, TX",
+        ),
+        fact("parcel.year_built", "1990"),
+      ],
+      history: [
+        fact("entity.mailing_address", "JOHN ROE, PO BOX 1, AUSTIN, TX"),
+        fact("parcel.year_built", "1989"),
+      ],
+      relationships: [{ type: "owns", from_urn: "fl:entity:us-tx:1" }],
+    };
+    const run = registryRunner({
+      fetch: async () =>
+        new Response(JSON.stringify({ ok: true, result: answer })),
+    });
+    const got = (await run("registry_get", { urn: answer.urn })) as {
+      ok: true;
+      result: typeof answer;
+    };
+    const text = JSON.stringify(got);
+    assert.ok(!text.includes("JANE DOE") && !text.includes("JOHN ROE"), text);
+    assert.deepEqual(
+      got.result.facts.map((f) => f.predicate),
+      ["ownership.owner_of_record", "parcel.year_built"],
+    );
+    assert.deepEqual(
+      got.result.history.map((f) => f.predicate),
+      ["parcel.year_built"],
+    );
+    assert.deepEqual(got.result.relationships, answer.relationships);
+    // An error outcome is passed through as it is.
+    const err = {
+      ok: false,
+      error: { error: "NotFound", message: "x", issues: [] },
+    };
+    const failing = registryRunner({
+      fetch: async () => new Response(JSON.stringify(err)),
+    });
+    assert.deepEqual(await failing("registry_get", { urn: answer.urn }), err);
+  });
+
   it("throws on a failed or malformed answer so the catalog reports RegistryUnavailable", async () => {
     const failing = registryRunner({
       fetch: async () => new Response("no", { status: 503 }),

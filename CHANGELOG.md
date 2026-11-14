@@ -142,6 +142,7 @@ conservative_file_by, basis}` for the next tax year when the deadline has passed
 
 ### Fixed
 
+- Hosted API: no owner or entity mailing address is served any more, to any caller, on any route (REST, MCP, batch, reports, lookup and property pages). A mailing address could carry a natural person's name on its first line with no "ATTN" or "C/O" marker, which the registry's ingest scrub does not catch; the facts stay in the registry files until they are cleaned, and the API takes them out of every answer.
 - Registry, Connecticut: situs addresses carry a repaired ZIP code. The statewide layer stores ZIP codes as numbers, so labels showed floats and lost leading zeros (`Hartford CT 6103.0`, `Waterbury CT 67021915`); `ct_parcel_cama.zip_code` restores the leading zero, formats ZIP+4 and leaves out a property ZIP that is not a Connecticut one. Takes effect when `ct.db` is rebuilt.
 - Texas county pages: Travis and Dallas say what their earlier roll years are (Travis: the rolls as submitted to the Comptroller, market value only; Dallas: market value only), under the roll-years table.
 - Utah registry: the UGRC LIR reader now yields one record per parcel when a county file has several rows for it (one per building, or a repeated polygon part), so a parcel no longer gets two current values for one fact: building area is summed over its distinct buildings, year built is the earliest, market value is taken once (none when rows disagree), the category follows F2, F1, B with every row class kept in the use code, and parcels with one row are unchanged.

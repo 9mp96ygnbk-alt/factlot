@@ -51,6 +51,39 @@ const TX_EQUITY_PARAMS = [
 
 type Run = (name: string, input: unknown) => Promise<ToolOutcome>;
 
+/**
+ * Facts the hosted API does not serve, whatever the registry file holds. A mailing address can carry a person's
+ * name on its first line with no "ATTN" or "C/O" marker ("JANE DOE TRUSTEE, 1 MAIN ST, ..."), which the
+ * ingest scrub does not catch; until the registry files are cleaned, no mailing address leaves the API.
+ */
+export const WITHHELD_PREDICATES: ReadonlySet<string> = new Set([
+  "ownership.owner_mailing_address",
+  "entity.mailing_address",
+]);
+
+/** `value` with every fact of a withheld predicate taken out of every list, at any depth. */
+export function withholdFacts<T>(value: T): T {
+  if (Array.isArray(value))
+    return value
+      .filter(
+        (v) =>
+          !(
+            v &&
+            typeof v === "object" &&
+            WITHHELD_PREDICATES.has(
+              (v as { predicate?: unknown }).predicate as string,
+            )
+          ),
+      )
+      .map((v) => withholdFacts(v)) as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = withholdFacts(v);
+    return out as T;
+  }
+  return value;
+}
+
 export function registryRunner(service: Fetcher): RegistryRunner {
   const one: Run = async (name, input) => {
     const response = await service.fetch(
@@ -65,7 +98,7 @@ export function registryRunner(service: Fetcher): RegistryRunner {
     const outcome = (await response.json()) as ToolOutcome;
     if (typeof outcome !== "object" || outcome === null || !("ok" in outcome))
       throw new Error("registry service answered without an outcome");
-    return outcome;
+    return outcome.ok ? withholdFacts(outcome) : outcome;
   };
   // A registry Worker older than the narrowing parameters ignores them: its list would look narrowed and is not.
   const guarded: Run = async (name, input) => {

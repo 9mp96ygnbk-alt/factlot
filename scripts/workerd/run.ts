@@ -296,6 +296,21 @@ async function apiChecks(harness: Harness): Promise<void> {
     "api POST /v1/registry/coverage (keyless, through REGISTRY)",
     c,
   );
+  // No mailing address leaves the API: the fixture's district 997 parcels carry one in the registry file.
+  const mailed = await get("https://api.factlot.com/v1/registry/get", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ urn: "fl:parcel:us-48997:1000001" }),
+  });
+  const mt = await mailed.text();
+  expect(
+    mailed.status === 200 &&
+      mt.includes("ownership.owner_of_record") &&
+      !mt.includes("mailing_address") &&
+      !mt.includes("PO Box 9"),
+    "api POST /v1/registry/get serves no mailing address (keyless, through REGISTRY)",
+    mt.slice(0, 300),
+  );
   const one = await get("https://api.factlot.com/v1/registry/get", {
     method: "POST",
     headers: { "content-type": "application/json" },
