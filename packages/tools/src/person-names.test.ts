@@ -69,6 +69,7 @@ describe("nameReadsAsPerson: persons", () => {
     // a person after a legal form (B3)
     "ACME LP & ZELLBY QUORVIN & PAT EXAMPLE",
     "ACME LLC & PAT",
+    "ACME LLC & ZEBEDIAH",
     "ACME LLC ZELLBY, QUORVIN P III",
     "ACME CO., QUORVIN ZELLBY",
     "ACME LLC ZELLBY QUORVIN DARVEN",
@@ -155,6 +156,8 @@ describe("nameReadsAsPerson: organisations", () => {
     "SUCCESSOR BY MERGER TO EXAMPLE BANK",
     "EXAMPLE BANK & TRUST",
     "SMITH & SONS INC",
+    "SMITH & SONS LLC",
+    "ACME LLC & CO",
     "EXAMPLE HOLDINGS NORTH AMERICA",
     "EXAMPLE PROPERTIES OF TEXAS",
     "QUEST IRA INC",
