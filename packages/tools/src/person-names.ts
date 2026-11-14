@@ -368,6 +368,14 @@ function personShaped(piece: string): boolean {
 /** Whether one marker piece names a natural person: what is left once its role words are read away is not an
  *  organisation. A piece that is only a share, a number, a street, a routing, a role or initials names no one. */
 function pieceIsPerson(piece: string): boolean {
+  // "C/O PAT Q EXAMPLE ESQ ...": a lawyer named before the firm
+  const head = clean(piece).split(" ");
+  const esq = head.indexOf("ESQ");
+  if (
+    esq > 0 &&
+    head.slice(0, esq).some((t) => GIVEN.has(t) || /^[B-HJ-Z]$/.test(t))
+  )
+    return true;
   const words = clean(piece)
     .split(" ")
     .filter((t) => t !== "" && !ROLE_WORDS.has(t));

@@ -967,6 +967,11 @@ def _person_shaped(piece: str) -> bool:
 def _piece_is_person(piece: str) -> bool:
     """Whether one piece names a natural person: what is left once a person's roles are read away is not an
     organisation. A share, a number, a street, a routing, a role, initials or one plain word name no one."""
+    # "C/O PAT Q EXAMPLE ESQ ...": a lawyer named before the firm
+    head = _clean_for_rule(piece).split()
+    if "ESQ" in head and any(t in _TRADE_NAME_GIVEN_NAMES or (len(t) == 1 and t not in "AI")
+                             for t in head[:head.index("ESQ")]):
+        return True
     words = _piece_words(piece)
     if not words or any(any(c.isdigit() for c in t) for t in words):
         return False
