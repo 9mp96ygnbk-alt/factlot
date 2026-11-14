@@ -37,7 +37,7 @@ from pathlib import Path
 
 from ..normalize import COMMERCIAL_CATEGORIES, is_commercial
 from ..store import IngestStats, ParcelRecord, Registry, Source
-from .arcgis_pages import SQFT_PER_ACRE, features, pages, positive, squeeze, zip_text
+from .arcgis_pages import SQFT_PER_ACRE, features, pages, positive, squeeze
 
 STATE_FIPS = "09"
 ACCOUNT_SYSTEM = "ct_cama_link"
@@ -123,8 +123,26 @@ def county_fips(fips: object) -> str | None:
     return s[2:5] if len(s) == 11 and s.isdigit() and s.startswith(STATE_FIPS) else None
 
 
+def zip_code(value: object) -> str | None:
+    """A ZIP code as the layer should have written it, or None.
+
+    The statewide layer stores ZIP codes as numbers, so many arrive as floats (``6103.0``) or with the leading
+    zero lost (``67021915`` for 06702-1915; with the float suffix, ``67021915.0``). A US ZIP code has 5 digits
+    (or 9 for ZIP+4), so a 4- or 8-digit value is missing its leading zero. Anything else is dropped rather
+    than printed wrong."""
+    text = squeeze(value) if isinstance(value, str) else ("" if value is None else str(value))
+    digits = re.sub(r"\D", "", re.sub(r"\.0+$", "", text.strip()))
+    if len(digits) in (4, 8):
+        digits = "0" + digits
+    if len(digits) == 5:
+        return digits
+    if len(digits) == 9:
+        return f"{digits[:5]}-{digits[5:]}"
+    return None
+
+
 def _mailing(a: dict) -> str | None:
-    state_zip = " ".join(x for x in (squeeze(a.get("Mailing_State")), zip_text(squeeze(a.get("Mailing_Zip")))) if x)
+    state_zip = " ".join(x for x in (squeeze(a.get("Mailing_State")), zip_code(a.get("Mailing_Zip"))) if x)
     parts = [squeeze(a.get("Mailing_Address")), squeeze(a.get("Mailing_City")), state_zip]
     return ", ".join(p for p in parts if p) or None
 
@@ -134,7 +152,9 @@ def _situs(a: dict) -> str | None:
     if not street:
         return None
     city = squeeze(a.get("Property_City")) or squeeze(a.get("Town_Name"))
-    rest = " ".join(x for x in (city, "CT", zip_text(squeeze(a.get("Property_Zip")))) if x)
+    # Every Connecticut ZIP code starts 06; a property ZIP that does not is a data error and is left out.
+    z = zip_code(a.get("Property_Zip"))
+    rest = " ".join(x for x in (city, "CT", z if z and z.startswith("06") else None) if x)
     return f"{street}, {rest}"
 
 

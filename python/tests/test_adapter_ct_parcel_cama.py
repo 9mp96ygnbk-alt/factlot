@@ -82,6 +82,25 @@ class CtTests(unittest.TestCase):
         for bad in ("", None, "13526102", "36013526102", "0901352610X"):
             self.assertIsNone(ct_parcel_cama.county_fips(bad), bad)
 
+    def test_zip_codes_from_the_numeric_field(self):
+        # The layer stores ZIP codes as numbers: floats, and values that lost their leading zero.
+        cases = {
+            "06232": "06232", "6103.0": "06103", "6702": "06702", "67021915": "06702-1915",
+            "67021915.0": "06702-1915", "067021915": "06702-1915", "06702-1915": "06702-1915",
+            6103.0: "06103", 6232: "06232", "": None, None: None, "abc": None, "123": None, "1234567": None,
+        }
+        for raw, want in cases.items():
+            self.assertEqual(ct_parcel_cama.zip_code(raw), want, raw)
+
+    def test_situs_zip_is_repaired_or_left_out(self):
+        base = {"Location_1": "302 EXAMPLE MILL RD", "Property_City": "Waterbury"}
+        situs = ct_parcel_cama._situs
+        self.assertEqual(situs({**base, "Property_Zip": "67021915.0"}), "302 EXAMPLE MILL RD, Waterbury CT 06702-1915")
+        self.assertEqual(situs({**base, "Property_Zip": 6702.0}), "302 EXAMPLE MILL RD, Waterbury CT 06702")
+        # Not a Connecticut ZIP code: left out rather than shown wrong.
+        self.assertEqual(situs({**base, "Property_Zip": "19406"}), "302 EXAMPLE MILL RD, Waterbury CT")
+        self.assertEqual(situs({**base, "Property_Zip": None}), "302 EXAMPLE MILL RD, Waterbury CT")
+
     def test_records(self):
         recs = {r.apn: r for r in ct_parcel_cama.read_roll(self.tmp)}
         self.assertEqual(sorted(recs), ["99001-1", "99002-7", "99003-3", "99004-4"])
