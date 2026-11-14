@@ -571,7 +571,7 @@ _STREET_WORD = frozenset("ST STREET DR DRIVE AVE AVENUE RD ROAD BLVD BOULEVARD P
                          "HIGHWAY FWY FREEWAY TRL TRAIL PL PLACE CIR CIRCLE LOOP SQ SQUARE TER TERRACE PLZ PLAZA".split())
 _CONNECTORS = frozenset("AND OF THE A".split())
 _TRUST_WORDS = frozenset("TR TRUST TRUSTS TRST TRUSTEE TRUSTEES".split())
-_FOR_BENEFIT_OF = re.compile(r"\b(?:FBO|F B O|CFBO|C F B O|IRA|ROTH|SEP IRA|SEP|HSA|CUST)\b")
+_FOR_BENEFIT_OF = re.compile(r"\b(?:FBO|F B O|CFBO|C F B O|IRA|ROTH IRA|SEP IRA|HSA|CUST)\b")
 # Words that make a co-owner's name an organisation's or a place's ("ACME LLC AND EXAMPLE HOUSING DEVELOPMENT").
 # (With ``NAME_STOP_TOKENS``, defined below.)
 _CO_OWNER_ORG_WORDS = (_GENERIC_BUSINESS_WORDS | _LP_CONTEXT | _STREET_WORD
@@ -826,7 +826,7 @@ _POSSESSIVE = re.compile("['\u2018\u2019`]S\\b")
 
 def _clean_for_rule(name: str) -> str:
     # A possessive is one word ("SAINT PAUL'S", not "PAUL S"); any other apostrophe separates words ("OWNERS'CORP").
-    name = _POSSESSIVE.sub("S", name.upper())
+    name = re.sub("['\u2019]L\\b", "L", _POSSESSIVE.sub("S", name.upper()))  # "INT'L" is INTL
     raw = _DBA.split(name.replace("&", " AND "), maxsplit=1)[0]
     s = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9 ]+", " ", raw)).strip()
     spaced_lp = bool(_SPACED_LP.search(s)) and not _DOTTED_LP.search(raw) and _spaced_lp_is_partnership(s)
@@ -969,9 +969,10 @@ def _piece_is_person(piece: str) -> bool:
     organisation. A share, a number, a street, a routing, a role, initials or one plain word name no one."""
     # "C/O PAT Q EXAMPLE ESQ ...": a lawyer named before the firm
     head = _clean_for_rule(piece).split()
-    if "ESQ" in head and any(t in _TRADE_NAME_GIVEN_NAMES or (len(t) == 1 and t not in "AI")
-                             for t in head[:head.index("ESQ")]):
-        return True
+    if "ESQ" in head and 2 <= head.index("ESQ") <= 4 and all(
+            t.isalpha() and t not in _CO_OWNER_ORG_WORDS and not _ENTITY_TOKENS.fullmatch(t)
+            for t in head[:head.index("ESQ")]):
+        return True  # a name before ESQ, listed or not
     words = _piece_words(piece)
     if not words or any(any(c.isdigit() for c in t) for t in words):
         return False
@@ -1061,7 +1062,9 @@ def _co_owner_is_person(text: str) -> bool:
     rest = _clean_for_rule(" ".join(parts[1:]))
     plain = bool(first) and not _organization_reading(" ".join(first)) and not any(t in _CO_OWNER_ORG_WORDS for t in first)
     initial_form = ((3 <= len(first) <= 4 and len(first[-1]) == 1 and first[-1] not in "AI" and first[-1].isalpha()
-                     and any(t in _TRADE_NAME_GIVEN_NAMES for t in first))
+                     and (any(t in _TRADE_NAME_GIVEN_NAMES for t in first)
+                          or (len(first) == 3 and _shape_name_word(first[0]) and _shape_name_word(first[1])
+                              and not re.match(r"^[A-Z]\b", parts[1].strip()))))
                     or (len(first) == 3 and first[0] in _TRADE_NAME_GIVEN_NAMES and len(first[1]) == 1
                         and first[1] not in "AI" and len(first[2]) > 1))  # "PAT Q EXAMPLE & EXAMPLE PROPERTIES 20"
     comma_form = (bool(re.match(r"^[A-Z'-]{2,}\s*,\s*[A-Z]{2,}", first_raw.strip()))
@@ -1180,6 +1183,46 @@ def _own_firm(rest: list[str]) -> bool:
     return all(x in _GENERIC_AFTER_AND or _LEGAL_FORM.fullmatch(x) or x in ("THE", "AND") or len(x) == 1 for x in rest)
 
 
+# A trust named for a street or a place ("EXAMPLE STREET REALTY TRUST") is not a person's.
+_TRUST_STREET_WORDS = frozenset("ST STREET AVE AVENUE RD ROAD DR DRIVE BLVD BOULEVARD LN LANE WAY CT COURT PL PLACE PKWY "
+                                "HWY SQ SQUARE TER TERRACE CIR HEIGHTS HILL HILLS PARK".split())
+
+
+# Words that open ranch brands and trade names ("DOUBLE ROCKING F HOLDINGS", "LAZY DIAMOND S RANCH"): not a name.
+_BRAND_WORDS = frozenset("DOUBLE TRIPLE DIAMOND LAZY ROCKING CIRCLE BAR BOX MINI LONE STAR MOUNT NEW OLD LEGACY CROWN "
+                         "GOLDEN SILVER ROYAL TWIN BIG LITTLE BLUE RED GREEN WHITE BLACK METRO UNITED POWER FLYING RUNNING "
+                         "HALF QUARTER SPUR CROSS KEY STUDENT STORE OCEAN RIVER LAKE".split())
+_ROLE_OR_CONNECTOR = frozenset("AS BY ACTING THROUGH THRU FOR TO OF THE IN AT AN A ITS AND OR FKA AKA NKA SBM SUCCR SUCC "
+                               "PRESENTS UNDERSIGNED QUEENS BROOKLYN BRONX MANHATTAN STATEN LIMITED "
+                               "SUCCESSOR TRUSTEE TRUSTEES TTEE TR RECEIVER MORTGAGEE NOMINEE AGENT CUSTODIAN".split())
+
+
+_INSTITUTION_NAME = re.compile(
+    r"\b(?:FOUNDATION|CHURCH|CHAPEL|TEMPLE|SYNAGOGUE|MOSQUE|CONGREGATION|PARISH|DIOCESE|MINISTRIES|MINISTRY|UNIVERSITY|"
+    r"COLLEGE|SCHOOL|ACADEMY|HOSPITAL|SOCIETY|CLUB|LODGE|ASSOCIATION|FUND|HDFC|HOUSING DEVELOPMENT|UNION|COUNCIL|"
+    r"INSTITUTE|MUSEUM|LIBRARY)\b")
+
+
+def _shape_name_word(x: str | None) -> bool:
+    """A word that can be a name read by shape alone (no list): plain letters with a vowel, not a place, a brand word,
+    a role or a connector ("JP", "PZ" and "SBM" are initials or abbreviations)."""
+    return (_plain_name_word(x) and bool(re.search(r"[AEIOUY]", x[1:])) and x not in _PIECE_PLACE_WORDS
+            and x not in _TRUST_STREET_WORDS and x not in ("STORE", "LOOP", "INT", "INTL", "NATL")
+            and x not in _BRAND_WORDS and x not in _ROLE_OR_CONNECTOR and x not in _PIECE_ROLE_WORDS
+            and x not in _COMPANY_ROLE_WORDS)
+
+
+def _business_words(rest: list[str]) -> bool:
+    """Whether the words after a person's name are another company's own: a business word besides its legal form
+    ("EXAMPLE STORAGE LLC"), not a place, a number or a series letter ("<NAME> TX, LLC", "LLC 1%")."""
+    return any(t in _CO_OWNER_ORG_WORDS or t in _PIECE_DESCRIPTOR_WORDS or t in NAME_STOP_TOKENS
+               or (_ENTITY_TOKENS.fullmatch(t) and not _LEGAL_FORM.fullmatch(t))
+               for t in rest if t not in ("AND", "OF", "THE", "A", "TX", "US", "USA", "AMERICA", "TEXAS", "ET", "AL",
+                                          "ETAL", "ETALS", "FAMILY", "FMLY")
+               and not _LEGAL_FORM.fullmatch(t) and t not in _STATE_CODES
+               and t not in ("LLC", "INC", "CORP", "LP", "LLP", "LTD", "PLLC", "PC", "PA", "NA"))
+
+
 def _person_around(name: str) -> bool:
     """A person named at the head of a name before a company or an office, with no "&" ("EXAMPLE, PAT Q <OTHER WORDS>
     LLC", "EXAMPLE, PAT FOR ACME LLC", "EXAMPLE PAT Q ACME LP", "EXAMPLE PAT Q STATE OF", "PAT EXAMPLE, REFEREE",
@@ -1194,28 +1237,67 @@ def _person_around(name: str) -> bool:
                 and not any(t in _CO_OWNER_ORG_WORDS or t in _PIECE_DESCRIPTOR_WORDS or t == "THE" for t in who)):
             return True
     t = _clean_for_rule(u).split()
-    comma = re.match(r"^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([B-HJ-Z])\b\.?)?", u)
-    if (comma and _plain_name_word(_clean_for_rule(comma.group(1))) and _plain_name_word(comma.group(2))
-            and not _BANKING_WORD.match(_clean_for_rule(comma.group(1))) and comma.group(2) not in ("NA", "N")):
+    # "EXAMPLE, PAT [QUIN|Q] <other company's words>": read by shape, the given name listed or not; not a firm named
+    # for its partners ("EXAMPLE, QUIN & ROE LLC") nor the person's own firm
+    comma = re.match(r"^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([A-Z]{2,}|[B-HJ-Z])\b\.?)?", u)
+    rest3 = _clean_for_rule(u[comma.end():]).split() if comma else []
+    if comma and comma.group(3) and len(comma.group(3)) > 1 and (
+            not _plain_name_word(_clean_for_rule(comma.group(3))) or not rest3 or _own_firm(rest3)):
+        # "EXAMPLE, PAT ENTERPRISES INC": the rest starts there (group 3 kept, never matched)
+        comma = re.match(r"^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:(?!)(.))?", u)
+    if (comma and _plain_name_word(_clean_for_rule(comma.group(1))) and _plain_name_word(_clean_for_rule(comma.group(2)))
+            and not _BANKING_WORD.match(_clean_for_rule(comma.group(1))) and comma.group(2) not in ("NA", "N")
+            and (comma.group(2) not in _PIECE_PLACE_WORDS or comma.group(2) in _TRADE_NAME_GIVEN_NAMES)
+            and (comma.group(3) is None or len(comma.group(3)) == 1
+                 or (_plain_name_word(comma.group(3)) and comma.group(3) not in _PIECE_PLACE_WORDS))):
         rest = _clean_for_rule(u[comma.end():]).split()
-        if ((comma.group(2) in _TRADE_NAME_GIVEN_NAMES or comma.group(3)) and rest
-                and _organization_reading(" ".join(rest)) and not _own_firm(rest)
-                and not re.match(r"^\s*(?:&|AND\b)", u[comma.end():])):
+        listed = comma.group(2) in _TRADE_NAME_GIVEN_NAMES or (comma.group(3) and len(comma.group(3)) == 1)
+        # by shape alone: name-like words, another company's own words after them, no third name after a comma
+        # ("EXAMPLE, QUIN, ROE PROPERTIES": partners), no institution ("..., <WORD> FOUNDATION")
+        shape = (_shape_name_word(_clean_for_rule(comma.group(1))) and _shape_name_word(comma.group(2))
+                 and (comma.group(3) is None or len(comma.group(3)) == 1 or _shape_name_word(comma.group(3)))
+                 and not u[comma.end():].lstrip().startswith(",") and _business_words(rest)
+                 and not _INSTITUTION_NAME.search(" ".join(rest)))
+        if (rest and _organization_reading(" ".join(rest)) and not _own_firm(rest) and (listed or shape)
+                and comma.group(2) not in _ROLE_OR_CONNECTOR and not re.search(r"&|\bAND\b", u)):
             return True
-    if (len(t) >= 4 and _plain_name_word(t[0]) and t[1] in _TRADE_NAME_GIVEN_NAMES and len(t[2]) == 1
-            and t[2].isalpha() and t[2] not in "AI" and _organization_reading(" ".join(t[3:])) and not _own_firm(t[3:])):
-        return True
-    tail = re.search(r"([A-Z'-]{2,})\s*,\s*([A-Z]{2,})((?:\s+[A-Z]\b\.?)?)(?:\s+(?:JR|SR|II|III)\.?)?\s*$", u)
+    if (len(t) >= 4 and _plain_name_word(t[0]) and _plain_name_word(t[1]) and t[1] not in _PIECE_PLACE_WORDS
+            and t[0] not in _PIECE_PLACE_WORDS and t[1] not in ("AND", "OF", "THE")
+            and t[3] not in _TRUST_STREET_WORDS and t[3] not in ("STORE", "STOR", "LOOP", "AND")
+            and len(t[2]) == 1 and t[2].isalpha() and t[2] not in "AI" and _organization_reading(" ".join(t[3:]))
+            and not _own_firm(t[3:])
+            and not re.search(r"\bAND [A-Z]\b", " ".join(t[3:]))  # "... C AND R INC": the company's initials
+            and (t[1] in _TRADE_NAME_GIVEN_NAMES
+                 or (_shape_name_word(t[0]) and _shape_name_word(t[1]) and len(t[3]) > 1 and _business_words(t[3:])
+                     and not _INSTITUTION_NAME.search(" ".join(t[3:]))))):
+        return True  # "EXAMPLE PAT Q <OTHER COMPANY> LLC", the given name listed or not
+    tail = re.search(r"([A-Z'-]{2,})\s*,\s*([A-Z]{2,})((?:\s+(?:[A-Z]\b\.?|[A-Z]{2,}))?)(?:\s+(?:JR|SR|II|III)\.?)?\s*$", u)
+    if tail and re.search(r"\bOF\s*$", u[:tail.start()]):
+        tail = None  # "<DEPARTMENT> OF COMMERCE, ECONOMIC ...": an institution's name
     if (tail and tail.start() > 0 and _plain_name_word(_clean_for_rule(tail.group(1)))
             and _plain_name_word(tail.group(2)) and _organization_reading(_clean_for_rule(u[:tail.start()]))
-            and (tail.group(2) in _TRADE_NAME_GIVEN_NAMES or tail.group(3).strip())):
-        return True
+            and not re.search(r"(?:&|\bAND\b)\s*$", u[:tail.start()])):
+        third = tail.group(3).strip().rstrip(".")
+        if (tail.group(2) not in _ROLE_OR_CONNECTOR and third not in _ROLE_OR_CONNECTOR
+                and (tail.group(2) in _TRADE_NAME_GIVEN_NAMES or len(third) == 1
+                     or (third and _shape_name_word(_clean_for_rule(tail.group(1))) and _shape_name_word(tail.group(2))
+                         and _shape_name_word(third)))):
+            return True  # "<BANK> NA EXAMPLE, PAT QUIN", "<BANK> EXAMPLE, PAT Q JR"
     church = _SURNAME_ORG_WORD.match(u)
     if church and _plain_name_word(_clean_for_rule(church.group(1))) and church.group(2) in _TRADE_NAME_GIVEN_NAMES:
         return True
     kind = (3 if " ".join(t[-3:]) in ("REAL PROPERTY TRUST", "REAL ESTATE TRUST")
             else 2 if " ".join(t[-2:]) in ("REALTY TRUST", "PROPERTY TRUST", "INVESTMENT TRUST", "BUSINESS TRUST",
                                            "NOMINEE TRUST") else 0)
+    lead = t[1:-kind] if t and t[0] == "THE" else t[:-kind]
+    named = [x for x in lead if not re.fullmatch(r"\d{4}", x)]
+    if (kind and " ".join(t[-2:]) in ("INVESTMENT TRUST", "BUSINESS TRUST") and not _LEGAL_FORM.search(" ".join(t))
+            and 2 <= len(named) <= 3
+            and sum(1 for x in named if len(x) > 1) == 2
+            and all((len(x) == 1 and x.isalpha() and x not in "AI") or re.fullmatch(r"\d{4}", x)
+                    or (_plain_name_word(x) and x not in _PIECE_PLACE_WORDS and x not in _TRUST_STREET_WORDS)
+                    for x in lead)):
+        return True  # "PAT EXAMPLE INVESTMENT TRUST", "THE PAT EXAMPLE BUSINESS TRUST": two plain words, listed or not
     if (kind and t[0] in _TRADE_NAME_GIVEN_NAMES and 2 + kind <= len(t) <= 4 + kind
             and not _LEGAL_FORM.search(" ".join(t))
             and all((len(x) == 1 and x.isalpha()) or re.fullmatch(r"\d{4}", x) or _plain_name_word(x)
@@ -1710,9 +1792,13 @@ def _street_start(tokens: list[str]) -> int | None:
     first = tokens[0]
     if first[0].isdigit() or first.startswith("#") or (first in _NUMBER_WORDS and len(tokens) > 1):
         return 0
+    # a house number before a box ("PAT Q EXAMPLE 12 MILL RD PO BOX 3") starts the street there, so the lead is the name
+    house = next((i for i in range(1, len(tokens) - 1)
+                  if tokens[i][0].isdigit() and tokens[i + 1][0].isalpha() and tokens[i + 1] not in _LEGAL_TOKENS
+                  and tokens[i + 1] not in _BOX_START), None)
     for i, t in enumerate(tokens):
         if t in _BOX_START or (t == "P" and tokens[i + 1:i + 2] == ["O"]):
-            return i
+            return house if house is not None and house < i else i
         if t in _ROUTE_START and any(c.isdigit() for c in "".join(tokens[i + 1:i + 2])):
             return i
     # A house number inside the segment: the first digit-led token followed by a word ("PAT Q EXAMPLE 33 MILL RD").
