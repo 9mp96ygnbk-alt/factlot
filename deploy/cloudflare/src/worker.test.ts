@@ -3042,6 +3042,76 @@ describe("registry runner", () => {
     assert.deepEqual(await failing("registry_get", { urn: answer.urn }), err);
   });
 
+  it("serves no owner of record or document party that reads as a natural person, nor the link drawn from it", async () => {
+    const doc = "fl:document:sha256-a";
+    const answer = {
+      urn: "fl:parcel:us-48027:2",
+      facts: [
+        {
+          predicate: "ownership.owner_of_record",
+          value: "DOE, JANE CO TRUST",
+          document_id: doc,
+        },
+        {
+          predicate: "transaction.deed",
+          value: {
+            date: "2025-01-02",
+            grantors: ["JANE DOE CO-SUCCESSOR TRUSTEE", "EXAMPLE HOLDINGS LLC"],
+            grantees: ["JOHN Q PUBLIC"],
+          },
+          document_id: "fl:document:sha256-b",
+        },
+      ],
+      history: [
+        {
+          predicate: "ownership.owner_of_record",
+          value: "EXAMPLE HOLDINGS LLC",
+          document_id: "fl:document:sha256-c",
+        },
+      ],
+      relationships: [
+        { type: "owns", from_urn: "fl:entity:us-tx:9", document_id: doc },
+        {
+          type: "owns",
+          from_urn: "fl:entity:us-tx:8",
+          document_id: "fl:document:sha256-c",
+        },
+      ],
+    };
+    const run = registryRunner({
+      fetch: async () =>
+        new Response(JSON.stringify({ ok: true, result: answer })),
+    });
+    const got = (await run("registry_get", { urn: answer.urn })) as {
+      ok: true;
+      result: {
+        facts: { predicate: string; value: Record<string, unknown> }[];
+        history: { value: string }[];
+        relationships: { from_urn: string }[];
+      };
+    };
+    const text = JSON.stringify(got);
+    for (const name of ["JANE", "JOHN Q PUBLIC"])
+      assert.ok(!text.includes(name), `${name} in ${text}`);
+    assert.deepEqual(
+      got.result.facts.map((f) => f.predicate),
+      ["transaction.deed"],
+    );
+    const deed = got.result.facts[0]!.value;
+    assert.deepEqual(deed.grantors, ["EXAMPLE HOLDINGS LLC"]);
+    assert.equal(deed.grantees, undefined);
+    assert.deepEqual(deed.grantors_withheld, { count: 1, kinds: ["person"] });
+    assert.deepEqual(deed.grantees_withheld, { count: 1, kinds: ["person"] });
+    assert.deepEqual(
+      got.result.history.map((f) => f.value),
+      ["EXAMPLE HOLDINGS LLC"],
+    );
+    assert.deepEqual(
+      got.result.relationships.map((r) => r.from_urn),
+      ["fl:entity:us-tx:8"],
+    );
+  });
+
   it("throws on a failed or malformed answer so the catalog reports RegistryUnavailable", async () => {
     const failing = registryRunner({
       fetch: async () => new Response("no", { status: 503 }),

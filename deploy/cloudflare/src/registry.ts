@@ -18,6 +18,7 @@ import {
   TX_EQUITY_RULE,
   checkToolInput,
   lookupBatchAsync,
+  nameReadsAsPerson,
   type LookupItem,
   type RegistryRunner,
   type ToolOutcome,
@@ -61,24 +62,95 @@ export const WITHHELD_PREDICATES: ReadonlySet<string> = new Set([
   "entity.mailing_address",
 ]);
 
-/** `value` with every fact of a withheld predicate taken out of every list, at any depth. */
+/** Name lists on recorded documents (deeds, mortgages, satisfactions), as the registry stores them. */
+const PARTY_ROLES = ["grantors", "grantees", "borrowers", "lenders"] as const;
+
+type Fact = { predicate?: unknown; value?: unknown; document_id?: unknown };
+
+/** An owner of record the answer-time person rule reads as a natural person ("DOE, JANE CO TRUST"). */
+function personOwner(f: Fact): boolean {
+  return (
+    f.predicate === "ownership.owner_of_record" &&
+    typeof f.value === "string" &&
+    nameReadsAsPerson(f.value)
+  );
+}
+
+function isWithheldFact(v: unknown): boolean {
+  if (!v || typeof v !== "object") return false;
+  const f = v as Fact;
+  return WITHHELD_PREDICATES.has(f.predicate as string) || personOwner(f);
+}
+
+/** A recorded document's value without the party names that read as persons, each counted in `<role>_withheld`. */
+function withholdParties(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const v = value as Record<string, unknown>;
+  if (!PARTY_ROLES.some((r) => Array.isArray(v[r]))) return value;
+  const out: Record<string, unknown> = { ...v };
+  for (const role of PARTY_ROLES) {
+    const names = v[role];
+    if (!Array.isArray(names)) continue;
+    const kept = names.filter(
+      (n) => !(typeof n === "string" && nameReadsAsPerson(n)),
+    );
+    const dropped = names.length - kept.length;
+    if (!dropped) continue;
+    if (kept.length) out[role] = kept;
+    else delete out[role];
+    const key = `${role}_withheld`;
+    const was = v[key] as { count?: unknown; kinds?: unknown } | undefined;
+    const count = (typeof was?.count === "number" ? was.count : 0) + dropped;
+    const kinds = Array.isArray(was?.kinds) ? [...was.kinds] : [];
+    if (!kinds.includes("person")) kinds.push("person");
+    out[key] = { count, kinds };
+  }
+  return out;
+}
+
+/** Document ids of the person owners an answer object holds, in its facts or history, at its own level. */
+function personOwnerDocuments(o: Record<string, unknown>): Set<unknown> {
+  const docs = new Set<unknown>();
+  for (const k of ["facts", "history"])
+    if (Array.isArray(o[k]))
+      for (const f of o[k] as Fact[])
+        if (f && typeof f === "object" && personOwner(f))
+          docs.add(f.document_id);
+  return docs;
+}
+
+/**
+ * `value` without what the hosted API does not serve, at any depth: every fact of a withheld predicate, every owner
+ * of record that reads as a natural person with the ownership link drawn from it, and every recorded-document party
+ * name that reads as a person (counted in `<role>_withheld`). Until the registry files are purged with the corrected
+ * rule, this is what keeps those names out of every answer.
+ */
 export function withholdFacts<T>(value: T): T {
   if (Array.isArray(value))
     return value
-      .filter(
-        (v) =>
-          !(
-            v &&
-            typeof v === "object" &&
-            WITHHELD_PREDICATES.has(
-              (v as { predicate?: unknown }).predicate as string,
-            )
-          ),
-      )
+      .filter((v) => !isWithheldFact(v))
       .map((v) => withholdFacts(v)) as T;
   if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    const docs = personOwnerDocuments(o);
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) out[k] = withholdFacts(v);
+    for (const [k, v] of Object.entries(o)) {
+      if (k === "relationships" && Array.isArray(v) && docs.size) {
+        out[k] = withholdFacts(
+          v.filter(
+            (r) =>
+              !(
+                r &&
+                typeof r === "object" &&
+                (r as { type?: unknown }).type === "owns" &&
+                docs.has((r as { document_id?: unknown }).document_id)
+              ),
+          ),
+        );
+      } else if (k === "value" && typeof o.predicate === "string") {
+        out[k] = withholdParties(v);
+      } else out[k] = withholdFacts(v);
+    }
     return out as T;
   }
   return value;
