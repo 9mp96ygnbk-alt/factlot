@@ -1196,7 +1196,11 @@ async function route(
       callApi: (apiPath, input) =>
         route(asLookupCaller(request, apiBase, apiPath, input), env, api, opts),
       // A parcel's public property page, asked of the pages' own route (its limit, its cache,
-      // its rule for which sources may be republished): nothing here decides that again.
+      // its rule for which sources may be republished): nothing here decides that again. The
+      // probe is a HEAD from the caller's address, so it uses one of that address's property
+      // pages a minute (PROPERTY_PAGES_PER_MINUTE). When they are used up (or the probe cannot be
+      // answered) it says no page, and the record is looked up and counted as a lookup instead:
+      // such a parcel may then cost a lookup it would not otherwise, never the other way round.
       publicPage: async (urn) => {
         const page = propertyPath(urn);
         if (!page || !propertyPagesEnabled(env as PagesEnv)) return null;

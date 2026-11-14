@@ -28,7 +28,10 @@ the API's JSON with `?format=json` or `Accept: application/json`. Code: `src/loo
   view exactly as that call is, on the same meters, and the module has no meter of its own. A
   search that finds one parcel under the batch lookup's rule redirects to its record; a record
   that has a public property page redirects to that page before anything is counted (the property
-  pages' own route is asked, with its own per-address limit and cache). A HEAD looks nothing up.
+  pages' own route is asked, with its own per-address limit and cache). That check uses one of the
+  caller's property pages a minute; once they are used up, or when it cannot be answered, such a
+  record is looked up and counted like any other: it may then cost a lookup it would not
+  otherwise, never the other way round. A HEAD looks nothing up.
 - Never published. Every answer carries `Cache-Control: no-store`, `X-Robots-Tag: noindex` and
   `Referrer-Policy: no-referrer`; the pages are in no sitemap; `robots.txt` lets them be fetched.
 - The address searched is in the query string, which `redact_query_string` keeps out of Workers

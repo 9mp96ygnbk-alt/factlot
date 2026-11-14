@@ -15,7 +15,9 @@
  * that API call is, on the same meters: this module holds no meter and reads no record on its own. A search
  * that finds one parcel under the batch lookup's rule (`lookupItem` of @factlot/tools: one exact match, never
  * picked across counties) sends the browser to its record; any other lists what was found. A record that has
- * a public property page is sent there, uncounted: that page is free for everyone already.
+ * a public property page is sent there, uncounted: that page is free for everyone already. Whether it has
+ * one is asked of the property pages' own route, on the caller's per-minute allowance of property pages;
+ * when that is used up the record is looked up as any other is, and counted (never an under-charge).
  *
  * These pages are answers to a request, not published pages: `noindex`, `Cache-Control: no-store`, in no
  * sitemap. The address searched is in the page address, so every answer says `Referrer-Policy: no-referrer`,
@@ -708,6 +710,8 @@ async function record(
       `This parcel's county is not served by the hosted registry: ${reason}. Nothing was counted.`,
     );
   // A parcel with a public page is shown there, and nothing is counted: that page is free already.
+  // (deps.publicPage answers null once the caller's property pages a minute are used up, so the
+  // record is then looked up and counted below.)
   if (!json) {
     const to = await deps.publicPage(urn);
     if (to) return redirect(to);
