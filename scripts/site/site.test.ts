@@ -1446,6 +1446,11 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
     assert.ok(
       !/renews monthly until cancelled/.test(read("site/privacy.html")),
     );
+    // The privacy notice says FactLot keeps no access log of its own: the API Worker's request
+    // (invocation) logs must stay off while it says so.
+    assert.match(read("site/privacy.html"), /keeps no access log of its own/);
+    assert.match(wrangler, /"invocation_logs": false/);
+    assert.match(wrangler, /"redact_query_string": true/);
   });
 });
 

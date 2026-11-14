@@ -143,8 +143,10 @@ With the variable off the webhook makes no watch call.
 
 ## Tokens in URL paths (what a request log can leak)
 
-Workers Logs keeps the request path (`redact_query_string` covers query strings only; see the
-comment in `wrangler.jsonc`), so a link whose secret is in the path is stored with it. What each
+Invocation logs are off (`"invocation_logs": false` in `wrangler.jsonc`), so Workers Logs keeps no
+request path and none of the tokens below is stored. This section stays as the record of what a
+request log would hold if they were turned back on: `redact_query_string` covers query strings
+only, so a link whose secret is in the path would be stored with it. What each
 secret can do if someone with log access reads it, from the code (checked 2026-11-12):
 
 | Path                                                   | What the token does                                                                                                                                      | Lifetime and use                                                                                                                                                                                            |
@@ -163,6 +165,7 @@ or within 24 hours (reports). Used links are worthless; unused links expire in 1
 Not changed, on purpose. A report download token could be made single use, but the documented
 behaviour is "download_url works 24 hours" (the `report_create` tool description, the MCP and security pages), and clients legitimately fetch it more than once (a HEAD first, a retry, a second
 agent). Shortening it would break that promise. Moving tokens out of paths (POST bodies, headers or
-URL fragments) is a URL redesign. If the exposure matters more than the request log, set
-`"invocation_logs": false` inside `observability.logs` (drops request URLs and the request log) or
-restrict Workers Logs access to the owner.
+URL fragments) is a URL redesign. Invocation logs are therefore off: the privacy notice says FactLot
+keeps no access log of its own, and with them on that was not true. Live debugging uses
+`wrangler tail`, which streams and stores nothing; turning them back on needs the privacy notice
+changed first.

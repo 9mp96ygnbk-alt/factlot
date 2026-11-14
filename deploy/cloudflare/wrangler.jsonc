@@ -118,14 +118,17 @@
     "run_worker_first": true,
     "not_found_handling": "404-page",
   },
-  // Query strings are left out of logs and traces: /billing/success carries a checkout session id.
-  // Known gap: Workers Logs has no option to redact URL paths (checked against the Cloudflare
-  // docs, 2026-11-10: only `redact_query_string`, `head_sampling_rate`, `invocation_logs` and
-  // log destinations exist). Live tokens ride in paths and are therefore stored in invocation
-  // logs: /account/recover/<token>, /v1/billing/claim/<token>, /authorize/email/<link>,
-  // /v1/reports/<token>... They are one-time or short-lived and the logs are owner-only, but the
-  // exposure is real. Options, none applied here: set "invocation_logs": false inside "logs"
-  // (drops request URLs, and with them the request log), or move the tokens to POST bodies or
-  // URL fragments (a URL redesign).
-  "observability": { "enabled": true, "redact_query_string": true },
+  // Request logs are off: Workers Logs keeps no invocation log (method, URL, request and response
+  // metadata) for this Worker, so no request path is stored, and with it none of the tokens that
+  // ride in paths (/account/recover/<token>, /v1/billing/claim/<token>, /authorize/email/<link>,
+  // /v1/reports/d/<token>) and no address looked up at /lookup/. The privacy notice says FactLot
+  // keeps no access log of its own; this setting is what makes that true. What the Worker writes
+  // itself (the error name on a failed request, and the few operator messages such as "meter
+  // unavailable") is still kept. Query strings stay redacted from anything that is logged or traced.
+  // Live debugging still works with `wrangler tail`, which streams and stores nothing.
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": { "enabled": true, "invocation_logs": false },
+  },
 }
