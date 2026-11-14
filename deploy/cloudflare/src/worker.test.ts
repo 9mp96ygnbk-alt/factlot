@@ -12476,6 +12476,116 @@ describe("registry_lookup_batch: single calls fanned out, metered per item", () 
     }
   });
 
+  it("a miss whose city or ZIP code lies only in counties the registry does not hold is an answer that found nothing: counted past the hourly guard over REST, MCP and lookup batch items", async () => {
+    // A city or ZIP code never filters the search, so each of these ran over every county the registry holds (in
+    // Texas, or everywhere) or over the held county named: the miss is inside loaded coverage, not a free one.
+    const inputs: Record<string, string>[] = [
+      { query: "803 N Grant Ave, San Antonio, TX" },
+      { query: "803 N Grant Ave, 78205" },
+      {
+        query: "803 N Grant Ave",
+        city: "San Antonio",
+        state: "TX",
+        county_fips: "48999",
+      },
+      { query: "803 N Grant Ave", city: "San Antonio", state: "TX" },
+    ];
+    configureRegistry(fixtureDb());
+    try {
+      for (const i of inputs) {
+        const out = runTool("registry_search_address", i);
+        assert.ok(out.ok, i.query);
+        const a = out.result as {
+          results: unknown[];
+          coverage: Record<string, unknown>;
+        };
+        assert.deepEqual(a.results, [], JSON.stringify(i));
+        assert.notEqual(a.coverage.county_loaded, false, JSON.stringify(i));
+        assert.equal(isChargedAnswer(a), true, JSON.stringify(i));
+        assert.equal(
+          foundNothing("registry_search_address", a),
+          true,
+          JSON.stringify(i),
+        );
+      }
+    } finally {
+      configureRegistry(undefined);
+    }
+    type Answer = { results?: unknown[]; counted?: boolean };
+    const inner = await realInnerApi();
+    const service = registryService();
+    try {
+      await withRunner(service.binding, async () => {
+        const e = env();
+        const { key } = await issue(e);
+        const rest = async (i: Record<string, string>) => {
+          const r = await call(e, inner.api, "/v1/registry/search_address", {
+            key,
+            body: i,
+          });
+          assert.equal(r.status, 200);
+          return (await r.json()) as Answer;
+        };
+        // Within the guard: not counted.
+        assert.equal((await rest(inputs[0]!)).counted, false);
+        assert.equal(used(e), 0);
+        // Past it: each one counts, as any answer that found nothing does.
+        await e.METER.consume("sub:sub_1", {
+          kind: "hour",
+          counter: "empty",
+          limit: EMPTY_ANSWERS_PER_HOUR.pro,
+          n: EMPTY_ANSWERS_PER_HOUR.pro,
+        });
+        let n = 0;
+        for (const i of inputs) {
+          const b = await rest(i);
+          assert.deepEqual(b.results, []);
+          assert.equal(b.counted, true, `REST ${JSON.stringify(i)}`);
+          assert.equal(used(e), ++n);
+          const mcp = await call(e, inner.api, "/mcp", {
+            key,
+            body: {
+              jsonrpc: "2.0",
+              id: 1,
+              method: "tools/call",
+              params: { name: "registry_search_address", arguments: i },
+            },
+          });
+          const m = (await mcp.json()) as {
+            result: { structuredContent: Answer };
+          };
+          assert.equal(
+            m.result.structuredContent.counted,
+            true,
+            `MCP ${JSON.stringify(i)}`,
+          );
+          assert.equal(used(e), ++n);
+        }
+        const items = inputs.map(({ query, ...where }) => ({
+          address: query!,
+          ...where,
+        }));
+        const batch = await call(e, inner.api, PATH, {
+          key,
+          body: { items },
+        });
+        assert.equal(batch.status, 200);
+        const entries = (
+          (await batch.json()) as {
+            results: { status: string; counted?: boolean }[];
+          }
+        ).results;
+        assert.deepEqual(
+          entries.map((x) => [x.status, x.counted]),
+          inputs.map(() => ["not_found", true]),
+        );
+        assert.equal(used(e), n + inputs.length);
+      });
+    } finally {
+      inner.close();
+    }
+  });
+
   it("through the router: a service failure answers RegistryUnavailable and charges nothing", async () => {
     const inner = await realInnerApi();
     const service = registryService({

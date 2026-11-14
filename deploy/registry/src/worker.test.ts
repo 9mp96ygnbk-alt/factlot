@@ -780,13 +780,15 @@ test("a withheld county and an entity registry served in part", async () => {
     apn: "1",
   });
   assert.match(String((resolve.result!.coverage as Row).message), withheld);
-  // An address whose ZIP code lies wholly in the withheld county: a free miss that says the county is not served.
+  // An address whose ZIP code lies wholly in the withheld county: a miss that says the county is not served. The
+  // search still ran over every Texas county served (a ZIP code never filters), so it is a miss inside loaded
+  // coverage, not a free one: no county_loaded: false.
   const fw = await call("registry_search_address", {
     query: "4200 S Hulen St, Fort Worth, TX 76109",
   });
   const fwCov = fw.result!.coverage as Row;
   assert.equal(fwCov.reason, "county_not_loaded");
-  assert.equal(fwCov.county_loaded, false);
+  assert.equal(fwCov.county_loaded, undefined);
   assert.deepEqual(fwCov.place_counties, ["48439"]);
   assert.match(
     String(fwCov.message),

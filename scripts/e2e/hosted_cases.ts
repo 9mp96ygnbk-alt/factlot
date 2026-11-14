@@ -348,14 +348,17 @@ export const HOSTED_REGISTRY_CASES: {
     },
     has_predicates: ["ownership.owner_of_record"],
   },
-  // A city that lies wholly in counties the hosted registry does not hold (Bexar, Comal, Medina): a free miss that
-  // says so first. A Houston address the registry holds only in Ector County: the result is marked.
+  // A city that lies wholly in counties the hosted registry does not hold (Bexar, Comal, Medina): a miss that says
+  // so first. The search still ran over every Texas county held, so it is an answer that found nothing (counted
+  // past the hourly guard), not a free one. A Houston address the registry holds only in Ector County: the result
+  // is marked.
   {
     tool: "registry_search_address",
     arguments: { query: "4000 Medical Dr, San Antonio, TX", limit: 3 },
     expect: {
       "coverage.reason": "county_not_loaded",
-      "coverage.county_loaded": false,
+      "coverage.state_loaded": true,
+      "coverage.county_loaded": null,
       "coverage.place_counties.0": "48029",
     },
     expect_match: {

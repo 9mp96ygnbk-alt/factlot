@@ -286,7 +286,8 @@ label come largest improvement area first, land only last (`land_only` is null w
 neither an improvement area nor a year built). A miss
 says why in `coverage.reason`: `state_not_loaded`, `county_not_loaded` (also when the named city
 or ZIP code lies wholly in counties the registry does not hold: "SAN ANTONIO, TX lies in Bexar
-County…", with `place_counties` and `county_loaded: false`), `street_not_found`, `other_words` (the
+County…", with `place_counties`; the search still covered every county held, so it is an answer
+that found nothing), `street_not_found`, `other_words` (the
 house number is on the street, but not with every other word of the query), `house_number_not_found`
 (with `nearest_house_numbers` on that street) or `no_match`; the registry holds commercial, industrial and multifamily parcels only, so a house
 or a condominium unit owned by a person is never in it. A result outside every county the named

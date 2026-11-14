@@ -473,14 +473,15 @@ in carries `place_differs: true`, and when every result does, `note` says so and
 lists the place's counties.
 
 **Misses that say why.** An empty answer's `coverage` carries `reason` and a message: the named
-state is not loaded (`state_not_loaded`); the named county is not, or every county known to hold
-the named city or ZIP code lies in is not (`county_not_loaded`, with `place_counties` and
-`county_loaded: false`, so the hosted API does not count it; the message names the place's counties
-and the counties of that state the registry holds, and the hosted registry says why a withheld
-county is not served); when the place lies partly in counties the registry does not hold, a street
-or no-match miss names those; the query names no
-house number or street type (`no_street`); a street type alone was searched
-(`street_type_alone`); no address on the street is in the index for the state (`street_not_found`);
+state is not loaded (`state_not_loaded`); the named county is not, or every county the named city
+or ZIP code lies in is not (`county_not_loaded`, with `place_counties`; the message names the
+place's counties and the counties of that state the registry holds, and the hosted registry says
+why a withheld county is not served). Only a named `county_fips` gives `county_loaded: false`: a
+city or ZIP code never filters, so that search still covered every county held and its miss is an
+answer that found nothing, and a search kept to a held `county_fips` is not judged by the place's
+counties at all. When the place lies partly in counties the registry does not hold, a street or
+no-match miss names those. Otherwise: the query names no house number or street type
+(`no_street`); a street type alone was searched (`street_type_alone`); no address on the street is in the index for the state (`street_not_found`);
 the house number is on the street but not with every other word of the query (`other_words`); the
 index shows the street but no such house number on it (`house_number_not_found`, with `street` and
 `nearest_house_numbers`, the nearest numbers held on it below and above, in the named ZIP code or

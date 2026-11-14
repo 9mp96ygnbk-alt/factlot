@@ -325,7 +325,8 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
     out: dict[str, Any] = {"state": st, "state_loaded": loaded, "loaded_states": states}
     county = place.get("county") if place else None
     held = {c["state_fips"] + c["county_fips"] for c in cov["counties"]}
-    pc = address_place_counties(place)
+    # A search kept to a county (county_fips) is judged by that county alone: the place's counties are not read.
+    pc = address_place_counties(place) if county is None else None
     unheld = [c for c in pc["counties"] if c not in held] if pc else []
     if pc and pc["state"] in states:
         out["place_counties"] = pc["counties"]
@@ -342,9 +343,9 @@ def address_miss(cov: dict[str, Any], query: str, where: dict[str, str] | None =
         out["county_loaded"] = False
         message = f"no parcel matched{at}: {county_label(county[:2], county[2:])} is not loaded in this registry. {holds}"
     elif pc and pc["state"] in states and len(unheld) == len(pc["counties"]):
-        # The place lies wholly in counties the registry does not hold: nothing there can match.
+        # The place lies wholly in counties the registry does not hold. The search still ran over every county held
+        # in the state (a city or ZIP code never filters): a miss inside loaded coverage, no county_loaded: False.
         reason = "county_not_loaded"
-        out["county_loaded"] = False
         none = "none of which this registry holds" if len(pc["counties"]) > 1 else "which this registry does not hold"
         message = (f"no parcel matched{at}: {pc['name']}, {pc['state']} lies in {_county_list(pc['counties'])}, "
                    f"{none}. Of {pc['state']} this registry holds: {_held_county_names(cov, pc['state'])}")

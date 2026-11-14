@@ -3128,9 +3128,9 @@ export function addressFound(
  * read by `addressPlace` (the state it names after a city) with the call's place parameters; one without, by those
  * and `queryState`. `hint` is what the search found on the query's street (`AddressStreetHint`). The message says
  * which miss it is, when the query lets it tell (`reason`): the state is not loaded ("state_not_loaded"); the
- * county named, or every county known to hold the named city's or ZIP code's parcels, is not ("county_not_loaded";
- * a named county_fips also gives `county_loaded: false`); the query names no house number or street type
- * ("no_street"); a street type alone was searched ("street_type_alone"); no address on the street is in the index
+ * county named, or every county the named city or ZIP code lies in, is not ("county_not_loaded"; only a named
+ * county_fips, which the search was kept to, gives `county_loaded: false`, as a city or ZIP code never filters);
+ * the query names no house number or street type ("no_street"); a street type alone was searched ("street_type_alone"); no address on the street is in the index
  * ("street_not_found"); the house number is on the street but not with every other word of the query
  * ("other_words"); the street is held and the index shows no such number on it, with the nearest numbers held
  * ("house_number_not_found"); otherwise "no_match". Each claim is read from the index, never from a label's city
@@ -3166,7 +3166,8 @@ export function addressMiss(
   const held = new Set(
     cov.counties.map((c) => `${c.state_fips}${c.county_fips}`),
   );
-  const pc = addressPlaceCounties(place);
+  // A search kept to a county (county_fips) is judged by that county alone: the place's counties are not read.
+  const pc = county === null ? addressPlaceCounties(place) : null;
   const unheld = pc ? pc.counties.filter((c) => !held.has(c)) : [];
   if (pc && states.includes(pc.state)) out.place_counties = pc.counties;
   if (st && !loaded) {
@@ -3187,10 +3188,10 @@ export function addressMiss(
     states.includes(pc.state) &&
     unheld.length === pc.counties.length
   ) {
-    // The place lies wholly in counties the registry does not hold: nothing there can match, as for a named
-    // county it does not hold.
+    // The place lies wholly in counties the registry does not hold. The search still ran over every county held
+    // in the state (a city or ZIP code never filters), so this is a miss inside loaded coverage: no
+    // county_loaded: false.
     reason = "county_not_loaded";
-    out.county_loaded = false;
     message = `no parcel matched${at}: ${pc.name}, ${pc.state} lies in ${countyList(pc.counties)}, ${pc.counties.length > 1 ? "none of which this registry holds" : "which this registry does not hold"}. Of ${pc.state} this registry holds: ${heldCountyNames(cov, pc.state)}`;
   } else {
     const parts: string[] = [];

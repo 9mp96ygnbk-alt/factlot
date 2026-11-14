@@ -2362,7 +2362,6 @@
           "state_loaded": true,
           "loaded_states": ["TX"],
           "place_counties": ["48029", "48091", "48325"],
-          "county_loaded": false,
           "reason": "county_not_loaded",
           "message": "no parcel matched in TX: SAN ANTONIO, TX lies in Bexar County, TX (48029), Comal County, TX (48091) and Medina County, TX (48325), none of which this registry holds. Of TX this registry holds: Harris County, Dallas County"
         }
@@ -2375,7 +2374,6 @@
           "state_loaded": true,
           "loaded_states": ["TX"],
           "place_counties": ["48439"],
-          "county_loaded": false,
           "reason": "county_not_loaded",
           "message": "no parcel matched in TX: ZIP code 76109, TX lies in Tarrant County, TX (48439), which this registry does not hold. Of TX this registry holds: Harris County, Dallas County"
         }
@@ -2415,9 +2413,23 @@
           "state_loaded": true,
           "loaded_states": ["TX"],
           "place_counties": ["48029", "48091", "48325"],
-          "county_loaded": false,
           "reason": "county_not_loaded",
           "message": "no parcel matched in TX: SAN ANTONIO, TX lies in Bexar County, TX (48029), Comal County, TX (48091) and Medina County, TX (48325), none of which this registry holds. Of TX this registry holds: Harris County, Dallas County"
+        }
+      ],
+      [
+        "803 N Grant Ave",
+        {
+          "city": "San Antonio",
+          "state": "TX",
+          "county_fips": "48201"
+        },
+        {
+          "state": "TX",
+          "state_loaded": true,
+          "loaded_states": ["TX"],
+          "reason": "no_match",
+          "message": "no parcel matched in TX: the registry holds commercial, industrial and multifamily parcels only, so a house, or a condominium unit owned by a person, is not in it. Of TX this registry holds Harris County, TX (48201, 10 parcels); Dallas County, TX (48113, 5 parcels)"
         }
       ]
     ]
