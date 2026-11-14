@@ -74,7 +74,7 @@ type Fact = { predicate?: unknown; value?: unknown; document_id?: unknown };
  * organisations ("<CO> LLC C/O <MANAGER> LLC"), which is the price of not reading the name after the marker.
  */
 const PERSON_MARKERS =
-  /(\bC\s*\/\s*O\b|\bCARE OF\b|\bATTN\b|\bATTENTION\b|\bF\s*\/?\s*B\s*\/?\s*O\b|\bIRA\b|\bROTH\b|\bSEP\b|\bCUST\b|\bCUSTODIAN\b|\bU\s*\/\s*W\b|\bUWO\b|(?:^|[^\d.\s]\s*|\s)%\s*[A-Z])/i;
+  /(\bC\s*\/\s*O\b|\bCARE OF\b|\bATTN\b|\bATTENTION\b|\bF\s*\/?\s*B\s*\/?\s*O\b|\bIRA\b|\bCUST\b|\bCUSTODIAN\b|\bU\s*\/\s*W\b|\bUWO\b|(?:^|[^\d.\s]\s*|\s)%\s*[A-Z])/i;
 
 /** A name the API does not serve as an owner or a party: one the person rule reads as a person, or one with a marker. */
 export function nameWithheld(name: string): boolean {

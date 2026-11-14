@@ -373,7 +373,11 @@ function pieceIsPerson(piece: string): boolean {
   const esq = head.indexOf("ESQ");
   if (
     esq > 0 &&
-    head.slice(0, esq).some((t) => GIVEN.has(t) || /^[B-HJ-Z]$/.test(t))
+    head.slice(0, esq).length >= 2 &&
+    head.slice(0, esq).length <= 4 &&
+    head
+      .slice(0, esq)
+      .every((t) => /^[A-Z]+$/.test(t) && !NOT_A_PERSON_TAIL.has(t))
   )
     return true;
   const words = clean(piece)
@@ -531,7 +535,11 @@ function coOwnerIsPerson(value: string): boolean {
       (first.length >= 3 &&
         first.length <= 4 &&
         /^[B-HJ-Z]$/.test(first[first.length - 1]!) &&
-        first.some((t) => GIVEN.has(t))) ||
+        (first.some((t) => GIVEN.has(t)) ||
+          (first.length === 3 &&
+            shapeWord(first[0]) &&
+            shapeWord(first[1]) &&
+            !/^[A-Z]\b/.test(parts[1]!.trim())))) ||
       (first.length === 3 &&
         GIVEN.has(first[0]!) &&
         /^[B-HJ-Z]$/.test(first[1]!) &&
@@ -664,6 +672,62 @@ function personAfterComma(value: string): boolean {
   return words.length >= 2 || GIVEN.has(words[0]!);
 }
 
+/** Words that open ranch brands and trade names ("DOUBLE ROCKING F HOLDINGS", "LAZY DIAMOND S RANCH"): not a name. */
+const BRAND_WORDS = new Set(
+  "DOUBLE TRIPLE DIAMOND LAZY ROCKING CIRCLE BAR BOX MINI LONE STAR MOUNT NEW OLD LEGACY CROWN GOLDEN SILVER ROYAL TWIN BIG LITTLE BLUE RED GREEN WHITE BLACK METRO UNITED POWER FLYING RUNNING HALF QUARTER SPUR CROSS KEY STUDENT STORE OCEAN RIVER LAKE".split(
+    " ",
+  ),
+);
+const ROLE_OR_CONNECTOR = new Set(
+  "AS BY ACTING THROUGH THRU FOR TO OF THE IN AT AN A ITS AND OR FKA AKA NKA SBM SUCCR SUCC SUCCESSOR TRUSTEE TRUSTEES TTEE TR RECEIVER MORTGAGEE NOMINEE AGENT CUSTODIAN PRESENTS UNDERSIGNED QUEENS BROOKLYN BRONX MANHATTAN STATEN LIMITED".split(
+    " ",
+  ),
+);
+const INSTITUTION_WORDS =
+  /\b(?:FOUNDATION|CHURCH|CHAPEL|TEMPLE|SYNAGOGUE|MOSQUE|CONGREGATION|PARISH|DIOCESE|MINISTRIES|MINISTRY|UNIVERSITY|COLLEGE|SCHOOL|ACADEMY|HOSPITAL|SOCIETY|CLUB|LODGE|ASSOCIATION|FUND|HDFC|HOUSING DEVELOPMENT|UNION|COUNCIL|INSTITUTE|MUSEUM|LIBRARY)\b/;
+
+/** A word that can be a name read by shape alone (no list): plain letters with a vowel, not a place, a brand word, a
+ *  role or a connector ("JP", "PZ" and "SBM" are initials or abbreviations). */
+function shapeWord(x: string | undefined): boolean {
+  return (
+    x !== undefined &&
+    /^[A-Z]{2,}$/.test(x) &&
+    /[AEIOUY]/.test(x.slice(1)) &&
+    !STREET_WORDS.has(x) &&
+    !/^(?:STORE|LOOP|INT|INTL|NATL)$/.test(x) &&
+    !NOT_A_PERSON_TAIL.has(x) &&
+    !DESCRIPTOR_WORDS.has(x) &&
+    !ORGANIZATION.test(x) &&
+    !PLACE_WORDS.has(x) &&
+    !BRAND_WORDS.has(x) &&
+    !ROLE_OR_CONNECTOR.has(x) &&
+    !ROLE_WORDS.has(x) &&
+    !COMPANY_ROLE_WORDS.has(x)
+  );
+}
+
+/** Whether the words after a person's name are another company's own: a business word besides its legal form, not a
+ *  place, a number or a series letter ("<NAME> TX, LLC", "LLC 1%"). */
+function businessWords(rest: string[]): boolean {
+  return rest.some(
+    (t) =>
+      !/^(?:AND|OF|THE|A|TX|US|USA|AMERICA|TEXAS|PA|NA|ET|AL|ETAL|ETALS|FAMILY|FMLY)$/.test(
+        t,
+      ) &&
+      !STATE_CODES.has(t) &&
+      (NOT_A_PERSON_TAIL.has(t) ||
+        DESCRIPTOR_WORDS.has(t) ||
+        ORGANIZATION.test(t)) &&
+      !new RegExp(`^(?:${LEGAL_FORM.source})$`).test(t),
+  );
+}
+
+/** Street words: a trust named for a street ("100 EXAMPLE STREET REALTY TRUST") is not a person's. */
+const STREET_WORDS = new Set(
+  "ST STREET AVE AVENUE RD ROAD DR DRIVE BLVD BOULEVARD LN LANE WAY CT COURT PL PLACE PKWY HWY SQ SQUARE TER TERRACE CIR HEIGHTS HILL HILLS PARK".split(
+    " ",
+  ),
+);
 /** Given names that are also churches' names ("GRACE CHURCH", "EMMANUEL CHURCH"). */
 const CHURCH_NAMES = new Set(
   "GRACE CHRISTIAN JESUS EMMANUEL IMMANUEL TRINITY FAITH HOPE MERCY JOY ANGEL".split(
@@ -713,17 +777,55 @@ function personAround(value: string): boolean {
         /^(?:INC|LLC|LTD|CORP|LP|LLP|CO|PC|PLLC|THE|AND)$/.test(x),
     );
   // "EXAMPLE, PAT [Q] <OTHER WORDS> LLC" and "EXAMPLE, PAT FOR ACME LLC" (a listed given name or an initial)
-  const comma = /^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([A-Z])\b\.?)?/.exec(u);
-  if (comma && plainWord(clean(comma[1]!)) && plainWord(comma[2]!)) {
-    const rest = clean(u.slice(comma[0].length))
+  let comma =
+    /^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})(?:\s+([A-Z]{2,}|[B-HJ-Z])\b\.?)?/.exec(u);
+  // "EXAMPLE, PAT ENTERPRISES INC": a third word that is not a name starts the rest
+  const rest3 = comma
+    ? clean(u.slice(comma[0].length))
+        .split(" ")
+        .filter((x) => x !== "")
+    : [];
+  if (
+    comma &&
+    comma[3] &&
+    comma[3].length > 1 &&
+    (!plainWord(clean(comma[3])) || rest3.length === 0 || ownFirm(rest3))
+  )
+    comma = /^([A-Z'-]{2,})\s*,\s*([A-Z]{2,})/.exec(u);
+  if (
+    comma &&
+    plainWord(clean(comma[1]!)) &&
+    plainWord(clean(comma[2]!)) &&
+    (!PLACE_WORDS.has(comma[2]!) || GIVEN.has(comma[2]!)) &&
+    (comma[3] === undefined ||
+      comma[3].length === 1 ||
+      (plainWord(comma[3]) && !PLACE_WORDS.has(comma[3])))
+  ) {
+    const restRaw = u.slice(comma[0].length);
+    const rest = clean(restRaw)
       .split(" ")
       .filter((x) => x !== "");
+    const listed =
+      GIVEN.has(comma[2]!) || (comma[3] !== undefined && comma[3].length === 1);
+    // by shape alone: name-like words, another company's own words after them, no third name after a comma
+    // ("EXAMPLE, QUIN, ROE PROPERTIES": partners), no institution ("..., <WORD> FOUNDATION")
+    const shape =
+      shapeWord(clean(comma[1]!)) &&
+      shapeWord(comma[2]!) &&
+      (comma[3] === undefined ||
+        comma[3].length === 1 ||
+        shapeWord(comma[3])) &&
+      !restRaw.trimStart().startsWith(",") &&
+      businessWords(rest) &&
+      !INSTITUTION_WORDS.test(rest.join(" "));
+    // a different company's words follow, and it is not a firm named for its partners ("..., X & Y LLC")
     if (
-      (GIVEN.has(comma[2]!) || comma[3] !== undefined) &&
       rest.length > 0 &&
       ORGANIZATION.test(rest.join(" ")) &&
       !ownFirm(rest) &&
-      !/^\s*(?:&|AND\b)/.test(u.slice(comma[0].length))
+      (listed || shape) &&
+      !ROLE_OR_CONNECTOR.has(comma[2]!) &&
+      !/(?:&|\bAND\b)/.test(u)
     )
       return true;
   }
@@ -731,27 +833,50 @@ function personAround(value: string): boolean {
   if (
     t.length >= 4 &&
     plainWord(t[0]) &&
-    GIVEN.has(t[1]!) &&
+    plainWord(t[1]) &&
+    !PLACE_WORDS.has(t[1]!) &&
+    !PLACE_WORDS.has(t[0]!) &&
     /^[B-HJ-Z]$/.test(t[2]!) &&
     ORGANIZATION.test(t.slice(3).join(" ")) &&
-    !ownFirm(t.slice(3))
+    !ownFirm(t.slice(3)) &&
+    !ROLE_OR_CONNECTOR.has(t[1]!) &&
+    !STREET_WORDS.has(t[3]!) &&
+    !/^(?:STORE|STOR|LOOP|AND)$/.test(t[3]!) &&
+    !/\bAND [A-Z]\b/.test(t.slice(3).join(" ")) && // "... C AND R INC": the company's initials
+    (GIVEN.has(t[1]!) ||
+      (!ROLE_OR_CONNECTOR.has(t[0]!) &&
+        shapeWord(t[0]) &&
+        shapeWord(t[1]) &&
+        (t[3] ?? "").length > 1 &&
+        businessWords(t.slice(3)) &&
+        !INSTITUTION_WORDS.test(t.slice(3).join(" ")))) &&
+    true
   )
     return true;
   // "<BANK> [NA] EXAMPLE, PAT [Q] [JR]" at the end
   const tail =
-    /([A-Z'-]{2,})\s*,\s*([A-Z]{2,})((?:\s+[A-Z]\b\.?)?)(?:\s+(?:JR|SR|II|III)\.?)?\s*$/.exec(
+    /([A-Z'-]{2,})\s*,\s*([A-Z]{2,})((?:\s+(?:[A-Z]\b\.?|[A-Z]{2,}))?)(?:\s+(?:JR|SR|II|III)\.?)?\s*$/.exec(
       u,
     );
   if (
     tail &&
     tail.index > 0 &&
+    !/\bOF\s*$/.test(u.slice(0, tail.index)) &&
     plainWord(clean(tail[1]!)) &&
     plainWord(tail[2]!)
   ) {
     const before = clean(u.slice(0, tail.index));
     if (
       ORGANIZATION.test(before) &&
-      (GIVEN.has(tail[2]!) || tail[3]!.trim() !== "")
+      !/(?:&|\bAND\b)\s*$/.test(u.slice(0, tail.index)) &&
+      !ROLE_OR_CONNECTOR.has(tail[2]!) &&
+      !ROLE_OR_CONNECTOR.has(tail[3]!.trim()) &&
+      (GIVEN.has(tail[2]!) ||
+        /^[A-Z]\.?$/.test(tail[3]!.trim()) ||
+        (tail[3]!.trim() !== "" &&
+          shapeWord(clean(tail[1]!)) &&
+          shapeWord(tail[2]!) &&
+          shapeWord(tail[3]!.trim())))
     )
       return true;
   }
@@ -770,6 +895,22 @@ function personAround(value: string): boolean {
         )
       ? 2
       : 0;
+  const lead = t[0] === "THE" ? t.slice(1, -kind) : t.slice(0, -kind);
+  if (
+    kind === 2 &&
+    /^(?:INVESTMENT|BUSINESS) TRUST$/.test(t.slice(-2).join(" ")) &&
+    !LEGAL_FORM.test(t.join(" ")) &&
+    lead.filter((x) => !/^\d{4}$/.test(x)).length >= 2 &&
+    lead.filter((x) => !/^\d{4}$/.test(x)).length <= 3 &&
+    lead.filter((x) => /^[A-Z]{2,}$/.test(x)).length === 2 &&
+    lead.every(
+      (x) =>
+        /^[B-HJ-Z]$/.test(x) ||
+        /^\d{4}$/.test(x) ||
+        (plainWord(x) && !PLACE_WORDS.has(x) && !STREET_WORDS.has(x)),
+    )
+  )
+    return true; // "PAT EXAMPLE INVESTMENT TRUST", "THE PAT EXAMPLE BUSINESS TRUST"
   if (
     kind > 0 &&
     GIVEN.has(t[0] ?? "") &&
