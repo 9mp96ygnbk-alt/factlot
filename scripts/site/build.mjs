@@ -187,6 +187,7 @@ ${plansData.paid_only.map((f) => `<li>${codeify(f.what)}<br /><span class="small
   PLAN_TEAM_REPORTS: grouped(teamPlan.reports_per_month),
   PLAN_PAID_ONLY: codeify(plansData.paid_only_text),
   PLAN_LOOKUP_COUNTED: codeify(plansData.lookup_counted),
+  PLAN_LOOKUP_RULE: codeify(plansData.lookup_rule),
   PLAN_FREE_KEY_NOTE: esc(plansData.free.free_key_note),
   PLAN_PRO_MONTHLY_USD: String(proPlan.usd_per_month),
   PLAN_PRO_YEARLY_USD: String(proPlan.usd_per_year),

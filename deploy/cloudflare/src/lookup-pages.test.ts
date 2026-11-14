@@ -36,6 +36,7 @@ import {
   ANONYMOUS_REQUESTS_PER_MINUTE,
   EMPTY_ANSWERS_PER_HOUR,
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
+  LOOKUP_RULE,
   PLANS,
 } from "./plans.ts";
 import { resetPropertyPagesState } from "./property-pages.ts";
@@ -465,6 +466,8 @@ describe("lookup pages: a search", () => {
     );
     assert.match(html, /<input id="lookup-q" name="q" type="text"/);
     assert.match(html, /<meta name="robots" content="noindex" \/>/);
+    // How a search is counted, in the one-line rule of plans.ts (with its hourly limit).
+    assert.ok(strip(html).includes(LOOKUP_RULE));
     const head = await w.get("/lookup/?q=100+Main+Street&state=TX", {
       method: "HEAD",
     });

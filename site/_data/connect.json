@@ -22,7 +22,7 @@
     "place_parameters": ["state", "city", "zip", "county"],
     "json": "Add format=json, or send Accept: application/json, for the hosted API's own answer (registry_search_address for a search, registry_get for a record).",
     "auth": "No key. A Pro, Team or free key is honoured in the header Authorization: Bearer <key>, never in the address.",
-    "counting": "A search is one registry lookup and a record another, on the same allowance as the API (25 a day per IP address without a key). A search that finds nothing is not counted, and a record that has a public property page is sent to that page and is not counted."
+    "counting": "A search is one registry lookup and a record another, on the same allowance as the API (25 a day per IP address without a key), and a record that has a public property page is sent to that page and is not counted. A lookup is one registry call that finds something. Calls that find nothing (up to an hourly limit), registry_coverage, coverage misses and input errors are not counted."
   },
   "verification_note": "Steps follow each vendor's documentation as read on 2026-11-12, except where a path says otherwise. One path has been exercised from the vendor's own app, the claude.ai custom connector on 2026-11-12; no other path has been. The connectors guide in the repository lists what has been tested.",
   "surfaces": [

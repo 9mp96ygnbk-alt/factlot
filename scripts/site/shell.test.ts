@@ -19,6 +19,10 @@ import { CONTACT, REPO } from "../../deploy/cloudflare/src/contact.ts";
 import { legacyRedirect } from "../../deploy/cloudflare/src/legacy-paths.ts";
 import { page } from "../../deploy/cloudflare/src/pages.ts";
 import {
+  ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
+  LOOKUP_RULE,
+} from "../../deploy/cloudflare/src/plans.ts";
+import {
   notFoundPage,
   renderPropertyPage,
 } from "../../deploy/cloudflare/src/property-pages.ts";
@@ -817,6 +821,29 @@ describe("the hand-written sources", () => {
       "county",
     ]);
     assert.match(String(connect.auth), /never in the address/);
+    // How a lookup page is counted: the allowance from plans.ts, and the one-line rule from plans.ts
+    // (LOOKUP_RULE, with its hourly limit), never a sentence of its own about searches that find nothing.
+    assert.ok(
+      String(connect.counting).includes(
+        `(${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} a day per IP address without a key)`,
+      ),
+    );
+    assert.ok(String(connect.counting).endsWith(LOOKUP_RULE));
+    const tryBullet = /<strong>A lookup page<\/strong>[\s\S]*?<\/li>/.exec(
+      read("site/_content/try.html"),
+    )![0];
+    assert.ok(tryBullet.includes("{{PLAN_LOOKUP_RULE}}"));
+    assert.ok(
+      read("deploy/cloudflare/src/lookup-pages.ts").includes(
+        "${e(LOOKUP_RULE)}",
+      ),
+    );
+    for (const text of [
+      String(connect.counting),
+      tryBullet,
+      read("deploy/cloudflare/src/lookup-pages.ts"),
+    ])
+      assert.doesNotMatch(text, /(?:finds|found) nothing is not counted/);
     for (const f of ["site/_content/mcp.html", "README.md"])
       assert.ok(read(f).includes("https://factlot.com/lookup/?q="), f);
   });
