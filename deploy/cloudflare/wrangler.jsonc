@@ -121,7 +121,7 @@
   // Request logs are off: Workers Logs keeps no invocation log (method, URL, request and response
   // metadata) for this Worker, so no request path is stored, and with it none of the tokens that
   // ride in paths (/account/recover/<token>, /v1/billing/claim/<token>, /authorize/email/<link>,
-  // /v1/reports/d/<token>) and no address looked up at /lookup/. The privacy notice says FactLot
+  // /v1/reports/d/<token>). The privacy notice says FactLot
   // keeps no access log of its own; this setting is what makes that true. What the Worker writes
   // itself (the error name on a failed request, and the few operator messages such as "meter
   // unavailable") is still kept. Query strings stay redacted from anything that is logged or traced.

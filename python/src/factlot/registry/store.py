@@ -54,6 +54,7 @@ from .normalize import (
     is_organization,
     legacy_address_key,
     legacy_name_key,
+    mailing_address_withheld,
     name_similarity,
     normalize_address,
     organization_part,
@@ -752,7 +753,10 @@ class Registry:
             n = self._fact(urn, "entity.legal_name", r.legal_name.strip(), snap, locator=loc)
             n += self._fact(urn, "entity.registry_number", r.registry_number, snap, locator=loc)
             n += self._fact(urn, "entity.state_of_formation", r.state_of_formation, snap, locator=loc)
-            if not personal_style_organization(r.legal_name):  # likely a home address (policy section 3)
+            # Not for a person-style name (likely a home address), nor when the address's leading line names a person
+            # or cannot be read (policy section 3).
+            if (not personal_style_organization(r.legal_name)
+                    and not mailing_address_withheld(r.mailing_address, r.legal_name.strip())):
                 n += self._fact(urn, "entity.mailing_address", r.mailing_address, snap, locator=loc)
             n += self._fact(urn, "entity.status", r.status, snap, locator=loc)
             stats.facts_written += n
@@ -1003,7 +1007,8 @@ class Registry:
                 self._drop_stale(urn, snap, old_ids)
                 continue
             n += self._fact(urn, "ownership.owner_of_record", r.owner_name.strip(), snap, locator=loc)
-            if not personal_style_organization(r.owner_name):  # likely a home address (policy section 3)
+            if (not personal_style_organization(r.owner_name)
+                    and not mailing_address_withheld(r.owner_mailing_address, r.owner_name.strip())):
                 n += self._fact(urn, "ownership.owner_mailing_address", r.owner_mailing_address, snap, locator=loc)
             stats.facts_written += n
             self._drop_stale(urn, snap, old_ids)
@@ -1815,7 +1820,9 @@ class Registry:
         It also removes, from every stored owner and entity mailing address, the contact names
         ("ATTN JANE DOE", "C/O JOHN SMITH") that ``scrub_mailing_address`` does not read as
         organisations, as ingest now does (``contact_names``; an address left empty is deleted),
-        and deletes the mailing address of every owner and entity whose name reads as a person's or
+        and deletes every owner and entity mailing address whose leading line names a natural person or cannot be
+        read (``mailing_address_withheld``: "PAT Q EXAMPLE, CITY", "C/O PAT EXAMPLE, ...", ``person_mailing_leads``),
+        and the mailing address of every owner and entity whose name reads as a person's or
         a family's (``personal_style_organization``: "JOHN SMITH LLC", "SMITH FAMILY LP"), as ingest
         now does (``personal_addresses``). In recorded documents (deeds, mortgages, satisfactions) it takes every
         party the rule now rejects out of the role lists and counts it in ``<role>_withheld`` (``withhold_parties``):
@@ -1824,7 +1831,7 @@ class Registry:
         upgrading; it is idempotent.
         """
         result = {"owner_facts": 0, "mailing_facts": 0, "ownership_links": 0, "review_rows": 0, "contact_names": 0,
-                  "personal_addresses": 0, "party_names_withheld": 0, "party_names_cut_to_company": 0,
+                  "personal_addresses": 0, "person_mailing_leads": 0, "party_names_withheld": 0, "party_names_cut_to_company": 0,
                   "document_facts_rewritten": 0, "documents_left_without_parties": 0}
         rows = self.db.execute(
             "SELECT fact_id, subject, value_json, document_id FROM facts WHERE predicate = 'ownership.owner_of_record'"
@@ -1866,6 +1873,10 @@ class Registry:
                                    r["fact_id"]))
             if cur.rowcount == 0:  # the rewritten fact is already there
                 self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
+        # A mailing address whose leading line names a person or cannot be read, before any contact name in it is
+        # scrubbed (``mailing_address_withheld``), and again after: a scrubbed contact piece can leave a leading
+        # line that cannot be read ("% <CONTACT>, <WORD>, 1 MAIN ST, ..." becomes "<WORD>, 1 MAIN ST, ...").
+        result["person_mailing_leads"] += self._purge_person_mailing_leads()
         rows = self.db.execute(
             f"SELECT fact_id, subject, predicate, value_json, document_id FROM facts WHERE predicate IN "
             f"({','.join('?' * len(MAILING_PREDICATES))})", MAILING_PREDICATES).fetchall()
@@ -1884,6 +1895,7 @@ class Registry:
                                    r["fact_id"]))
             if cur.rowcount == 0:  # the scrubbed fact is already there
                 self.db.execute("DELETE FROM facts WHERE fact_id = ?", (r["fact_id"],))
+        result["person_mailing_leads"] += self._purge_person_mailing_leads()
         for name_predicate, mailing in (("ownership.owner_of_record", "ownership.owner_mailing_address"),
                                         ("entity.legal_name", "entity.mailing_address")):
             for r in self.db.execute(
@@ -1897,6 +1909,25 @@ class Registry:
                         (r["subject"], r["document_id"], mailing)).rowcount
         self.db.commit()
         return result
+
+    def _purge_person_mailing_leads(self) -> int:
+        """Delete owner and entity mailing addresses whose leading line names a person or cannot be read
+        (``mailing_address_withheld``); the count deleted."""
+        deleted = 0
+        for name_predicate, mailing in (("ownership.owner_of_record", "ownership.owner_mailing_address"),
+                                        ("entity.legal_name", "entity.mailing_address")):
+            doomed: list[str] = []  # read as a stream, deleted after, so the read never sees its own deletes
+            for r in self.db.execute(
+                    "SELECT m.fact_id, m.value_json, (SELECT n.value_json FROM facts n WHERE n.subject = m.subject "
+                    "AND n.document_id = m.document_id AND n.predicate = ? LIMIT 1) AS name_json FROM facts m "
+                    "WHERE m.predicate = ?", (name_predicate, mailing)):
+                address = json.loads(r["value_json"])
+                name = json.loads(r["name_json"]) if r["name_json"] is not None else None
+                if isinstance(address, str) and mailing_address_withheld(address, name if isinstance(name, str) else None):
+                    doomed.append(r["fact_id"])
+            for fact_id in doomed:
+                deleted += self.db.execute("DELETE FROM facts WHERE fact_id = ?", (fact_id,)).rowcount
+        return deleted
 
     def stats(self) -> dict[str, int]:
         q = lambda sql: self.db.execute(sql).fetchone()[0]  # noqa: E731

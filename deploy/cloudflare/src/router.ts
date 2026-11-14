@@ -95,8 +95,6 @@ import {
   type ModelCaller,
 } from "./model-tools.ts";
 import { withHostedOperations } from "./openapi-hosted.ts";
-import { propertyPath } from "../../registry/src/page-rules.ts";
-
 import { legacyRedirect } from "./legacy-paths.ts";
 import {
   lifecycleEnabled,
@@ -104,19 +102,7 @@ import {
   onFreeKeyAnswer,
   onFreeKeyLimit,
 } from "./lifecycle.ts";
-import {
-  asLookupCaller,
-  isLookupPath,
-  lookupOnApiHost,
-  lookupRoute,
-} from "./lookup-pages.ts";
-import {
-  countyPlaces,
-  propertyPagesEnabled,
-  propertyPagesRoute,
-  sourceIds,
-  type PagesEnv,
-} from "./property-pages.ts";
+import { propertyPagesRoute, type PagesEnv } from "./property-pages.ts";
 import { withRouteHint } from "./route-hint.ts";
 import { KEY_PLACEHOLDER, guideMarkdown, setupGuide } from "./onboarding.ts";
 import {
@@ -250,25 +236,46 @@ Disallow: /
 
 /**
  * The content signal every answer carries (https://contentsignals.org/): pages may be indexed and
- * read to answer a person's question, never used to train or fine-tune AI models. A lookup answer
- * is not for a search index either. An answer that already names its own signal keeps it.
+ * read to answer a person's question, never used to train or fine-tune AI models. An answer that
+ * already names its own signal keeps it.
  */
 export const CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=no";
-export const LOOKUP_CONTENT_SIGNAL = "search=no, ai-input=yes, ai-train=no";
 
-function withContentSignal(path: string, res: Response): Response {
+/** The withdrawn website lookup: /try/ (its page and script) and /lookup/ with anything under it. */
+export const isRetiredLookupPath = (path: string): boolean =>
+  path === "/try" ||
+  path === "/try/index.html" ||
+  path === "/try/try.js" ||
+  path === "/lookup" ||
+  path.startsWith("/lookup/");
+
+/**
+ * Where a withdrawn lookup address goes, permanently, without its query. An old address can carry
+ * a property address in its query, so the answer is never stored, indexed or sent on as a referrer.
+ */
+export function retiredLookupRedirect(site: string, path: string): Response {
+  const to =
+    path === "/try" || path.startsWith("/try/") ? "/texas/" : "/coverage/";
+  return new Response(null, {
+    status: 301,
+    headers: {
+      location: `${site}${to}`,
+      "cache-control": "no-store",
+      "referrer-policy": "no-referrer",
+      "x-robots-tag": "noindex",
+    },
+  });
+}
+
+function withContentSignal(res: Response): Response {
   if (res.headers.has("content-signal") || res.status === 101) return res;
-  const signal =
-    path === "/lookup" || path.startsWith("/lookup/")
-      ? LOOKUP_CONTENT_SIGNAL
-      : CONTENT_SIGNAL;
   try {
-    res.headers.set("content-signal", signal);
+    res.headers.set("content-signal", CONTENT_SIGNAL);
     return res;
   } catch {
     // Immutable headers (an asset or a fetched answer): copy them.
     const headers = new Headers(res.headers);
-    headers.set("content-signal", signal);
+    headers.set("content-signal", CONTENT_SIGNAL);
     return new Response(res.body, {
       status: res.status,
       statusText: res.statusText,
@@ -989,10 +996,7 @@ export async function handle(
   opts: HandleOptions = {},
 ): Promise<Response> {
   const res = await handleRequest(request, env, api, opts);
-  return withContentSignal(
-    new URL(request.url).pathname.replace(/\/+$/, "") || "/",
-    res,
-  );
+  return withContentSignal(res);
 }
 
 async function handleRequest(
@@ -1218,55 +1222,23 @@ async function route(
       waitUntil: opts.waitUntil,
     }))!;
 
-  // Lookup pages (lookup-pages.ts): a search or a record at a web address, on the site host. Each
-  // is answered by this API's own registry call, sent back through this router as the caller
-  // (their address and Authorization header), so it is counted, given back, limited per minute
-  // and cut to the free view exactly as that call is: the pages have no meter of their own.
-  if (isLookupPath(path)) {
-    // On the API host: sent to the site host, after the same refusal of a credential in the address
-    // and with the same headers as every lookup answer.
-    if (isApiHost(host))
-      return request.method === "GET" || request.method === "HEAD"
-        ? lookupOnApiHost(request, url, site)
-        : apiError(
-            405,
-            "MethodNotAllowed",
-            "GET this page",
-            `GET ${site}/lookup/`,
-            {},
-            { allow: "GET, HEAD" },
-          );
-    const registry = env.REGISTRY;
-    return lookupRoute(request, url, path, {
-      site,
-      freeKey: freeKeyEnabled(env),
-      callApi: (apiPath, input) =>
-        route(asLookupCaller(request, apiBase, apiPath, input), env, api, opts),
-      // A parcel's public property page, asked of the pages' own route (its limit, its cache,
-      // its rule for which sources may be republished): nothing here decides that again. The
-      // probe is a HEAD from the caller's address, so it uses one of that address's property
-      // pages a minute (PROPERTY_PAGES_PER_MINUTE). When they are used up (or the probe cannot be
-      // answered) it says no page, and the record is looked up and counted as a lookup instead:
-      // such a parcel may then cost a lookup it would not otherwise, never the other way round.
-      publicPage: async (urn) => {
-        const page = propertyPath(urn);
-        if (!page || !propertyPagesEnabled(env as PagesEnv)) return null;
-        const probe = await propertyPagesRoute(
-          new Request(`${site}${page}`, {
-            method: "HEAD",
-            headers: { "cf-connecting-ip": clientAddress(request) },
-          }),
-          env as PagesEnv,
-          page,
-          opts,
+  // The website's lookup by address (/try/ and /lookup/) was withdrawn on 14 November 2026: the
+  // hosted registry holds 18 of Texas's 254 counties and a few other regions, commercial parcels
+  // only, so a form that accepts any address answered most of them with nothing or with a parcel
+  // somewhere else. Old addresses (sent in email, so kept for good) go to the Texas page (/try/,
+  // whose audience was Texas tax staff) or the coverage page (/lookup/), on both hosts, with the
+  // query dropped; nothing is looked up. The registry tools themselves (REST and MCP) are unchanged.
+  if (isRetiredLookupPath(path))
+    return request.method === "GET" || request.method === "HEAD"
+      ? retiredLookupRedirect(site, path)
+      : apiError(
+          405,
+          "MethodNotAllowed",
+          "GET this page",
+          `GET ${site}/coverage/`,
+          {},
+          { allow: "GET, HEAD" },
         );
-        return probe?.status === 200 ? page : null;
-      },
-      places: async () =>
-        registry ? countyPlaces(registry, now()) : new Map(),
-      sourceIds: async (refs) => (registry ? sourceIds(registry, refs) : {}),
-    });
-  }
 
   // Public property pages and their sitemaps (property-pages.ts; off unless PROPERTY_PAGES_ENABLED).
   if (!isApiHost(host)) {

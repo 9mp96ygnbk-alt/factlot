@@ -23,8 +23,8 @@ describe("legacyRedirect", () => {
       assert.equal(legacyRedirect(from), to, from);
   });
   it("sends /search and /for-ai to the pages that took their place, and nothing under them", () => {
-    assert.equal(legacyRedirect("/search"), "/try/");
-    assert.equal(legacyRedirect("/search/"), "/try/");
+    assert.equal(legacyRedirect("/search"), "/coverage/");
+    assert.equal(legacyRedirect("/search/"), "/coverage/");
     assert.equal(legacyRedirect("/for-ai"), "/connect/");
     assert.equal(legacyRedirect("/for-ai/"), "/connect/");
     for (const p of [

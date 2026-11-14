@@ -18,6 +18,7 @@ import {
   TX_EQUITY_RULE,
   checkToolInput,
   lookupBatchAsync,
+  nameReadsAsPerson,
   type LookupItem,
   type RegistryRunner,
   type ToolOutcome,
@@ -51,6 +52,124 @@ const TX_EQUITY_PARAMS = [
 
 type Run = (name: string, input: unknown) => Promise<ToolOutcome>;
 
+/**
+ * Facts the hosted API does not serve, whatever the registry file holds. A mailing address can carry a person's
+ * name on its first line with no "ATTN" or "C/O" marker ("JANE DOE TRUSTEE, 1 MAIN ST, ..."), which the
+ * ingest scrub does not catch; until the registry files are cleaned, no mailing address leaves the API.
+ */
+export const WITHHELD_PREDICATES: ReadonlySet<string> = new Set([
+  "ownership.owner_mailing_address",
+  "entity.mailing_address",
+]);
+
+/** Name lists on recorded documents (deeds, mortgages, satisfactions), as the registry stores them. */
+const PARTY_ROLES = ["grantors", "grantees", "borrowers", "lenders"] as const;
+
+type Fact = { predicate?: unknown; value?: unknown; document_id?: unknown };
+
+/**
+ * Contact and account markers after which a stored name often carries a person ("<CO> LLC C/O JANE DOE",
+ * "EQUITY TRUST CO FBO JOHN DOE", "DOE JOHN IRA", "U/W/O JANE DOE", "ATTN JOHN DOE", "% JOHN DOE"). Until the
+ * registry files are purged with the corrected rule, a name carrying one is withheld whole: this also hides some
+ * organisations ("<CO> LLC C/O <MANAGER> LLC"), which is the price of not reading the name after the marker.
+ */
+const PERSON_MARKERS =
+  /(\bC\s*\/\s*O\b|\bCARE OF\b|\bATTN\b|\bATTENTION\b|\bF\s*\/?\s*B\s*\/?\s*O\b|\bIRA\b|\bCUST\b|\bCUSTODIAN\b|\bU\s*\/\s*W\b|\bUWO\b|(?:^|[^\d.\s]\s*|\s)%\s*[A-Z])/i;
+
+/** A name the API does not serve as an owner or a party: one the person rule reads as a person, or one with a marker. */
+export function nameWithheld(name: string): boolean {
+  return nameReadsAsPerson(name) || PERSON_MARKERS.test(name);
+}
+
+/** An owner of record the API does not serve ("DOE, JANE CO TRUST", "<CO> LLC C/O JANE DOE"). */
+function personOwner(f: Fact): boolean {
+  return (
+    f.predicate === "ownership.owner_of_record" &&
+    typeof f.value === "string" &&
+    nameWithheld(f.value)
+  );
+}
+
+function isWithheldFact(v: unknown): boolean {
+  if (!v || typeof v !== "object") return false;
+  const f = v as Fact;
+  return WITHHELD_PREDICATES.has(f.predicate as string) || personOwner(f);
+}
+
+/** A recorded document's value without the party names that read as persons, each counted in `<role>_withheld`. */
+function withholdParties(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const v = value as Record<string, unknown>;
+  if (!PARTY_ROLES.some((r) => Array.isArray(v[r]))) return value;
+  const out: Record<string, unknown> = { ...v };
+  for (const role of PARTY_ROLES) {
+    const names = v[role];
+    if (!Array.isArray(names)) continue;
+    const kept = names.filter(
+      (n) => !(typeof n === "string" && nameWithheld(n)),
+    );
+    const dropped = names.length - kept.length;
+    if (!dropped) continue;
+    if (kept.length) out[role] = kept;
+    else delete out[role];
+    const key = `${role}_withheld`;
+    const was = v[key] as { count?: unknown; kinds?: unknown } | undefined;
+    const count = (typeof was?.count === "number" ? was.count : 0) + dropped;
+    const kinds = Array.isArray(was?.kinds) ? [...was.kinds] : [];
+    if (!kinds.includes("person")) kinds.push("person");
+    out[key] = { count, kinds };
+  }
+  return out;
+}
+
+/** Document ids of the person owners an answer object holds, in its facts or history, at its own level. */
+function personOwnerDocuments(o: Record<string, unknown>): Set<unknown> {
+  const docs = new Set<unknown>();
+  for (const k of ["facts", "history"])
+    if (Array.isArray(o[k]))
+      for (const f of o[k] as Fact[])
+        if (f && typeof f === "object" && personOwner(f))
+          docs.add(f.document_id);
+  return docs;
+}
+
+/**
+ * `value` without what the hosted API does not serve, at any depth: every fact of a withheld predicate, every owner
+ * of record that reads as a natural person with the ownership link drawn from it, and every recorded-document party
+ * name that reads as a person (counted in `<role>_withheld`). Until the registry files are purged with the corrected
+ * rule, this is what keeps those names out of every answer.
+ */
+export function withholdFacts<T>(value: T): T {
+  if (Array.isArray(value))
+    return value
+      .filter((v) => !isWithheldFact(v))
+      .map((v) => withholdFacts(v)) as T;
+  if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    const docs = personOwnerDocuments(o);
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(o)) {
+      if (k === "relationships" && Array.isArray(v) && docs.size) {
+        out[k] = withholdFacts(
+          v.filter(
+            (r) =>
+              !(
+                r &&
+                typeof r === "object" &&
+                (r as { type?: unknown }).type === "owns" &&
+                docs.has((r as { document_id?: unknown }).document_id)
+              ),
+          ),
+        );
+      } else if (k === "value" && typeof o.predicate === "string") {
+        out[k] = withholdParties(v);
+      } else out[k] = withholdFacts(v);
+    }
+    return out as T;
+  }
+  return value;
+}
+
 export function registryRunner(service: Fetcher): RegistryRunner {
   const one: Run = async (name, input) => {
     const response = await service.fetch(
@@ -65,7 +184,7 @@ export function registryRunner(service: Fetcher): RegistryRunner {
     const outcome = (await response.json()) as ToolOutcome;
     if (typeof outcome !== "object" || outcome === null || !("ok" in outcome))
       throw new Error("registry service answered without an outcome");
-    return outcome;
+    return outcome.ok ? withholdFacts(outcome) : outcome;
   };
   // A registry Worker older than the narrowing parameters ignores them: its list would look narrowed and is not.
   const guarded: Run = async (name, input) => {

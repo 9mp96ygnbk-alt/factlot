@@ -6,7 +6,6 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 import { createHandler } from "@factlot/server";
@@ -106,6 +105,7 @@ import {
   NARROWING_UNAVAILABLE,
   TX_EQUITY_BATCH_TOOL,
   registryRunner,
+  nameWithheld,
 } from "./registry.ts";
 import {
   handle,
@@ -1502,18 +1502,53 @@ describe("router", () => {
       mcp.headers.get("content-signal"),
       "search=yes, ai-input=yes, ai-train=no",
     );
-    for (const u of [
-      "https://factlot.com/lookup/",
-      "https://factlot.com/lookup/?q=1+Main+St",
-      "https://factlot.com/lookup",
-    ]) {
-      const res = await get(u);
+  });
+
+  it("sends the withdrawn website lookup (/try/ to /texas/, /lookup/ to /coverage/) on both hosts, looking nothing up", async () => {
+    const { api, seen } = innerApi();
+    const e = env({ ASSETS: { fetch: async () => new Response("site") } });
+    for (const [u, to] of [
+      ["https://factlot.com/try/", "/texas/"],
+      ["https://factlot.com/try", "/texas/"],
+      ["https://factlot.com/try/?q=1000+Louisiana+St", "/texas/"],
+      ["https://factlot.com/try/try.js", "/texas/"],
+      ["https://api.factlot.com/try/?q=1000+Louisiana+St", "/texas/"],
+      ["https://factlot.com/lookup/", "/coverage/"],
+      ["https://factlot.com/lookup", "/coverage/"],
+      ["https://factlot.com/lookup/?q=1+Main+St&state=TX", "/coverage/"],
+      [
+        "https://factlot.com/lookup/us-48201/0011440000001?format=json",
+        "/coverage/",
+      ],
+      ["https://api.factlot.com/lookup/?q=1+Main+St", "/coverage/"],
+    ] as const) {
+      const res = await handle(new Request(u), e, api);
+      assert.equal(res.status, 301, u);
+      assert.equal(res.headers.get("location"), `https://factlot.com${to}`, u);
+      // The query (an address) is dropped, and the answer is never stored, indexed or referred on.
+      assert.equal(res.headers.get("cache-control"), "no-store", u);
+      assert.equal(res.headers.get("referrer-policy"), "no-referrer", u);
+      assert.equal(res.headers.get("x-robots-tag"), "noindex", u);
       assert.equal(
         res.headers.get("content-signal"),
-        "search=no, ai-input=yes, ai-train=no",
+        "search=yes, ai-input=yes, ai-train=no",
         u,
       );
     }
+    const post = await handle(
+      new Request("https://factlot.com/lookup/", { method: "POST" }),
+      e,
+      api,
+    );
+    assert.equal(post.status, 405);
+    assert.equal(seen.length, 0, "no registry call");
+    // The free-key script under /try/ is still a file of the site.
+    const script = await handle(
+      new Request("https://factlot.com/try/freekey.js"),
+      e,
+      api,
+    );
+    assert.equal(await script.text(), "site");
   });
 
   it("redirects retired site addresses permanently and serves every other page as before", async () => {
@@ -1525,7 +1560,7 @@ describe("router", () => {
       ["https://factlot.com/markets/phoenix?x=1", "/coverage/"],
       ["https://factlot.com/questions/office-rent-in-el-paso", "/texas/"],
       ["https://factlot.com/buildings/fl:building:us-48201:abc", "/coverage/"],
-      ["https://factlot.com/search?q=a", "/try/"],
+      ["https://factlot.com/search?q=a", "/coverage/"],
       ["https://factlot.com/for-ai/", "/connect/"],
     ] as const) {
       const res = await get(from);
@@ -1901,7 +1936,7 @@ describe("router", () => {
   });
 });
 
-describe("same-origin registry lookups for the /try/ page", () => {
+describe("same-origin registry calls on factlot.com", () => {
   const post = (
     host: string,
     path: string,
@@ -1934,7 +1969,11 @@ describe("same-origin registry lookups for the /try/ page", () => {
       assert.equal(await r.text(), '{"ok":true}', path);
     }
     assert.equal(seen.length, 2);
-    const page = await handle(new Request("https://factlot.com/try/"), e, api);
+    const page = await handle(
+      new Request("https://factlot.com/coverage/"),
+      e,
+      api,
+    );
     assert.equal(await page.text(), "site");
   });
 
@@ -2987,6 +3026,154 @@ describe("registry runner", () => {
         body: { tool: "registry_coverage", input: {} },
       },
     ]);
+  });
+
+  it("serves no mailing address: owner and entity mailing-address facts are taken out of every answer", async () => {
+    const fact = (predicate: string, value: string) => ({
+      id: predicate,
+      subject: "fl:parcel:us-48027:1",
+      predicate,
+      value,
+    });
+    const answer = {
+      urn: "fl:parcel:us-48027:1",
+      facts: [
+        fact("ownership.owner_of_record", "EXAMPLE HOLDINGS LLC"),
+        fact(
+          "ownership.owner_mailing_address",
+          "JANE DOE TRUSTEE, 1 MAIN ST, AUSTIN, TX",
+        ),
+        fact("parcel.year_built", "1990"),
+      ],
+      history: [
+        fact("entity.mailing_address", "JOHN ROE, PO BOX 1, AUSTIN, TX"),
+        fact("parcel.year_built", "1989"),
+      ],
+      relationships: [{ type: "owns", from_urn: "fl:entity:us-tx:1" }],
+    };
+    const run = registryRunner({
+      fetch: async () =>
+        new Response(JSON.stringify({ ok: true, result: answer })),
+    });
+    const got = (await run("registry_get", { urn: answer.urn })) as {
+      ok: true;
+      result: typeof answer;
+    };
+    const text = JSON.stringify(got);
+    assert.ok(!text.includes("JANE DOE") && !text.includes("JOHN ROE"), text);
+    assert.deepEqual(
+      got.result.facts.map((f) => f.predicate),
+      ["ownership.owner_of_record", "parcel.year_built"],
+    );
+    assert.deepEqual(
+      got.result.history.map((f) => f.predicate),
+      ["parcel.year_built"],
+    );
+    assert.deepEqual(got.result.relationships, answer.relationships);
+    // An error outcome is passed through as it is.
+    const err = {
+      ok: false,
+      error: { error: "NotFound", message: "x", issues: [] },
+    };
+    const failing = registryRunner({
+      fetch: async () => new Response(JSON.stringify(err)),
+    });
+    assert.deepEqual(await failing("registry_get", { urn: answer.urn }), err);
+  });
+
+  it("serves no owner of record or document party that reads as a natural person, nor the link drawn from it", async () => {
+    const doc = "fl:document:sha256-a";
+    const answer = {
+      urn: "fl:parcel:us-48027:2",
+      facts: [
+        {
+          predicate: "ownership.owner_of_record",
+          value: "DOE, JANE CO TRUST",
+          document_id: doc,
+        },
+        {
+          predicate: "transaction.deed",
+          value: {
+            date: "2025-01-02",
+            grantors: ["JANE DOE CO-SUCCESSOR TRUSTEE", "EXAMPLE HOLDINGS LLC"],
+            grantees: ["JOHN Q PUBLIC"],
+          },
+          document_id: "fl:document:sha256-b",
+        },
+      ],
+      history: [
+        {
+          predicate: "ownership.owner_of_record",
+          value: "EXAMPLE HOLDINGS LLC",
+          document_id: "fl:document:sha256-c",
+        },
+      ],
+      relationships: [
+        { type: "owns", from_urn: "fl:entity:us-tx:9", document_id: doc },
+        {
+          type: "owns",
+          from_urn: "fl:entity:us-tx:8",
+          document_id: "fl:document:sha256-c",
+        },
+      ],
+    };
+    const run = registryRunner({
+      fetch: async () =>
+        new Response(JSON.stringify({ ok: true, result: answer })),
+    });
+    const got = (await run("registry_get", { urn: answer.urn })) as {
+      ok: true;
+      result: {
+        facts: { predicate: string; value: Record<string, unknown> }[];
+        history: { value: string }[];
+        relationships: { from_urn: string }[];
+      };
+    };
+    const text = JSON.stringify(got);
+    for (const name of ["JANE", "JOHN Q PUBLIC"])
+      assert.ok(!text.includes(name), `${name} in ${text}`);
+    assert.deepEqual(
+      got.result.facts.map((f) => f.predicate),
+      ["transaction.deed"],
+    );
+    const deed = got.result.facts[0]!.value;
+    assert.deepEqual(deed.grantors, ["EXAMPLE HOLDINGS LLC"]);
+    assert.equal(deed.grantees, undefined);
+    assert.deepEqual(deed.grantors_withheld, { count: 1, kinds: ["person"] });
+    assert.deepEqual(deed.grantees_withheld, { count: 1, kinds: ["person"] });
+    assert.deepEqual(
+      got.result.history.map((f) => f.value),
+      ["EXAMPLE HOLDINGS LLC"],
+    );
+    assert.deepEqual(
+      got.result.relationships.map((r) => r.from_urn),
+      ["fl:entity:us-tx:8"],
+    );
+  });
+
+  it("withholds owner and party names with a contact or account marker, and keeps plain companies", () => {
+    for (const name of [
+      "316 EXAMPLE DR LLC C/O JANE DOE",
+      "EXAMPLE LLC C / O JOHN Q PUBLIC",
+      "EQUITY TRUST CO FBO JANE DOE",
+      "DOE JOHN IRA",
+      "PENSCO TRUST COMPANY CUSTODIAN",
+      "EXAMPLE LLC ATTN JOHN DOE",
+      "U/W/O JANE DOE",
+      "% JOHN DOE",
+      "EXAMPLE REALTY LLC %JANE DOE",
+    ])
+      assert.equal(nameWithheld(name), true, name);
+    for (const name of [
+      "1000 LOUISIANA LP",
+      "TPI LCTC RETAIL LLC (84.4121%)",
+      "PHELAN ELEVEN B LLC 1%",
+      "CENTRO/IA CENTRAL STATION LLC",
+      "FANNIN & RUSK ASSOC LP",
+      "MERIDEN REALTY LLC 97.75%",
+      "WELLS FARGO BANK NA AS TRUSTEE",
+    ])
+      assert.equal(nameWithheld(name), false, name);
   });
 
   it("throws on a failed or malformed answer so the catalog reports RegistryUnavailable", async () => {
@@ -11028,15 +11215,9 @@ describe("lifecycle emails", () => {
           s.fetchImpl,
         )
       ).text();
-      assert.match(
-        page,
-        /href="https:\/\/factlot\.com\/try\/\?q=1000%20Louisiana%20St"/,
-      );
-      assert.match(page, /Back to your lookup/);
-      assert.match(
-        mail.sent[0]!.text,
-        /Back to your lookup: https:\/\/factlot\.com\/try\/\?q=1000%20Louisiana%20St/,
-      );
+      // A search alone has no page to go back to: the website's lookup was withdrawn.
+      assert.doesNotMatch(page, /\/try\/|Back to your lookup/);
+      assert.doesNotMatch(mail.sent[0]!.text, /\/try\/|Back to your lookup/);
       // A parcel: the property page when those are on.
       const s2 = stripe();
       await start(e, `&urn=${encodeURIComponent(PARCEL)}`, s2);
@@ -11113,86 +11294,6 @@ describe("lifecycle emails", () => {
         /Back to your lookup|try\/\?q=|lifecycle_emails/,
       );
       assert.doesNotMatch(mail.sent[0]!.text, /Back to your lookup/);
-    });
-  });
-
-  describe("/try/?q=", () => {
-    const src = readFileSync(
-      fileURLToPath(new URL("../../../site/try/try.js", import.meta.url)),
-      "utf8",
-    );
-    const heads: unknown[] = [];
-    /** Run try.js in a stub page; the bodies of the fetches it makes. */
-    function runTry(search: string): string[] {
-      const bodies: string[] = [];
-      heads.length = 0;
-      const node = () => {
-        const n: Record<string, unknown> = {
-          children: [],
-          value: "",
-          textContent: "",
-          disabled: false,
-          firstChild: null,
-          addEventListener() {},
-          appendChild() {},
-          setAttribute(k: string, v: string) {
-            ((n.attrs ??= {}) as Record<string, string>)[k] = v;
-          },
-        };
-        return n;
-      };
-      const ids: Record<string, ReturnType<typeof node>> = {};
-      const sandbox = {
-        document: {
-          location: { search },
-          head: { appendChild: (n: unknown) => heads.push(n) },
-          getElementById: (id: string) => (ids[id] ??= node()),
-          createElement: () => node(),
-          createTextNode: () => node(),
-          querySelectorAll: () => [],
-        },
-        fetch: (_u: string, init: { body: string }) => {
-          bodies.push(init.body);
-          return new Promise(() => {});
-        },
-        Array,
-        JSON,
-        String,
-        Object,
-        Promise,
-        decodeURIComponent,
-        setTimeout,
-        clearTimeout,
-      };
-      vm.runInNewContext(src, sandbox);
-      return bodies;
-    }
-    it("runs no lookup without the parameter, or with nothing left of it", () => {
-      for (const s of [
-        "",
-        "?",
-        "?x=1",
-        "?q=",
-        "?q=%3C%3E%40%40",
-        "?Q=1000+Main",
-        "?q=%E0%A4%A",
-      ])
-        assert.deepEqual(runTry(s), [], s);
-    });
-    it("runs the lookup on load with the cleaned text", () => {
-      const bodies = runTry("?q=1000+Louisiana+St");
-      assert.deepEqual(
-        bodies.map((b) => JSON.parse(b)),
-        [{ query: "1000 Louisiana St", limit: 5 }],
-      );
-    });
-    it("sanitises: markup, an email address and a key lose their characters; length is limited", () => {
-      const [a] = runTry(
-        `?q=${encodeURIComponent("<img src=x onerror=1> a@b.com fl_free_" + "y".repeat(300))}`,
-      );
-      const q = (JSON.parse(a!) as { query: string }).query;
-      assert.ok(q.length <= 120, `${q.length}`);
-      assert.doesNotMatch(q, /[<>@_=]/);
     });
   });
 
@@ -11672,7 +11773,7 @@ describe("lifecycle emails", () => {
       assert.equal(claims, 0);
     });
 
-    it("F4: links in mail keep their trailing punctuation out of the anchor, and /try/ queries are kept out of search indexes", () => {
+    it("F4: links in mail keep their trailing punctuation out of the anchor", () => {
       const { html } = body([
         "See https://factlot.com/try/?q=O%27Brien'. Then (https://factlot.com/x).",
       ]);
@@ -11686,19 +11787,6 @@ describe("lifecycle emails", () => {
       );
       assert.equal(encodeQuery("1200 Main St."), "1200%20Main%20St%2E");
       assert.equal(encodeQuery("O'Brien-Way"), "O%27Brien%2DWay");
-      const robots = readFileSync(
-        fileURLToPath(new URL("../../../site/robots.txt", import.meta.url)),
-        "utf8",
-      );
-      assert.match(robots, /^Disallow: \/try\/\?q=$/m);
-    });
-
-    it("F4: try.js adds a noindex robots tag only when it runs a lookup from a link", () => {
-      const src = readFileSync(
-        fileURLToPath(new URL("../../../site/try/try.js", import.meta.url)),
-        "utf8",
-      );
-      assert.match(src, /setAttribute\("content", "noindex"\)/);
     });
 
     it("F2: the key email does not promise notes to an address that has stopped", async () => {

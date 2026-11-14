@@ -22,6 +22,7 @@ export {
 export { PREDICATES as INGEST_PREDICATES } from "./quotes.ts";
 export { countyName } from "./county_names.ts";
 export { ownerNamesAPerson } from "./owners.ts";
+export { nameReadsAsPerson } from "./person-names.ts";
 export { describePredicate, predicateCatalog } from "./predicates.ts";
 export {
   PACKAGE_FORMAT,

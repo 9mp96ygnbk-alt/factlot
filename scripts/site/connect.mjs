@@ -154,24 +154,15 @@ export function connectBody(raw, version) {
 ${nav}
 </ul>
 ${groups}
-<h2 id="no-connector">No connector? Open a web address</h2>
+<h2 id="no-connector">No connector? Call the REST API</h2>
 <p>
-  A program that can open a web address but cannot add a connector, send a POST or run a script
-  can still read the registry, and so can a person in a browser. A GET to a lookup address
-  answers a page of cited facts, with no key. Lookup addresses are answers to one request, not
-  pages to crawl: robots.txt asks crawlers, and assistants that follow it, not to fetch them, so
-  an AI assistant should use one of the connections above:
+  A program that cannot add a connector but can send an HTTP POST calls the same tools over REST,
+  with no key on the free tier: <code>POST https://api.factlot.com/v1/registry/search_address</code>
+  with a JSON body, then <code>registry_get</code> on the parcel it finds. The
+  <a href="#rest">REST reference</a> below lists every route, its required fields and an example
+  body. The registry holds commercial parcels in the <a href="/coverage/">hosted counties</a> only.
 </p>
-<pre><code>${esc(d.lookup_pages.search_url.replace("{address}", "1000+Louisiana+St"))}&amp;state=TX
-${esc(d.lookup_pages.record_url.replace("{county}", "us-48201").replace("{parcel_id}", "0011440000001"))}</code></pre>
-<ul class="plain">
-<li><strong>JSON:</strong> ${esc(d.lookup_pages.json)}</li>
-<li><strong>Keys:</strong> ${esc(d.lookup_pages.auth)}</li>
-<li><strong>Counting:</strong> ${esc(d.lookup_pages.counting)}</li>
-</ul>
-<p>A person can use the same address from the form at <a href="/lookup/">factlot.com/lookup/</a>.</p>
 <h2 id="check">Check the connection</h2>
-<p>See <a href="/mcp-server/#check">check the connection</a> on the MCP server page, or
-<a href="/try/">try a lookup</a> in the browser.</p>
+<p>See <a href="/mcp-server/#check">check the connection</a> on the MCP server page.</p>
 `;
 }

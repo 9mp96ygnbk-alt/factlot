@@ -1,5 +1,5 @@
-// The build's link check (link-check.mjs): a broken internal link fails the build, and the only links
-// exempt from resolving to a file are the lookup pages, which the Worker answers itself.
+// The build's link check (link-check.mjs): a broken internal link fails the build. No link is exempt:
+// the Worker's own paths, and the withdrawn lookup (/lookup/, /try/), fail it too.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { linkResolves, siteProblems, workerAnswered } from "./link-check.mjs";
+import { linkResolves, siteProblems } from "./link-check.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -32,7 +32,7 @@ function folder(hrefs: string[]): string {
 }
 
 describe("the build's link check", () => {
-  it("fails a mistyped link under any path the Worker answers, except the lookup pages", () => {
+  it("fails a mistyped link under any path the Worker answers, and any link to the withdrawn lookup", () => {
     const broken = [
       "/billing/chekout",
       "/billing",
@@ -42,26 +42,19 @@ describe("the build's link check", () => {
       "/health/x",
       "/openapi-3.1.json",
       "/pricng/",
-    ];
-    const fine = [
-      "/",
-      "/pricing/",
-      "/pricing/#free",
-      "/styles.css",
       "/lookup",
       "/lookup/",
       "/lookup/?q=1000+Louisiana+St&amp;state=TX",
       "/lookup/us-48201/0011440000001",
+      "/try/",
     ];
+    const fine = ["/", "/pricing/", "/pricing/#free", "/styles.css"];
     const out = folder([...broken, ...fine]);
     assert.deepEqual(
       siteProblems(out),
       broken.map((u) => `index.html: broken link ${u}`),
     );
     for (const u of fine) assert.ok(linkResolves(out, u), u);
-    assert.ok(workerAnswered("/lookup") && workerAnswered("/lookup/x"));
-    for (const p of ["/lookups", "/v1", "/billing", "/mcp", "/health"])
-      assert.ok(!workerAnswered(p), p);
   });
 
   it("is what the build runs last, and a problem stops the build", () => {

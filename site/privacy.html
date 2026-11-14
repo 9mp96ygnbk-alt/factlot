@@ -56,26 +56,19 @@
             one-way hash of the IP address that changes every day. The counts
             hold no IP address, no page a particular visitor opened and nothing
             that identifies or follows a visitor, and are deleted after 40 days.
-            Its only scripts are two files under /try/. The first, on the Try a
-            lookup page (/try/), does nothing until you press the button or open
-            a link that carries an address (such as /try/?q=1200+Main+St, cut to
-            at most 120 plain characters), then sends that address to FactLot's
-            hosted API (see below), and stores nothing in your browser. The
-            second, on the pricing, Try a lookup and MCP server pages, asks the
+            Its only script, on the pricing and MCP server pages, asks the
             hosted API whether the free key (see below) is offered and shows a
             link to it if so; it sends nothing you typed and stores nothing in
             your browser. Cloudflare, which hosts it, processes your IP address,
             browser user agent and the page you ask for, to deliver the page and
             protect the site from abuse. Cloudflare may keep request logs under
             its own privacy policy; FactLot keeps no access log of its own. The
-            lookup pages, which run no script, also carry what you look up in
-            the page address: the address searched (such as
-            /lookup/?q=1200+Main+St) or the parcel ID (such as
-            /lookup/us-48201/0011440000001). Each is answered by the hosted API
-            (see below). When a request fails, FactLot's error logs record only
-            the error's name, so they hold neither; its page-view totals record
-            only the group of pages; and Cloudflare's request logs may hold
-            either.
+            site has no lookup form: an old link to /try/ or /lookup/ is sent to
+            another page with whatever it carried in its address dropped, and
+            nothing is looked up. When a request fails, FactLot's error logs
+            record only the error's name; its page-view totals record only the
+            group of pages; and Cloudflare's request logs may hold the page
+            address.
           </p>
           <h3>The hosted API</h3>
           <ul class="plain">
@@ -311,12 +304,13 @@
             </li>
             <li>
               <strong>Checkout return link.</strong> When you start checkout
-              from a lookup or a property page, the address you searched (at
-              most 120 characters of letters, digits and simple punctuation) or
-              the parcel's ID can travel in the checkout's return web address,
-              so that the page after payment, and the welcome email, link back
-              to it. It holds no email address, key or name; Stripe's and
-              Cloudflare's logs may hold it.
+              from a property page, the parcel's ID can travel in the checkout's
+              return web address, so that the page after payment, and the
+              welcome email, link back to it. A checkout link that carries an
+              address searched (at most 120 characters of letters, digits and
+              simple punctuation) keeps it there too, though no page of the site
+              makes one any more. It holds no email address, key or name;
+              Stripe's and Cloudflare's logs may hold it.
             </li>
           </ul>
           <h3>Watch lists</h3>
@@ -366,8 +360,7 @@
               text is processed in memory to answer the request and is not
               stored or logged. The one exception is a report you build with
               <code>report_create</code>: the generated file is kept for 24
-              hours (see "The hosted API" above). A lookup page carries what you
-              look up in its page address instead (see "The website" above).
+              hours (see "The hosted API" above).
             </li>
             <li>
               Request headers, other than reading the key to authorise the
@@ -753,6 +746,12 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              14 November 2026 (second update): the site's lookup by address
+              (/try/ and /lookup/) was withdrawn; removed its description and
+              that of the script that ran it, and said what happens to an old
+              link.
+            </li>
             <li>
               14 November 2026: described the lookup pages, which carry the
               address searched or the parcel ID in the page address, and what

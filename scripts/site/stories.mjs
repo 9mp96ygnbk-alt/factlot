@@ -250,7 +250,7 @@ export function storyBody(story, stamp, texasSlug) {
     .map((l) => `<li>${l}</li>`)
     .join("\n");
   const lookup = [
-    `<li><a href="/try/">Try it</a>: one property at a time, with its value history cited to the same files.</li>`,
+    `<li><a href="/connect/">Connect your agent</a>: one property at a time, with its value history cited to the same files.</li>`,
     texasSlug
       ? `<li><a href="/texas/${esc(texasSlug)}/">${esc(story.county.name)}, Texas</a>: what is hosted for this county and the tools that answer these questions for one property.</li>`
       : "",

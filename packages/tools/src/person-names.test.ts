@@ -1,0 +1,249 @@
+// nameReadsAsPerson (person-names.ts): the answer-time person rule for owner and document-party names.
+// Every name here is invented; none is a real person's.
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { nameReadsAsPerson } from "./person-names.ts";
+
+describe("nameReadsAsPerson: persons", () => {
+  const persons = [
+    // a trust or a fiduciary role after a person's name, "CO" read as the role's
+    "EXAMPLE, PAT CO TRUST",
+    "PAT EXAMPLE CO TR",
+    "PAT QUIN CO-SUCCESSOR TRUSTEE",
+    "PAT EXAMPLE, AS CO-SUCCESSOR TRUSTEE",
+    "EXAMPLE, AS SUCCESSOR CO-TRUS, PAT LEE",
+    "EXAMPLE, AS TEMPORARY CO-GUARDIAN, PAT",
+    "PAT EXAMPLE, CO-GUARDIAN",
+    "EXAMPLE, CO INDEPENDENT EXECUTOR, PAT",
+    "PAT EXAMPLE, AS CO-PRELIMINARY EXECUTOR",
+    "EXAMPLE (CO-ADMIN), PAT Q ESQ.",
+    "PAT EXAMPLE CO-EXEC",
+    "EXAMPLE PROPERTY GUARDIAN, QUIN",
+    "QUIN ROE, AS GUARDIAN OF THE PROPERTY OF",
+    "ADMINISTRATOR OF EXAMPLE COUNTY, PAT Q ROE PUBLIC",
+    "PAT EXAMPLE PERSONAL REPRESENTATIVE",
+    "PAT EXAMPLE TRUSTEE",
+    "PAT EXAMPLE FAMILY TRUST",
+    "PAT EXAMPLE LIVING TRUST",
+    "EXAMPLE PAT REVOCABLE TRUST",
+    "EXAMPLE TRUST",
+    "ESTATE OF PAT EXAMPLE",
+    "HEIRS OF PAT EXAMPLE",
+    "QUIN ROE EXAMPLE SOLE HEIR",
+    // bare persons
+    "EXAMPLE, PAT",
+    "PAT M EXAMPLE",
+    "EXAMPLE QUIN",
+    // a legal form written first is a surname
+    "CO, PAT Q",
+    "CORP, QUIN ROE",
+    "LLC, PAT",
+    // a person after the company
+    "ACME LLC & PAT EXAMPLE",
+    "ACME HOLDINGS LTD & QUIN ROE",
+    "ACME INC ETAL EXAMPLE, CHRISTOPHER A",
+    "ACME LLC C/O PAT Q EXAMPLE",
+    "ACME LLC ATTN: MARY EXAMPLE",
+    "EXAMPLE TRUST COMPANY CUSTODIAN FBO PAT Q EXAMPLE IRA",
+    "ACME PROPERTIES LP EXAMPLE, MARY H HEIRS",
+    "EXAMPLE BANK NA AS TRUSTEE FOR PAT EXAMPLE",
+    "PAT EXAMPLE, AS TRUSTEE",
+    "PAT EXAMPLE AS SUCCESSOR CO-GENERAL PARTNER",
+    // a person after a contact, account or role marker, whatever the given name (review class B1)
+    "ACME LLC C/O QUORVIN ZELLBY",
+    "ACME, L.L.C. ATTN: QUORVIN ZELLBY",
+    "ACME CORP%QUORVIN ZELLBY",
+    "ACME INC. BY QUORVIN ZELLBY",
+    "ACME LLC BY QUORVIN ZELLBY, SOLE MEMBER",
+    "ACME LLC (QUORVIN P. ZELLBY, SOLE MANAGER)",
+    "ACME LLC, QUORVIN ZELLBY AS MEMBER",
+    "ACME LLC, BY QUORVIN ZELLBY, REFEREE",
+    "ACME INC DBA BETA INC-ATTN: QUORVIN ZELLBY",
+    // a person first, then a company (B2)
+    "ZELLBY, QUORVIN P C/O ACME REALTY",
+    "QUORVIN ZELLBY, C/O ACME MANAGEMENT CO.",
+    "ZELLBY PAT/ACME LLC",
+    "EXAMPLE BANK / PAT ZELLBY",
+    "ZELLBY PAT P (L/U) & ACME REALTY",
+    // a person after a legal form (B3)
+    "ACME LP & ZELLBY QUORVIN & PAT EXAMPLE",
+    "ACME LLC & PAT",
+    "ACME LLC & ZEBEDIAH",
+    "ZELLBY, QUORN M & SU H & EXAMPLE OAKS LLC",
+    "ZELLBY, ANITA & ZELLBY, MARTIN & EXAMPLE PROPERTIES LP",
+    "EXAMPLE CHURCH TR & ZELLBY, QUORN J &",
+    "CHURCH QUORVIN E",
+    "ZELLBY PAT SR & PAT JR CO-TRTEES",
+    "ZELLBY QUORN & ZELLBY MARY CO TRT",
+    "MARY ZELLBY CO-TRUSSTEE",
+    "ACME CORPORATION N. ZELLBY",
+    "ACME & CO P ZELLBY",
+    "PAT E. ZELLBY & ZELLBY PROPERTIES 20",
+    "ZELLBY MARY L & EXAMPLE LTD",
+    "ZELLBY DONNA S & EXAMPLE & PAINT LTD",
+    "ZELLBY PAT & EST MARY (INC)",
+    "ACME LLC ZELLBY, QUORVIN P III",
+    "ACME CO., QUORVIN ZELLBY",
+    "ACME LLC ZELLBY QUORVIN DARVEN",
+    // a person after an organisation word that is not a legal form (B4)
+    "12 EXAMPLE REALTY, QUORVIN ZELLBY",
+    "EXAMPLE ASSOCIATES DARREN ZELLBY",
+    "EXAMPLE FAMILY PARTNERSHIP/DARREN ZELLBY",
+    // a surname that is an organisation word (B5)
+    "CHURCH PAT QUORVIN",
+    "CITY PAT QUORVIN",
+    "CHURCH PAT & MARY ZELLBY",
+    // a person's account or will trust (B6)
+    "ZELLBY QUORVIN P IRA SERV TR CO",
+    "ACME INC AND QUORVIN ZELLBY IRA#1234",
+    "EXAMPLE IRA INC FBO QUORVIN ZELLBY IRA #12 & ACME LLC",
+    "EXAMPLE TRUST U/W/O QUORVIN ZELLBY",
+    "EXAMPLE REALTY TRUST U/W OF QUORVIN ZELLBY",
+    "EXAMPLE FIRM LLP 401K FBO II ZELLBY",
+    // truncations and cut remnants (B7)
+    "ACME LLC A/K/A QUORVIN DARVEN ZELLBY, CO-T",
+    "PAT Q. EXAMPLE OF ACME,LLC RECEIVER",
+    "EXAMPLE FOUNDATION AND REB QUORVIN DARVEN",
+    "ASSOCIATES, PAT Q",
+    "ZELLBY, CO-EXEC/CORP.",
+    "EXAMPLE QUIN, SUCCESSOR CO TRU, PAT",
+    "ACME LLC PAT EXAMPLE TRUSTEE",
+  ];
+  for (const name of persons)
+    it(`"${name}" is a person`, () =>
+      assert.equal(nameReadsAsPerson(name), true));
+});
+
+describe("nameReadsAsPerson: organisations", () => {
+  const organisations = [
+    "ACME CO",
+    "SMITH & CO",
+    "JONES CO",
+    "ACME CO INC",
+    "ACME COMPANY",
+    "EXAMPLE TRUST CO",
+    "EXAMPLE TRUST COMPANY, CO-EXECUTOR",
+    "EXAMPLE TRUST COMPANY ADMIN",
+    "ACME PROPERTIES LLC",
+    "Acme Holdings, L.L.C.",
+    "EXAMPLE PLAZA L.P.",
+    "EXAMPLE BANK NA AS TRUSTEE",
+    "EXAMPLE BANK, N.A., AS TRUSTEE",
+    "EXAMPLE BANK NATIONAL ASSOCIATION AS TRUSTEE FOR EXAMPLE MORTGAGE TRUST 2006-1",
+    "EXAMPLE SAVINGS FUND SOCIETY, FSB, AS TRUSTEE",
+    "BANK OF EXAMPLE, EXECUTOR",
+    "BOARD OF TRUSTEES OF EXAMPLE COLLEGE",
+    "TRUSTEES OF EXAMPLE UNIVERSITY",
+    "EXAMPLE TRUSTEE LLC",
+    "EXAMPLE FAMILY TRUST LLC",
+    "EXAMPLE REALTY TRUST LLC",
+    "EXAMPLE REAL ESTATE INVESTMENT TRUST",
+    "THE GUARDIAN EXAMPLE INSURANCE COMPANY OF AMERICA",
+    "GUARDIAN EXAMPLE HOMES INC",
+    "101 GUARDIAN LLC",
+    "PUBLIC ADMINISTRATOR OF EXAMPLE COUNTY",
+    "CITY OF EXAMPLEVILLE",
+    "EXAMPLE FEDERAL CREDIT UNION",
+    "THE EXAMPLE HOUSE CONDOMINIUM",
+    "MERS AS NOMINEE FOR EXAMPLE BANK, N.A.",
+    "ACME LLC & BETA HOLDINGS LLC",
+    "ACME WEST LLC & ACME WEST",
+    "ACME LLC - 300 EXAMPLE DR",
+    "ACME INC OF SAN ANTONIO",
+    "THE ESTATE OF EXAMPLE GROUP LLC",
+    "REAL ESTATE OF EXAMPLE STREET LP",
+    "EXAMPLE TRUST, INC., AS TRUSTEE",
+    "EXAMPLE CAPITAL CORPORATION, AS ADMIN AGENT",
+    "EXAMPLE SERVICES LLC, SUCCESSOR TRUSTEE",
+    "EXAMPLE REALTY CP",
+    "EXAMPLE PPTIES",
+    "EXAMPLE BANKNORTH, N.A.",
+    "EXAMPLE BANK NA, AS TRUSTEE FOR THE HOLDERS OF THE",
+    "ACME LLC C/O BETA MANAGEMENT LLC",
+    "ACME LLC (A DELAWARE LIMITED LIABILITY COMPANY)",
+    "ACME LLC (20%)",
+    "ACME LLC 50% ET AL",
+    "ACME LLC - 300 EXAMPLE DR",
+    "ACME/BETA CENTRAL STATION LLC",
+    "SUCCESSOR BY MERGER TO EXAMPLE BANK",
+    "EXAMPLE BANK & TRUST",
+    "SMITH & SONS INC",
+    "SMITH & SONS LLC",
+    "ZELLBY, QUORN & EXAMPLE LLP",
+    "CHURCH OF GOD 7TH DAY",
+    "CITY OF EXAMPLEVILLE P",
+    "PAT Q ZELLBY & CO",
+    "ACME LLC & CO",
+    "ACME INC & AFFILIATES",
+    "ACME LLC & SUBSIDIARIES",
+    "ACME LLC & OTHERS",
+    "EXAMPLE HOLDINGS NORTH AMERICA",
+    "EXAMPLE PROPERTIES OF TEXAS",
+    "QUEST IRA INC",
+    "ACME CO, INC.",
+    "SAINT PAUL'S EXAMPLE CHURCH TRUSTEES",
+    "EXAMPLE R / E PROPERTIES 3 LLC",
+    "EXAMPLE PLAZA S/C PARTNERS LTD",
+    "EXAMPLE STAR I & E INC",
+    "SCOTT EXAMPLE & ASSOCIATES PLLC",
+    "THE GEORGE & MARY EXAMPLE FOUNDATION",
+    "EXAMPLE PROPERTIES LLC SERIES A",
+    "EXAMPLE CAPITAL LLC - SERIES K",
+    "EXAMPLE (USA) INC",
+    "EXAMPLE BANK LTD., EXAMPLEVILLE BRANCH",
+    "EXAMPLE LLC, A NEW YORK LIMITED LIABILITY COMPA",
+  ];
+  for (const name of organisations)
+    it(`"${name}" is an organisation`, () =>
+      assert.equal(nameReadsAsPerson(name), false));
+});
+
+describe("nameReadsAsPerson: the vectors shared with the registry's rule", () => {
+  const vectors = JSON.parse(
+    readFileSync(
+      fileURLToPath(
+        new URL("../../../spec/registry/person-names.json", import.meta.url),
+      ),
+      "utf8",
+    ),
+  ) as { persons: string[]; organizations: string[] };
+  for (const name of vectors.persons)
+    it(`"${name}" is a person`, () =>
+      assert.equal(nameReadsAsPerson(name), true));
+  for (const name of vectors.organizations)
+    it(`"${name}" is an organisation`, () =>
+      assert.equal(nameReadsAsPerson(name), false));
+});
+
+describe("nameReadsAsPerson: time", () => {
+  it("reads a long or adversarial name in linear time", () => {
+    for (const name of [
+      "A, ".repeat(700),
+      "ZELLBY, " + "A ".repeat(1000) + ",",
+      "ACME LLC ".repeat(250),
+      "A & ".repeat(600),
+      "C/O ".repeat(500),
+      "(" + "A ".repeat(1000),
+      "X".repeat(2000),
+    ]) {
+      const t = performance.now();
+      nameReadsAsPerson(name);
+      assert.ok(performance.now() - t < 250, `${name.slice(0, 20)}…`);
+    }
+  });
+  it("withholds a name over the cap when its rest carries a marker", () => {
+    assert.equal(
+      nameReadsAsPerson(
+        "ACME HOLDINGS LLC " + "X ".repeat(200) + "C/O PAT ZELLBY",
+      ),
+      true,
+    );
+    assert.equal(
+      nameReadsAsPerson("ACME HOLDINGS LLC " + "X ".repeat(200)),
+      false,
+    );
+  });
+});

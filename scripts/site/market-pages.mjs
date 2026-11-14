@@ -169,7 +169,6 @@ const FACT_LABEL = {
   "parcel.local_use_code": "local use code",
   "parcel.tax_year": "tax year",
   "ownership.owner_of_record": "owner of record",
-  "ownership.owner_mailing_address": "owner mailing address",
   "zoning.district": "zoning district",
 };
 
@@ -252,7 +251,7 @@ export function marketBody(m, d, hosted, template, fieldsText) {
 <li><code>registry_resolve_parcel</code> and <code>registry_resolve_external</code>: the URN from the county's own number (<code>${esc(s.external_id)}</code> in system <code>${esc(d.id_system)}</code>).</li>
 ${d.holds.owner_of_record ? "<li><code>registry_search_entities</code> and <code>registry_owned_by</code>: organisation owners and the parcels linked to them.</li>" : ""}
 </ul>
-<p>Try a lookup on the <a href="/try/">free tier</a>, no key.</p>`;
+<p>Every tool above is on the <a href="/pricing/">free tier</a>, no key: <a href="/connect/">connect your agent</a>.</p>`;
   const limits = [
     ...(d.holds.owner_of_record
       ? [

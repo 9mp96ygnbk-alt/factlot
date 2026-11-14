@@ -16,6 +16,7 @@ import {
   hostedFieldsTable,
   placeFieldsText,
   rollYearsText,
+  servedFields,
 } from "./fields.mjs";
 import { fieldsDifferences, type FieldsData } from "./gen-fields.ts";
 import type { HostedData } from "./gen-hosted.ts";
@@ -69,11 +70,25 @@ describe("field availability", () => {
     );
     assert.ok(hostedFieldsTable(fields).includes("town grand list years"));
   });
-  it("the public table labels the mailing address column as organisations' only", () => {
+  it("no page states a mailing address: the hosted API serves none", () => {
+    const served = servedFields(fields);
+    assert.ok(!hostedFieldsTable(served).toLowerCase().includes("mailing"));
+    for (const c of served.counties)
+      assert.ok(!("owner_mailing_address" in c.groups), c.fips);
     assert.ok(
-      hostedFieldsTable(fields).includes(
-        "Owner mailing address (organisations)",
+      !placeFieldsText(
+        "Harris",
+        [served.counties.find((c) => c.fips === "48201")!],
+        labels,
+      )
+        .toLowerCase()
+        .includes("mailing"),
+    );
+    assert.ok(
+      read("deploy/cloudflare/src/registry.ts").includes(
+        '"ownership.owner_mailing_address"',
       ),
+      "the API withholds it",
     );
   });
   it("what llms.txt says of owners is what the data holds", () => {

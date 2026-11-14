@@ -54,7 +54,7 @@ import {
 } from "./gating.ts";
 import { escapeHtml } from "./html.ts";
 import { addressSubject } from "./limiter.ts";
-import { REGISTRY_RUN_URL } from "./registry.ts";
+import { REGISTRY_RUN_URL, withholdFacts } from "./registry.ts";
 import { noticesFor } from "./source-notices.ts";
 import type { Env, Fetcher } from "./types.ts";
 import {
@@ -75,7 +75,7 @@ export type PagesEnv = Env & {
 /** Pages and sitemaps per minute per address. A crawler fetching one page a second stays well inside it. */
 export const PROPERTY_PAGES_PER_MINUTE = 120;
 /** Bumped when the page's HTML changes, so cached pages are not served across a renderer change. */
-export const PAGE_RENDER_VERSION = "4";
+export const PAGE_RENDER_VERSION = "5";
 export const SITEMAP_INDEX_PATH = "/sitemaps/properties.xml";
 const SITEMAP_CHILD = /^\/sitemaps\/properties\/([a-z0-9]+)-(\d{1,6})\.xml$/;
 /** Pages carry no script and no inline style: only the site's stylesheet and its fonts load. */
@@ -345,7 +345,7 @@ async function run(
     throw new Unavailable("registry");
   if (!o.ok && o.error?.error === "RegistryUnavailable")
     throw new Unavailable("registry");
-  return o;
+  return o.ok ? withholdFacts(o) : o;
 }
 
 let version: { registry: Fetcher; at: number; builtAt: string } | undefined;
@@ -704,13 +704,6 @@ export interface RenderInput {
   sourceOf: (documentId: string) => string | null;
   /** The newest recorded sale or deed of the free record, when its source allows republication. */
   sale?: Fact | null;
-  /**
-   * Set when the sheet is the answer to a lookup request (lookup-pages.ts) and not a published
-   * page: it is then never indexed, has no canonical address, and says so under its heading.
-   * `note` is HTML the caller built from fixed words and escaped values. `paid`: the caller's key
-   * is Pro or Team, so the page leaves out what such a key adds (their JSON answer holds it).
-   */
-  lookup?: { note: string; paid?: boolean };
 }
 
 /** The page's HTML (pure: tests call it directly). Every value from the registry is escaped. */
@@ -952,12 +945,11 @@ export function renderPropertyPage(input: RenderInput): string {
         ]
       : []),
   ];
-  const pro =
-    proLines.length && !input.lookup?.paid
-      ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
+  const pro = proLines.length
+    ? `<h2 id="pro">What a Pro or Team key adds for this parcel</h2>
 ${proLines.join("\n")}
 <p>See <a href="/pricing/">pricing</a>.</p>`
-      : "";
+    : "";
 
   const shownIds = new Set(
     [...docs.values()]
@@ -1054,11 +1046,7 @@ ${valueCard.join("\n")}
 <meta name="color-scheme" content="light dark" />
 <title>${e(title)}</title>
 <meta name="description" content="${e(description)}" />
-${
-  input.lookup
-    ? '<meta name="robots" content="noindex" />'
-    : `${address ? "" : '<meta name="robots" content="noindex" />\n'}<link rel="canonical" href="${e(canonical)}" />`
-}
+${address ? "" : '<meta name="robots" content="noindex" />\n'}<link rel="canonical" href="${e(canonical)}" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 ${headLinks()}
 <link rel="stylesheet" href="/styles.css" />
@@ -1071,9 +1059,9 @@ ${siteHeader()}
 <div class="wrap doc has-toc">
 <header class="doc-head${card ? " has-figure" : ""}">
 <div class="doc-title">
-<p class="small breadcrumbs"><a href="/">FactLot</a> › ${input.lookup ? '<a href="/lookup/">Look up a property</a> › Record' : `<a href="${e(market.href)}">${e(market.label)}</a> › Property`}</p>
+<p class="small breadcrumbs"><a href="/">FactLot</a> › <a href="${e(market.href)}">${e(market.label)}</a> › Property</p>
 <h1 id="page-title">${e(h1)}</h1>
-<p class="lede">A commercial parcel in ${e(placeText || place.region)}, as its public records describe it. FactLot ID <code>${e(rec.urn)}</code>.</p>${input.lookup ? `\n<p class="small lookup-note">${input.lookup.note}</p>` : ""}
+<p class="lede">A commercial parcel in ${e(placeText || place.region)}, as its public records describe it. FactLot ID <code>${e(rec.urn)}</code>.</p>
 </div>
 ${card}
 </header>
@@ -1090,8 +1078,7 @@ ${sourcesHtml}
 ${notices.length ? `<h2 id="notices">Source notices</h2>\n${notices.map((n) => `<p class="small">${n}</p>`).join("\n")}` : ""}
 <h2 id="more">More</h2>
 <ul>
-${market.href === "/coverage/" ? "" : `<li><a href="${e(market.href)}">${e(market.label)}</a></li>\n`}<li>${input.lookup ? '<a href="/lookup/">Look up another property</a>' : '<a href="/try/">Try a lookup</a>'}</li>
-<li><a href="/coverage/">Coverage: every county and what is hosted</a></li>
+${market.href === "/coverage/" ? "" : `<li><a href="${e(market.href)}">${e(market.label)}</a></li>\n`}<li><a href="/coverage/">Coverage: every county and what is hosted</a></li>
 <li><a href="/mcp-server/">Connect your agent (MCP server)</a></li>
 </ul>
 <p class="small">A record shown here is a public-record fact as its publisher released it. It is not an appraisal or an opinion of value, not legal or tax advice, and not a substitute for checking the source. If a record names you as a person, or is wrong, email <a href="mailto:${CONTACT}">${CONTACT}</a> and we will remove or correct it.</p>
@@ -1132,7 +1119,7 @@ ${siteHeader()}
 <section>
 <div class="wrap">
 <h1>No page for this parcel</h1>
-<p>FactLot has no public page at this address. A parcel gets a page only when it is hosted and its sources allow their data to be republished. <a href="${e(site)}/coverage/">Coverage</a> lists what is hosted; <a href="${e(site)}/try/">Try a lookup</a> searches it.</p>
+<p>FactLot has no public page at this address. A parcel gets a page only when it is hosted and its sources allow their data to be republished. <a href="${e(site)}/coverage/">Coverage</a> lists what is hosted.</p>
 </div>
 </section>
 </main>

@@ -1141,6 +1141,36 @@ describe("watch alerts and deletion", () => {
     await assert.rejects(reader.getMany([P1], 1));
   });
 
+  it("the registry reader keeps no mailing address in what a watch list stores", async () => {
+    const record = {
+      urn: P1,
+      facts: [
+        { predicate: "ownership.owner_of_record", value: "X LLC" },
+        {
+          predicate: "ownership.owner_mailing_address",
+          value: "JANE DOE TRUSTEE, 1 MAIN ST",
+        },
+        { predicate: "entity.mailing_address", value: "JOHN ROE, PO BOX 1" },
+      ],
+    };
+    const reader = registryReader({
+      fetch: async (r: Request) =>
+        new URL(r.url).pathname === "/get-many"
+          ? new Response(
+              JSON.stringify({
+                built_at: "2026-11-05T00:00:00Z",
+                outcomes: [{ ok: true, result: record }],
+              }),
+            )
+          : new Response(JSON.stringify({ ok: true, result: record })),
+    });
+    const got = await reader.getMany([P1], 1);
+    const text = JSON.stringify(got.reads);
+    assert.ok(text.includes("X LLC"), text);
+    assert.ok(!text.includes("mailing_address"), text);
+    assert.ok(!text.includes("JANE DOE") && !text.includes("JOHN ROE"), text);
+  });
+
   it("the account page shows the section and its forms work", async () => {
     const s = setup();
     const key = await issue(s.env);

@@ -178,13 +178,11 @@ async function main(): Promise<void> {
     await emptyAnswerChecks(harness);
     await scheduledChecks(harness, apiPath);
     await objectStoreChecks(harness, registryPath, registryOut, pack);
-    const errors = harness
-      .getLogs()
-      .filter((l) =>
-        /uncaught|TypeError|ReferenceError|"msg\\?":\\?"(error|watch check failed|lifecycle sweep failed|watch check stopped)/i.test(
-          JSON.stringify(l),
-        ),
-      );
+    const errors = allLogs(harness).filter((l) =>
+      /uncaught|TypeError|ReferenceError|"msg\\?":\\?"(error|watch check failed|lifecycle sweep failed|watch check stopped)/i.test(
+        JSON.stringify(l),
+      ),
+    );
     expect(
       errors.length === 0,
       "no uncaught errors in the runtime logs",
@@ -196,6 +194,42 @@ async function main(): Promise<void> {
 }
 
 type Harness = ReturnType<typeof createTestHarness>;
+type RuntimeLog = ReturnType<Harness["getLogs"]>[number];
+
+/** Runtime log lines of the sessions restartWith has closed, for the checks that read the logs. */
+const closedSessionLogs: RuntimeLog[] = [];
+const allLogs = (harness: Harness): RuntimeLog[] => [
+  ...closedSessionLogs,
+  ...harness.getLogs(),
+];
+
+/**
+ * Starts both Workers again with changed options, keeping the runtime logs so far. Not
+ * harness.update() on the running Workers: it sets each Worker's config in turn, every Worker's
+ * new bundle reloads the runtime on its own, and it resolves on the first reload, so it can
+ * resolve with a Worker still on its old config (getEnv() without a binding the new config adds)
+ * and a further reload can restart workerd under the next request. A fresh start waits until
+ * every Worker is up on its new config.
+ */
+async function restartWith(
+  harness: Harness,
+  change: Parameters<Harness["update"]>[0],
+): Promise<void> {
+  closedSessionLogs.push(...harness.getLogs());
+  await harness.close();
+  await harness.update(change);
+  await harness.listen();
+}
+
+/** Polls `ok` until it holds or `ms` pass; runtime logs reach this process asynchronously. */
+async function waitFor(ok: () => boolean, ms = 5000): Promise<boolean> {
+  const until = Date.now() + ms;
+  while (!ok()) {
+    if (Date.now() > until) return false;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  return true;
+}
 
 async function asJson(res: Response): Promise<unknown> {
   const text = await res.text();
@@ -296,6 +330,21 @@ async function apiChecks(harness: Harness): Promise<void> {
     "api POST /v1/registry/coverage (keyless, through REGISTRY)",
     c,
   );
+  // No mailing address leaves the API: the fixture's district 997 parcels carry one in the registry file.
+  const mailed = await get("https://api.factlot.com/v1/registry/get", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ urn: "fl:parcel:us-48997:1000001" }),
+  });
+  const mt = await mailed.text();
+  expect(
+    mailed.status === 200 &&
+      mt.includes("ownership.owner_of_record") &&
+      !mt.includes("mailing_address") &&
+      !mt.includes("PO Box 9"),
+    "api POST /v1/registry/get serves no mailing address (keyless, through REGISTRY)",
+    mt.slice(0, 300),
+  );
   const one = await get("https://api.factlot.com/v1/registry/get", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -317,9 +366,8 @@ async function apiChecks(harness: Harness): Promise<void> {
     `${page.status} ${(await page.text()).slice(0, 200)}`,
   );
 
-  // A lookup page: a search by web address, then the record it leads to, each counted on the
-  // day meter the keyless API uses (a search one lookup; a record one, unless the parcel has a
-  // public property page, which costs nothing).
+  // The withdrawn website lookup: /try/ goes to the Texas page and /lookup/ to coverage, and
+  // nothing is looked up (the day's allowance is unchanged).
   const leftToday = async () => {
     const r = await get("https://api.factlot.com/v1/registry/coverage", {
       method: "POST",
@@ -329,82 +377,32 @@ async function apiChecks(harness: Harness): Promise<void> {
     return Number(r.headers.get("x-factlot-registry-quota-remaining"));
   };
   const before = await leftToday();
-  const found = await get(
-    "https://factlot.com/lookup/?q=100+Main+Street&state=TX",
-    { redirect: "manual", headers: { accept: "text/html" } },
-  );
-  const to = found.headers.get("location") ?? "";
+  for (const [u, to] of [
+    ["https://factlot.com/try/?q=100+Main+Street", "/texas/"],
+    ["https://factlot.com/lookup/?q=100+Main+Street&state=TX", "/coverage/"],
+    [
+      "https://factlot.com/lookup/us-48999/0001-000-0001?format=json",
+      "/coverage/",
+    ],
+    [
+      "https://api.factlot.com/lookup/?q=100+Main+Street&state=TX",
+      "/coverage/",
+    ],
+  ] as const) {
+    const r = await get(u, { redirect: "manual" });
+    expect(
+      r.status === 301 &&
+        r.headers.get("location") === `https://factlot.com${to}` &&
+        r.headers.get("cache-control") === "no-store" &&
+        r.headers.get("referrer-policy") === "no-referrer",
+      `withdrawn lookup ${u} goes to ${to}, unstored and unreferred`,
+      `${r.status} ${r.headers.get("location")}`,
+    );
+  }
   expect(
-    found.status === 303 &&
-      (to === "/lookup/us-48999/0001-000-0001" ||
-        to === "/property/us-48999/0001-000-0001") &&
-      found.headers.get("cache-control") === "no-store" &&
-      found.headers.get("referrer-policy") === "no-referrer",
-    "lookup page GET /lookup/?q= goes to the one match's record",
-    `${found.status} ${to}`,
-  );
-  const afterSearch = await leftToday();
-  expect(
-    before - afterSearch === 1,
-    "the search took one lookup from the day's allowance",
-    `${before} -> ${afterSearch}`,
-  );
-  const recordPage = await get(`https://factlot.com${to}`, {
-    headers: { accept: "text/html" },
-  });
-  const recordHtml = await recordPage.text();
-  expect(
-    recordPage.status === 200 &&
-      recordHtml.includes("fl:parcel:us-48999:0001-000-0001") &&
-      /<a class="cite" href="#source-\d+-\d+"/.test(recordHtml),
-    "the record page shows a cited fact",
-    `${recordPage.status} ${recordHtml.slice(0, 200)}`,
-  );
-  const afterRecord = await leftToday();
-  expect(
-    afterSearch - afterRecord === (to.startsWith("/lookup/") ? 1 : 0),
-    "the record took one lookup as a lookup page, none as a public page",
-    `${afterSearch} -> ${afterRecord} (${to})`,
-  );
-  const asJsonAnswer = await get(
-    "https://factlot.com/lookup/us-48999/0001-000-0001?format=json",
-  );
-  const j = (await asJson(asJsonAnswer)) as { urn?: unknown };
-  expect(
-    asJsonAnswer.status === 200 &&
-      j.urn === "fl:parcel:us-48999:0001-000-0001" &&
-      (await leftToday()) === afterRecord - 1,
-    "lookup page ?format=json is the API's record, one lookup",
-    j,
-  );
-  // On the API host a lookup address goes to the site host with the lookup answers' headers, and
-  // one that carries a credential in its address is refused first, the value never repeated.
-  const moved = await get(
-    "https://api.factlot.com/lookup/?q=100+Main+Street&state=TX",
-    { redirect: "manual", headers: { accept: "text/html" } },
-  );
-  expect(
-    moved.status === 302 &&
-      moved.headers.get("location") ===
-        "https://factlot.com/lookup/?q=100+Main+Street&state=TX" &&
-      moved.headers.get("cache-control") === "no-store" &&
-      moved.headers.get("referrer-policy") === "no-referrer" &&
-      moved.headers.get("x-robots-tag") === "noindex",
-    "lookup address on the API host goes to the site host, unstored and unreferred",
-    `${moved.status} ${moved.headers.get("location")}`,
-  );
-  const keyed = await get(
-    "https://api.factlot.com/lookup/?q=1+Main&key=fl_live_abcdefSECRETvalue123",
-    { redirect: "manual", headers: { accept: "text/html" } },
-  );
-  const keyedText = await keyed.text();
-  expect(
-    keyed.status === 400 &&
-      keyed.headers.get("location") === null &&
-      keyed.headers.get("referrer-policy") === "no-referrer" &&
-      !keyedText.includes("SECRET"),
-    "a key in a lookup address on the API host is refused, not redirected or echoed",
-    `${keyed.status} ${keyed.headers.get("location")}`,
+    (await leftToday()) === before,
+    "the withdrawn lookup addresses used no lookup",
+    before,
   );
 
   // MCP initialize and tools/list.
@@ -470,7 +468,7 @@ async function apiChecks(harness: Harness): Promise<void> {
   for (const [from, statuses, to] of [
     ["/about", [301, 307, 308], "/about/"],
     ["/pricing", [301, 307, 308], "/pricing/"],
-    ["/search?q=a", [301], "https://factlot.com/try/"],
+    ["/search?q=a", [301], "https://factlot.com/coverage/"],
     ["/for-ai", [301], "https://factlot.com/connect/"],
     ["/buildings/", [301], "https://factlease.com/buildings"],
     ["/markets/", [301], "https://factlease.com/"],
@@ -757,7 +755,7 @@ async function scheduledChecks(
     );
   }
   // The same with both features on, in this test's own config only.
-  await harness.update((cur) => ({
+  await restartWith(harness, (cur) => ({
     ...cur,
     workers: cur.workers.map((w) =>
       "configPath" in w && w.configPath === apiPath
@@ -775,21 +773,36 @@ async function scheduledChecks(
         : w,
     ),
   }));
+  const outcomes: unknown[] = [];
   for (const cron of ["*/15 * * * *", "0 * * * *"]) {
     const r = await harness
       .getWorker("factlot-api")
       .scheduled({ cron, scheduledTime: new Date() });
+    outcomes.push({ cron, ...r });
     expect(
       r.outcome === "ok",
       `scheduled ${cron} with both feature variables set`,
       r,
     );
   }
-  // The watch check reached the registry through the binding and its index object.
-  const ran = harness
-    .getLogs()
-    .some((l) => /watch check\\?"/.test(JSON.stringify(l)));
-  expect(ran, "the scheduled watch check ran (feature on)");
+  // The watch check reached the registry through the binding and its index object: worker.ts
+  // logs {"msg":"watch check",...} only for a run that got past the index's "begin".
+  const watchRun = (l: RuntimeLog) => {
+    try {
+      const m = JSON.parse(l.message) as { msg?: unknown; state?: unknown };
+      return m.msg === "watch check" && m.state === "run";
+    } catch {
+      return false;
+    }
+  };
+  const ran = await waitFor(() => harness.getLogs().some(watchRun));
+  expect(ran, "the scheduled watch check ran (feature on)", {
+    outcomes,
+    logs: harness
+      .getLogs()
+      .filter((l) => /watch|lifecycle/i.test(l.message))
+      .slice(0, 5),
+  });
   const list = await harness
     .getWorker("factlot-api")
     .fetch("https://api.factlot.com/v1/watch/list", {
@@ -828,7 +841,7 @@ async function objectStoreChecks(
   };
   const r2Path = registryPath.replace(/\.json$/, ".r2.json");
   writeFileSync(r2Path, JSON.stringify(config, null, 2));
-  await harness.update((cur) => ({
+  await restartWith(harness, (cur) => ({
     ...cur,
     workers: cur.workers.map((w) =>
       "configPath" in w && w.configPath === registryPath
@@ -838,8 +851,18 @@ async function objectStoreChecks(
   }));
   const reg = harness.getWorker("factlot-registry");
   const env = (await reg.getEnv()) as {
-    PACK_BUCKET: Parameters<typeof bindingStore>[0];
+    PACK_BUCKET?: Parameters<typeof bindingStore>[0];
+    PACK_BACKEND?: unknown;
   };
+  expect(
+    env.PACK_BUCKET !== undefined && env.PACK_BACKEND === "r2",
+    "registry restarted with the bucket bound and PACK_BACKEND r2",
+    {
+      PACK_BACKEND: env.PACK_BACKEND,
+      PACK_BUCKET: env.PACK_BUCKET !== undefined,
+    },
+  );
+  if (env.PACK_BUCKET === undefined) return;
   await syncPack(bindingStore(env.PACK_BUCKET), pack, {
     id: "workerd-test",
     log: () => {},

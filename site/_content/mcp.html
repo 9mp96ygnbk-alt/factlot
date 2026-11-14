@@ -75,7 +75,8 @@
       <th scope="row">Claude (web, Desktop, mobile)</th>
       <td>
         Customize, then Connectors, then + Add, then Add custom connector, and
-        enter <code>https://api.factlot.com/mcp</code>.
+        enter <code>https://api.factlot.com/mcp/signin</code> (sign in with a
+        key, or continue on the free tier).
       </td>
     </tr>
     <tr>
@@ -93,8 +94,8 @@
       <th scope="row">ChatGPT</th>
       <td>
         Settings, Apps, Advanced settings, Developer mode; create an app with
-        <code>https://api.factlot.com/mcp</code>. For a Custom GPT Action,
-        import <code>https://api.factlot.com/openapi-3.0.json</code>.
+        <code>https://api.factlot.com/mcp/signin</code>. For a Custom GPT
+        Action, import <code>https://api.factlot.com/openapi-3.0.json</code>.
       </td>
     </tr>
     <tr>
@@ -189,11 +190,8 @@
   which task, and how to cite the result.
 </p>
 <p>
-  A client that cannot add a server can still read a record: a GET to
-  <code>https://factlot.com/lookup/?q=1000+Louisiana+St&amp;state=TX</code>
-  answers a page of cited facts, or JSON with <code>&amp;format=json</code>,
-  with no key (<a href="/connect/#no-connector">details</a>). robots.txt asks
-  crawlers, and assistants that follow it, not to fetch lookup addresses.
+  A client that cannot add a server can call the same tools over REST, with no
+  key on the free tier (<a href="/connect/#no-connector">details</a>).
 </p>
 
 <h2 id="tools">What the tools do</h2>
