@@ -1786,6 +1786,8 @@ def mailing_lead_class(address: str | None) -> tuple[str, list[str]]:
             elif (len(unknown) == 1 and len(tokens) >= 3 and unknown[0] not in _TRADE_NAME_GIVEN_NAMES
                   and len(unknown[0]) > 1 and not marked and any(t in _ROUTING_WORDS for t in tokens)):
                 seen.add("street")  # one organisation's name and its routing: "EXAMPLE TAX DEPT", "EXAMPLE REAL ESTATE OFFICE"
+            elif (marked or len(parts) > 1) and _piece_is_person(part):
+                seen.add("person")  # "C/O PAT Q EXAMPLE ESQ EXAMPLE & QUIN LLP": read as the marker's piece
             elif is_organization(part):
                 seen.add("organisation")
             elif (_LEAD_ROLE.search(" ".join(tokens)) or marked or len(parts) > 1
