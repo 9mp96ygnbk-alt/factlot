@@ -374,7 +374,7 @@ export const HOSTED_REGISTRY_CASES: {
       "place_counties.1": "48201",
     },
     expect_match: {
-      note: "none of these parcels is in the counties HOUSTON, TX lies in",
+      note: "these matches are outside the counties HOUSTON, TX lies in",
     },
   },
   // Pro and Team only: without such a key each answers PlanRequired (isPaidOnlyCall), unmetered. Values from the

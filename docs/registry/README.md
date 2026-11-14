@@ -471,9 +471,13 @@ counties holding at least 3 and 5% of a place's labelled parcels, and apart from
 county holding any). `scripts/gen-address-places.py --census DIR --retrieved YYYY-MM-DD` builds the
 Census tables and records their source, vintage, the retrieval date given and hash; the Census
 files are works of the US government. A city named without a state is placed only when one state has
-a place of that name. When a query names a city or ZIP code, a result outside every county it lies
-in carries `place_differs: true`, and when every result does, `note` says so and `place_counties`
-lists the place's counties.
+a place of that name; a state's code is never a city, nor a state's name when no state is named
+("801 N Grant Ave, Texas"). When a query names a city or ZIP code, a result carries
+`place_differs: true` when its own label names neither that ZIP code nor that city and its county
+is outside every county the tables know the place lies in, in the result's state, and holds no
+parcel whose label names the place; where the tables know none there, nothing is said. When every result carries it and the tables know the place's
+counties, `note` says the matches are outside them ("these matches are outside the counties
+HOUSTON, TX lies in (…)") and `place_counties` lists them.
 
 **Misses that say why.** An empty answer's `coverage` carries `reason` and a message: the named
 state is not loaded (`state_not_loaded`); the named county is not, or every county the named city

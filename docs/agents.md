@@ -290,9 +290,10 @@ County…", with `place_counties`; the search still covered every county held, s
 that found nothing), `street_not_found`, `other_words` (the
 house number is on the street, but not with every other word of the query), `house_number_not_found`
 (with `nearest_house_numbers` on that street) or `no_match`; the registry holds commercial, industrial and multifamily parcels only, so a house
-or a condominium unit owned by a person is never in it. A result outside every county the named
-city or ZIP code lies in carries `place_differs: true`, and when all do, `note` says so: a Houston
-address found only in Ector County is not the parcel asked for.
+or a condominium unit owned by a person is never in it. A result whose label does not name the
+city or ZIP code asked for and whose county is outside every county that place lies in carries
+`place_differs: true`, and when all do, `note` says the matches are outside those counties: a
+Houston address found only in Ector County is not the parcel asked for.
 
 ### Worked example: a Harris County parcel
 

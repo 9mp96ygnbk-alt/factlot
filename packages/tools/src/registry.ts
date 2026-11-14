@@ -15,6 +15,7 @@ import {
 } from "@factlot/id";
 
 import {
+  labelAnyCounties,
   labelPlaceCounties,
   placeCounties,
   placeStates,
@@ -3018,14 +3019,26 @@ export interface AddressPlaceCounties {
 }
 
 /**
+ * The city a place names, as the county tables read it (`address_place_city` in Python): null for a state code
+ * ("801 N Grant Ave, TX" reads TX as the city), and for a state's name when the place names no state ("…, Texas");
+ * "New York, NY" and "Washington, DC" keep their city.
+ */
+export function addressPlaceCity(place: AddressPlace): string | null {
+  const c = place.city;
+  if (c === null || STATES.has(c)) return null;
+  return place.state === null && Object.hasOwn(STATE_NAMES, c) ? null : c;
+}
+
+/**
  * The counties the place a query names lies in (`address_place_counties` in Python): its ZIP code's when the
- * tables know it, else its city's, in the state it names, or when it names none in the only state with a place of
- * that name; null when the tables cannot tell.
+ * tables know it, else its city's (`addressPlaceCity`), in the state it names, or when it names none in the only
+ * state with a place of that name; null when the tables cannot tell.
  */
 export function addressPlaceCounties(
   place: AddressPlace | null,
 ): AddressPlaceCounties | null {
   if (!place) return null;
+  const city = addressPlaceCity(place);
   if (place.zip !== null) {
     const all = zipCounties(place.zip);
     const st =
@@ -3037,11 +3050,11 @@ export function addressPlaceCounties(
     if (st && counties)
       return { name: `ZIP code ${place.zip}`, state: st, counties };
   }
-  if (place.city !== null) {
-    const states = place.state ? [place.state] : placeStates(place.city);
+  if (city !== null) {
+    const states = place.state ? [place.state] : placeStates(city);
     const counties =
-      states.length === 1 ? placeCounties(states[0]!, place.city) : null;
-    if (counties) return { name: place.city, state: states[0]!, counties };
+      states.length === 1 ? placeCounties(states[0]!, city) : null;
+    if (counties) return { name: city, state: states[0]!, counties };
   }
   return null;
 }
@@ -3066,31 +3079,46 @@ function heldCountyNames(cov: RegistryCoverage, st: string): string {
 }
 
 /**
- * Which results lie outside the counties of the place the query names (`address_place_differs` in Python): for each
- * result, true when the tables know the counties of the query's ZIP code (or, without one, of its city in the
- * result's state, or know the city only in other states) and the result's county, from its URN, is not one of them.
+ * Which results lie outside the counties of the place the query names (`address_place_differs` in Python). A result
+ * whose own label has the query's ZIP code or city (`addressPlaceRank` 0 or 1) never does. Otherwise it does when
+ * the tables know, in the result's state, the counties of the query's ZIP code or city (`placeCounties`, the Census
+ * tables and the registry's labels) and the result's county, from its URN, is in none of those known nor holds any
+ * parcel labelled with the place (`labelAnyCounties`); when they know neither there, it does not (nothing is
+ * claimed of a place the tables do not know).
  */
 export function addressPlaceDiffers(
   place: AddressPlace,
-  urns: string[],
+  results: { urn: string; label?: unknown }[],
 ): boolean[] {
-  const zip = place.zip !== null ? zipCounties(place.zip) : null;
-  const elsewhere = place.city !== null && placeStates(place.city).length > 0;
-  return urns.map((urn) => {
+  const city = addressPlaceCity(place);
+  const asked: AddressPlace = { ...place, city };
+  const keys = [place.zip, city].filter((k): k is string => k !== null);
+  return results.map(({ urn, label }) => {
     const fips = /^fl:[a-z]+:us-([0-9]{5}):/.exec(urn)?.[1];
-    if (fips === undefined) return false;
-    if (zip) return !zip.includes(fips);
-    if (place.city === null) return false;
+    if (fips === undefined || !keys.length) return false;
+    const rank = addressPlaceRank(asked, urn, label ?? null);
+    if (rank === 0 || rank === 1) return false;
     const st = statePostal(fips.slice(0, 2));
-    const counties = st ? placeCounties(st, place.city) : null;
-    return counties ? !counties.includes(fips) : elsewhere;
+    let known = false;
+    for (const k of keys) {
+      const counties = st ? placeCounties(st, k) : null;
+      if (!counties) continue;
+      if (
+        counties.includes(fips) ||
+        labelAnyCounties(st!, k)?.includes(fips) === true
+      )
+        return false;
+      known = true;
+    }
+    return known;
   });
 }
 
 /**
  * The answer of a search that found parcels (`address_found` in Python): each result outside the counties of the
- * place the query names carries `place_differs: true`, and when every one does, `note` says so, naming the
- * counties the place lies in (also given as `place_counties`).
+ * place the query names (`addressPlaceDiffers`) carries `place_differs: true`, and when every one does and the
+ * tables know the place's counties (`addressPlaceCounties`), `note` says the matches are outside them, naming them
+ * (also given as `place_counties`).
  */
 export function addressFound(
   query: string,
@@ -3102,10 +3130,11 @@ export function addressFound(
     asked.includes(",") || Object.values(where).some((v) => v !== undefined)
       ? addressPlaceWith(asked, where)
       : null;
-  if (!place || (place.zip === null && place.city === null)) return { results };
+  if (!place || (place.zip === null && addressPlaceCity(place) === null))
+    return { results };
   const differs = addressPlaceDiffers(
     place,
-    results.map((r) => String(r.urn)),
+    results.map((r) => ({ urn: String(r.urn), label: r.label })),
   );
   if (!differs.some(Boolean)) return { results };
   const out: Row = {
@@ -3113,12 +3142,10 @@ export function addressFound(
       differs[i] ? { ...r, place_differs: true } : r,
     ),
   };
-  if (differs.every(Boolean)) {
-    const pc = addressPlaceCounties(place);
-    const named =
-      place.zip !== null ? `ZIP code ${place.zip}` : (place.city ?? "");
-    out.note = `none of these parcels is in the counties ${named}${pc ? `, ${pc.state}` : ""} lies in${pc ? ` (${countyList(pc.counties)})` : ""}: each has this street address elsewhere`;
-    if (pc) out.place_counties = pc.counties;
+  const pc = differs.every(Boolean) ? addressPlaceCounties(place) : null;
+  if (pc) {
+    out.note = `these matches are outside the counties ${pc.name}, ${pc.state} lies in (${countyList(pc.counties)})`;
+    out.place_counties = pc.counties;
   }
   return out;
 }
@@ -3192,7 +3219,7 @@ export function addressMiss(
     // in the state (a city or ZIP code never filters), so this is a miss inside loaded coverage: no
     // county_loaded: false.
     reason = "county_not_loaded";
-    message = `no parcel matched${at}: ${pc.name}, ${pc.state} lies in ${countyList(pc.counties)}, ${pc.counties.length > 1 ? "none of which this registry holds" : "which this registry does not hold"}. Of ${pc.state} this registry holds: ${heldCountyNames(cov, pc.state)}`;
+    message = `no parcel matched${at}: ${pc!.name}, ${pc!.state} lies in ${countyList(pc!.counties)}, ${pc!.counties.length > 1 ? "none of which this registry holds" : "which this registry does not hold"}. Of ${pc!.state} this registry holds: ${heldCountyNames(cov, pc!.state)}`;
   } else {
     const parts: string[] = [];
     if (oneWord) {

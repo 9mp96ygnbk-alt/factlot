@@ -17,9 +17,9 @@ import sqlite3
 from typing import Any
 
 from .county_names import county_name
-from .address_places import place_counties, place_states, zip_counties
-from .normalize import (ADDRESS_ONE_WORD_CANDIDATES, STATE_BY_FIPS, STATES, address_place_with, address_query,
-                        address_query_with_place)
+from .address_places import label_any_counties, place_counties, place_states, zip_counties
+from .normalize import (ADDRESS_ONE_WORD_CANDIDATES, STATE_BY_FIPS, STATE_NAMES, STATES, address_place_rank,
+                        address_place_with, address_query, address_query_with_place)
 
 SCOPE = ("Commercial, industrial and multifamily parcels only (no single-family homes), each fact cited "
          "to its source file; owners of record are kept only for organisations, never natural persons.")
@@ -221,12 +221,22 @@ ADDRESS_SCOPE_NOTE = ("the registry holds commercial, industrial and multifamily
                       "owned by a person, is not in it")
 
 
+def address_place_city(place: dict[str, Any]) -> str | None:
+    """The city a place names, as the county tables read it (``addressPlaceCity`` in TS): None for a state code, and
+    for a state's name when the place names no state; "New York, NY" and "Washington, DC" keep their city."""
+    c = place["city"]
+    if c is None or c in STATES:
+        return None
+    return None if place["state"] is None and c in STATE_NAMES else c
+
+
 def address_place_counties(place: dict[str, Any] | None) -> dict[str, Any] | None:
     """The counties the place a query names lies in (``addressPlaceCounties`` in TS): ``{"name", "state",
-    "counties"}`` from its ZIP code when the tables know it, else from its city, in the state it names, or when it
-    names none in the only state with a place of that name; None when the tables cannot tell."""
+    "counties"}`` from its ZIP code when the tables know it, else from its city (``address_place_city``), in the state
+    it names, or when it names none in the only state with a place of that name; None when the tables cannot tell."""
     if not place:
         return None
+    city = address_place_city(place)
     if place["zip"] is not None:
         every = zip_counties(place["zip"])
         st = place["state"]
@@ -235,11 +245,11 @@ def address_place_counties(place: dict[str, Any] | None) -> dict[str, Any] | Non
         counties = place_counties(st, place["zip"]) if st else None
         if st and counties:
             return {"name": f"ZIP code {place['zip']}", "state": st, "counties": counties}
-    if place["city"] is not None:
-        states = [place["state"]] if place["state"] else place_states(place["city"])
-        counties = place_counties(states[0], place["city"]) if len(states) == 1 else None
+    if city is not None:
+        states = [place["state"]] if place["state"] else place_states(city)
+        counties = place_counties(states[0], city) if len(states) == 1 else None
         if counties:
-            return {"name": place["city"], "state": states[0], "counties": counties}
+            return {"name": city, "state": states[0], "counties": counties}
     return None
 
 
@@ -254,50 +264,55 @@ def _held_county_names(cov: dict[str, Any], st: str) -> str:
     return ", ".join(names) if names else "none"
 
 
-def address_place_differs(place: dict[str, Any], urns: list[str]) -> list[bool]:
-    """Which results lie outside the counties of the place the query names (``addressPlaceDiffers`` in TS)."""
-    zipc = zip_counties(place["zip"]) if place["zip"] is not None else None
-    elsewhere = place["city"] is not None and bool(place_states(place["city"]))
+def address_place_differs(place: dict[str, Any], results: list[dict[str, Any]]) -> list[bool]:
+    """Which results lie outside the counties of the place the query names (``addressPlaceDiffers`` in TS): never one
+    whose own label has the query's ZIP code or city (``address_place_rank`` 0 or 1); otherwise one whose county is
+    in none of the counties the tables know, in its state, for the query's ZIP code or city, and holds no parcel
+    labelled with it (``label_any_counties``); one where they know neither does not."""
+    city = address_place_city(place)
+    asked = {**place, "city": city}
+    keys = [k for k in (place["zip"], city) if k is not None]
     out = []
-    for urn in urns:
+    for r in results:
+        urn = str(r["urn"])
         m = re.match(r"fl:[a-z]+:us-([0-9]{5}):", urn)
-        if not m:
+        if not m or not keys or address_place_rank(asked, urn, r.get("label")) in (0, 1):
             out.append(False)
             continue
         fips = m.group(1)
-        if zipc:
-            out.append(fips not in zipc)
-            continue
-        if place["city"] is None:
-            out.append(False)
-            continue
         st = state_postal(fips[:2])
-        counties = place_counties(st, place["city"]) if st else None
-        out.append(fips not in counties if counties else elsewhere)
+        known = differs = False
+        for k in keys:
+            counties = place_counties(st, k) if st else None
+            if not counties:
+                continue
+            if fips in counties or fips in (label_any_counties(st, k) or []):
+                break
+            known = True
+        else:
+            differs = known
+        out.append(differs)
     return out
 
 
 def address_found(query: str, where: dict[str, str] | None, results: list[dict[str, Any]]) -> dict[str, Any]:
     """The answer of a search that found parcels (``addressFound`` in TS): a result outside the counties of the place
-    the query names carries ``place_differs: true``, and when every one does, ``note`` says so with
-    ``place_counties``."""
+    the query names carries ``place_differs: true``, and when every one does and the tables know the place's
+    counties, ``note`` says the matches are outside them, with ``place_counties``."""
     where = where or {}
     asked = address_query_with_place(query)
     place = address_place_with(asked, where) if "," in asked or any(v is not None for v in where.values()) else None
-    if not place or (place["zip"] is None and place["city"] is None):
+    if not place or (place["zip"] is None and address_place_city(place) is None):
         return {"results": results}
-    differs = address_place_differs(place, [str(r["urn"]) for r in results])
+    differs = address_place_differs(place, results)
     if not any(differs):
         return {"results": results}
     out: dict[str, Any] = {"results": [{**r, "place_differs": True} if d else r for r, d in zip(results, differs)]}
-    if all(differs):
-        pc = address_place_counties(place)
-        named = f"ZIP code {place['zip']}" if place["zip"] is not None else place["city"]
-        out["note"] = (f"none of these parcels is in the counties {named}{', ' + pc['state'] if pc else ''} lies in"
-                       f"{' (' + _county_list(pc['counties']) + ')' if pc else ''}: each has this street address "
-                       "elsewhere")
-        if pc:
-            out["place_counties"] = pc["counties"]
+    pc = address_place_counties(place) if all(differs) else None
+    if pc:
+        out["note"] = (f"these matches are outside the counties {pc['name']}, {pc['state']} lies in "
+                       f"({_county_list(pc['counties'])})")
+        out["place_counties"] = pc["counties"]
     return out
 
 

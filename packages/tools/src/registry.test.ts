@@ -656,7 +656,11 @@ test("name and address normalization match the Python vectors", () => {
     address_street_words: [string, string[] | null][];
     address_card_orders: [[string, Record<string, unknown>][], string[]][];
     address_place_counties: [string, Record<string, string>, unknown][];
-    address_place_differs: [string, string[], boolean[]][];
+    address_place_differs: [
+      string,
+      { urn: string; label?: string }[],
+      boolean[],
+    ][];
     address_found: [
       string,
       Record<string, string>,
@@ -726,9 +730,9 @@ test("name and address normalization match the Python vectors", () => {
       pc,
       query,
     );
-  for (const [query, urns, differs] of v.address_place_differs)
+  for (const [query, rows, differs] of v.address_place_differs)
     assert.deepEqual(
-      addressPlaceDiffers(addressPlace(query), urns),
+      addressPlaceDiffers(addressPlace(query), rows),
       differs,
       query,
     );

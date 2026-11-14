@@ -116,8 +116,8 @@ class Normalization(unittest.TestCase):
         from factlot.registry.coverage import address_found, address_miss, address_place_counties, address_place_differs
         for query, where, pc in vectors["address_place_counties"]:
             self.assertEqual(address_place_counties(address_place_with(query, where)), pc, query)
-        for query, urns, differs in vectors["address_place_differs"]:
-            self.assertEqual(address_place_differs(address_place(query), urns), differs, query)
+        for query, rows, differs in vectors["address_place_differs"]:
+            self.assertEqual(address_place_differs(address_place(query), rows), differs, query)
         for query, where, rows, found in vectors["address_found"]:
             self.assertEqual(address_found(query, where, rows), found, query)
         for query, where, miss in vectors["address_place_misses"]["cases"]:

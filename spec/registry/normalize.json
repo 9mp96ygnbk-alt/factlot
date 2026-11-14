@@ -2230,23 +2230,254 @@
         "postal_code": "10118"
       },
       null
+    ],
+    ["801 N Grant Ave, TX", {}, null],
+    ["801 N Grant Ave, Texas", {}, null],
+    [
+      "1 Main St, New York, NY",
+      {},
+      {
+        "name": "NEW YORK",
+        "state": "NY",
+        "counties": ["36005", "36047", "36061", "36081", "36085"]
+      }
+    ],
+    [
+      "1 Main St, Texas City, TX",
+      {},
+      {
+        "name": "TEXAS CITY",
+        "state": "TX",
+        "counties": ["48071", "48167"]
+      }
+    ],
+    [
+      "1 Main St, Salt Lake City, UT",
+      {},
+      {
+        "name": "SALT LAKE CITY",
+        "state": "UT",
+        "counties": ["49035"]
+      }
+    ],
+    [
+      "1 Main St",
+      {
+        "city": "Jersey Village",
+        "state": "TX"
+      },
+      {
+        "name": "JERSEY VILLAGE",
+        "state": "TX",
+        "counties": ["48201"]
+      }
     ]
   ],
   "address_place_differs": [
     [
       "1 Main St, Houston, TX",
-      ["fl:parcel:us-48201:1", "fl:parcel:us-48135:2", "fl:parcel:us-24005:3"],
-      [false, true, true]
+      [
+        {
+          "urn": "fl:parcel:us-48201:1",
+          "label": "1 MAIN ST, HOUSTON TX 77002"
+        },
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        },
+        {
+          "urn": "fl:parcel:us-24005:3",
+          "label": "1 MAIN ST, TOWSON MD 21204"
+        }
+      ],
+      [false, true, false]
     ],
     [
       "1 Main St, 77002",
-      ["fl:parcel:us-48201:1", "fl:parcel:us-48135:2"],
+      [
+        {
+          "urn": "fl:parcel:us-48201:1",
+          "label": "1 MAIN ST, HOUSTON TX 77002"
+        },
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        }
+      ],
       [false, true]
     ],
-    ["1 Main St, Atlantis, TX", ["fl:parcel:us-48201:1"], [true]],
+    [
+      "1 Main St, Atlantis, TX",
+      [
+        {
+          "urn": "fl:parcel:us-48201:1",
+          "label": "1 MAIN ST, HOUSTON TX 77002"
+        }
+      ],
+      [false]
+    ],
     [
       "1 Main St, Houston",
-      ["fl:parcel:us-48201:1", "fl:parcel:us-24005:3"],
+      [
+        {
+          "urn": "fl:parcel:us-48201:1",
+          "label": "1 MAIN ST, HOUSTON TX 77002"
+        },
+        {
+          "urn": "fl:parcel:us-24005:3",
+          "label": "1 MAIN ST, TOWSON MD 21204"
+        }
+      ],
+      [false, false]
+    ],
+    [
+      "350 5th Ave, Manhattan, NY",
+      [
+        {
+          "urn": "fl:parcel:us-36061:1008350041",
+          "label": "338-350 5 AVENUE, NEW YORK NY 10118"
+        }
+      ],
+      [false]
+    ],
+    [
+      "2332 Wisconsin Ave NW, Georgetown, DC",
+      [
+        {
+          "urn": "fl:parcel:us-11001:13000815",
+          "label": "2332 WISCONSIN AVE NW WASHINGTON DC 20007"
+        }
+      ],
+      [false]
+    ],
+    [
+      "4250 Patriot Dr, Coppell, TX 76051",
+      [
+        {
+          "urn": "fl:parcel:us-48113:18042100050020000",
+          "label": "4250 PATRIOT DR, COPPELL (DALLAS CO) TX 76051"
+        }
+      ],
+      [false]
+    ],
+    [
+      "12611 Research Blvd, Austin, TX 78727",
+      [
+        {
+          "urn": "fl:parcel:us-48491:294734",
+          "label": "12611 RESEARCH BLVD, AUSTIN TX 78727"
+        },
+        {
+          "urn": "fl:parcel:us-48453:167326",
+          "label": "12611 RESEARCH BLVD, TX 78727"
+        }
+      ],
+      [false, false]
+    ],
+    [
+      "6396 Chemical Rd, Baltimore, MD",
+      [
+        {
+          "urn": "fl:parcel:us-24003:020300000741008",
+          "label": "6396 CHEMICAL RD, BALTIMORE MD 21226"
+        }
+      ],
+      [false]
+    ],
+    [
+      "3665 Benson Ave, MD 21227",
+      [
+        {
+          "urn": "fl:parcel:us-24510:0325027698-004",
+          "label": "3665 BENSON AVE, BALTIMORE MD 21227"
+        }
+      ],
+      [false]
+    ],
+    [
+      "2780 North Main St, Waterbury CT 67021-9150",
+      [
+        {
+          "urn": "fl:parcel:us-09009:80070-006902390009",
+          "label": "2780 NORTH MAIN ST, Waterbury CT 67021-9150"
+        }
+      ],
+      [false]
+    ],
+    [
+      "2780 North Main St, CT 67021",
+      [
+        {
+          "urn": "fl:parcel:us-09009:80070-006902390009",
+          "label": "2780 NORTH MAIN ST, Waterbury CT 67021-9150"
+        }
+      ],
+      [false]
+    ],
+    [
+      "801 N Grant Ave, TX",
+      [
+        {
+          "urn": "fl:parcel:us-48135:06200-00050-00000",
+          "label": "801 N GRANT AVE"
+        }
+      ],
+      [false]
+    ],
+    [
+      "801 N Grant Ave, Texas",
+      [
+        {
+          "urn": "fl:parcel:us-48135:06200-00050-00000",
+          "label": "801 N GRANT AVE"
+        }
+      ],
+      [false]
+    ],
+    [
+      "801 N Grant Ave, 77002",
+      [
+        {
+          "urn": "fl:parcel:us-48135:06200-00050-00000",
+          "label": "801 N GRANT AVE"
+        },
+        {
+          "urn": "fl:parcel:us-24005:4",
+          "label": "801 N GRANT AVE, TOWSON MD"
+        }
+      ],
+      [true, false]
+    ],
+    [
+      "1 Main St, Houston, TX 77002",
+      [
+        {
+          "urn": "fl:parcel:us-48201:5",
+          "label": "1 MAIN ST, HOUSTON TX 77010"
+        },
+        {
+          "urn": "fl:parcel:us-48201:6",
+          "label": "1 MAIN ST"
+        },
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        }
+      ],
+      [false, false, true]
+    ],
+    [
+      "1 Main St, Sugar Land, TX",
+      [
+        {
+          "urn": "fl:parcel:us-48201:7",
+          "label": "1 MAIN ST, HOUSTON TX 77002"
+        },
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        }
+      ],
       [false, true]
     ]
   ],
@@ -2268,7 +2499,7 @@
             "place_differs": true
           }
         ],
-        "note": "none of these parcels is in the counties HOUSTON, TX lies in (Fort Bend County, TX (48157), Harris County, TX (48201), Montgomery County, TX (48339) and Waller County, TX (48473)): each has this street address elsewhere",
+        "note": "these matches are outside the counties HOUSTON, TX lies in (Fort Bend County, TX (48157), Harris County, TX (48201), Montgomery County, TX (48339) and Waller County, TX (48473))",
         "place_counties": ["48157", "48201", "48339", "48473"]
       }
     ],
@@ -2316,6 +2547,83 @@
           {
             "urn": "fl:parcel:us-48135:2",
             "label": "1 MAIN ST, ODESSA TX"
+          }
+        ]
+      }
+    ],
+    [
+      "801 N Grant Ave",
+      {
+        "postal_code": "77002"
+      },
+      [
+        {
+          "urn": "fl:parcel:us-48135:06200-00050-00000",
+          "label": "801 N GRANT AVE"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-48135:06200-00050-00000",
+            "label": "801 N GRANT AVE",
+            "place_differs": true
+          }
+        ],
+        "note": "these matches are outside the counties ZIP code 77002, TX lies in (Harris County, TX (48201))",
+        "place_counties": ["48201"]
+      }
+    ],
+    [
+      "801 N Grant Ave, TX",
+      {},
+      [
+        {
+          "urn": "fl:parcel:us-48135:06200-00050-00000",
+          "label": "801 N GRANT AVE"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-48135:06200-00050-00000",
+            "label": "801 N GRANT AVE"
+          }
+        ]
+      }
+    ],
+    [
+      "1 Main St, Springfield",
+      {},
+      [
+        {
+          "urn": "fl:parcel:us-48135:2",
+          "label": "1 MAIN ST, ODESSA TX"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-48135:2",
+            "label": "1 MAIN ST, ODESSA TX"
+          }
+        ]
+      }
+    ],
+    [
+      "4250 Patriot Dr, Coppell, TX 76051",
+      {},
+      [
+        {
+          "urn": "fl:parcel:us-48113:18042100050020000",
+          "label": "4250 PATRIOT DR, COPPELL (DALLAS CO) TX 76051"
+        }
+      ],
+      {
+        "results": [
+          {
+            "urn": "fl:parcel:us-48113:18042100050020000",
+            "label": "4250 PATRIOT DR, COPPELL (DALLAS CO) TX 76051"
           }
         ]
       }
