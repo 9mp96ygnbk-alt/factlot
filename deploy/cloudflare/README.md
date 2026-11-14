@@ -33,7 +33,18 @@ the API's JSON with `?format=json` or `Accept: application/json`. Code: `src/loo
   record is looked up and counted like any other: it may then cost a lookup it would not
   otherwise, never the other way round. A HEAD looks nothing up.
 - Never published. Every answer carries `Cache-Control: no-store`, `X-Robots-Tag: noindex` and
-  `Referrer-Policy: no-referrer`; the pages are in no sitemap; `robots.txt` lets them be fetched.
+  `Referrer-Policy: no-referrer`; the pages are in no sitemap; `robots.txt` disallows `/lookup`
+  for crawlers (a person's browser, and an agent using the API, MCP or a connector, are not
+  crawlers and are unaffected).
+- Content signals (https://contentsignals.org/): every answer from this Worker carries
+  `Content-Signal: search=yes, ai-input=yes, ai-train=no` (set once in `router.ts` `handle`), and
+  a lookup answer `search=no, ai-input=yes, ai-train=no`. Both `robots.txt` files (the site's,
+  `site/robots.txt`, and the API host's, `API_ROBOTS` in `router.ts`) say the same: pages may be
+  indexed and read to answer a question, nothing may be used to train or fine-tune AI models, and
+  crawlers that collect only for training are disallowed by name. The API host disallows
+  everything to crawlers except its OpenAPI files and `/.well-known/`. These are requests, not
+  locks: blocking training crawlers at the edge is a Cloudflare setting (AI Crawl Control,
+  Training: Disallow) in the account.
 - The address searched is in the query string, which `redact_query_string` keeps out of Workers
   Logs; a record's path holds the county and the parcel id. The usage counters see `/lookup` and
   `/lookup/*` only. A query parameter named like a credential (`key`, `token`, ...), or any

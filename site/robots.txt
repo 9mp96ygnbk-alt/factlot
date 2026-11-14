@@ -1,8 +1,23 @@
-# FactLot welcomes search engines and AI systems. The tools and docs are open source.
-Content-Signal: search=yes, ai-input=yes, ai-train=yes
+# FactLot welcomes search engines, and AI assistants that read a page to answer a person's
+# question with a citation. Nothing on this site may be used to train or fine-tune AI models:
+# the registry's facts come from public records whose publishers set the terms of their use.
+# Lookup answers (/lookup/, /try/?q=) are answers to one person's request, not pages to crawl.
+# Content signals: https://contentsignals.org/
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 User-agent: *
 Allow: /
 Disallow: /billing/
 Disallow: /try/?q=
+Disallow: /lookup
+
+# Crawlers that collect for model training only.
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: Bytespider
+Disallow: /
 
 Sitemap: https://factlot.com/sitemap.xml

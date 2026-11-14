@@ -237,11 +237,45 @@ const API_EXACT = new Set([
   "/health",
 ]);
 
-const API_ROBOTS = `# api.factlot.com serves FactLot's REST API, OpenAPI and MCP endpoint. Docs: https://factlot.com/
-Content-Signal: search=yes, ai-input=yes, ai-train=yes
+const API_ROBOTS = `# api.factlot.com serves FactLot's REST API, OpenAPI and MCP endpoint to programs. Docs: https://factlot.com/
+# Its answers are answers to one caller's request, not pages to crawl, and nothing here may be
+# used to train or fine-tune AI models. Content signals: https://contentsignals.org/
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 User-agent: *
-Allow: /
+Allow: /openapi.json
+Allow: /openapi-3.0.json
+Allow: /.well-known/
+Disallow: /
 `;
+
+/**
+ * The content signal every answer carries (https://contentsignals.org/): pages may be indexed and
+ * read to answer a person's question, never used to train or fine-tune AI models. A lookup answer
+ * is not for a search index either. An answer that already names its own signal keeps it.
+ */
+export const CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=no";
+export const LOOKUP_CONTENT_SIGNAL = "search=no, ai-input=yes, ai-train=no";
+
+function withContentSignal(path: string, res: Response): Response {
+  if (res.headers.has("content-signal") || res.status === 101) return res;
+  const signal =
+    path === "/lookup" || path.startsWith("/lookup/")
+      ? LOOKUP_CONTENT_SIGNAL
+      : CONTENT_SIGNAL;
+  try {
+    res.headers.set("content-signal", signal);
+    return res;
+  } catch {
+    // Immutable headers (an asset or a fetched answer): copy them.
+    const headers = new Headers(res.headers);
+    headers.set("content-signal", signal);
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers,
+    });
+  }
+}
 
 /** The catalog's registry tools, by name and by REST path. Unknown names are not metered. */
 const REGISTRY_TOOLS = new Map(
@@ -949,6 +983,19 @@ function acceptingJson(request: Request): Request {
 }
 
 export async function handle(
+  request: Request,
+  env: Env,
+  api: Fetcher,
+  opts: HandleOptions = {},
+): Promise<Response> {
+  const res = await handleRequest(request, env, api, opts);
+  return withContentSignal(
+    new URL(request.url).pathname.replace(/\/+$/, "") || "/",
+    res,
+  );
+}
+
+async function handleRequest(
   request: Request,
   env: Env,
   api: Fetcher,
