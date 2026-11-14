@@ -38,8 +38,10 @@ import {
 
 import { CONTACT } from "./contact.ts";
 import { limitHistory, limitSales } from "./gating.ts";
+import { FREE_KEY_PREFIX } from "./freekey.ts";
 import { escapeHtml } from "./html.ts";
 import { innerRequest } from "./internal.ts";
+import { KEY_PREFIX } from "./keys.ts";
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   FREE_KEY_ADDRESS_LOOKUPS_PER_DAY,
@@ -76,6 +78,12 @@ const PLACE_FIELDS = [
  * auth, password, bearer, ...): a request carrying one is refused, and its value is never echoed.
  */
 const CREDENTIAL_PARAM = /key|token|secret|auth|passw|bearer/i;
+/**
+ * A value that holds a FactLot key, by the prefixes keys are issued with (fl_live_ for a paid key,
+ * keys.ts; fl_free_ for a free key, freekey.ts): a request carrying one in any parameter is refused,
+ * so a key typed into the address field is never written back into the form or the heading.
+ */
+const KEY_VALUE = new RegExp(`${KEY_PREFIX}|${FREE_KEY_PREFIX}`);
 /** The query parameters a search reads, the only ones a link built from a request carries. */
 const SEARCH_PARAMS = ["q", ...PLACE_FIELDS.map(([param]) => param)] as const;
 /** The API's answer headers a lookup answer passes on. */
@@ -334,8 +342,8 @@ const recordJsonHref = (urn: string): string =>
 
 /** The answer to a request whose address carries a parameter named like a credential, else null. */
 export function credentialInAddress(url: URL, json: boolean): Response | null {
-  for (const k of url.searchParams.keys())
-    if (CREDENTIAL_PARAM.test(k))
+  for (const [k, v] of url.searchParams)
+    if (CREDENTIAL_PARAM.test(k) || KEY_VALUE.test(v))
       return fail(
         json,
         400,

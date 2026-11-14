@@ -923,6 +923,37 @@ describe("lookup pages: hostile input and privacy", () => {
     assert.equal(await w.usedToday(), 0);
   });
 
+  it("refuses a key typed into any field, never writing it back into the form or the heading", async () => {
+    const w = world();
+    apiCalls.length = 0;
+    for (const prefix of ["fl_live_", "fl_free_"]) {
+      const typed = `${prefix}abcdefSECRETvalue123`;
+      for (const path of [
+        `/lookup/?q=${typed}`,
+        `/lookup/?q=1+Main+${typed}&state=TX`,
+        `/lookup/?q=1+Main&city=${typed}`,
+        `/lookup/?q=1+Main&state=${typed}`,
+        `/lookup/?q=1+Main&zip=${typed}&format=json`,
+        `${MAIN_TX_PATH}?ref=${typed}`,
+      ]) {
+        for (const host of ["factlot.com", "api.factlot.com"]) {
+          const r = await w.get(path, { host });
+          assert.equal(r.status, 400, `${host}${path}`);
+          assert.equal(r.headers.get("location"), null, path);
+          const body = await r.text();
+          assert.ok(!body.includes("SECRET"), path);
+        }
+      }
+    }
+    assert.deepEqual(apiCalls, []);
+    assert.equal(await w.usedToday(), 0);
+    // An ordinary search is still answered.
+    assert.equal(
+      (await w.get("/lookup/?q=100+Main+Street&state=TX")).status,
+      303,
+    );
+  });
+
   it("builds a page's JSON link from the search's own parameters only", async () => {
     const w = world();
     const extra = "&utm_source=zzqq&ref=zzqq&format=html&page=zzqq";

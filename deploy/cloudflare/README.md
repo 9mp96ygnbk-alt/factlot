@@ -36,8 +36,9 @@ the API's JSON with `?format=json` or `Accept: application/json`. Code: `src/loo
   `Referrer-Policy: no-referrer`; the pages are in no sitemap; `robots.txt` lets them be fetched.
 - The address searched is in the query string, which `redact_query_string` keeps out of Workers
   Logs; a record's path holds the county and the parcel id. The usage counters see `/lookup` and
-  `/lookup/*` only. A query parameter named like a credential (`key`, `token`, ...) is refused
-  before anything is looked up, and its value is not written into the answer.
+  `/lookup/*` only. A query parameter named like a credential (`key`, `token`, ...), or any
+  value holding a key (`fl_live_`, `fl_free_`), is refused before anything is looked up, and its
+  value is not written into the answer.
 - On the API host the same paths redirect (302) to the site host, with the same headers, after the
   same refusal of a credential-like parameter, so its value is never put in a `Location` header.
 
