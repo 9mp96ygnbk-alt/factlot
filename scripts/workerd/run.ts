@@ -178,13 +178,11 @@ async function main(): Promise<void> {
     await emptyAnswerChecks(harness);
     await scheduledChecks(harness, apiPath);
     await objectStoreChecks(harness, registryPath, registryOut, pack);
-    const errors = harness
-      .getLogs()
-      .filter((l) =>
-        /uncaught|TypeError|ReferenceError|"msg\\?":\\?"(error|watch check failed|lifecycle sweep failed|watch check stopped)/i.test(
-          JSON.stringify(l),
-        ),
-      );
+    const errors = allLogs(harness).filter((l) =>
+      /uncaught|TypeError|ReferenceError|"msg\\?":\\?"(error|watch check failed|lifecycle sweep failed|watch check stopped)/i.test(
+        JSON.stringify(l),
+      ),
+    );
     expect(
       errors.length === 0,
       "no uncaught errors in the runtime logs",
@@ -196,6 +194,42 @@ async function main(): Promise<void> {
 }
 
 type Harness = ReturnType<typeof createTestHarness>;
+type RuntimeLog = ReturnType<Harness["getLogs"]>[number];
+
+/** Runtime log lines of the sessions restartWith has closed, for the checks that read the logs. */
+const closedSessionLogs: RuntimeLog[] = [];
+const allLogs = (harness: Harness): RuntimeLog[] => [
+  ...closedSessionLogs,
+  ...harness.getLogs(),
+];
+
+/**
+ * Starts both Workers again with changed options, keeping the runtime logs so far. Not
+ * harness.update() on the running Workers: it sets each Worker's config in turn, every Worker's
+ * new bundle reloads the runtime on its own, and it resolves on the first reload, so it can
+ * resolve with a Worker still on its old config (getEnv() without a binding the new config adds)
+ * and a further reload can restart workerd under the next request. A fresh start waits until
+ * every Worker is up on its new config.
+ */
+async function restartWith(
+  harness: Harness,
+  change: Parameters<Harness["update"]>[0],
+): Promise<void> {
+  closedSessionLogs.push(...harness.getLogs());
+  await harness.close();
+  await harness.update(change);
+  await harness.listen();
+}
+
+/** Polls `ok` until it holds or `ms` pass; runtime logs reach this process asynchronously. */
+async function waitFor(ok: () => boolean, ms = 5000): Promise<boolean> {
+  const until = Date.now() + ms;
+  while (!ok()) {
+    if (Date.now() > until) return false;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  return true;
+}
 
 async function asJson(res: Response): Promise<unknown> {
   const text = await res.text();
@@ -772,7 +806,7 @@ async function scheduledChecks(
     );
   }
   // The same with both features on, in this test's own config only.
-  await harness.update((cur) => ({
+  await restartWith(harness, (cur) => ({
     ...cur,
     workers: cur.workers.map((w) =>
       "configPath" in w && w.configPath === apiPath
@@ -790,21 +824,36 @@ async function scheduledChecks(
         : w,
     ),
   }));
+  const outcomes: unknown[] = [];
   for (const cron of ["*/15 * * * *", "0 * * * *"]) {
     const r = await harness
       .getWorker("factlot-api")
       .scheduled({ cron, scheduledTime: new Date() });
+    outcomes.push({ cron, ...r });
     expect(
       r.outcome === "ok",
       `scheduled ${cron} with both feature variables set`,
       r,
     );
   }
-  // The watch check reached the registry through the binding and its index object.
-  const ran = harness
-    .getLogs()
-    .some((l) => /watch check\\?"/.test(JSON.stringify(l)));
-  expect(ran, "the scheduled watch check ran (feature on)");
+  // The watch check reached the registry through the binding and its index object: worker.ts
+  // logs {"msg":"watch check",...} only for a run that got past the index's "begin".
+  const watchRun = (l: RuntimeLog) => {
+    try {
+      const m = JSON.parse(l.message) as { msg?: unknown; state?: unknown };
+      return m.msg === "watch check" && m.state === "run";
+    } catch {
+      return false;
+    }
+  };
+  const ran = await waitFor(() => harness.getLogs().some(watchRun));
+  expect(ran, "the scheduled watch check ran (feature on)", {
+    outcomes,
+    logs: harness
+      .getLogs()
+      .filter((l) => /watch|lifecycle/i.test(l.message))
+      .slice(0, 5),
+  });
   const list = await harness
     .getWorker("factlot-api")
     .fetch("https://api.factlot.com/v1/watch/list", {
@@ -843,7 +892,7 @@ async function objectStoreChecks(
   };
   const r2Path = registryPath.replace(/\.json$/, ".r2.json");
   writeFileSync(r2Path, JSON.stringify(config, null, 2));
-  await harness.update((cur) => ({
+  await restartWith(harness, (cur) => ({
     ...cur,
     workers: cur.workers.map((w) =>
       "configPath" in w && w.configPath === registryPath
@@ -853,8 +902,18 @@ async function objectStoreChecks(
   }));
   const reg = harness.getWorker("factlot-registry");
   const env = (await reg.getEnv()) as {
-    PACK_BUCKET: Parameters<typeof bindingStore>[0];
+    PACK_BUCKET?: Parameters<typeof bindingStore>[0];
+    PACK_BACKEND?: unknown;
   };
+  expect(
+    env.PACK_BUCKET !== undefined && env.PACK_BACKEND === "r2",
+    "registry restarted with the bucket bound and PACK_BACKEND r2",
+    {
+      PACK_BACKEND: env.PACK_BACKEND,
+      PACK_BUCKET: env.PACK_BUCKET !== undefined,
+    },
+  );
+  if (env.PACK_BUCKET === undefined) return;
   await syncPack(bindingStore(env.PACK_BUCKET), pack, {
     id: "workerd-test",
     log: () => {},
