@@ -1074,7 +1074,7 @@ def _plain_words_after_form(s: str) -> bool:
     legal = bool(_LEGAL_FORM.fullmatch(last.group())) and last.group() != "CO"
     head = s[:last.start()].split()
     tail = re.sub(r"\b(?:ET ALS?|ETAL|ETALS|ET UX|ETUX|ET VIR|ETVIR)\b", " ", s[last.end():]).split()
-    if not tail or tail[0] in ("OF", "A", "AN", "TO", "FOR", "IN", "AT", "ON", "AS", "ITS", "FKA", "AKA", "NKA", "F", "N"):
+    if not tail or tail[0] in ("OF", "A", "AN", "TO", "FOR", "IN", "AT", "ON", "AS", "ITS", "FKA", "AKA", "NKA"):
         return False
     if all(len(t) == 1 or t in ("I", "II", "III", "IV", "V", "VI", "GP", "LC", "PS", "PC", "NV", "SA", "BV", "AG")
            for t in tail):
@@ -1097,8 +1097,8 @@ def _plain_words_after_form(s: str) -> bool:
         own = [t for t in words if len(t) > 2]
         if own and all(t in head for t in own):
             continue
-        if legal and len(words) >= 2:
-            return True
+        if len(words) >= 2 and (legal or any(len(t) == 1 and t not in "AI" for t in words)):
+            return True  # after a bare CO (also a county's abbreviation) only with an initial: "ACME & CO P EXAMPLE"
     return False
 
 

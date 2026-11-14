@@ -151,7 +151,7 @@ function personAfterCompany(s: string): boolean {
   )
     return true;
   // "... PROPERTIES OF <PLACE>", "... LLC, A DELAWARE ...", "... PARTNERSHIP TO END ...", "... LLC AS TO 50%"
-  if (/^(?:OF|A|AN|TO|FOR|IN|AT|ON|AS|ITS|FKA|AKA|NKA|F|N)$/.test(tail[0]!))
+  if (/^(?:OF|A|AN|TO|FOR|IN|AT|ON|AS|ITS|FKA|AKA|NKA)$/.test(tail[0]!))
     return false;
   // "N V", "S A" (a foreign legal form), "III A GP" (a fund's number and its general partner)
   if (
@@ -195,8 +195,9 @@ function personAfterCompany(s: string): boolean {
     // not a legal form ("... REALTY <PROPERTY LABEL>") only a given name, or a comma (personAfterComma), says person
     return (
       words.length >= 2 &&
-      last[0] !== "CO" &&
-      new RegExp(`^(?:${LEGAL_FORM.source})$`).test(last[0])
+      ((last[0] !== "CO" &&
+        new RegExp(`^(?:${LEGAL_FORM.source})$`).test(last[0])) ||
+        words.some((t) => /^[B-HJ-Z]$/.test(t))) // after a bare CO only with an initial
     );
   });
 }
