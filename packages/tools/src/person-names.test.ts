@@ -70,6 +70,7 @@ describe("nameReadsAsPerson: persons", () => {
     "ACME LP & ZELLBY QUORVIN & PAT EXAMPLE",
     "ACME LLC & PAT",
     "ACME LLC & ZEBEDIAH",
+    "ZELLBY PAT & EST MARY (INC)",
     "ACME LLC ZELLBY, QUORVIN P III",
     "ACME CO., QUORVIN ZELLBY",
     "ACME LLC ZELLBY QUORVIN DARVEN",

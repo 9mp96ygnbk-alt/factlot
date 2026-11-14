@@ -401,6 +401,16 @@ function piecesNameAPerson(value: string): boolean {
     )
   )
     return true;
+  // "EXAMPLE PAT & EST MARY (INC)": a legal form in parentheses after persons' names
+  if (
+    asides.length > 0 &&
+    asides.every((a) =>
+      /^(?:LLC|INC|CORP|LTD|LP|LLP|CO|PC|PLLC)?$/.test(clean(a)),
+    ) &&
+    clean(outside) !== "" &&
+    !ORGANIZATION.test(clean(outside))
+  )
+    return true;
   const strong = splitOn(outside, STRONG_MARKER);
   for (const s of strong) {
     // a slash between two letters is an abbreviation ("R/E", "S/C", "A/C"), not a separator

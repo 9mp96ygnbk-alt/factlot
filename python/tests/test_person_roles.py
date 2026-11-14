@@ -61,6 +61,47 @@ PERSONS = [
     "EXAMPLE RONALD TRUST ETALS/ EXAMPLE BANK NA TRUSTEE",
     # a legal form written first is a surname
     "CO, PAT Q",
+    # a person after a contact, account or role marker, read on the raw name, given name listed or not (review B1)
+    "ACME LLC C/O QUORVIN ZELLBY",
+    "ACME, L.L.C. ATTN: QUORVIN ZELLBY",
+    "ACME CORP%QUORVIN ZELLBY",
+    "ACME INC. BY QUORVIN ZELLBY",
+    "ACME LLC BY QUORVIN ZELLBY, SOLE MEMBER",
+    "ACME LLC (QUORVIN P. ZELLBY, SOLE MANAGER)",
+    "ACME LLC, QUORVIN ZELLBY AS MEMBER",
+    "ACME LLC, BY QUORVIN ZELLBY, REFEREE",
+    "ACME INC DBA BETA INC-ATTN: QUORVIN ZELLBY",
+    # a person first, then a company (B2)
+    "ZELLBY, QUORVIN P C/O ACME REALTY",
+    "ZELLBY PAT/ACME LLC",
+    "EXAMPLE BANK / PAT ZELLBY",
+    "ZELLBY PAT P (L/U) & ACME REALTY",
+    "ZELLBY PAT & EST MARY (INC)",
+    # a person after a legal form or an organisation word (B3, B4)
+    "ACME LP & ZELLBY QUORVIN & PAT EXAMPLE",
+    "ACME LLC & ZEBEDIAH",
+    "ACME LLC ZELLBY QUORVIN DARVEN",
+    "ACME CO., QUORVIN ZELLBY",
+    "12 EXAMPLE REALTY, QUORVIN ZELLBY",
+    "EXAMPLE ASSOCIATES DARREN ZELLBY",
+    "EXAMPLE FAMILY PARTNERSHIP/DARREN ZELLBY",
+    # surname collisions (B5)
+    "CHURCH PAT QUORVIN",
+    "CITY PAT & MARY ZELLBY",
+    # accounts and will trusts (B6)
+    "ZELLBY QUORVIN P IRA SERV TR CO",
+    "ACME INC AND QUORVIN ZELLBY IRA#1234",
+    "EXAMPLE TRUST U/W/O QUORVIN ZELLBY",
+    "EXAMPLE REALTY TRUST U/W OF QUORVIN ZELLBY",
+    "EXAMPLE FIRM LLP 401K FBO II ZELLBY",
+    "EXAMPLE TRUST COMPANY CUSTODIAN FBO PAT Q EXAMPLE IRA",
+    "ZELLBY PAT DARREN INVESTMENTS TRUSTEE",
+    # truncations and cut remnants (B7)
+    "ACME LLC A/K/A QUORVIN DARVEN ZELLBY, CO-T",
+    "PAT Q. EXAMPLE OF ACME,LLC RECEIVER",
+    "EXAMPLE FOUNDATION AND REB QUORVIN DARVEN",
+    "ASSOCIATES, PAT Q",
+    "ZELLBY, CO-EXEC/CORP.",
 ]
 
 ORGANIZATIONS = [
@@ -99,6 +140,16 @@ ORGANIZATIONS = [
     "ACME LLC - 300 EXAMPLE DR",
     "ACME REALTY LLC RS 303 MANUEL",
     "ACME HOLDINGS LTD & EXAMPLE HOUSING DEVELOPMENT",
+    "SAINT PAUL'S EXAMPLE CHURCH TRUSTEES",
+    "ACME LLC & CO",
+    "SMITH & SONS LLC",
+    "SMITH, EXAMPLE & QUIN, L.L.C.",
+    "EXAMPLE PARK ASSOCIATES, L.C.",
+    "U.S. EXAMPLE/QUIN FEE, LLC",
+    "ACME LLC C/O BETA MANAGEMENT LLC",
+    "EXAMPLE PROPERTIES LLC SERIES A",
+    "EXAMPLE (USA) INC",
+    "EXAMPLE BANK LTD., EXAMPLEVILLE BRANCH",
 ]
 
 
@@ -132,6 +183,15 @@ MAILING_WITHHELD = {
     "ACME LLC ATTN PAT EXAMPLE, 1 MAIN ST, EXAMPLEVILLE, TX": "person",
     "PAT LANE, EXAMPLEVILLE, TX": "person",
     "PAT EXAMPLE RTE 5, EXAMPLEVILLE, CT": "person",
+    # markers read before punctuation is cleaned away (review M1, M2)
+    "PAT Q EXAMPLE C/O EXAMPLE LAW FIRM LLP, 1 MAIN ST, EXAMPLEVILLE, CT": "person",
+    "ACME INC. %PAT EXAMPLE, 1 MAIN ST, EXAMPLEVILLE, CT": "person",
+    "ACME LLC ATTEN: MR. PAT EXAMPLE, 1 MAIN ST, EXAMPLEVILLE, NY": "person",
+    "ACME LLC/PAT EXAMPLE, 1 MAIN ST, EXAMPLEVILLE, NY": "person",
+    "ACME LLC - PAT EXAMPLE, 1 MAIN ST, EXAMPLEVILLE, NY": "person",
+    "% EXAMPLE REALTY ADVISORS PAT EXAMPLE, 1 MAIN ST, EXAMPLEVILLE, NY": "person",
+    "C/O PAT EXAMPLE - CITY MANAGER, 1 MAIN ST, EXAMPLEVILLE, NY": "person",
+    "ACME LLC; P Q EXAMPLE, 1 MAIN ST, EXAMPLEVILLE, NY": "person",
     "EXAMPLE 4 #19-1, EXAMPLEVILLE": "unclear",
 }
 MAILING_KEPT = [
@@ -162,6 +222,13 @@ class MailingLeads(unittest.TestCase):
     def test_street_organisation_and_routing_lines_are_kept(self):
         for address in MAILING_KEPT:
             self.assertIsNone(mailing_address_withheld(address, "ACME HOLDINGS LLC"), address)
+
+    def test_scrub_reads_atten_and_a_glued_attn(self):
+        from factlot.registry.normalize import scrub_mailing_address
+        self.assertEqual(scrub_mailing_address("100 EXAMPLE STREETATTN: PAT EXAMPLE, EXAMPLEVILLE, TX"),
+                         ("100 EXAMPLE STREET, EXAMPLEVILLE, TX", 1))
+        self.assertEqual(scrub_mailing_address("1 MAIN ST, ATTEN PAT EXAMPLE, EXAMPLEVILLE, TX"),
+                         ("1 MAIN ST, EXAMPLEVILLE, TX", 1))
 
     def test_an_unreadable_line_that_is_the_owners_name_is_kept(self):
         self.assertEqual(mailing_lead_class("ACME, 1 MAIN ST, EXAMPLEVILLE, TX")[0], "unclear")
