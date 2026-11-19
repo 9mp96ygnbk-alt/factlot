@@ -5,7 +5,7 @@
 import { createServer } from "node:http";
 import { httpServerHandler } from "cloudflare:node";
 import { createHandler } from "@factlot/server";
-import { configureRegistryRunner } from "@factlot/tools";
+import { configureExchange, configureRegistryRunner } from "@factlot/tools";
 
 import {
   objectLimiter,
@@ -76,6 +76,7 @@ export default {
       boundRegistry = raw.REGISTRY;
       configureRegistryRunner(registryRunner(raw.REGISTRY));
     }
+    if (raw.EXCHANGE_TOKEN) configureExchange({ token: raw.EXCHANGE_TOKEN });
     const api: Fetcher = { fetch: (r) => node.fetch(r, raw, ctx) };
     try {
       const waitUntil = (ctx as { waitUntil?: (p: Promise<unknown>) => void })

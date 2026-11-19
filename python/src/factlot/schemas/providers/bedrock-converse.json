@@ -6051,6 +6051,240 @@
       },
       {
         "toolSpec": {
+          "name": "fact_package_send",
+          "description": "Send a fact package to another firm for confirmation through the Record, and get back a link for them. For an expense (CAM) reconciliation: the tenant's facts (lease terms and the landlord's statement figures, each with its quote and page, from doc_verify_facts or doc_abstract_lease) go in a package from fact_package_create, the arithmetic is calc_cam_reconciliation's output as calculation, and each line is an item: accept_theirs where the sender accepts the counterparty's figure, state_ours where the lease gives a different figure and the counterparty is asked to agree or dispute it. The counterparty opens the link on a plain web page (no account, no Claude), sees every item with both figures, the quote, page and document fingerprint, and agrees or disputes each. Every accepted or agreed item is recorded as a reliance, citing the package digest. The Record keeps each fact, its quote, the page and each document's SHA-256, never the documents. THIS SENDS TO AN OUTSIDE PARTY AND CANNOT BE RECALLED. Before calling it, show the person everything: every item with both figures, the quote and page behind each, the calculation, the counterparty named, and what will be recorded; ask for the full name of the person who approves and wait for them to say it may be sent in this conversation. approved_by must be that person's name (never invent one, never your own) and approval_confirmed true only after they said so; otherwise the call is refused. The package must pass fact_package_verify's integrity checks and every item's fact_ids must be in it. Calls the Record's public exchange endpoint; a package from a service without the Record's application token is recorded as a sandbox package and does not count in its measure (recorded_as tells which). Returns the package id, digest, link_for_counterparty, status_link_for_sender (keep private) and what was recorded. Read the answers later with fact_package_status.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "package": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {},
+                  "description": "The package from fact_package_create (signed or not)."
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["expense_reconciliation", "fact_confirmation"],
+                  "description": "What is being confirmed."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "description": "A title the counterparty sees."
+                },
+                "subject": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 240,
+                      "description": "What it is about, in words (for example an address)."
+                    },
+                    "record_id": {
+                      "type": "string",
+                      "pattern": "^par_[0-9A-Za-z]{13}$"
+                    },
+                    "urn": {
+                      "type": "string",
+                      "maxLength": 120,
+                      "pattern": "^fl:[a-z_]+:[A-Za-z0-9_.:-]+$"
+                    }
+                  },
+                  "required": ["label"],
+                  "description": "The property or lease the facts are about."
+                },
+                "from": {
+                  "type": "object",
+                  "properties": {
+                    "organisation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "person": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "email": {
+                      "description": "Kept by the Record to reach the person; never shown to the other party.",
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "required": ["organisation", "person"],
+                  "description": "The sender: organisation, person, email."
+                },
+                "to": {
+                  "type": "object",
+                  "properties": {
+                    "organisation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "person": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "email": {
+                      "description": "Kept by the Record; never shown to anyone else.",
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "required": ["organisation"],
+                  "description": "The counterparty."
+                },
+                "items": {
+                  "minItems": 1,
+                  "maxItems": 60,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_.-]{1,60}$",
+                        "description": "A short stable name for the item, unique in the package."
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160,
+                        "description": "What the item is, in plain words the counterparty will read."
+                      },
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 400
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "description": "The sender's figure. For accept_theirs it is the figure the sender accepts (the counterparty's own); for state_ours it is the figure the sender says is right."
+                      },
+                      "unit": {
+                        "description": "For example USD, SF, percent.",
+                        "type": "string",
+                        "maxLength": 30
+                      },
+                      "position": {
+                        "type": "string",
+                        "enum": ["accept_theirs", "state_ours"],
+                        "description": "accept_theirs: the sender accepts the counterparty's figure (recorded at once as relied on by the sender). state_ours: the sender states its own figure and asks the counterparty to agree or dispute it."
+                      },
+                      "their_value": {
+                        "description": "The counterparty's figure, when it differs (always give it for state_ours).",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 400
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      },
+                      "fact_ids": {
+                        "minItems": 1,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "description": "The ids of the facts in the package this item rests on. Each fact must carry a source quote, page and document sha256."
+                      },
+                      "note": {
+                        "description": "A sentence on why, shown to the counterparty.",
+                        "type": "string",
+                        "maxLength": 600
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "label",
+                      "value",
+                      "position",
+                      "fact_ids"
+                    ]
+                  },
+                  "description": "The line items. The counterparty answers each state_ours item."
+                },
+                "calculation": {
+                  "description": "A calc tool's output (for example calc_cam_reconciliation) shown to the counterparty with every step.",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                "approved_by": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "The full name of the person at the sender who approved sending this. Never invent it and never use the model's name: ask."
+                },
+                "approval_confirmed": {
+                  "type": "boolean",
+                  "description": "true only after that person has been shown everything and said in this conversation that it may be sent. Anything else refuses."
+                }
+              },
+              "required": [
+                "package",
+                "kind",
+                "title",
+                "subject",
+                "from",
+                "to",
+                "items",
+                "approved_by",
+                "approval_confirmed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
+          "name": "fact_package_status",
+          "description": "Read the status of a package sent with fact_package_send: for each item, whether the counterparty agreed or disputed it (with their reason and who answered), which items the sender accepted, the reliances recorded, and the package's integrity. Give the sender's private status_link (or package_id with token). Needs no account and costs nothing; it reads only your own package, and the counterparty's link cannot read it.",
+          "inputSchema": {
+            "json": {
+              "type": "object",
+              "properties": {
+                "status_link": {
+                  "description": "The sender's private status link from fact_package_send.",
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "package_id": {
+                  "type": "string",
+                  "maxLength": 60
+                },
+                "token": {
+                  "description": "The sender's private token (with package_id), if there is no link.",
+                  "type": "string",
+                  "maxLength": 200
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "toolSpec": {
           "name": "lease_comp_validate",
           "description": "Check a lease comparable one firm shares with others, as a FactLot fact with predicate lease.comp, and derive its net effective rent. The fact goes through fact_validate (schema, citations, rights), then the comp's own rules: shape (spec/schemas/fact.json LeaseComp: area, commencement, term or expiration, starting or current rent, escalation, free rent, TI, leasing commissions, expense basis, confirming party, verification), an expiration after commencement, a term that matches the dates, free rent within the term, no email, phone or ID number in the text. A comp names no person or company. With the default share profile it also needs the deal's starting rent, escalations, free rent, TI, property type, an expense basis other than unknown, and stated rights. When valid and a starting rent is given, ner.fact is a computed lease.net_effective_rent fact (formula calc.net_effective_rent@1, straight-line and discounted at discount_rate_annual, on the comp's own expense basis; no conversion between full service and net). Returns { valid, issues, warnings, ner }. Call before sharing a comp.",
           "inputSchema": {

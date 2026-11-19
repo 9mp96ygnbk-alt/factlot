@@ -9,6 +9,13 @@
  * ```
  */
 export * from "./catalog.ts";
+export {
+  ExchangeUnavailableError,
+  configureExchange,
+  EXCHANGE_URL,
+  EXCHANGE_SITE_URL,
+  type ExchangeConfig,
+} from "./exchange.ts";
 export * from "./providers.ts";
 export * from "./registry.ts";
 export * from "./fields.ts";

@@ -79,6 +79,13 @@ import {
   withTxEquityCalcArgs,
 } from "./registry.ts";
 import {
+  ExchangeUnavailableError,
+  FactPackageSendInput,
+  FactPackageStatusInput,
+  factPackageStatus,
+  sendFactPackage,
+} from "./exchange.ts";
+import {
   INPUT_LIMITS,
   appliesUnitPolicy,
   inputShapeIssue,
@@ -120,7 +127,8 @@ export interface ToolError {
     | "InputError"
     | "UnknownTool"
     | "RegistryUnavailable"
-    | "NotFound";
+    | "NotFound"
+    | "ExchangeUnavailable";
   message: string;
   issues: { path: string; message: string }[];
   /** On a registry NotFound: whether the region or registry asked about is loaded in this file. */
@@ -470,6 +478,28 @@ const packageTools: ToolSpec[] = [
     async: true,
     run: (i: never) =>
       verifyFactPackage(i as z.output<typeof FactPackageVerifyInput>),
+  },
+  {
+    name: "fact_package_send",
+    title: "Send a fact package to a counterparty for confirmation",
+    description:
+      "Send a fact package to another firm for confirmation through the Record, and get back a link for them. For an expense (CAM) reconciliation: the tenant's facts (lease terms and the landlord's statement figures, each with its quote and page, from doc_verify_facts or doc_abstract_lease) go in a package from fact_package_create, the arithmetic is calc_cam_reconciliation's output as calculation, and each line is an item: accept_theirs where the sender accepts the counterparty's figure, state_ours where the lease gives a different figure and the counterparty is asked to agree or dispute it. The counterparty opens the link on a plain web page (no account, no Claude), sees every item with both figures, the quote, page and document fingerprint, and agrees or disputes each. Every accepted or agreed item is recorded as a reliance, citing the package digest. The Record keeps each fact, its quote, the page and each document's SHA-256, never the documents. THIS SENDS TO AN OUTSIDE PARTY AND CANNOT BE RECALLED. Before calling it, show the person everything: every item with both figures, the quote and page behind each, the calculation, the counterparty named, and what will be recorded; ask for the full name of the person who approves and wait for them to say it may be sent in this conversation. approved_by must be that person's name (never invent one, never your own) and approval_confirmed true only after they said so; otherwise the call is refused. The package must pass fact_package_verify's integrity checks and every item's fact_ids must be in it. Calls the Record's public exchange endpoint; a package from a service without the Record's application token is recorded as a sandbox package and does not count in its measure (recorded_as tells which). Returns the package id, digest, link_for_counterparty, status_link_for_sender (keep private) and what was recorded. Read the answers later with fact_package_status.",
+    input: FactPackageSendInput,
+    path: "/v1/facts/package/send",
+    async: true,
+    run: (i: never) =>
+      sendFactPackage(i as z.output<typeof FactPackageSendInput>),
+  },
+  {
+    name: "fact_package_status",
+    title: "Read a sent fact package's status and answers",
+    description:
+      "Read the status of a package sent with fact_package_send: for each item, whether the counterparty agreed or disputed it (with their reason and who answered), which items the sender accepted, the reliances recorded, and the package's integrity. Give the sender's private status_link (or package_id with token). Needs no account and costs nothing; it reads only your own package, and the counterparty's link cannot read it.",
+    input: FactPackageStatusInput,
+    path: "/v1/facts/package/status",
+    async: true,
+    run: (i: never) =>
+      factPackageStatus(i as z.output<typeof FactPackageStatusInput>),
   },
 ];
 
@@ -1349,6 +1379,12 @@ function errorOutcome(err: unknown): ToolOutcome {
         message: err.message,
         issues: err.issues,
       },
+    };
+  }
+  if (err instanceof ExchangeUnavailableError) {
+    return {
+      ok: false,
+      error: { error: "ExchangeUnavailable", message: err.message, issues: [] },
     };
   }
   if (err instanceof NotFoundError) {
