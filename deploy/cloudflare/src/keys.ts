@@ -50,6 +50,15 @@ export interface KeyRecord {
   period_end?: string;
   /** The subscription ends at period_end instead of renewing. */
   cancel_at_period_end?: boolean;
+  /**
+   * A guest key: given by the maintainer to someone outside the subscription (a reviewer), with
+   * scripts/billing/mint-key.ts only. It calls the tools at the plan's limits on its own meter
+   * (`key:<id>`), so the subscription's use and the guest's never eat into each other, and it has
+   * none of the account powers: no billing portal, no key changes, no connected apps, no watch
+   * lists, no /account page. Its sign-ins (OAuth) stay tied to it, and the subscription's own
+   * sign-ins never resolve to it.
+   */
+  guest?: true;
 }
 
 /** How long KV keeps a record that is no longer active. */
@@ -235,12 +244,18 @@ export async function removeSubscriptionKey(
 
 /**
  * The meter subject for a key: its subscription, so every key of one subscription shares the
- * plan's limits and rotating or minting a key never resets or multiplies them.
+ * plan's limits and rotating or minting a key never resets or multiplies them. A guest key has
+ * its own (only the maintainer makes one).
  */
 export function meterSubject(record: KeyRecord, hash: string): string {
-  return record.subscription
+  return record.subscription && !record.guest
     ? `sub:${record.subscription}`
     : `key:${keyId(hash)}`;
+}
+
+/** The subscription's own keys among `keys`: every key but the guest keys. */
+export function ownerKeys<T extends { record: KeyRecord }>(keys: T[]): T[] {
+  return keys.filter((k) => !k.record.guest);
 }
 
 /**

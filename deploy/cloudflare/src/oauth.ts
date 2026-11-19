@@ -57,7 +57,9 @@ import {
   base64url,
   deriveStatus,
   hashKey,
+  keyId,
   liveKeys,
+  ownerKeys,
   randomToken,
   stripeStatusIsTerminal,
   type KeyRecord,
@@ -289,9 +291,12 @@ export function oauthHelpers(env: Env): OAuthHelpers {
 
 // --- Who a token stands for --------------------------------------------------------------------
 
-/** Stored encrypted with the grant: the subscription, never a key. */
+/**
+ * Stored encrypted with the grant: the subscription, never a key. A sign-in with a guest key
+ * (keys.ts) also keeps that key's public id, so the connection stays on the guest's meter.
+ */
 type OAuthProps =
-  | { v: 1; tier: "paid"; subscription: string }
+  | { v: 1; tier: "paid"; subscription: string; guest_key?: string }
   | {
       v: 1;
       tier: "free";
@@ -413,8 +418,12 @@ export async function resolveOAuthToken(
     else void work.catch(() => {});
     return undefined;
   };
+  // A guest's connection: that key while it lives. Any other: the subscription's newest own key.
   const keys = await liveKeys(env.KEYS, props.subscription);
-  const newest = keys[keys.length - 1];
+  const newest =
+    typeof props.guest_key === "string"
+      ? keys.find((k) => k.record.guest && keyId(k.hash) === props.guest_key)
+      : ownerKeys(keys).at(-1);
   if (!newest) return ended();
   let record: KeyRecord = newest.record;
   const d = billingDeps(env, opts.fetchImpl, opts.now);
@@ -709,13 +718,23 @@ async function grant(
   env: Env,
   approved: { request: AuthRequest; headers: Headers },
   who:
-    | { tier: "paid"; subscription: string; via: "key" | "email" }
+    | {
+        tier: "paid";
+        subscription: string;
+        via: "key" | "email";
+        guest_key?: string;
+      }
     | { tier: "free"; meter: string },
   view: ConsentView,
 ): Promise<Response> {
   const props: OAuthProps =
     who.tier === "paid"
-      ? { v: 1, tier: "paid", subscription: who.subscription }
+      ? {
+          v: 1,
+          tier: "paid",
+          subscription: who.subscription,
+          ...(who.guest_key ? { guest_key: who.guest_key } : {}),
+        }
       : { v: 1, tier: "free", meter: who.meter };
   const metadata: GrantMeta = {
     tier: who.tier,
@@ -891,7 +910,12 @@ async function authorizeRoute(
     return await grant(
       env,
       approved,
-      { tier: "paid", subscription: caller.record.subscription, via: "key" },
+      {
+        tier: "paid",
+        subscription: caller.record.subscription,
+        via: "key",
+        ...(caller.record.guest ? { guest_key: keyId(caller.hash) } : {}),
+      },
       view,
     );
   } catch (err) {
@@ -1042,8 +1066,7 @@ async function emailLinkRoute(
   if (!raw) return invalid();
   const rec = JSON.parse(raw) as LinkRecord;
   if (rec.used_at || now() > Date.parse(rec.expires_at)) return invalid();
-  const keys = await liveKeys(env.KEYS, rec.subscription);
-  const newest = keys[keys.length - 1];
+  const newest = ownerKeys(await liveKeys(env.KEYS, rec.subscription)).at(-1);
   if (!newest) return invalid();
   const plan = PLANS[newest.record.plan as PlanId];
   const active = deriveStatus(newest.record) === "active";

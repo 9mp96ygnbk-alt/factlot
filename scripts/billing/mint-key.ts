@@ -1,7 +1,8 @@
 // Maintainer CLI for hosted API keys: lost-key support and billing holds.
 //
 //   node --experimental-strip-types scripts/billing/mint-key.ts show <sub_...>
-//   node --experimental-strip-types scripts/billing/mint-key.ts mint <sub_...> [--keep] [--out <file>]
+//   node --experimental-strip-types scripts/billing/mint-key.ts mint <sub_...> [--keep] [--guest] [--out <file>]
+//   node --experimental-strip-types scripts/billing/mint-key.ts guest <sub_...> <key-id>
 //   node --experimental-strip-types scripts/billing/mint-key.ts clear-hold <sub_...>
 //
 // mint     issues a new key for the subscription and prints it once on stdout, or with --out
@@ -12,6 +13,11 @@
 //          leaves them working. Plan, customer and status come from the subscription's newest
 //          key record; with no record, from Stripe (needs STRIPE_SECRET_KEY in the environment,
 //          read-only calls) or from --plan pro|team --customer cus_... .
+//          --guest makes a guest key (keys.ts): for someone outside the subscription, such as a
+//          reviewer. It calls the tools at the plan's limits on its own meter and has no account
+//          powers (billing portal, key changes, connected apps, /account). It implies --keep.
+// guest    turns an existing key of the subscription (its 16-hex id, from show) into a guest
+//          key. Its use so far stays on the subscription's meter; from now on it counts alone.
 // clear-hold  removes a "refunded" or "disputed" hold (for example after a dispute is won), so
 //          the keys follow the subscription's Stripe status again.
 // show     prints the subscription's key ids, status and hold. Never prints a key.
@@ -47,7 +53,7 @@ const workerDir = fileURLToPath(
 
 function usage(message: string): never {
   console.error(
-    `${message}\nusage: mint-key.ts show|mint|clear-hold <sub_...> [--keep] [--out file] [--plan pro|team --customer cus_...] [--local [--persist-to dir]]`,
+    `${message}\nusage: mint-key.ts show|mint|guest|clear-hold <sub_...> [key-id] [--keep] [--guest] [--out file] [--plan pro|team --customer cus_...] [--local [--persist-to dir]]`,
   );
   process.exit(2);
 }
@@ -59,7 +65,7 @@ const option = (name: string) => {
   return i >= 0 ? args[i + 1] : undefined;
 };
 const [command, subscription] = args;
-if (!command || !["show", "mint", "clear-hold"].includes(command))
+if (!command || !["show", "mint", "guest", "clear-hold"].includes(command))
   usage("unknown command");
 if (!subscription || !/^sub_[A-Za-z0-9]+$/.test(subscription))
   usage("give a Stripe subscription id (sub_...)");
@@ -145,8 +151,27 @@ if (command === "show") {
   if (keys.length === 0) console.log(`${subscription}: no live keys`);
   for (const { hash, record } of keys)
     console.log(
-      `${keyId(hash)}  ${record.plan}  ${record.status}  stripe=${record.stripe_status}${record.hold ? `  hold=${record.hold}` : ""}${record.paused ? "  paused" : ""}  created ${record.created}`,
+      `${keyId(hash)}  ${record.plan}  ${record.status}  stripe=${record.stripe_status}${record.hold ? `  hold=${record.hold}` : ""}${record.paused ? "  paused" : ""}${record.guest ? "  guest" : ""}  created ${record.created}`,
     );
+  process.exit(0);
+}
+
+if (command === "guest") {
+  const id = args[2];
+  if (!id || !/^[0-9a-f]{16}$/.test(id))
+    usage("give the key's 16-hex id (from show)");
+  const target = keys.find((k) => keyId(k.hash) === id);
+  if (!target) usage(`no live key ${id} on ${subscription}`);
+  if (target.record.guest) {
+    console.log(`${id} is already a guest key.`);
+    process.exit(0);
+  }
+  if (keys.filter((k) => !k.record.guest && k !== target).length === 0)
+    usage("that is the subscription's only key of its own; mint another first");
+  await writeKey(kv, target.hash, { ...target.record, guest: true });
+  console.log(
+    `${id} is now a guest key: its own meter, no account powers. It can take a minute everywhere.`,
+  );
   process.exit(0);
 }
 
@@ -168,7 +193,11 @@ if (command === "clear-hold") {
 
 // mint
 const now = Date.now();
-let base: KeyRecord | undefined = keys.at(-1)?.record;
+const guest = flag("guest");
+const keep = flag("keep") || guest;
+// The newest key of the subscription's own: a guest's record is never the template.
+let base: KeyRecord | undefined =
+  keys.filter((k) => !k.record.guest).at(-1)?.record ?? keys.at(-1)?.record;
 if (!base) {
   const env = {
     KEYS: kv,
@@ -221,9 +250,11 @@ const fresh: KeyRecord = { ...base, created: new Date(now).toISOString() };
 delete fresh.replaced_by;
 delete fresh.revoked_at;
 delete fresh.inactive_since;
+delete fresh.guest;
+if (guest) fresh.guest = true;
 await writeKey(kv, hash, fresh, now);
 await addSubscriptionKey(kv, subscription, hash);
-if (!flag("keep"))
+if (!keep)
   for (const old of keys)
     await writeKey(
       kv,
@@ -233,7 +264,7 @@ if (!flag("keep"))
     );
 await settleSubscription(kv, subscription);
 
-const summary = `new key ${keyId(hash)} for ${subscription} (${fresh.plan}, ${fresh.stripe_status})${flag("keep") ? "" : `; replaced ${keys.length} older key(s)`}. It can take a minute to work everywhere.`;
+const summary = `new ${guest ? "guest " : ""}key ${keyId(hash)} for ${subscription} (${fresh.plan}, ${fresh.stripe_status})${keep ? "" : `; replaced ${keys.length} older key(s)`}. It can take a minute to work everywhere.`;
 if (outFd !== undefined) {
   writeSync(outFd, `${key}\n`);
   closeSync(outFd);

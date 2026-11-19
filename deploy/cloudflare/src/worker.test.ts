@@ -38,6 +38,7 @@ import {
   hashKey,
   keyId,
   looksLikeKey,
+  meterSubject,
   readKey,
   stripeStatusIsActive,
   writeKey,
@@ -2525,6 +2526,115 @@ describe("accounts and keys", () => {
         })
       ).status,
       404,
+    );
+  });
+
+  it("a guest key calls tools and reads its own account, but cannot touch billing, keys or apps; the owner sees and revokes it", async () => {
+    const { api } = innerApi();
+    const e = env();
+    const owner = await issue(e);
+    const guest = await issue(e, {
+      guest: true,
+      created: "2026-11-19T00:00:00Z",
+    });
+    assert.equal(
+      meterSubject((await readKey(e.KEYS, guest.hash))!, guest.hash),
+      `key:${keyId(guest.hash)}`,
+    );
+    assert.equal(
+      meterSubject((await readKey(e.KEYS, owner.hash))!, owner.hash),
+      "sub:sub_1",
+    );
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: guest.key })).status,
+      200,
+    );
+    const mine = (await (
+      await call(e, api, "/v1/account", { key: guest.key, method: "GET" })
+    ).json()) as {
+      guest?: boolean;
+      renewal_at: string | null;
+      connections?: unknown;
+      keys: { count: number; items: { id: string }[] };
+    };
+    assert.equal(mine.guest, true);
+    assert.equal(mine.renewal_at, null);
+    assert.equal(mine.connections, undefined);
+    assert.deepEqual(
+      mine.keys.items.map((k) => k.id),
+      [keyId(guest.hash)],
+    );
+    assert.equal(
+      (
+        await call(e, api, "/v1/account/usage", {
+          key: guest.key,
+          method: "GET",
+        })
+      ).status,
+      200,
+    );
+    for (const [path, method] of [
+      ["/v1/billing/portal", "POST"],
+      ["/v1/billing/rotate", "POST"],
+      ["/v1/billing/keys", "POST"],
+      [`/v1/billing/keys/${keyId(owner.hash)}`, "DELETE"],
+      ["/v1/account/connections/abc", "DELETE"],
+    ] as const) {
+      const r = await call(e, api, path, { key: guest.key, method });
+      assert.equal(r.status, 403, path);
+      assert.equal(((await r.json()) as { error: string }).error, "GuestKey");
+    }
+    const page = await handle(
+      new Request("https://factlot.com/account", {
+        method: "POST",
+        body: new URLSearchParams({ key: guest.key, action: "portal" }),
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "cf-connecting-ip": IP,
+        },
+      }),
+      e,
+      api,
+      { now: () => e.clock.t },
+    );
+    assert.equal(page.status, 403);
+    assert.match(await page.text(), /guest key/);
+    // The owner: one key of its own (Pro's limit), the guest listed and marked.
+    const theirs = (await (
+      await call(e, api, "/v1/account", { key: owner.key, method: "GET" })
+    ).json()) as {
+      keys: { count: number; items: { id: string; guest?: boolean }[] };
+    };
+    assert.equal(theirs.keys.count, 1);
+    assert.deepEqual(
+      theirs.keys.items.map((k) => [k.id, k.guest === true]),
+      [
+        [keyId(owner.hash), false],
+        [keyId(guest.hash), true],
+      ],
+    );
+    // The guest never counts as the subscription's last key; the owner can revoke it.
+    assert.equal(
+      (
+        await call(e, api, `/v1/billing/keys/${keyId(owner.hash)}`, {
+          key: owner.key,
+          method: "DELETE",
+        })
+      ).status,
+      409,
+    );
+    assert.equal(
+      (
+        await call(e, api, `/v1/billing/keys/${keyId(guest.hash)}`, {
+          key: owner.key,
+          method: "DELETE",
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await call(e, api, "/v1/calc/irr", { key: guest.key })).status,
+      401,
     );
   });
 
