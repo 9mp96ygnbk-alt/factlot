@@ -2,7 +2,12 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 
-import { configureExchange, runTool, runToolAsync } from "./index.ts";
+import {
+  configureExchange,
+  runTool,
+  runToolAsync,
+  runWithExchangeCaller,
+} from "./index.ts";
 
 afterEach(() => configureExchange({}));
 
@@ -220,13 +225,53 @@ test("sends through the public endpoint; the token is added only when configured
   );
   assert.deepEqual((r.recorded as Json).items_awaiting_answer, ["roof"]);
   assert.equal((r.recorded as Json).counts_in_the_measure, false);
+  assert.equal(r.test_mode, true);
 
-  const two = fakeExchange(sentOk(false));
-  configureExchange({ fetch: two.f, token: "cre_testtoken" });
-  const realOut = await runToolAsync("fact_package_send", baseInput(pkg, ids));
+  // A token without a known account is still a test: the token is not forwarded.
+  const noAcct = fakeExchange(sentOk(true));
+  configureExchange({ fetch: noAcct.f, token: "cre_testtoken" });
+  const t = await runToolAsync("fact_package_send", baseInput(pkg, ids));
+  assert.ok(t.ok);
+  assert.equal(noAcct.seen[0]!.headers.authorization, undefined);
+  assert.equal(noAcct.seen[0]!.body.sender_account, undefined);
+  assert.equal((t.result as Json).test_mode, true);
+  assert.match(
+    (t.result as Json).message as string,
+    /^TEST MODE: .*no FactLot account key/,
+  );
+
+  // An account without the application token (local or self-hosted) is a test too.
+  const noTok = fakeExchange(sentOk(true));
+  configureExchange({ fetch: noTok.f });
+  const u = await runWithExchangeCaller({ accountId: "acct_abc12345" }, () =>
+    runToolAsync("fact_package_send", baseInput(pkg, ids)),
+  );
+  assert.ok(u.ok);
+  assert.equal(noTok.seen[0]!.headers.authorization, undefined);
+  assert.equal(noTok.seen[0]!.body.sender_account, undefined);
+  assert.match(
+    (u.result as Json).message as string,
+    /^TEST MODE: .*not connected to the Record/,
+  );
+
+  // Token and account together: forwarded, and the answer says it was for real.
+  const real = fakeExchange(sentOk(false));
+  configureExchange({ fetch: real.f, token: "cre_testtoken" });
+  const realOut = await runWithExchangeCaller(
+    { accountId: "acct_abc12345" },
+    () => runToolAsync("fact_package_send", baseInput(pkg, ids)),
+  );
   assert.ok(realOut.ok);
-  assert.equal(two.seen[0]!.headers.authorization, "Bearer cre_testtoken");
-  assert.equal((realOut.result as Json).recorded_as, "real");
+  assert.equal(real.seen[0]!.headers.authorization, "Bearer cre_testtoken");
+  assert.equal(real.seen[0]!.body.sender_account, "acct_abc12345");
+  const rr = realOut.result as Json;
+  assert.equal(rr.recorded_as, "real");
+  assert.equal(rr.test_mode, false);
+  assert.match(
+    rr.message as string,
+    /^SENT FOR REAL: the Record recorded 1 reliance now/,
+  );
+  assert.ok(!JSON.stringify(rr).includes("cre_testtoken"));
 });
 
 test("platform refusals are input errors; an unreachable or failing platform is ExchangeUnavailable", async () => {

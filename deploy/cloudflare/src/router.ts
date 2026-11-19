@@ -24,10 +24,12 @@ import {
   LOOKUP_BATCH_MAX_ITEMS,
   TX_EQUITY_BATCH_MAX_SUBJECTS,
   lookupItemStateFips,
+  runWithExchangeCaller,
   tools,
   type LookupItem,
 } from "@factlot/tools";
 
+import { exchangeAccountId } from "./exchange-account.ts";
 import {
   CONTACT,
   DISCUSSIONS,
@@ -1959,6 +1961,7 @@ async function route(
   // It trusts forwarding headers (worker.ts sets trustProxy), so this layer replaces anything
   // the client sent: the public scheme is always https, the host is the one Cloudflare routed,
   // and the client address is Cloudflare's.
+  const exchangeAccount = await exchangeAccountId(paid, freeKey);
   const forward = (body?: string) => {
     const inner =
       body === undefined
@@ -1978,7 +1981,10 @@ async function route(
     inner.headers.set("x-forwarded-proto", "https");
     inner.headers.set("x-forwarded-host", host);
     inner.headers.set("x-forwarded-for", clientAddress(request));
-    return api.fetch(inner);
+    // fact_package_send reads which account is calling from here; the key itself never passes.
+    return runWithExchangeCaller({ accountId: exchangeAccount }, () =>
+      api.fetch(inner),
+    );
   };
   const meterUsage = (status: number) =>
     env.USAGE?.writeDataPoint({

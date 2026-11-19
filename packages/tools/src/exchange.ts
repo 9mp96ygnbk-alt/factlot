@@ -12,6 +12,8 @@
  * These are the only tools that make an outbound call. They are `async` (like fact_package_verify)
  * and reach the network through `fetch`, which can be replaced for tests with configureExchange.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import { z } from "zod";
 
 import { ToolInputError } from "./documents.ts";
@@ -56,6 +58,29 @@ const siteUrl = (): string =>
   ).replace(/\/$/, "");
 const appToken = (): string | undefined =>
   config.token ?? envOf("FACTLOT_EXCHANGE_TOKEN");
+
+/**
+ * Who is calling, set by a host that knows (the hosted Worker, after it has checked a FactLot
+ * key). accountId is a stable id for the account behind the key (never the key itself). Without it
+ * a package is sent in test mode.
+ */
+export interface ExchangeCaller {
+  accountId?: string;
+}
+const callerStore = new AsyncLocalStorage<ExchangeCaller>();
+
+/** The caller set by runWithExchangeCaller around the current call, if any. */
+export function currentExchangeCaller(): ExchangeCaller | undefined {
+  return callerStore.getStore();
+}
+
+/** Run `fn` with the caller's account known to fact_package_send. */
+export function runWithExchangeCaller<T>(
+  caller: ExchangeCaller,
+  fn: () => T,
+): T {
+  return callerStore.run(caller, fn);
+}
 
 /** The exchange could not be reached or failed on its side; nothing was sent or recorded as far as FactLot knows. */
 export class ExchangeUnavailableError extends Error {
@@ -202,13 +227,13 @@ export const FactPackageStatusInput = z.object({
 
 // --- platform calls ------------------------------------------------------------------------------
 
-async function call(body: Json, auth: boolean): Promise<Json> {
+async function call(body: Json, forwardToken: boolean): Promise<Json> {
   const f = config.fetch ?? globalThis.fetch;
   const headers: Record<string, string> = {
     "content-type": "application/json",
   };
   const token = appToken();
-  if (auth && token) headers.authorization = `Bearer ${token}`;
+  if (forwardToken && token) headers.authorization = `Bearer ${token}`;
   let res: Response;
   try {
     res = await f(endpoint(), {
@@ -327,6 +352,11 @@ export async function sendFactPackage(
   }
 
   const ref = input.subject.record_id ?? input.subject.urn;
+  // A package can be real only when this service holds the Record's application token and the
+  // host has said which FactLot account is calling. Otherwise it is sent without the token, which
+  // the Record can only take as a test.
+  const accountId = callerStore.getStore()?.accountId;
+  const forward = Boolean(appToken() && accountId);
   const sent = await call(
     {
       action: "send",
@@ -340,18 +370,29 @@ export async function sendFactPackage(
       ...(input.calculation ? { calculation: input.calculation } : {}),
       approved_by: input.approved_by,
       approval_confirmed: true,
+      ...(forward ? { sender_account: accountId } : {}),
     },
-    true,
+    forward,
   );
   const id = String(sent.id);
   const reliances = (sent.reliances_recorded as Json[]) ?? [];
   const sandbox = sent.sandbox === true;
+  const reason = !appToken()
+    ? "this FactLot is not connected to the Record as an accredited service (a local or self-hosted install, or a service without the Record's application token)"
+    : !accountId
+      ? "no FactLot account key came with the call (only a caller with a FactLot account key, free or paid, can send for real)"
+      : String(sent.test_mode_reason ?? "the Record took it as a test");
+  const message = sandbox
+    ? `TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and answer, so say clearly to the person that this was a test.`
+    : `SENT FOR REAL: the Record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
   return {
     package_id: id,
     digest: sent.digest,
     package_root: sent.package_root,
     status: sent.status,
     recorded_as: sandbox ? "sandbox" : "real",
+    test_mode: sandbox,
+    message,
     link_for_counterparty: link(id, String(sent.counterparty_token)),
     status_link_for_sender: link(id, String(sent.owner_token)),
     recorded: {
@@ -362,7 +403,7 @@ export async function sendFactPackage(
         .map((x) => x.key),
       counts_in_the_measure: !sandbox,
     },
-    note: `Send link_for_counterparty to ${input.to.organisation}; it needs no account. Keep status_link_for_sender private: it reads the answers (fact_package_status). ${sandbox ? "This was recorded as a sandbox package: it is kept apart from the Record's measure." : ""}`.trim(),
+    note: `Send link_for_counterparty to ${input.to.organisation}; it needs no account. Keep status_link_for_sender private: it reads the answers (fact_package_status).`,
   };
 }
 
@@ -422,6 +463,7 @@ export async function factPackageStatus(
     title: s.title,
     status: s.status,
     sandbox: s.sandbox,
+    test_mode: s.sandbox,
     to: (s.to as Json).organisation,
     package_root: s.package_root,
     integrity: s.integrity,

@@ -30,7 +30,7 @@ from . import __version__
 from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
-from . import comps, comps_search, docverify, factpackage, predicates, statements, uses
+from . import comps, comps_search, docverify, exchange, factpackage, predicates, statements, uses
 from .ids import FactLotIdError, building_id, document_id, entity_id, parcel_id, parse, short_id, space_id
 
 
@@ -441,6 +441,8 @@ _DOC_TOOLS = {
     "doc_predicates": lambda a: predicates.doc_predicates(a),
     "fact_package_create": lambda a: factpackage.create_fact_package(a),
     "fact_package_verify": lambda a: factpackage.verify_fact_package(a),
+    "fact_package_send": lambda a: exchange.send_fact_package(a),
+    "fact_package_status": lambda a: exchange.fact_package_status(a),
 }
 
 
@@ -1273,6 +1275,8 @@ def run_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
         return {"error": "FactLotIdError", "message": str(e), "issues": []}
     except (_InputError, docverify.DocInputError) as e:
         return {"error": "InputError", "message": str(e), "issues": e.issues}
+    except exchange.ExchangeUnavailable as e:
+        return {"error": "ExchangeUnavailable", "message": str(e), "issues": []}
     except _RegistryUnavailable as e:
         return {"error": "RegistryUnavailable", "message": str(e), "issues": []}
     except _NotFound as e:

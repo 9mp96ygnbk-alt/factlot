@@ -12,6 +12,9 @@ export * from "./catalog.ts";
 export {
   ExchangeUnavailableError,
   configureExchange,
+  runWithExchangeCaller,
+  currentExchangeCaller,
+  type ExchangeCaller,
   EXCHANGE_URL,
   EXCHANGE_SITE_URL,
   type ExchangeConfig,

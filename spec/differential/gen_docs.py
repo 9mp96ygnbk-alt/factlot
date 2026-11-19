@@ -577,6 +577,56 @@ except ImportError:
     HAVE_SIGNING = False
 
 
+def send_refusal_case(r):
+    """A fact_package_send call that is refused before anything is sent (so no network in either runner)."""
+    from factlot.tools import run_tool
+
+    pkg = None
+    for _ in range(20):
+        c = package_case(r)
+        if c["tool"] != "fact_package_create":
+            continue
+        made = run_tool("fact_package_create", c["arguments"])
+        if "package" in made and made["package"]["facts"]:
+            pkg = made["package"]
+            break
+    if pkg is None:
+        return package_case(r)
+    ids = [f["id"] for f in pkg["facts"]]
+    items = []
+    for i in range(r.randint(1, 4)):
+        pos = r.choice(["accept_theirs", "state_ours"])
+        it = {"key": f"item{i}", "label": f"Item {i}", "value": r.choice(["8.00%", 0, 12500]), "position": pos,
+              "fact_ids": [r.choice(ids)]}
+        if pos == "accept_theirs" or r.random() < 0.7:
+            it["their_value"] = r.choice(["8.00%", 20000])
+        items.append(it)
+    inp = {"package": pkg, "kind": "expense_reconciliation", "title": "Synthetic",
+           "subject": {"label": "Suite 1 (synthetic)"},
+           "from": {"organisation": "Tenant Co", "person": "Pat Tenant", "email": "pat@example.invalid"},
+           "to": {"organisation": "Landlord Co", "person": "Lee Landlord", "email": "lee@example.invalid"},
+           "items": items, "approved_by": "Pat Tenant", "approval_confirmed": True}
+    defect = r.choice(["approval", "approver", "same_org", "dup_key", "their_value", "unknown_fact", "tamper"])
+    if defect == "approval":
+        inp["approval_confirmed"] = r.choice([False, False, None])
+        if inp["approval_confirmed"] is None:
+            del inp["approval_confirmed"]
+    elif defect == "approver":
+        inp["approved_by"] = r.choice(["", "   "])
+    elif defect == "same_org":
+        inp["to"]["organisation"] = r.choice([" tenant co ", "TENANT CO", "Tenant Co"])
+    elif defect == "dup_key":
+        inp["items"].append(dict(inp["items"][0]))
+    elif defect == "their_value":
+        inp["items"][0]["position"] = "state_ours"
+        inp["items"][0].pop("their_value", None)
+    elif defect == "unknown_fact":
+        inp["items"][-1]["fact_ids"] = ["flf_not_in_package"]
+    else:
+        inp["package"]["facts"][0]["value"] = perturb(r, inp["package"]["facts"][0]["value"])
+    return {"tool": "fact_package_send", "arguments": inp}
+
+
 def round2_cases(seed, count):
     import os
     import sys
@@ -592,6 +642,8 @@ def round2_cases(seed, count):
             out.append(statement_case(r))
         elif k < 0.8:
             out.append(use_conflict_case(r))
-        else:
+        elif k < 0.9:
             out.append(package_case(r))
+        else:
+            out.append(send_refusal_case(r))
     return out
