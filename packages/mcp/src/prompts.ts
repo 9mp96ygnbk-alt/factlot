@@ -143,6 +143,26 @@ export const PROMPT_ARGS = {
         "Date the abstract states the lease as of (YYYY-MM-DD); amendments effective later are pending.",
       ),
   },
+  expense_statement_audit: {
+    lease: text(
+      500,
+      "The tenant's lease (with its amendments): a PDF path on this machine (local server), or the name of a lease whose pages are in the conversation.",
+    ),
+    statement: text(
+      500,
+      "The landlord's operating-expense (CAM) statement: a PDF path on this machine (local server), or the name of a statement whose pages are in the conversation.",
+    ),
+    as_of: z
+      .string()
+      .regex(DATE, "a date as YYYY-MM-DD")
+      .describe(
+        "Today's date (YYYY-MM-DD): the audit counts its deadlines from it and reads no clock.",
+      ),
+    landlord_contact: optionalText(
+      200,
+      "The landlord organisation the dispute would go to, when the person wants to send it (never invent one).",
+    ),
+  },
   deal_math: {
     question: multiline(
       2_000,
@@ -329,6 +349,24 @@ export function promptText(
         CITE,
       ].join("\n\n");
     }
+    case "expense_statement_audit": {
+      const a = args as Args<"expense_statement_audit">;
+      return [
+        `Audit the landlord's expense statement (${a.statement}) against the tenant's lease (${a.lease}), as of ${a.as_of}. You extract; FactLot verifies and does the arithmetic. Every finding must rest on a verified lease fact: no source, no finding.`,
+        numbered([
+          "Get the lease's pages and the statement's pages exactly as given (doc_read_pdf with the PDF's path on a local server; otherwise the pages in the conversation).",
+          "doc_abstract_lease (or doc_verify_facts) on the lease for the terms the audit reads: lease.pro_rata_share, lease.cam_cap (or lease.cam_cap_rate when the clause does not say how the cap builds), lease.operating_expense_base_year or lease.expense_stop, lease.cam_admin_fee, lease.cam_gross_up, one lease.cam_exclusion per excluded category, lease.capex_treatment and lease.audit_right (window, notice form, cost-shifting threshold). doc_predicates gives the shapes of the known predicates; audit_expense_statement's description gives the rest. Each value comes with its verbatim quote and page.",
+          "doc_verify_facts on the statement for statement.period (year, statement date, the date the tenant received it), one statement.line per billed line, statement.share_applied, statement.admin_fee, statement.gross_up, statement.cap_applied, statement.total, the estimates and the balance. Hold anything that is not verified for the person to review; never pass an unverified value on.",
+          "audit_expense_statement with the verified lease facts, the verified statement facts, the prior year's lines if the person has them, and as_of. Read checks_not_run first: a check whose lease term is missing did not run, and that is not a clean result.",
+          "Show the person every finding in full: its code, title, the landlord's figure, the figure the lease yields, the difference, the lease quote and page, the statement quote and page, the calculation steps, its class (follows_from_terms, depends_on_reading, question_to_ask) and what they must confirm. Say plainly that these are differences against quoted terms, not legal conclusions. Give the deadline and the notice form the lease requires.",
+          "If the person wants a document, report_create kind expense_audit with the same arguments (hosted server; PDF).",
+          "To dispute, fact_package_create from the lease and statement facts, then show the person the package_items, the calculation and the counterparty, ask for the full name of the person who approves, and only after they say it may be sent call fact_package_send with approved_by and approval_confirmed. Say whether it went as a test or for real from the answer's message. fact_package_status reads the answers.",
+        ]),
+        "On the hosted server a caller without a Pro or Team key gets the summary only (count, total difference, deadlines, checks not run) and the answer says what is withheld; relay that in plain words. Results are arithmetic against quoted terms, not legal or accounting advice; an overcharge is claimed only where the arithmetic follows from a quoted term.",
+        "No registry lookup is needed. If property facts are wanted as well, call registry_coverage first.",
+        CITE,
+      ].join("\n\n");
+    }
     case "deal_math": {
       const a = args as Args<"deal_math">;
       const calc = a.calculation
@@ -377,6 +415,11 @@ const PROMPTS: Record<PromptName, { title: string; description: string }> = {
     title: "Lease abstract check",
     description:
       "Verify a lease's terms against its pages: extract with quotes, verify with doc_verify_facts or doc_abstract_lease, report what is verified and what needs review.",
+  },
+  expense_statement_audit: {
+    title: "Audit a landlord's expense statement",
+    description:
+      "A tenant's audit of a CAM statement: abstract the lease, verify the statement, run audit_expense_statement, show every finding with its quote and calculation, get the named person's approval, then send the dispute.",
   },
   deal_math: {
     title: "Deal maths with the calculators",

@@ -45,12 +45,17 @@ def configure_exchange(url: str | None = None, site_url: str | None = None, toke
 
 
 @contextlib.contextmanager
-def run_with_exchange_caller(account_id: str | None) -> Iterator[None]:
-    """Say which FactLot account is calling (never its key) for the fact_package_send calls inside."""
+def run_with_exchange_caller(account_id: str | None, full_audit: bool | None = None) -> Iterator[None]:
+    """Say which FactLot account is calling (never its key) for the fact_package_send calls inside, and
+    (full_audit False) that this caller gets audit_expense_statement's summary only, as the hosted API does."""
+    from . import audit
+
     t = _caller.set({"account_id": account_id} if account_id else {})
+    a = audit.set_full_audit(full_audit)
     try:
         yield
     finally:
+        audit._full_audit.reset(a)
         _caller.reset(t)
 
 

@@ -35,6 +35,7 @@ exactly as sent.
 | `critical_dates`       | `calc_critical_dates`                                        | `pdf`, `xlsx`, `ics` |
 | `tx_protest_deadline`  | `rules_tx_property_tax_protest_deadline` or its `_batch`     | `ics`, `pdf`         |
 | `property_sheet`       | `registry_get` (run by the hosted API as your own call)      | `pdf`, `xlsx`        |
+| `expense_audit`        | `audit_expense_statement`                                    | `pdf`                |
 
 - **tx_unequal_appraisal.** The PDF is an evidence packet: the subject, the comparables grid, the
   adjustments with their reasons, the adjusted values in ascending order, the median, the
@@ -131,6 +132,7 @@ exactly as sent.
   the same dates in a table, the statutes, warnings and notes, then the rule's steps, the
   arguments and the provenance. Every date is the rule's; nothing in it says whether to protest.
 
+- **expense_audit.** A tenant's audit of a landlord's expense statement, built from `audit_expense_statement`'s run on the verified lease and statement facts you send as `arguments`: the summary, the deadline and the notice form the lease requires, the audit cost-shifting test, each finding with its class (follows from the lease's terms, depends on a reading, or a question), the landlord's figure, the figure the lease yields, the difference, the calculation, and the quote and page of every fact behind it, then the checks that could not run and why. With gating on, the report is part of the paid plans (Pro and Team): other callers get `PlanRequired`, unbilled, and the free summary from the tool.
 - **property_sheet.** One page for one parcel. Send `arguments: { "urn": "<the parcel's FactLot
 ID>" }` and nothing else (no `input`, no `context`); `registry_search_address` gives the ID for
   an address. The hosted API first reserves the report, then runs `registry_get` on the parcel as

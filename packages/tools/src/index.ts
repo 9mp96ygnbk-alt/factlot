@@ -68,3 +68,4 @@ export {
   lookupSameStreet,
 } from "./lookup_batch.ts";
 export type { LookupCall, LookupItem } from "./lookup_batch.ts";
+export { auditSummary, auditLimited, AUDIT_PLAN_URL } from "./audit.ts";

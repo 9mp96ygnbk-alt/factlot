@@ -29,6 +29,7 @@ import {
   verifyClaim,
   verifyFacts,
 } from "./documents.ts";
+import { AuditExpenseStatementInput, auditExpenseStatement } from "./audit.ts";
 import {
   FactPackageCreateInput,
   FactPackageVerifyInput,
@@ -478,6 +479,16 @@ const packageTools: ToolSpec[] = [
     async: true,
     run: (i: never) =>
       verifyFactPackage(i as z.output<typeof FactPackageVerifyInput>),
+  },
+  {
+    name: "audit_expense_statement",
+    title: "Audit a landlord's expense statement against the lease",
+    description:
+      "Audit a landlord's operating-expense (CAM) statement for a tenant, from verified facts only. Give the lease's facts (doc_abstract_lease or doc_verify_facts: pro-rata share, cap, base year or stop, admin fee, gross-up, excluded categories, capital-item treatment, audit right) and the statement's facts (each billed line, share applied, fee, gross-up, cap applied, totals, estimates, the date the tenant received it), each with its quote and page and passing fact_validate; optionally the prior year's lines. Returns findings, each with a stable code, the landlord's figure, the figure the lease yields, the dollar difference, the lease and statement fact ids with the quotes and pages, the calculation steps, a confidence class (follows_from_terms: the arithmetic follows from a quoted term and the statement's own numbers; depends_on_reading: it depends on how the lease sentence is read; question_to_ask: a question, never an overcharge) and what a person must confirm; totals; the last day to dispute or invoke the audit right with the notice form the lease requires; whether the difference crosses the lease's cost-shifting threshold; package_items ready for fact_package_send (state_ours with the landlord's figure as their_value for each finding, accept_theirs for lines with no finding); and checks_not_run with the reason (a missing lease term is never guessed). Twelve checks: management fee, cap, capital items, gross-up, pro-rata share, excluded categories, duplicates, base year or stop, arithmetic, year over year, deadlines, cost-shifting. Deterministic and no model: a finding without a verified lease fact behind it is never produced; same inputs, same findings; as_of is an input. Findings are differences against quoted terms, not legal conclusions: show every finding to the person with its quote before anything is sent. On the hosted API, callers without a Pro or Team key get the summary only (finding count, total difference, deadlines, checks not run) and the answer says what is withheld.",
+    input: AuditExpenseStatementInput,
+    path: "/v1/audit/expense-statement",
+    run: (i: never) =>
+      auditExpenseStatement(i as z.output<typeof AuditExpenseStatementInput>),
   },
   {
     name: "fact_package_send",

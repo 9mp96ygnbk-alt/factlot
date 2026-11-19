@@ -60,6 +60,7 @@ from .ids import (  # noqa: E402
     short_id,
     space_id,
 )
+from .audit import audit_limited  # noqa: E402
 from .exchange import (  # noqa: E402
     ExchangeUnavailable,
     configure_exchange,
@@ -78,6 +79,7 @@ from .tools import (  # noqa: E402
 )
 
 __all__ = [
+    "audit_limited",
     "ExchangeUnavailable",
     "configure_exchange",
     "current_exchange_caller",

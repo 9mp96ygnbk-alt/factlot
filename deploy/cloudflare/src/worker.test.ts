@@ -13548,3 +13548,38 @@ describe("fact_package_send: which account is calling", () => {
     await res.body?.cancel();
   });
 });
+
+describe("audit_expense_statement: the plan rule the router hands to the tool", () => {
+  const probe = () => ({
+    fetch: async () =>
+      new Response(
+        JSON.stringify({ full: currentExchangeCaller()?.fullAudit ?? null }),
+        { headers: { "content-type": "application/json" } },
+      ),
+  });
+  const full = async (e: ReturnType<typeof env>, key?: string) => {
+    const res = await call(e, probe(), "/v1/audit/expense-statement", { key });
+    return ((await res.json()) as { full: boolean | null }).full;
+  };
+
+  it("gating on: a paid key gets the whole answer; a free key and no key get the summary", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    e.GATING_ENABLED = "true";
+    const paid = await issue(e);
+    const free = `fl_free_${generateKey().slice("fl_live_".length)}`;
+    await e.KEYS.put(
+      `freekey:${await hashKey(free)}`,
+      JSON.stringify({ email_hash: "e".repeat(64), created: "2026-11-07" }),
+    );
+    assert.equal(await full(e, paid.key), true);
+    assert.equal(await full(e, free), false);
+    assert.equal(await full(e), false);
+  });
+
+  it("gating off (the default): everyone gets the whole answer, as the other gated tools do", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    assert.equal(await full(e), true);
+  });
+});

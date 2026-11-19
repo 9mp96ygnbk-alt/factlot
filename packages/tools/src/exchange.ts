@@ -66,6 +66,11 @@ const appToken = (): string | undefined =>
  */
 export interface ExchangeCaller {
   accountId?: string;
+  /**
+   * The hosted plan rule for audit_expense_statement: false means this caller gets the summary
+   * only (no Pro or Team key while gating is on). Unset (a local call) means the whole answer.
+   */
+  fullAudit?: boolean;
 }
 const callerStore = new AsyncLocalStorage<ExchangeCaller>();
 

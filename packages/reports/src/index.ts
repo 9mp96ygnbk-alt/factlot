@@ -24,6 +24,7 @@ import {
   SUPPLIED_LABEL,
   type KindInput,
 } from "./kinds/common.ts";
+import { auditDoc } from "./kinds/audit.ts";
 import {
   asc842Doc,
   camDoc,
@@ -117,6 +118,7 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   critical_dates: "Lease critical dates",
   tx_protest_deadline: "Texas protest deadline",
   property_sheet: "Property sheet",
+  expense_audit: "Expense statement audit",
 };
 
 export const ReportRequest = z.strictObject({
@@ -461,6 +463,7 @@ const BUILDERS: Record<ReportKind, (k: KindInput) => ReportDoc> = {
   critical_dates: datesDoc,
   tx_protest_deadline: protestDoc,
   property_sheet: propertySheetDoc,
+  expense_audit: auditDoc,
 };
 
 /**
