@@ -222,6 +222,43 @@ export function planRequired(
   return batchPlanRequired(tool);
 }
 
+/** Every `document_id` string anywhere in a value. */
+function documentIds(value: unknown, out = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) for (const v of value) documentIds(v, out);
+  else if (typeof value === "object" && value !== null)
+    for (const [k, v] of Object.entries(value as Json))
+      if (k === "document_id" && typeof v === "string") out.add(v);
+      else documentIds(v, out);
+  return out;
+}
+
+/**
+ * The candidates answer's `sources` once the subject's earlier roll years are cut: a snapshot
+ * cited only by a withheld value_history entry is dropped with it, so the free answer names no
+ * earlier roll file (as registry_get's free answer does not). Every other snapshot stays, including
+ * ones the answer uses without a document_id beside them (the building class file).
+ */
+function prunedSources(
+  answer: Json,
+  before: Json,
+  after: Json,
+): { sources?: unknown } {
+  if (!Array.isArray(answer.sources)) return {};
+  const withheld = documentIds(before.value_history);
+  for (const id of documentIds(after.value_history)) withheld.delete(id);
+  if (withheld.size === 0) return {};
+  const others: Json = { ...answer };
+  delete others.sources;
+  delete others.subject;
+  const still = documentIds([others, after]);
+  return {
+    sources: (answer.sources as unknown[]).filter((s) => {
+      const id = (s as Json | null)?.document_id;
+      return typeof id !== "string" || !withheld.has(id) || still.has(id);
+    }),
+  };
+}
+
 /**
  * A registry_get answer for a free caller: the current roll year's values only. Returns the
  * answer unchanged when it has neither value_history nor history (entities, buildings, misses).
@@ -244,6 +281,7 @@ export function limitHistory(answer: unknown): unknown {
     if (history_withheld === undefined) return { ...a, subject: rest };
     return {
       ...a,
+      ...prunedSources(a, subject as Json, rest),
       subject: rest,
       history_available,
       history_withheld,
