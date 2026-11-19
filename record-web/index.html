@@ -241,7 +241,7 @@ const routes = {
       const r = await get("search", p);
       $("#res").innerHTML = r.rows.length ? `<div class="sheet scroll"><table><thead><tr><th>Property</th><th>Owner of record</th><th>Type</th><th class="num">Latest value</th></tr></thead><tbody>${r.rows.map((x) => `
         <tr class="rowlink" data-go="#/parcel/${esc(x.state_fips)}/${esc(x.parcel_id)}"><td><a href="#/parcel/${esc(x.state_fips)}/${esc(x.parcel_id)}">${esc(x.address || "Parcel " + x.apn)}</a><div class="hint">${esc([x.city, x.county_name ? x.county_name + " County" : "", x.usps].filter(Boolean).join(", "))}</div></td>
-        <td>${x.owner_withheld ? '<span class="chip">Withheld</span>' : esc(x.owner_name || "–")}</td><td>${esc(typ(x.property_type))}</td><td class="num">${usd(x.assessed_total)}<div class="hint">${esc(x.tax_year || "")}</div></td></tr>`).join("")}</tbody></table></div>
+        <td>${x.owner_withheld ? '<span class="chip">Withheld</span>' : esc(x.owner_name || "–")}</td><td>${esc(typ(x.property_type))}</td><td class="num">${usd(x.latest_value ?? x.assessed_total)}<div class="hint">${esc([x.latest_value_type, x.latest_value_year || x.tax_year].filter(Boolean).join(" ") || "")}</div></td></tr>`).join("")}</tbody></table></div>
         <p class="hint">Showing the ${r.rows.length} highest-valued matches. Narrow the search to see others.</p>` : `<div class="notice">No properties match. Try an owner name, a street, or pick a county.</div>`;
     } catch (e) { $("#res").innerHTML = fail(e); }
   },
