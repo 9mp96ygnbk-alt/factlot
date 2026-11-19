@@ -7107,6 +7107,55 @@ describe("paid gating (GATING_ENABLED)", () => {
     );
   });
 
+  it("candidates: a free caller's sources drop the roll files only the withheld years cited; files still cited, and uncited ones, stay; Pro keeps all", async () => {
+    const cite = (doc: string) => ({
+      market: { document_id: doc },
+      appraised: { document_id: doc },
+    });
+    const cand = {
+      subject: {
+        urn: "s",
+        value_history: [
+          { tax_year: 2026, citations: cite("doc-2026") },
+          { tax_year: 2025, citations: cite("doc-2025") },
+          { tax_year: 2024, citations: cite("doc-shared") },
+        ],
+      },
+      candidates: [{ urn: "c1", citation: { document_id: "doc-shared" } }],
+      sources: [
+        { document_id: "doc-2026", title: "roll 2026" },
+        { document_id: "doc-2025", title: "roll, tax year 2025" },
+        { document_id: "doc-shared", title: "shared file" },
+        { document_id: "doc-buildings", title: "building class file" },
+      ],
+    };
+    const api = answerApi(cand);
+    const free = (await (
+      await call(on(), api, "/v1/registry/tx_equity_candidates", {
+        body: { urn: "s" },
+      })
+    ).json()) as typeof cand & Record<string, unknown>;
+    assert.deepEqual(
+      free.sources.map((s) => s.document_id),
+      ["doc-2026", "doc-shared", "doc-buildings"],
+    );
+    assert.ok(!JSON.stringify(free).includes("doc-2025"));
+    assert.deepEqual(free.history_withheld, {
+      tax_years: [2025, 2024],
+      count: 2,
+    });
+
+    const e = on();
+    const { key } = await issue(e);
+    const pro = (await (
+      await call(e, api, "/v1/registry/tx_equity_candidates", {
+        key,
+        body: { urn: "s" },
+      })
+    ).json()) as unknown;
+    assert.deepEqual(pro, cand);
+  });
+
   /** An inner handler that answers every registry call (REST and MCP) with the given answer. */
   function answerApi(answer: unknown) {
     const j = (b: unknown) =>
