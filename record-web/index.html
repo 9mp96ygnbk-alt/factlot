@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Record: commercial property facts with their proof</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%2310282b%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%276%27 fill=%27none%27 stroke=%27%23b07a12%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<meta name="description" content="Every fact about a commercial property, established once, carrying its proof, and confirmed between the parties who rely on it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#10282b; --ink2:#3d5457; --mute:#6c8083; --paper:#f6f8f7; --sheet:#ffffff; --line:#d3dddb; --wash:#e9efed;
+  --plat:#2456c7; --plat-wash:#e6edfb; --seal:#b07a12; --seal-wash:#fbf2dc; --ok:#1e7a4f; --ok-wash:#e2f3ea; --bad:#b3372b; --bad-wash:#fbe9e6;
+  --wide:"wdth" 118; --norm:"wdth" 100; --tight:"wdth" 72;
+}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-variation-settings:var(--norm);line-height:1.5;font-variant-numeric:tabular-nums}
+a{color:var(--plat);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--plat);outline-offset:2px}
+h1,h2,h3{font-variation-settings:var(--wide);font-weight:650;line-height:1.12;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,4.6vw,3.5rem)} h2{font-size:1.5rem} h3{font-size:1.05rem}
+p{margin:0 0 1em;max-width:68ch}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+header.top{border-bottom:1px solid var(--line);background:var(--sheet);position:sticky;top:0;z-index:5}
+header.top .wrap{display:flex;align-items:center;gap:28px;height:60px}
+.brand{font-variation-settings:var(--wide);font-weight:750;font-size:1.1rem;color:var(--ink);text-decoration:none;white-space:nowrap}
+.brand small{font-variation-settings:var(--norm);font-weight:400;color:var(--mute);font-size:.8rem;margin-left:8px}
+nav{display:flex;gap:4px;flex:1;overflow-x:auto}
+nav a{color:var(--ink2);text-decoration:none;padding:8px 12px;border-radius:6px;font-weight:500;white-space:nowrap}
+nav a[aria-current=page]{background:var(--wash);color:var(--ink)}
+main{padding:40px 0 96px;min-height:70vh}
+footer{border-top:1px solid var(--line);padding:24px 0 48px;color:var(--mute);font-size:.9rem}
+.btn{font:inherit;font-weight:600;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:10px 18px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.quiet{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.small{padding:6px 12px;font-size:.9rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+input,select,textarea{font:inherit;color:inherit;border:1px solid var(--line);border-radius:6px;padding:9px 11px;background:var(--sheet);width:100%}
+label{display:block;font-weight:600;font-size:.9rem;margin-bottom:4px}
+.hint{color:var(--mute);font-size:.88rem}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:10px}
+.pad{padding:22px 24px}
+table{border-collapse:collapse;width:100%}
+th{text-align:left;font-weight:600;color:var(--ink2);font-size:.86rem;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--wash);vertical-align:top}
+tr:last-child>td{border-bottom:0}
+td.num,th.num{text-align:right}
+.rowlink{cursor:pointer} .rowlink:hover td{background:#fafcfb}
+.hash{font-variation-settings:var(--tight);letter-spacing:.03em;word-break:break-all;color:var(--ink2)}
+.chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.8rem;font-weight:600;background:var(--wash);color:var(--ink2);white-space:nowrap}
+.chip.ok{background:var(--ok-wash);color:var(--ok)} .chip.bad{background:var(--bad-wash);color:var(--bad)}
+.chip.seal{background:var(--seal-wash);color:var(--seal)} .chip.plat{background:var(--plat-wash);color:var(--plat)}
+.grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.stack>*+*{margin-top:16px} .stack-l>*+*{margin-top:40px}
+.lede{font-size:1.2rem;color:var(--ink2);max-width:56ch}
+.figure{font-variation-settings:var(--wide);font-weight:650;font-size:1.7rem;line-height:1.1}
+.figure+div{color:var(--mute);font-size:.9rem}
+/* the proof chain: the one distinctive device. Each link is a step from the value back to its source. */
+.chain{list-style:none;margin:0;padding:0;position:relative}
+.chain li{position:relative;padding:0 0 18px 30px}
+.chain li:before{content:"";position:absolute;left:7px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--sheet);border:2px solid var(--plat)}
+.chain li:after{content:"";position:absolute;left:11px;top:20px;bottom:0;width:2px;background:var(--line)}
+.chain li:last-child{padding-bottom:0} .chain li:last-child:after{display:none}
+.chain li.end:before{background:var(--seal);border-color:var(--seal)}
+.chain .k{font-weight:600} .chain .d{color:var(--ink2);font-size:.93rem}
+@media (prefers-reduced-motion:no-preference){
+  .chain.play li{opacity:0;transform:translateY(6px);animation:link .45s ease forwards}
+  .chain.play li:nth-child(2){animation-delay:.35s}.chain.play li:nth-child(3){animation-delay:.7s}
+  .chain.play li:nth-child(4){animation-delay:1.05s}.chain.play li:nth-child(5){animation-delay:1.4s}
+  @keyframes link{to{opacity:1;transform:none}}
+  .stamp.press{animation:press .5s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes press{from{transform:rotate(-7deg) scale(1.7);opacity:0}to{transform:rotate(-7deg) scale(1);opacity:1}}
+}
+.stamp{display:inline-block;border:3px double var(--seal);color:var(--seal);padding:8px 16px;border-radius:6px;transform:rotate(-7deg);font-variation-settings:var(--wide);font-weight:750;font-size:1.05rem;line-height:1.2;text-align:center}
+.stamp small{display:block;font-variation-settings:var(--norm);font-weight:500;font-size:.75rem}
+.stamp.bad{border-color:var(--bad);color:var(--bad)}
+details.fact{border-bottom:1px solid var(--wash)} details.fact:last-child{border-bottom:0}
+details.fact>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,1.5fr) auto;gap:16px;padding:12px 24px;align-items:baseline}
+details.fact>summary::-webkit-details-marker{display:none}
+details.fact>summary:hover{background:#fafcfb}
+details.fact[open]>summary{background:var(--wash)}
+details.fact .body{padding:18px 24px 22px;background:#fbfcfc;border-top:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:.92rem}
+.kv dt{color:var(--mute)} .kv dd{margin:0;word-break:break-word}
+.kv .hit{background:var(--seal-wash);font-weight:600}
+.notice{border-left:3px solid var(--seal);background:var(--seal-wash);padding:12px 16px;border-radius:0 6px 6px 0;font-size:.95rem}
+.notice.bad{border-color:var(--bad);background:var(--bad-wash)} .notice.ok{border-color:var(--ok);background:var(--ok-wash)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.tabs button{font:inherit;font-weight:600;background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;color:var(--ink2)}
+.tabs button[aria-selected=true]{border-color:var(--ink);color:var(--ink)}
+.linkbox{display:flex;gap:8px;align-items:center}.linkbox input{font-size:.85rem}
+.use{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--line);margin-right:3px;vertical-align:middle}
+.use.allowed{background:var(--ok)} .use.withheld{background:var(--bad)}
+.dec{display:flex;gap:6px}.dec label{font-weight:500;margin:0;border:1px solid var(--line);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;white-space:nowrap}
+.dec input{width:auto;margin-right:4px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr;gap:28px}details.fact>summary{grid-template-columns:1fr auto}details.fact>summary .v{grid-column:1/-1}header.top .wrap{gap:12px}.brand small{display:none}.scroll{overflow-x:auto}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#/">The Record<small>built on FactLot</small></a>
+  <nav aria-label="Main">
+    <a href="#/search" data-nav="search">Properties</a>
+    <a href="#/exchange" data-nav="exchange">Confirm with a counterparty</a>
+    <a href="#/sources" data-nav="sources">Sources</a>
+    <a href="#/measure" data-nav="measure">Measure</a>
+  </nav>
+</div></header>
+<main><div class="wrap" id="view" aria-live="polite"></div></main>
+<footer><div class="wrap">Public-record facts are shown as the source published them, with no warranty. Nothing here is an appraisal, or legal or tax advice. Owner names are shown only for organisations.</div></footer>
+<script>
+const API = "https://czmyqwkauymguoznzpzr.supabase.co/functions/v1/app";
+const CALC = "https://api.factlot.com/v1/calc/cam_reconciliation";
+const $ = (s, r = document) => r.querySelector(s);
+const view = $("#view");
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const num = (v) => (v == null || v === "" ? null : Number(v));
+const int = (v) => (num(v) == null ? "–" : Math.round(num(v)).toLocaleString("en-US"));
+const usd = (v, d = 0) => (num(v) == null ? "–" : num(v).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: d, maximumFractionDigits: d }));
+const day = (v) => (v ? new Date(v).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }) : "–");
+const when = (v) => (v ? new Date(v).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "–");
+const short = (h) => (h ? h.slice(0, 12) + "…" + h.slice(-6) : "–");
+const TYPES = { office: "Office", industrial: "Industrial", retail: "Retail", multifamily: "Multifamily", hotel: "Hotel", mixed_use: "Mixed use", medical_office: "Medical office", self_storage: "Self storage", land: "Land", special_purpose: "Special purpose", agricultural: "Agricultural", other: "Other", commercial: "Commercial", unclassified: "Unclassified" };
+const typ = (t) => TYPES[t] || t || "–";
+const USE = { allowed: "Allowed", withheld: "Withheld", unknown: "Not decided" };
+// A mapping's conversion, in plain words.
+const conv = (m) => {
+  const a = m.transform_arg || "", zero = a === "null_if_zero" ? ", with 0 treated as not stated" : "";
+  return { copy: a ? "part of the value kept (" + a.replace(/:/g, " ") + ")" : "copied as published", upper: "copied in capitals", to_numeric: "read as a number" + zero, to_integer: "read as a whole number" + zero,
+    to_date: "read as a date", acres_to_sf: "acres converted to square feet", multiply: "multiplied by " + a, constant: "fixed value " + a, code: "the source's code translated to the national list" }[m.transform] || m.transform;
+};
+
+async function get(op, params = {}) {
+  const r = await fetch(API + "?" + new URLSearchParams({ op, ...params }));
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Request failed");
+  return j.result;
+}
+async function post(body) {
+  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Request failed");
+  return j.result;
+}
+const fail = (e) => `<div class="notice bad">${esc(e.message || e)}</div>`;
+const loading = (t = "Loading") => `<p class="hint">${t}…</p>`;
+const fmtValue = (f) => {
+  if (f.value === "[withheld]") return '<span class="chip">Withheld: not clearly an organisation</span>';
+  if (f.field === "property_type") return esc(typ(f.value));
+  if (f.unit === "usd") return usd(f.value);
+  if (f.unit === "sf") return int(f.value) + " SF";
+  if (f.data_type === "date") return day(f.value);
+  return esc(f.value);
+};
+
+// The proof chain for one fact: value, mapping, source row, captured file, source.
+function chain(f, p, maps, play) {
+  const m = (maps || []).filter((x) => x.vocab_field === f.field);
+  const cols = m.map((x) => x.source_column);
+  const how = m.length
+    ? m.map((x) => `the source's column <b>${esc(x.source_column)}</b>, ${esc(conv(x))}`).join(" and ") + `. Mapping approved by ${esc(m[0].approved_by || "–")}.`
+    : "Computed from the source row by the fixed loader.";
+  const rowBtn = f.row_num ? `<button class="btn quiet small" data-raw="${esc(p.state_fips)}|${esc(f.load_id)}|${esc(f.row_num)}|${esc(cols.join(","))}">Show the source's own row</button><div class="rawout"></div>` : "";
+  return `<ol class="chain${play ? " play" : ""}">
+    <li><div class="k">${esc(f.label)}: ${fmtValue(f)}</div><div class="d">True as of ${day(f.as_of || f.load_as_of)}. Grade: public record.</div></li>
+    <li><div class="k">Standardized from</div><div class="d">${how}</div></li>
+    <li><div class="k">Row ${int(f.row_num)} of the source's file</div><div class="d">Landed exactly as published. ${rowBtn}</div></li>
+    <li><div class="k">Captured file</div><div class="d">Fetched ${when(f.retrieved_at)} by ${f.hash_verified ? "the server, which hashed it on arrival" : "a collection agent"} (${int(f.capture_bytes)} bytes).<br>SHA-256 <span class="hash">${esc(f.capture_sha256 || "–")}</span><br><a href="${esc(f.capture_url)}" target="_blank" rel="noopener">The address that was fetched</a></div></li>
+    <li class="end"><div class="k">${esc(f.source_name)}</div><div class="d"><a href="#/source/${esc(f.source_slug)}">Source, rights decision and mappings</a></div></li>
+  </ol>`;
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-raw]");
+  if (!b) return;
+  const [state, load, row, cols] = b.dataset.raw.split("|");
+  const out = b.nextElementSibling; out.innerHTML = loading("Fetching the row");
+  try {
+    const r = await get("raw_row", { state, load, row });
+    const hit = new Set(cols.split(","));
+    out.innerHTML = `<dl class="kv sheet pad" style="margin-top:10px">${Object.entries(r.data).map(([k, v]) => `<dt class="${hit.has(k) ? "hit" : ""}">${esc(k)}</dt><dd class="${hit.has(k) ? "hit" : ""}">${v === null ? '<span class="hint">null</span>' : esc(v)}</dd>`).join("")}</dl><p class="hint" style="margin-top:8px">Owner columns are removed from stored rows when the owner is not clearly an organisation.</p>`;
+    b.remove();
+  } catch (err) { out.innerHTML = fail(err); }
+});
+
+const routes = {
+  async home() {
+    view.innerHTML = `<div class="grid2">
+      <div class="stack">
+        <h1>Every fact about a commercial property, established once, with its proof.</h1>
+        <p class="lede">Owners, lenders, tenants and buyers each pay to re-check the same facts from the same documents. The Record keeps each fact with where it came from, and lets the other party confirm it, so it is checked once.</p>
+        <p><a class="btn" href="#/search">Look up a property</a> <a class="btn quiet" href="#/exchange">Confirm facts with a counterparty</a></p>
+        <div id="counts" class="cols" style="margin-top:28px"></div>
+      </div>
+      <div class="sheet pad" id="live"><h3>A live fact, traced to its source</h3><div style="margin-top:14px">${loading("Picking a property")}</div></div>
+    </div>
+    <div class="stack-l" style="margin-top:72px">
+      <div class="cols" style="gap:32px">
+        <div><h3>No source, no fact</h3><p class="hint" style="margin-top:8px">Every value opens to the row it came from, the file that row was in, the file's fingerprint and the publisher. If we cannot show that, we do not show the value.</p></div>
+        <div><h3>Checked by the party who relies on it</h3><p class="hint" style="margin-top:8px">A landlord states the numbers; the tenant re-runs the same published formula and confirms or disputes each one. The confirmation is recorded.</p></div>
+        <div><h3>Your systems stay yours</h3><p class="hint" style="margin-top:8px">The Record does not broker, lend, value or manage. It does not sell data. Identifiers and formulas are open, and the same interface is available to your own software.</p></div>
+      </div>
+    </div>`;
+    get("stats").then((s) => {
+      $("#counts").innerHTML = [[int(s.parcels), "properties on record"], [int(s.counties), "counties"], [int(num(s.attribute_facts) + num(s.value_facts)), "sourced facts"], [int(s.captures), "captured source files"]]
+        .map(([a, b]) => `<div><div class="figure">${a}</div><div>${b}</div></div>`).join("");
+    }).catch(() => {});
+    try {
+      const top = await get("search", { type: "industrial", limit: 12 });
+      const pick = top.rows.find((r) => r.owner_name && r.address) || top.rows[0];
+      if (!pick) throw new Error("No properties are loaded yet.");
+      const d = await get("parcel", { state: pick.state_fips, id: pick.parcel_id });
+      const v = d.values[0];
+      const f = v ? { ...v, field: v.value_type === "market" ? "market_total" : "assessed_total", label: (v.value_type === "market" ? "Market value " : "Assessed value ") + v.tax_year, value: v.total, unit: "usd", as_of: v.load_as_of } : d.facts.find((x) => x.is_current);
+      $("#live").innerHTML = `<h3>A live fact, traced to its source</h3>
+        <p class="hint" style="margin:6px 0 16px">${esc(pick.address || pick.apn)}, ${esc(pick.city || "")} ${esc(pick.usps)}. Owner of record: ${esc(pick.owner_name || "withheld")}</p>
+        ${chain(f, d.parcel, d.maps, true)}
+        <p style="margin:18px 0 0"><a href="#/parcel/${esc(pick.state_fips)}/${esc(pick.parcel_id)}">Open this property</a></p>`;
+    } catch (e) { $("#live").innerHTML = `<h3>A live fact, traced to its source</h3><div style="margin-top:14px">${fail(e)}</div>`; }
+  },
+
+  async search(q0) {
+    const q = new URLSearchParams(q0 || "");
+    view.innerHTML = `<div class="stack"><h2>Properties</h2>
+      <form id="sf" class="cols" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end">
+        <div><label for="q">Owner, address, city or parcel number</label><input id="q" name="q" value="${esc(q.get("q") || "")}" placeholder="e.g. Tyson, Walmart, 1200 Main"></div>
+        <div><label for="county">County</label><select id="county" name="county"><option value="">All counties</option></select></div>
+        <div><label for="type">Type</label><select id="type" name="type"><option value="">All types</option>${["commercial", "industrial", "office", "retail", "multifamily"].map((t) => `<option value="${t}" ${q.get("type") === t ? "selected" : ""}>${typ(t)}</option>`).join("")}</select></div>
+        <button class="btn">Search</button>
+      </form>
+      <div id="res">${loading("Searching")}</div></div>`;
+    $("#sf").onsubmit = (e) => { e.preventDefault(); const f = new FormData(e.target); const p = new URLSearchParams(); for (const [k, v] of f) if (v) p.set(k, v); location.hash = "#/search?" + p; };
+    get("counties").then((cs) => { $("#county").innerHTML = '<option value="">All counties</option>' + cs.map((c) => `<option value="${esc(c.state_fips + c.county_fips)}" ${q.get("county") === c.state_fips + c.county_fips ? "selected" : ""}>${esc(c.name || c.county_fips)}, ${esc(c.usps)} (${int(c.parcels)})</option>`).join(""); }).catch(() => {});
+    try {
+      const p = { limit: 50 };
+      if (q.get("q")) p.q = q.get("q");
+      if (q.get("type")) p.type = q.get("type");
+      if (q.get("county")) { p.state = q.get("county").slice(0, 2); p.county = q.get("county").slice(2); }
+      const r = await get("search", p);
+      $("#res").innerHTML = r.rows.length ? `<div class="sheet scroll"><table><thead><tr><th>Property</th><th>Owner of record</th><th>Type</th><th class="num">Latest value</th></tr></thead><tbody>${r.rows.map((x) => `
+        <tr class="rowlink" data-go="#/parcel/${esc(x.state_fips)}/${esc(x.parcel_id)}"><td><a href="#/parcel/${esc(x.state_fips)}/${esc(x.parcel_id)}">${esc(x.address || "Parcel " + x.apn)}</a><div class="hint">${esc([x.city, x.county_name ? x.county_name + " County" : "", x.usps].filter(Boolean).join(", "))}</div></td>
+        <td>${x.owner_withheld ? '<span class="chip">Withheld</span>' : esc(x.owner_name || "–")}</td><td>${esc(typ(x.property_type))}</td><td class="num">${usd(x.assessed_total)}<div class="hint">${esc(x.tax_year || "")}</div></td></tr>`).join("")}</tbody></table></div>
+        <p class="hint">Showing the ${r.rows.length} highest-valued matches. Narrow the search to see others.</p>` : `<div class="notice">No properties match. Try an owner name, a street, or pick a county.</div>`;
+    } catch (e) { $("#res").innerHTML = fail(e); }
+  },
+
+  async parcel(state, id) {
+    view.innerHTML = loading("Opening the property");
+    try {
+      const d = await get("parcel", { state, id });
+      const p = d.parcel, cur = d.facts.filter((f) => f.is_current), old = d.facts.filter((f) => !f.is_current);
+      const fl = d.keys.find((k) => k.system.startsWith("fl-parcel"));
+      const place = [p.city, p.county_name ? p.county_name + " County" : "", p.usps, p.zip].filter(Boolean).join(", ");
+      const vrow = (v) => ({ ...v, field: v.value_type === "market" ? "market_total" : v.value_type === "appraised" ? "appraised_total" : "assessed_total", label: `${v.value_type[0].toUpperCase() + v.value_type.slice(1)} value ${v.tax_year}`, value: v.total, unit: "usd", as_of: v.load_as_of });
+      const row = (f) => `<details class="fact"><summary><span>${esc(f.label)}</span><span class="v"><b>${fmtValue(f)}</b></span><span class="hint">as of ${day(f.as_of)}; show proof</span></summary><div class="body">${chain(f, p, d.maps)}</div></details>`;
+      view.innerHTML = `<div class="stack-l">
+        <div class="stack"><p class="hint"><a href="#/search">Properties</a> / ${esc(place)}</p>
+          <h1 style="font-size:clamp(1.7rem,3.4vw,2.5rem)">${esc(p.address || "Parcel " + p.apn)}</h1>
+          <p class="lede">${esc(place)}</p>
+          <p><span class="chip plat">${esc(typ(p.property_type))}</span> <span class="chip">Parcel ${esc(p.apn)}</span> ${p.retired ? '<span class="chip bad">No longer on the roll</span>' : ""}</p>
+          <p><a class="btn" href="#/exchange?subject=${encodeURIComponent("parcel:" + p.state_fips + ":" + p.parcel_id)}&label=${encodeURIComponent((p.address || "Parcel " + p.apn) + ", " + place)}">Confirm facts about this property with a counterparty</a></p></div>
+        <section class="stack"><h2>Facts on record</h2><p class="hint">Open any fact to trace it to the row, the file and the publisher it came from.</p>
+          <div class="sheet">${cur.map(row).join("") || '<div class="pad hint">No attributes on record.</div>'}</div></section>
+        <section class="stack"><h2>Values by year</h2><div class="sheet">${d.values.map((v) => row(vrow(v))).join("") || '<div class="pad hint">No values on record.</div>'}</div></section>
+        ${old.length ? `<section class="stack"><h2>Earlier values of these facts</h2><div class="sheet">${old.map(row).join("")}</div></section>` : ""}
+        <section class="stack"><h2>Identifiers</h2><div class="sheet pad"><dl class="kv">
+          <dt>Record ID</dt><dd>${esc(p.state_fips)}-${esc(p.parcel_id)} <span class="hint">(permanent; does not change if the county renumbers)</span></dd>
+          ${fl ? `<dt>Open FactLot ID</dt><dd class="hash">${esc(fl.external_key)}</dd>` : ""}
+          ${d.keys.filter((k) => !k.system.startsWith("fl-")).map((k) => `<dt>County number</dt><dd>${esc(k.external_key)}</dd>`).join("")}</dl>
+          <p class="hint" style="margin:12px 0 0">The FactLot ID is computed from the county and parcel number by a published rule, so anyone can form it without asking us.</p></div></section>
+      </div>`;
+    } catch (e) { view.innerHTML = fail(e) + '<p style="margin-top:16px"><a href="#/search">Back to properties</a></p>'; }
+  },
+
+  async sources() {
+    view.innerHTML = `<div class="stack"><h2>Sources</h2>
+      <p class="lede">Every source is reviewed before anything is collected, and a named person records a separate decision for each use.</p>
+      <p class="hint"><span class="use allowed"></span>Allowed <span class="use withheld" style="margin-left:12px"></span>Withheld <span class="use" style="margin-left:12px"></span>Not decided yet. The four marks are: collect, show to people, serve to AI agents, redistribute in bulk.</p>
+      <div id="src">${loading()}</div></div>`;
+    try {
+      const s = await get("sources");
+      $("#src").innerHTML = `<div class="sheet scroll"><table><thead><tr><th>Source</th><th>State</th><th>Uses</th><th class="num">Properties loaded</th><th>Data as of</th></tr></thead><tbody>${s.map((x) => `
+        <tr class="rowlink" data-go="#/source/${esc(x.slug)}"><td><a href="#/source/${esc(x.slug)}">${esc(x.name.length > 90 ? x.name.slice(0, 88) + "…" : x.name)}</a><div class="hint">${esc(x.slug)}</div></td><td>${esc(x.usps || "US")}</td>
+        <td style="white-space:nowrap">${["use_collect", "use_serve_people", "use_serve_ai", "use_redistribute"].map((k) => `<span class="use ${esc(x[k])}" title="${esc(USE[x[k]])}"></span>`).join("")}</td>
+        <td class="num">${x.parcels ? int(x.parcels) : '<span class="hint">not loaded</span>'}</td><td>${x.latest_as_of ? day(x.latest_as_of) : ""}</td></tr>`).join("")}</tbody></table></div>`;
+    } catch (e) { $("#src").innerHTML = fail(e); }
+  },
+
+  async source(slug) {
+    view.innerHTML = loading();
+    try {
+      const d = await get("source", { slug }), s = d.source;
+      const use = (k, label) => `<div><div class="hint">${label}</div><span class="chip ${s[k] === "allowed" ? "ok" : s[k] === "withheld" ? "bad" : ""}">${USE[s[k]]}</span></div>`;
+      view.innerHTML = `<div class="stack-l"><div class="stack"><p class="hint"><a href="#/sources">Sources</a> / ${esc(s.slug)}</p><h2>${esc(s.name)}</h2>
+        <p><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url.length > 100 ? s.url.slice(0, 100) + "…" : s.url)}</a></p></div>
+        <section class="stack"><h3>Decision for each use</h3><div class="sheet pad"><div class="cols">${use("use_collect", "Collect")}${use("use_serve_people", "Show to people")}${use("use_serve_ai", "Serve to AI agents")}${use("use_redistribute", "Redistribute in bulk")}</div>
+          <p class="hint" style="margin:14px 0 0">Recorded by ${esc(s.approved_by || "–")} on ${day(s.approved_at)}.${s.withheld_reason ? " " + esc(s.withheld_reason) : ""}</p></div></section>
+        <section class="stack"><h3>Rights review</h3><div class="sheet pad" style="white-space:pre-wrap;font-size:.93rem">${esc(s.terms_note || "No review text recorded.")}</div></section>
+        <section class="stack"><h3>How this source is standardized</h3>${d.field_maps.length ? `<div class="sheet scroll"><table><thead><tr><th>Source column</th><th>National field</th><th>Conversion</th><th>Approved by</th></tr></thead><tbody>${d.field_maps.map((m) => `<tr><td>${esc(m.source_column)}</td><td>${esc(m.vocab_field)}</td><td>${esc(conv(m))}</td><td>${m.status === "approved" ? esc(m.approved_by) : '<span class="chip">Proposed</span>'}</td></tr>`).join("")}</tbody></table></div>` : '<p class="hint">No mappings yet. Nothing from this source has been loaded.</p>'}
+          ${d.code_maps.length ? `<div class="sheet scroll"><table><thead><tr><th>Local code</th><th>Source's description</th><th>National type</th></tr></thead><tbody>${d.code_maps.map((m) => `<tr><td>${esc(m.local_code)}${m.match === "prefix" ? "…" : ""}</td><td>${esc(m.local_label || "")}</td><td>${esc(typ(m.national_code))}</td></tr>`).join("")}</tbody></table></div>` : ""}</section>
+        ${d.loads.length ? `<section class="stack"><h3>Loads</h3><div class="sheet scroll"><table><thead><tr><th>Data as of</th><th>Status</th><th class="num">Rows read</th><th class="num">Properties</th><th class="num">Owners withheld</th><th class="num">Codes unclassified</th></tr></thead><tbody>${d.loads.map((l) => `<tr><td>${day(l.as_of)}</td><td>${esc(l.status)}</td><td class="num">${int(l.rows_landed)}</td><td class="num">${int(l.stats?.new_parcels)}</td><td class="num">${int(l.stats?.owners_withheld_not_clearly_organisation)}</td><td class="num">${int(l.stats?.unclassified_codes)}</td></tr>`).join("")}</tbody></table></div></section>` : ""}
+      </div>`;
+    } catch (e) { view.innerHTML = fail(e); }
+  },
+
+  async measure() {
+    view.innerHTML = `<div class="stack-l"><div class="stack"><h2>The one measure</h2>
+      <p class="lede">Cross-party reliances: the number of times a fact established by one party is formally accepted by a different party as the basis for a decision.</p></div>
+      <div id="ms">${loading()}</div></div>`;
+    try {
+      const [s, r] = await Promise.all([get("stats"), get("reliances")]);
+      $("#ms").innerHTML = `<div class="stack-l"><div class="cols">
+          <div class="sheet pad"><div class="figure">${int(s.reliances)}</div><div>reliances between verified parties</div></div>
+          <div class="sheet pad"><div class="figure">${int(s.demo_reliances)}</div><div>confirmations made in this demo</div></div>
+          <div class="sheet pad"><div class="figure">${int(s.packages_disputed)}</div><div>statements disputed</div></div>
+          <div class="sheet pad"><div class="figure">${int(s.corrections)}</div><div>corrections to relied-on facts</div></div></div>
+        <div class="notice">Confirmations made here are counted apart from the measure. The parties in this demo are not verified yet, and a reliance only counts when a named, verified person with authority accepts the fact.</div>
+        <section class="stack"><h3>Recent confirmations</h3>${r.length ? `<div class="sheet scroll"><table><thead><tr><th>Established by</th><th>Relied on by</th><th>What</th><th>Date</th><th>Fingerprint</th></tr></thead><tbody>${r.map((x) => `<tr><td>${esc(x.established_by)}</td><td>${esc(x.relied_by)}</td><td>${esc(x.decision)} ${x.is_demo ? '<span class="chip">Demo</span>' : '<span class="chip seal">Verified</span>'}</td><td>${day(x.occurred_on)}</td><td class="hash">${esc(short(x.package_root))}</td></tr>`).join("")}</tbody></table></div>` : '<p class="hint">None yet. <a href="#/exchange">Send a statement to a counterparty</a> to make the first.</p>'}</section></div>`;
+    } catch (e) { $("#ms").innerHTML = fail(e); }
+  },
+
+  exchange(q0) {
+    const q = new URLSearchParams(q0 || "");
+    const subject = q.get("subject") || "", slabel = q.get("label") || "";
+    view.innerHTML = `<div class="stack"><h2>Confirm facts with a counterparty</h2>
+      <p class="lede">State the facts once. The other party checks them against their own records, re-runs the arithmetic, and confirms or disputes each one. Both of you keep the same record.</p>
+      ${slabel ? `<p><span class="chip plat">About: ${esc(slabel)}</span></p>` : ""}
+      <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="cam">Reconcile operating expenses</button><button role="tab" aria-selected="false" data-tab="facts">Confirm lease facts</button></div>
+      <form id="xf" class="stack">
+        <div class="cols">
+          <div><label>Your organisation</label><input name="from_org" required value="Harbor Street Properties LLC"></div>
+          <div><label>Your name</label><input name="from_name" required value="Dana Whitfield"></div>
+          <div><label>The other party's organisation</label><input name="to_org" required value="Northline Logistics Inc"></div>
+          <div><label>Title of this statement</label><input name="title" required value="2025 operating expense reconciliation, Suite 400"></div>
+        </div>
+        <div id="tab-cam" class="stack">
+          <div class="cols">
+            <div><label>Year</label><input name="year" type="number" value="2025"></div>
+            <div><label>Tenant's share (%)</label><input name="share" type="number" step="0.0001" value="8"></div>
+            <div><label>Admin fee (%)</label><input name="fee" type="number" step="0.01" value="10"></div>
+            <div><label>Estimates the tenant paid ($)</label><input name="paid" type="number" step="0.01" value="52000"></div>
+          </div>
+          <div><label>Where the lease says so</label><input name="basis" value="Lease dated 1 March 2021, sections 5.2 to 5.4"></div>
+          <div class="sheet scroll"><table id="lines"><thead><tr><th>Expense line</th><th class="num">Building total ($)</th><th>Recoverable</th><th>Controllable</th><th>Fee applies</th><th></th></tr></thead><tbody></tbody></table></div>
+          <p><button type="button" class="btn quiet small" id="addline">Add a line</button> <button type="button" class="btn" id="calc">Calculate</button></p>
+          <div id="calcout"></div>
+        </div>
+        <div id="tab-facts" class="stack" hidden>
+          <div class="sheet scroll"><table id="facts"><thead><tr><th>Fact</th><th>Value</th><th>Where it comes from</th><th></th></tr></thead><tbody></tbody></table></div>
+          <p><button type="button" class="btn quiet small" id="addfact">Add a fact</button></p>
+        </div>
+        <div id="sendbar"><button class="btn" id="send">Send for confirmation</button> <span class="hint">Creates two private links: one for you, one for the other party.</span></div>
+        <div id="xout"></div>
+      </form></div>`;
+    const f = $("#xf"); let tab = "cam", calc = null;
+    const lineRow = (c = "", a = "", r = true, k = true, fee = true) => `<tr><td><input name="l_cat" value="${esc(c)}"></td><td><input name="l_amt" type="number" step="0.01" value="${esc(a)}" style="text-align:right"></td><td><input name="l_rec" type="checkbox" ${r ? "checked" : ""} style="width:auto"></td><td><input name="l_con" type="checkbox" ${k ? "checked" : ""} style="width:auto"></td><td><input name="l_fee" type="checkbox" ${fee ? "checked" : ""} style="width:auto"></td><td><button type="button" class="btn quiet small" data-del>Remove</button></td></tr>`;
+    const factRow = (l = "", v = "", b = "") => `<tr><td><input name="f_label" value="${esc(l)}"></td><td><input name="f_value" value="${esc(v)}"></td><td><input name="f_basis" value="${esc(b)}"></td><td><button type="button" class="btn quiet small" data-del>Remove</button></td></tr>`;
+    $("#lines tbody").innerHTML = [["Janitorial and cleaning", 184000, true, true, true], ["Repairs and maintenance", 96500, true, true, true], ["Landscaping and snow", 41200, true, true, true], ["Property taxes", 322000, true, false, false], ["Insurance", 58400, true, false, false], ["Roof replacement (capital)", 250000, false, true, true]].map((x) => lineRow(...x)).join("");
+    $("#facts tbody").innerHTML = [["Lease commencement date", "1 March 2021", "Lease, section 1.3"], ["Lease expiration date", "28 February 2031", "Lease, section 1.3; First Amendment, section 2"], ["Rentable area", "12,000 SF", "Lease, section 1.1"], ["Current base rent", "$24.50 per SF per year", "Lease, Exhibit C, year 5"], ["Security deposit held", "$49,000", "Lease, section 19"], ["Landlord defaults known to tenant", "None", "Tenant's statement"]].map((x) => factRow(...x)).join("");
+    f.addEventListener("click", (e) => { if (e.target.matches("[data-del]")) e.target.closest("tr").remove(); });
+    $("#addline").onclick = () => $("#lines tbody").insertAdjacentHTML("beforeend", lineRow());
+    $("#addfact").onclick = () => $("#facts tbody").insertAdjacentHTML("beforeend", factRow());
+    view.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => {
+      tab = b.dataset.tab; view.querySelectorAll("[data-tab]").forEach((x) => x.setAttribute("aria-selected", x === b));
+      $("#tab-cam").hidden = tab !== "cam"; $("#tab-facts").hidden = tab !== "facts";
+      f.title.value = tab === "cam" ? "2025 operating expense reconciliation, Suite 400" : "Tenant estoppel, Suite 400";
+    }));
+    const inputs = () => {
+      const rows = [...$("#lines tbody").rows].map((r) => ({ category: $("[name=l_cat]", r).value.trim(), amount: Number($("[name=l_amt]", r).value), recoverable: $("[name=l_rec]", r).checked, controllable: $("[name=l_con]", r).checked, admin_fee_applies: $("[name=l_fee]", r).checked })).filter((x) => x.category && x.amount >= 0);
+      const o = { year: Number(f.year.value), pro_rata_share: Number(f.share.value) / 100, estimates_paid: Number(f.paid.value), expenses: rows };
+      if (Number(f.fee.value) > 0) o.admin_fee = { rate: Number(f.fee.value) / 100 };
+      return o;
+    };
+    $("#calc").onclick = async () => {
+      const out = $("#calcout"); out.innerHTML = loading("Calculating with the published formula"); calc = null;
+      try {
+        const body = inputs();
+        const r = await fetch(CALC, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const j = await r.json();
+        if (!r.ok || !j.value) throw new Error(j.message || "The calculator rejected these inputs.");
+        calc = { formula: j.formula.id + "@" + j.formula.version, endpoint: CALC, inputs: body, result: j.value, steps: j.steps, warnings: j.warnings };
+        out.innerHTML = calcView(calc);
+      } catch (e) { out.innerHTML = fail(e); }
+    };
+    f.onsubmit = async (e) => {
+      e.preventDefault(); const out = $("#xout");
+      try {
+        let facts, kind = "fact_confirmation", calculation = null;
+        if (tab === "cam") {
+          if (!calc || JSON.stringify(calc.inputs) !== JSON.stringify(inputs())) throw new Error("Calculate first, so the statement carries the numbers and the formula that produced them.");
+          kind = "expense_reconciliation"; calculation = calc; const v = calc.result, b = f.basis.value.trim() || null;
+          facts = [
+            { key: "share", label: "Tenant's share of building expenses", value: (calc.inputs.pro_rata_share * 100).toFixed(4).replace(/\.?0+$/, "") + "%", basis: b },
+            { key: "fee", label: "Administrative fee", value: calc.inputs.admin_fee ? (calc.inputs.admin_fee.rate * 100) + "% of the tenant's share of fee-eligible lines" : "None", basis: b },
+            { key: "recoverable", label: "Recoverable building expenses for the year", value: usd(v.recoverable_expenses, 2), basis: "Operating statement; " + calc.inputs.expenses.filter((x) => !x.recoverable).map((x) => x.category).join(", ") + " excluded" },
+            { key: "charge", label: "Tenant's charge for the year", value: usd(v.tenant_charge, 2), basis: "Computed: " + calc.formula },
+            { key: "paid", label: "Estimates already paid", value: usd(v.estimates_paid, 2), basis: "Tenant ledger" },
+            { key: "balance", label: v.balance_due >= 0 ? "Balance due from tenant" : "Credit due to tenant", value: usd(Math.abs(v.balance_due), 2), basis: "Computed: " + calc.formula },
+          ];
+        } else {
+          facts = [...$("#facts tbody").rows].map((r, i) => ({ key: "fact_" + (i + 1), label: $("[name=f_label]", r).value, value: $("[name=f_value]", r).value, basis: $("[name=f_basis]", r).value })).filter((x) => x.label.trim() && x.value.trim());
+        }
+        out.innerHTML = loading("Recording the statement");
+        const r = await post({ action: "create_package", kind, title: f.title.value, subject_ref: subject || null, subject_label: slabel || null, established_by_org: f.from_org.value, established_by_name: f.from_name.value, counterparty_org: f.to_org.value, facts, calculation });
+        const base = location.origin + location.pathname + "#/x/" + r.id + "/";
+        $("#sendbar").hidden = true;
+        out.innerHTML = `<div class="sheet pad stack"><h3>Statement recorded</h3>
+          <p class="hint">Fingerprint <span class="hash">${esc(r.fingerprint)}</span>. Any change to the facts would change it.</p>
+          <div><label>Send this link to ${esc(f.to_org.value)}</label><div class="linkbox"><input readonly value="${esc(base + r.counterparty_token)}"><button type="button" class="btn small" data-copy>Copy</button><a class="btn quiet small" target="_blank" href="${esc(base + r.counterparty_token)}">Open as them</a></div></div>
+          <div><label>Your own link, to follow the response</label><div class="linkbox"><input readonly value="${esc(base + r.owner_token)}"><button type="button" class="btn quiet small" data-copy>Copy</button><a class="btn quiet small" href="${esc(base + r.owner_token)}">Open</a></div></div></div>`;
+      } catch (err) { out.innerHTML = fail(err); }
+    };
+  },
+
+  async x(id, token) {
+    view.innerHTML = loading("Opening the statement");
+    try {
+      const d = await get("package", { id, token }), p = d.package, mine = p.role === "owner";
+      const resp = Object.fromEntries(d.responses.map((r) => [r.fact_key, r]));
+      const open = p.status === "sent" && !mine;
+      const stamp = p.status === "confirmed" ? `<div class="stamp" id="stamp">Relied on<small>${esc(p.counterparty_org)}, ${day(p.responded_at)}</small></div>` : p.status === "disputed" ? `<div class="stamp bad" id="stamp">Disputed<small>${esc(p.counterparty_org)}, ${day(p.responded_at)}</small></div>` : "";
+      view.innerHTML = `<div class="stack-l"><div class="grid2" style="grid-template-columns:1fr auto;gap:24px"><div class="stack">
+          <p class="hint">${mine ? "Your statement to " + esc(p.counterparty_org) : "Statement from " + esc(p.established_by_org) + " to " + esc(p.counterparty_org)}</p>
+          <h2>${esc(p.title)}</h2>
+          <p>Stated by ${esc(p.established_by_name)}, ${esc(p.established_by_org)}, on ${when(p.created_at)}. ${p.subject_label ? "About " + esc(p.subject_label) + "." : ""}</p>
+          <p class="hint">Fingerprint <span class="hash">${esc(p.fingerprint)}</span> ${d.fingerprint_matches ? '<span class="chip ok">Unchanged since it was stated</span>' : '<span class="chip bad">Does not match: the content has changed</span>'}</p></div>
+          <div style="padding:8px 12px 0 0">${stamp}</div></div>
+        ${p.status === "sent" && mine ? `<div class="notice">Waiting for ${esc(p.counterparty_org)}. This page shows their response when they give it.</div>` : ""}
+        ${p.calculation ? `<section class="stack"><h3>The arithmetic</h3>${calcView(p.calculation)}<div><button class="btn quiet" id="recalc">Re-run this calculation independently</button><div id="recalcout" style="margin-top:12px"></div></div></section>` : ""}
+        <section class="stack"><h3>${open ? "Confirm or dispute each fact" : "The facts"}</h3>
+          <form id="rf"><div class="sheet scroll"><table><thead><tr><th>Fact</th><th>Stated value</th><th>Where it comes from</th><th>${open ? "Your decision" : "Response"}</th></tr></thead><tbody>${p.facts.map((f) => { const r = resp[f.key]; return `<tr><td>${esc(f.label)}</td><td><b>${esc(f.value)}</b></td><td class="hint">${esc(f.basis || "")}</td><td>${open ? `<div class="dec"><label><input type="radio" name="d_${esc(f.key)}" value="confirm" required>Confirm</label><label><input type="radio" name="d_${esc(f.key)}" value="dispute">Dispute</label></div><input name="n_${esc(f.key)}" placeholder="If disputing, what is wrong" style="margin-top:6px;font-size:.9rem" hidden>` : r ? `<span class="chip ${r.decision === "confirm" ? "ok" : "bad"}">${r.decision === "confirm" ? "Confirmed" : "Disputed"}</span>${r.note ? `<div class="hint" style="margin-top:4px">${esc(r.note)}</div>` : ""}` : '<span class="chip">Awaiting</span>'}</td></tr>`; }).join("")}</tbody></table></div>
+          ${open ? `<div class="cols" style="margin-top:16px;align-items:end;grid-template-columns:minmax(200px,320px) auto 1fr"><div><label>Your name</label><input name="who" required placeholder="Name of the person confirming"></div><button class="btn">Record my response</button><span class="hint">Confirming every fact records that ${esc(p.counterparty_org)} relies on this statement.</span></div><div id="rout" style="margin-top:12px"></div>` : ""}</form></section>
+        <section class="stack"><h3>History</h3><div class="sheet pad"><ol class="chain">${d.events.map((ev, i) => `<li class="${i === d.events.length - 1 && p.status !== "sent" ? "end" : ""}"><div class="k">${esc(ev.action[0].toUpperCase() + ev.action.slice(1))} by ${esc(ev.actor)}</div><div class="d">${when(ev.at)}</div></li>`).join("")}</ol></div></section></div>`;
+      if (sessionStorage.getItem("pressed") === id) { sessionStorage.removeItem("pressed"); $("#stamp")?.classList.add("press"); }
+      const rc = $("#recalc");
+      if (rc) rc.onclick = async () => {
+        const out = $("#recalcout"); out.innerHTML = loading("Calling the public calculator from your browser");
+        try {
+          const r = await fetch(p.calculation.endpoint || CALC, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p.calculation.inputs) });
+          const j = await r.json(); if (!j.value) throw new Error(j.message || "The calculator rejected the stated inputs.");
+          const same = ["tenant_charge", "balance_due", "recoverable_expenses", "admin_fee"].every((k) => j.value[k] === p.calculation.result[k]);
+          const got = j.formula.id + "@" + j.formula.version;
+          out.innerHTML = same && got === p.calculation.formula ? `<div class="notice ok"><b>Matches.</b> Your browser sent the stated inputs to FactLot's public calculator and got the same charge (${usd(j.value.tenant_charge, 2)}) and balance (${usd(j.value.balance_due, 2)}) under formula ${esc(got)}. The Record took no part in that check.</div>` : `<div class="notice bad"><b>Does not match.</b> Recomputed charge ${usd(j.value.tenant_charge, 2)} and balance ${usd(j.value.balance_due, 2)} under ${esc(got)}; the statement says ${usd(p.calculation.result.tenant_charge, 2)} and ${usd(p.calculation.result.balance_due, 2)} under ${esc(p.calculation.formula)}.</div>`;
+        } catch (e) { out.innerHTML = fail(e); }
+      };
+      const rf = $("#rf");
+      if (open) {
+        rf.addEventListener("change", (e) => { if (e.target.type === "radio") { const n = rf["n_" + e.target.name.slice(2)]; n.hidden = e.target.value !== "dispute"; n.required = e.target.value === "dispute"; } });
+        rf.onsubmit = async (e) => {
+          e.preventDefault();
+          try {
+            const decisions = p.facts.map((f) => ({ fact_key: f.key, decision: rf["d_" + f.key].value, note: rf["n_" + f.key].value || null }));
+            $("#rout").innerHTML = loading("Recording");
+            await post({ action: "respond", id, token, responded_by_name: rf.who.value, decisions });
+            sessionStorage.setItem("pressed", id); routes.x(id, token); window.scrollTo({ top: 0 });
+          } catch (err) { $("#rout").innerHTML = fail(err); }
+        };
+      }
+    } catch (e) { view.innerHTML = fail(e); }
+  },
+};
+
+function calcView(c) {
+  const v = c.result;
+  return `<div class="sheet"><div class="pad cols"><div><div class="figure">${usd(v.tenant_charge, 2)}</div><div>tenant's charge for the year</div></div><div><div class="figure">${usd(v.estimates_paid, 2)}</div><div>estimates paid</div></div><div><div class="figure">${usd(Math.abs(v.balance_due), 2)}</div><div>${v.balance_due >= 0 ? "balance due from tenant" : "credit due to tenant"}</div></div></div>
+    <details class="fact" style="border-top:1px solid var(--line)"><summary><span>Every step</span><span class="v hint">Formula ${esc(c.formula)}, published and versioned by FactLot</span><span class="hint">show</span></summary><div class="body"><table><tbody>${c.steps.map((s) => `<tr><td>${esc(s.label)}</td><td class="hint">${esc(s.formula || "")}</td><td class="num">${typeof s.value === "number" ? usd(s.value, 2) : esc(s.value)}</td></tr>`).join("")}</tbody></table>
+    ${(c.warnings || []).length ? `<div class="notice" style="margin-top:14px">${c.warnings.map(esc).join("<br>")}</div>` : ""}</div></details></div>`;
+}
+
+document.addEventListener("click", (e) => {
+  const go = e.target.closest("[data-go]");
+  if (go && !e.target.closest("a")) location.hash = go.dataset.go;
+  const cp = e.target.closest("[data-copy]");
+  if (cp) { const i = cp.parentElement.querySelector("input"); navigator.clipboard?.writeText(i.value).then(() => { cp.textContent = "Copied"; setTimeout(() => (cp.textContent = "Copy"), 1500); }, () => i.select()); }
+});
+function route() {
+  const [path, query] = (location.hash.slice(2) || "").split("?");
+  const [name, ...args] = path.split("/").map(decodeURIComponent);
+  const page = name || "home";
+  document.querySelectorAll("nav a").forEach((a) => a.toggleAttribute("aria-current", false));
+  const nav = { search: "search", parcel: "search", exchange: "exchange", x: "exchange", sources: "sources", source: "sources", measure: "measure" }[page];
+  if (nav) $(`nav a[data-nav=${nav}]`).setAttribute("aria-current", "page");
+  window.scrollTo(0, 0);
+  if (page === "search" || page === "exchange") routes[page](query);
+  else if (routes[page]) routes[page](...args);
+  else routes.home();
+}
+addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>
