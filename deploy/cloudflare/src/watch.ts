@@ -213,7 +213,7 @@ export const WATCH_TOOLS = [
   ),
 ];
 
-/** The paying caller watch lists belong to: an active Pro or Team subscription. */
+/** The paying caller watch lists belong to: an active Pro or Team subscription (never a guest key). */
 export interface WatchCaller {
   subscription: string;
   plan: PlanId;
@@ -224,7 +224,7 @@ export interface WatchCaller {
 export function watchCaller(
   paid: { hash: string; record: KeyRecord } | undefined,
 ): WatchCaller | undefined {
-  if (!paid || !paid.record.subscription) return undefined;
+  if (!paid || !paid.record.subscription || paid.record.guest) return undefined;
   return {
     subscription: paid.record.subscription,
     plan: paid.record.plan,
