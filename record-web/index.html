@@ -460,7 +460,91 @@ const routes = {
       }
     } catch (e) { view.innerHTML = fail(e); }
   },
+
+  // The page a counterparty opens from a link sent through the exchange (no account). The sender opens the same page with their private link.
+  async r(id, token) {
+    view.innerHTML = loading("Opening the statement");
+    try {
+      const p = await exGet("get", id, token), mine = p.role === "owner";
+      const fig = (v, unit) => (v == null || v === "" ? "–" : typeof v === "number" ? (unit === "USD" ? usd(v, Number.isInteger(v) ? 0 : 2) : v.toLocaleString("en-US")) : esc(v));
+      const ours = p.items.filter((i) => i.position === "state_ours"), theirs = p.items.filter((i) => i.position === "accept_theirs");
+      const open = p.status === "sent" && !mine && ours.length > 0;
+      const agreed = ours.filter((i) => i.response?.decision === "confirm").length, disputed = ours.filter((i) => i.response?.decision === "dispute").length;
+      const stamp = p.status === "confirmed" ? `<div class="stamp">Agreed<small>${esc(p.to.organisation)}, ${day(p.responded_at)}</small></div>` : p.status === "disputed" ? `<div class="stamp bad">Some items disputed<small>${esc(p.to.organisation)}, ${day(p.responded_at)}</small></div>` : "";
+      const proof = (f) => f.sources.map((s) => `<blockquote style="margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--seal);background:var(--seal-wash);border-radius:0 6px 6px 0">“${esc(s.quote)}”<div class="hint" style="margin-top:4px">${esc(s.title || "Document")}, page ${esc(s.page)}. Fingerprint <span class="hash">${esc(short(s.sha256))}</span></div></blockquote>`).join("");
+      const itemCard = (i, n) => `<div class="sheet pad stack" data-item="${esc(i.key)}">
+        <h3>${n}. ${esc(i.label)}</h3>
+        <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+          <div><div class="hint">${esc(p.from.organisation)} says</div><div class="figure">${fig(i.value, i.unit)}</div></div>
+          <div><div class="hint">${esc(p.to.organisation)} stated</div><div class="figure">${fig(i.their_value, i.unit)}</div></div></div>
+        ${i.note ? `<p style="margin:0">${esc(i.note)}</p>` : ""}
+        <details><summary style="cursor:pointer;font-weight:600">What this rests on</summary>${i.facts.map((f) => proof(f)).join("")}</details>
+        ${open ? `<div class="dec" style="flex-wrap:wrap"><label><input type="radio" name="d_${esc(i.key)}" value="agree" required>I agree with this figure</label><label><input type="radio" name="d_${esc(i.key)}" value="dispute">I dispute it</label></div>
+          <textarea name="n_${esc(i.key)}" rows="2" placeholder="What is wrong, and what is the right figure?" hidden></textarea>`
+          : i.response ? `<div><span class="chip ${i.response.decision === "confirm" ? "ok" : "bad"}">${i.response.decision === "confirm" ? "Agreed" : "Disputed"} by ${esc(i.response.responded_by_name)}</span>${i.response.note ? `<div class="hint" style="margin-top:4px">${esc(i.response.note)}</div>` : ""}</div>`
+          : '<span class="chip">Waiting for an answer</span>'}</div>`;
+      view.innerHTML = `<div class="stack-l"><div class="grid2" style="grid-template-columns:1fr auto;gap:24px"><div class="stack">
+          <p class="hint">${mine ? "Your statement to " + esc(p.to.organisation) : "From " + esc(p.from.organisation)} ${p.sandbox ? '<span class="chip">Test: not counted</span>' : ""}</p>
+          <h2>${esc(p.title)}</h2>
+          <p>${mine ? "Sent" : esc(p.from.person) + " sent this to you"} on ${when(p.created_at)}, approved by ${esc(p.approved_by)}. ${p.subject_label ? "About " + esc(p.subject_label) + "." : ""}</p>
+          <p class="hint">${p.integrity === "ok" ? '<span class="chip ok">Unchanged since it was sent</span>' : '<span class="chip bad">Does not match what was sent</span>'} Fingerprint <span class="hash">${esc(p.package_root)}</span></p></div>
+          <div style="padding:8px 12px 0 0">${stamp}</div></div>
+        ${mine ? (p.status === "sent" ? `<div class="notice">Waiting for ${esc(p.to.organisation)}. This page shows their answers when they give them.</div>` : `<div class="notice ${disputed ? "bad" : "ok"}">${agreed} agreed, ${disputed} disputed.</div>`)
+          : open ? `<div class="notice"><b>${ours.length} ${ours.length === 1 ? "item needs" : "items need"} your answer.</b> For each one, ${esc(p.from.organisation)} gives its figure and the line in the lease or statement it rests on. Agree or dispute each. A dispute needs a short reason. You do not need an account.</div>`
+          : `<div class="notice ${p.status === "disputed" ? "bad" : "ok"}">This statement has been answered: ${agreed} agreed, ${disputed} disputed.</div>`}
+        ${p.calculation ? `<section class="stack"><h3>How the figures were worked out</h3>${exCalc(p.calculation)}</section>` : ""}
+        <form id="rf" class="stack">
+          ${ours.length ? `<section class="stack"><h3>${open ? "Items for you to answer" : "Items that were put to " + esc(p.to.organisation)}</h3>${ours.map((i, n) => itemCard(i, n + 1)).join("")}</section>` : ""}
+          ${theirs.length ? `<section class="stack"><h3>Figures from your statement that ${esc(p.from.organisation)} accepted</h3><p class="hint">Nothing to do here. These are recorded as relied on by ${esc(p.from.organisation)}.</p><div class="sheet scroll"><table><thead><tr><th>Item</th><th class="num">Figure</th><th>Rests on</th></tr></thead><tbody>${theirs.map((i) => `<tr><td>${esc(i.label)}</td><td class="num"><b>${fig(i.value, i.unit)}</b></td><td>${i.facts.map((f) => f.sources.map((s) => `<div class="hint">“${esc(s.quote)}”, page ${esc(s.page)}</div>`).join("")).join("")}</td></tr>`).join("")}</tbody></table></div></section>` : ""}
+          ${open ? `<section class="sheet pad stack"><h3>Your answer</h3><div class="cols"><div><label>Your name</label><input name="who" required autocomplete="name"></div><div><label>Your organisation</label><input name="org" required value="${esc(p.to.organisation)}"></div></div><div><button class="btn">Send my answers</button> <span class="hint">Each item you agree with is recorded as relied on by ${esc(p.to.organisation)}.</span></div><div id="rout"></div></section>` : ""}
+        </form>
+        <section class="stack"><h3>The documents behind this</h3>
+          <p class="hint">The Record never holds these documents. It keeps each fact, the exact words it was taken from, the page, and a fingerprint (SHA-256) of the document. To check that your copy is the one used, choose it here: the fingerprint is worked out on your device and nothing is uploaded.</p>
+          <div class="sheet pad stack">${p.documents.map((d) => `<div><b>${esc(d.title || d.document_id)}</b><div class="hash">${esc(d.sha256 || "")}</div></div>`).join("")}
+            <div><label>Check a document you hold</label><input type="file" id="docfile"><div id="docout" class="hint" style="margin-top:6px"></div></div></div></section>
+        <section class="stack"><h3>History</h3><div class="sheet pad"><ol class="chain">${p.events.map((ev, i) => `<li class="${i === p.events.length - 1 && p.status !== "sent" ? "end" : ""}"><div class="k">${esc(ev.action[0].toUpperCase() + ev.action.slice(1))} by ${esc(ev.actor)}</div><div class="d">${when(ev.at)}</div></li>`).join("")}</ol></div></section></div>`;
+      $("#docfile").onchange = async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", await f.arrayBuffer()))].map((b) => b.toString(16).padStart(2, "0")).join("");
+        const m = p.documents.find((d) => d.sha256 === h);
+        $("#docout").innerHTML = m ? `<span class="chip ok">Matches</span> ${esc(m.title || m.document_id)}` : '<span class="chip bad">No match</span> This file is not one of the documents listed above.';
+      };
+      const rf = $("#rf");
+      if (open) {
+        rf.addEventListener("change", (e) => { if (e.target.type === "radio") { const n = rf["n_" + e.target.name.slice(2)]; n.hidden = e.target.value !== "dispute"; n.required = e.target.value === "dispute"; } });
+        rf.onsubmit = async (e) => {
+          e.preventDefault();
+          try {
+            const decisions = ours.map((i) => ({ key: i.key, decision: rf["d_" + i.key].value, note: rf["n_" + i.key].value.trim() || null }));
+            $("#rout").innerHTML = loading("Recording");
+            await exPost({ action: "respond", id, token, responded_by_name: rf.who.value, responded_by_org: rf.org.value, decisions });
+            routes.r(id, token); window.scrollTo({ top: 0 });
+          } catch (err) { $("#rout").innerHTML = fail(err); }
+        };
+      }
+    } catch (e) { view.innerHTML = fail(e); }
+  },
 };
+
+const EX = "https://czmyqwkauymguoznzpzr.supabase.co/functions/v1/exchange";
+async function exGet(op, id, token) {
+  const r = await fetch(EX + "?" + new URLSearchParams({ op, id, token })), j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Request failed");
+  return j.result;
+}
+async function exPost(body) {
+  const r = await fetch(EX, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }), j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Request failed");
+  return j.result;
+}
+// A calculation as FactLot returns it: { value, formula: { id, version }, steps, warnings }.
+function exCalc(c) {
+  const v = c.value || {}, f = c.formula ? c.formula.id + "@" + c.formula.version : "";
+  const head = [["tenant_charge", "tenant's charge for the year"], ["estimates_paid", "estimates paid"], ["balance_due", v.balance_due < 0 ? "credit due to tenant" : "balance due from tenant"]].filter(([k]) => v[k] != null);
+  return `<div class="sheet"><div class="pad cols">${head.map(([k, t]) => `<div><div class="figure">${usd(k === "balance_due" ? Math.abs(v[k]) : v[k], 2)}</div><div>${t}</div></div>`).join("")}</div>
+    <details class="fact" style="border-top:1px solid var(--line)"><summary><span>Every step</span><span class="v hint">${f ? "Formula " + esc(f) + ", published by FactLot. The same inputs always give the same answer." : ""}</span><span class="hint">show</span></summary><div class="body"><table><tbody>${(c.steps || []).map((s) => `<tr><td>${esc(s.label)}</td><td class="hint">${esc(s.formula || "")}</td><td class="num">${typeof s.value === "number" ? usd(s.value, 2) : esc(s.value)}</td></tr>`).join("")}</tbody></table>
+    ${(c.warnings || []).length ? `<div class="notice" style="margin-top:14px">${c.warnings.map(esc).join("<br>")}</div>` : ""}</div></details></div>`;
+}
 
 function calcView(c) {
   const v = c.result;
@@ -480,7 +564,7 @@ function route() {
   const [name, ...args] = path.split("/").map(decodeURIComponent);
   const page = name || "home";
   document.querySelectorAll("nav a").forEach((a) => a.toggleAttribute("aria-current", false));
-  const nav = { search: "search", parcel: "search", exchange: "exchange", x: "exchange", sources: "sources", source: "sources", measure: "measure" }[page];
+  const nav = { search: "search", parcel: "search", exchange: "exchange", x: "exchange", r: "exchange", sources: "sources", source: "sources", measure: "measure" }[page];
   if (nav) $(`nav a[data-nav=${nav}]`).setAttribute("aria-current", "page");
   window.scrollTo(0, 0);
   if (page === "search" || page === "exchange") routes[page](query);
