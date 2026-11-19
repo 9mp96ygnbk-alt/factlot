@@ -30,7 +30,7 @@ Downloads: registry sample on real data, https://github.com/9mp96ygnbk-alt/factl
 - The model-backed tools send what you submit to Anthropic's API (Pro: 100 lease pages and 50 narratives a month; Team: 2,000 and 1,000); no other tool uses a model.
 - `report_create` builds an XLSX, PDF or ICS file from a tool result by code, with no model; links work 24 hours.
 - An agent can start checkout with `POST https://api.factlot.com/v1/billing/checkout` and body `{"plan":"pro"}` (add `"interval":"year"` for yearly); it returns a Stripe link for a human. Send the key as `Authorization: Bearer <key>`. Plans as JSON: https://api.factlot.com/v1/plans . Pricing: https://factlot.com/pricing/
-- Registry download licence: $2,400 a year per state file, internal use, on request; refreshed when the hosted regions are, with no promised interval (https://factlot.com/sla/). Enterprise (private deployment, signed data-processing agreement with a no-training commitment, SSO): by quote.
+- Registry download licence: $2,400 a year per state file, internal use, on request; refreshed when the hosted regions are, with no promised interval (https://factlot.com/sla/). Enterprise (private deployment, invoicing): by quote. A signed data-processing agreement and SSO are not available yet.
 
 ## Links
 
