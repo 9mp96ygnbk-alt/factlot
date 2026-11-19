@@ -1596,7 +1596,6 @@ function audit(input: AuditInput): Json {
       position: "state_ours",
       their_value: f.landlord_figure,
       fact_ids: [...f.lease_fact_ids, ...f.statement_fact_ids],
-      finding_id: f.id,
     });
   }
   lines.forEach((l, i) => {

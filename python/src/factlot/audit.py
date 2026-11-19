@@ -1011,7 +1011,7 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
             continue
         items.append({"key": f["id"], "label": f["title"][:160], "value": f["lease_figure"], "unit": "USD",
                       "position": "state_ours", "their_value": f["landlord_figure"],
-                      "fact_ids": [*f["lease_fact_ids"], *f["statement_fact_ids"]], "finding_id": f["id"]})
+                      "fact_ids": [*f["lease_fact_ids"], *f["statement_fact_ids"]]})
     for i, l in enumerate(lines):
         if l.fact.id in flagged_lines:
             continue

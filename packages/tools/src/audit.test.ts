@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { auditSummary, runTool, runWithExchangeCaller } from "./index.ts";
+import { FactPackageSendInput } from "./exchange.ts";
 
 type Json = Record<string, unknown>;
 type Case = {
@@ -671,4 +672,15 @@ test("hosted summary: count, total, deadlines and checks not run; nothing else",
   );
   assert.ok(paid.ok && (paid.result as Json).findings !== undefined);
   assert.deepEqual(auditSummary(local.result as Json), r);
+});
+
+test("package_items go to fact_package_send as they are: its schema accepts every item", () => {
+  const r = run(flawedCase());
+  const items = r.package_items as Json[];
+  assert.ok(items.length >= 2);
+  const parsed = FactPackageSendInput.shape.items.safeParse(items);
+  assert.ok(
+    parsed.success,
+    JSON.stringify(parsed.success ? "" : parsed.error.issues),
+  );
 });
