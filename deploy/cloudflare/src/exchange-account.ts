@@ -29,6 +29,6 @@ export function exchangeTestReason(
   paid: PaidCaller | undefined,
 ): string | undefined {
   return paid?.record.guest
-    ? "the call came with a guest key (a key given to someone outside the subscription, such as a reviewer), and a guest key sends test packages only"
+    ? "the call came with a guest key (a key given to someone outside the subscription, such as a reviewer), and a full FactLot account key (a paid fl_live_ key or an email-verified fl_free_ key) is needed to send for real; a guest key sends test packages only"
     : undefined;
 }

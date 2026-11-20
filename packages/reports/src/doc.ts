@@ -1,12 +1,10 @@
 /**
- * The neutral document model every report kind builds, and its two renderings: a PDF (flowing
- * pages) and an XLSX workbook (a Report sheet, one sheet per long table, a Checks sheet with live
+ * The neutral document model every report kind builds, and its XLSX rendering (the PDF is laid
+ * out in the institutional style by institutional_doc.ts): a workbook (a Report sheet, one sheet per long table, a Checks sheet with live
  * formulas that tie the figures out, and a ReadMe). A kind can replace the workbook with its own
  * (tx_unequal_appraisal does, to mirror the reconciliation example).
  */
 import { int, num, pct, sig, times, usd } from "./format.ts";
-// pdf.ts (and pdf-lib) load on the first PDF only: an XLSX or ICS request never evaluates them.
-import { PdfWriter, WIDE_TABLE_COLUMNS, type Column } from "./pdf.ts";
 import {
   Workbook,
   addr,
@@ -109,9 +107,27 @@ export interface Check {
   field: string;
 }
 
+/** What the PDF's first page shows beside the title: the line under it and the key figures. */
+export interface Cover {
+  /** The document type as the title (default: the document's title). */
+  title?: string;
+  /** One line saying what, and for which property or period. */
+  line?: string;
+  /** Who it is prepared for (printed as "Prepared for ..."). */
+  preparedFor?: string;
+  /** The as-of date, YYYY-MM-DD (default: the generation day). */
+  asOf?: string;
+  /** Said under Basis of preparation (what the caller supplied). */
+  note?: string;
+  /** Three or four key figures: a large figure over a small label. */
+  figures?: { figure: string; label: string }[];
+}
+
 export interface ReportDoc {
   title: string;
   subtitle: string;
+  /** PDF only: the first page's title block and key figures. */
+  cover?: Cover;
   blocks: Block[];
   checks?: Check[];
   /** ReadMe lines for the workbook (what it is, how to read it). */
@@ -127,6 +143,9 @@ export interface Provenance {
   generatedAt: Date;
   /** Short report name for the page header. */
   header: string;
+  /** PDF: the one-line page footer (without a web address), and the document type as printed. */
+  pdfFooter?: string;
+  docType?: string;
   keywords: string[];
 }
 
@@ -159,7 +178,7 @@ export function fmtText(v: Raw, fmt: Fmt): string {
   }
 }
 
-const RIGHT: ReadonlySet<Fmt> = new Set([
+export const RIGHT: ReadonlySet<Fmt> = new Set<Fmt>([
   "usd",
   "num",
   "num4",
@@ -172,84 +191,6 @@ const RIGHT: ReadonlySet<Fmt> = new Set([
   "pct4",
   "times",
 ]);
-
-export async function renderPdf(
-  doc: ReportDoc,
-  p: Provenance,
-): Promise<Uint8Array> {
-  const w = await PdfWriter.create({
-    title: doc.title,
-    subject: doc.subtitle,
-    header: p.header,
-    footer: p.footer,
-    producer: `FactLot ${p.version} reports`,
-    keywords: p.keywords,
-    created: p.generatedAt,
-  });
-  w.title(doc.title, doc.subtitle);
-  const blocks = doc.blocks.filter((b) => b.only !== "xlsx");
-  // A wide table goes on landscape pages, with the heading and text that introduce it; what
-  // follows returns to portrait.
-  const land: boolean[] = [];
-  let carry = false;
-  for (let i = blocks.length - 1; i >= 0; i--) {
-    const b = blocks[i]!;
-    if (b.t === "table" || b.t === "kv" || b.t === "pagebreak")
-      carry = b.t === "table" && b.columns.length > WIDE_TABLE_COLUMNS;
-    land[i] = carry;
-    if (b.t === "heading") carry = false;
-  }
-  for (const [i, b] of blocks.entries()) {
-    w.orientation(land[i]!);
-    switch (b.t) {
-      case "heading":
-        w.heading(b.text);
-        break;
-      case "subheading":
-        w.subheading(b.text);
-        break;
-      case "para":
-        w.para(b.text, {
-          color: b.grey ? "grey" : "ink",
-          ...(b.size ? { size: b.size } : {}),
-        });
-        break;
-      case "notice":
-        w.notice(b.text, b.tone ?? "warn");
-        break;
-      case "bullets":
-        w.bullets(b.items);
-        break;
-      case "kv":
-        w.kv(
-          b.rows.map((r) => [
-            r.note ? `${r.label} (${r.note})` : r.label,
-            fmtText(r.value, r.fmt),
-          ]),
-        );
-        break;
-      case "table": {
-        const cols: Column[] = b.columns.map((c) => ({
-          header: c.header,
-          width: c.width ?? 1,
-          align: RIGHT.has(c.fmt) ? "right" : "left",
-        }));
-        w.table(
-          cols,
-          b.rows.map((r, k) =>
-            r.map((v, i) => fmtText(v, b.fmts?.[k]?.[i] ?? b.columns[i]!.fmt)),
-          ),
-          { size: b.size ?? 8, bold: new Set(b.bold ?? []) },
-        );
-        break;
-      }
-      case "pagebreak":
-        w.pageBreak();
-        break;
-    }
-  }
-  return w.bytes();
-}
 
 // --- XLSX ---------------------------------------------------------------------------------------
 

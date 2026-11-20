@@ -1,6 +1,6 @@
 /** lease_abstract (from doc_abstract_lease) and critical_dates (with an iCalendar file). */
 import type { Block, Fmt, Raw, ReportDoc } from "../doc.ts";
-import { jsonText } from "../format.ts";
+import { jsonText, longDate } from "../format.ts";
 import { calendar, dayNumber, eventUid, type IcsEvent } from "../ics.ts";
 import type {
   CriticalEventT,
@@ -11,6 +11,7 @@ import {
   LEASE_COMPUTED_LABEL,
   SUPPLIED_LABEL,
   closingBlocks,
+  coverOf,
   subtitle,
   warningsBlocks,
   type KindInput,
@@ -257,6 +258,18 @@ export function leaseDoc(k: KindInput): ReportDoc {
       ],
       k.ctx,
     ),
+    cover: coverOf(
+      k,
+      "Lease abstract",
+      [r.subject, `${s.documents} document${s.documents === 1 ? "" : "s"}`],
+      [
+        { figure: String(s.fields), label: "Terms abstracted" },
+        { figure: String(s.facts), label: "Verified facts" },
+        { figure: String(s.needs_review), label: "Needs review" },
+        { figure: String(s.conflicts), label: "Terms with conflicts" },
+      ],
+      r.as_of,
+    ),
     blocks,
     readme: [
       "A lease abstract from doc_abstract_lease: each current term with the quote, page and document that states it, what it superseded, conflicts and open items, and the extracted values that still need review.",
@@ -420,6 +433,33 @@ export function datesDoc(k: KindInput): ReportDoc {
     subtitle: subtitle(
       [nd ? `Next deadline ${nd.date}` : undefined, `${v.events.length} dates`],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      "Lease critical dates",
+      [`${v.events.length} dates`],
+      [
+        {
+          figure: nd ? longDate(nd.date) : "None",
+          label: nd
+            ? `Next deadline: ${nd.label}`
+            : "No deadline on or after the as-of date",
+        },
+        ...(nd?.days_from_as_of !== undefined
+          ? [
+              {
+                figure: String(nd.days_from_as_of),
+                label: "Days to the next deadline",
+              },
+            ]
+          : []),
+        { figure: String(v.renewal_terms.length), label: "Renewal options" },
+        {
+          figure: String(v.termination_options.length),
+          label: "Termination options",
+        },
+      ],
+      v.as_of ?? undefined,
     ),
     blocks,
     readme: [

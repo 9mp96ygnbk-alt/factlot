@@ -122,7 +122,7 @@ class ExchangeTools(unittest.TestCase):
         self.assertTrue(r["test_mode"])
         self.assertEqual(r["recorded_as"], "sandbox")
         self.assertIn("TEST MODE", r["message"])
-        self.assertIn("no FactLot account key", r["message"])
+        self.assertIn("a full FactLot account key", r["message"])
         self.assertNotIn("authorization", fake.seen[0]["headers"])
         self.assertNotIn("sender_account", fake.seen[0]["body"])
         self.assertEqual(r["link_for_counterparty"], f"https://cre-record.vercel.app/#/r/{OK_ID}/countertoken2")
