@@ -13647,6 +13647,21 @@ describe("fact_package_send: which account is calling", () => {
     assert.equal(anon.caller!.accountId, undefined);
   });
 
+  it("a guest key (a reviewer's) is never an account: its packages are tests, and the answer says why", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    await issue(e);
+    const guest = await issue(e, { guest: true });
+    const r = (await send(e, guest.key)) as {
+      caller: { accountId?: string; testReason?: string } | null;
+      sawAuthorization: boolean;
+    };
+    assert.equal(r.caller!.accountId, undefined);
+    assert.match(r.caller!.testReason!, /guest key/);
+    assert.equal(r.sawAuthorization, false);
+    assert.ok(!JSON.stringify(r).includes(guest.key));
+  });
+
   it("an inactive paid key is refused before any tool runs, so it is never an account", async () => {
     const e = env();
     e.RL_ANON = new CountingLimit(1000);

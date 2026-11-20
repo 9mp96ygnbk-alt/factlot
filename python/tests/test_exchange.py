@@ -137,6 +137,18 @@ class ExchangeTools(unittest.TestCase):
         self.assertNotIn("authorization", fake.seen[0]["headers"])
         self.assertNotIn("sender_account", fake.seen[0]["body"])
 
+    def test_guest_key_is_test_mode_with_its_reason(self):
+        fake = Fake(sent_ok(True))
+        configure_exchange(transport=fake, token="apptoken-fictional")
+        with run_with_exchange_caller(None, test_reason="the call came with a guest key"):
+            r = run_tool("fact_package_send", self.inp)
+        self.assertTrue(r["test_mode"])
+        self.assertEqual(r["recorded_as"], "sandbox")
+        self.assertTrue(r["message"].endswith(
+            "because the call came with a guest key. The counterparty can still open the link and answer."))
+        self.assertNotIn("authorization", fake.seen[0]["headers"])
+        self.assertNotIn("sender_account", fake.seen[0]["body"])
+
     def test_token_and_account_forward_and_say_sent_for_real(self):
         fake = Fake(sent_ok(False))
         configure_exchange(transport=fake, token="apptoken-fictional")
