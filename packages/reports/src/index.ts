@@ -10,13 +10,9 @@
 import { CATALOG_VERSION, getTool } from "@factlot/tools";
 import { z } from "zod";
 
-import {
-  renderPdf,
-  renderXlsx,
-  type Provenance,
-  type ReportDoc,
-} from "./doc.ts";
+import { renderXlsx, type Provenance, type ReportDoc } from "./doc.ts";
 import { slug, utcStamp } from "./format.ts";
+import { longDate, renderPdf } from "./institutional_doc.ts";
 import { checkCallerText } from "./text.ts";
 import {
   LEASE_COMPUTED_LABEL,
@@ -394,16 +390,19 @@ export async function renderReport(
         : kind === "property_sheet"
           ? `${generated}; public-record values as published, laid out by code with no model; not an appraisal; see ${TERMS_URL}`
           : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
-  // A Texas PDF carries the disclaimer twice: on the cover and in every page's footer.
+  // A Texas PDF carries the disclaimer on the cover and in every page's footer (pdfFooter).
   const p: Provenance = {
-    footer:
-      (kind === "tx_unequal_appraisal" || kind === "tx_protest_deadline") &&
-      format === "pdf"
-        ? `${footer}. ${TX_DISCLAIMER}`
-        : footer,
+    footer,
     version,
     toolRef,
     generatedAt,
+    pdfFooter: pdfFooter(
+      kind,
+      checked.check,
+      version,
+      longDate(generatedAt.toISOString().slice(0, 10)),
+    ),
+    docType: KIND_TITLES[kind],
     header: `FactLot | ${KIND_TITLES[kind]}${ctx.title ? ` | ${ctx.title}` : ""}`,
     keywords: ["FactLot", kind, toolRef],
   };
@@ -455,6 +454,31 @@ export async function renderReport(
       : {}),
     generated_at: generatedAt.toISOString(),
   };
+}
+
+/**
+ * The one-line page footer of a PDF (no web address; the full statement of how the document was
+ * made, with the terms link, is under Basis of preparation). A Texas document keeps its required
+ * disclaimer on every page, so its footer wraps.
+ */
+function pdfFooter(
+  kind: ReportKind,
+  check: "computed" | "supplied",
+  version: string,
+  date: string,
+): string {
+  const by = `Prepared by FactLot ${version}, ${date}.`;
+  switch (kind) {
+    case "lease_abstract":
+      return `${check === "supplied" ? SUPPLIED_LABEL : LEASE_COMPUTED_LABEL} ${by}`;
+    case "tx_unequal_appraisal":
+    case "tx_protest_deadline":
+      return `${TX_DISCLAIMER} ${by}`;
+    case "property_sheet":
+      return `${by} Public-record values as published; not an appraisal.`;
+    default:
+      return `${by} Numbers are the tool's results.`;
+  }
 }
 
 const BUILDERS: Record<

@@ -266,7 +266,7 @@ async function xlsxText(bytes: Uint8Array): Promise<string> {
 const flat = (t: string) => t.replace(/\s+/g, " ");
 
 describe("property_sheet", () => {
-  it("free: one page, the current roll year only, the earlier years named with the pricing link", async () => {
+  it("free: at most two pages, the current roll year only, the earlier years named with the pricing link", async () => {
     const lookup: RegistryLookup = {
       record: freeRecord(),
       plan: "free",
@@ -280,7 +280,7 @@ describe("property_sheet", () => {
       /^factlot-property-sheet-0010010000001-2026-11-12\.pdf$/,
     );
     const pdf = await readPdf(file.bytes);
-    assert.equal(pdf.pages, 1, "one page");
+    assert.ok(pdf.pages <= 2, "at most two pages");
     const t = flat(pdf.text);
     for (const want of [
       "1000 LOUISIANA ST HOUSTON TX 77002",
@@ -299,7 +299,7 @@ describe("property_sheet", () => {
       "1983",
       "F1",
       "52,000 sq ft",
-      "Next general protest deadline: 2027-05-17 (tax year 2027)",
+      "Next general protest deadline: May 17, 2027 (tax year 2027)",
       "Tex. Tax Code §41.44(a)(1)",
       "It is not this account's deadline",
       "Harris Central Appraisal District",
@@ -308,12 +308,16 @@ describe("property_sheet", () => {
       SHEET_FACTS,
       TX_DISCLAIMER,
     ])
-      assert.ok(t.includes(want), `has ${want}`);
+      // A long identifier or address wraps in its cell: compare without spaces.
+      assert.ok(
+        t.replace(/ /g, "").includes(want.replace(/ /g, "")),
+        `has ${want}`,
+      );
     for (const v of EARLIER) {
       const shown = `$${v.toLocaleString("en-US")}`;
       assert.ok(!t.includes(shown), `free sheet leaks ${shown}`);
     }
-    assert.ok(!t.includes("2025-07-25") && !t.includes("2024-07-25"));
+    assert.ok(!t.includes("July 25, 2025") && !t.includes("July 25, 2024"));
     assert.ok(!t.includes("PO BOX"), "no entity mailing address");
   });
 
@@ -345,17 +349,17 @@ describe("property_sheet", () => {
       registry: { record: record(), plan: "pro", entity },
     });
     const pdf = await readPdf(file.bytes);
-    assert.equal(pdf.pages, 1);
+    assert.ok(pdf.pages <= 2);
     const t = flat(pdf.text);
     for (const v of EARLIER)
       assert.ok(t.includes(`$${v.toLocaleString("en-US")}`), `has ${v}`);
-    assert.ok(t.includes("2025-07-25") && t.includes("2024-07-25"));
+    assert.ok(t.includes("July 25, 2025") && t.includes("July 25, 2024"));
     assert.ok(t.includes("Every roll year the registry holds for this parcel"));
     assert.ok(!t.includes("Free tier"));
     assert.ok(t.indexOf("$10,101,010.00") < t.indexOf("$7,777,777.00"));
   });
 
-  it("Pro: eleven roll years, a registry note and three sources still fit one page", async () => {
+  it("Pro: eleven roll years, a registry note and three sources still fit two pages", async () => {
     const r = record({
       warnings: [
         "This parcel record has no improvement facts (parcel.improvement_area_sf, parcel.year_built), so its values may be for the land only: it may be vacant land, the source may not publish building facts for it, or the building may be assessed on another account.",
@@ -411,12 +415,12 @@ describe("property_sheet", () => {
       registry: { record: withHistory, plan: "team", entity },
     });
     const pdf = await readPdf(file.bytes);
-    assert.equal(pdf.pages, 1);
+    assert.ok(pdf.pages <= 2);
     const t = flat(pdf.text);
     assert.ok(t.includes("2016") && t.includes("$9,000,000.00"));
     // The eleven roll files share one source row; each value keeps its own file's date.
     assert.ok(t.includes("Harris Central Appraisal District: 11 files"), t);
-    assert.ok(t.includes("[1] 2016-07-25"));
+    assert.ok(t.includes("[1] July 25, 2016"));
     assert.ok(!t.includes("[3]"), "two source rows");
     assert.ok(t.includes("as the Team plan returns it"));
     assert.ok(t.includes("laid out by code with no model"));
@@ -592,7 +596,7 @@ describe("property_sheet", () => {
       t.includes("AI use: permitted; redistribution: attribution_required"),
     );
     assert.ok(
-      t.includes("[2] 1983") || t.includes("[2] 2026-07-25"),
+      t.includes("[2] 1983") || t.includes("[2] July 25, 2026"),
       "a row of its own",
     );
     assert.ok(!/\bunknown\b/.test(t), "no raw unknown");

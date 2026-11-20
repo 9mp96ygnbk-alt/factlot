@@ -173,3 +173,39 @@ export function slug(s: string, max = 40): string {
   const at = cut.lastIndexOf("-");
   return (at > 0 ? cut.slice(0, at) : full.slice(0, max)).replace(/-+$/g, "");
 }
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** 2026-07-08 as "July 8, 2026" (anything that is not a date is returned as it is). */
+export function longDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const month = m ? MONTHS[Number(m[2]) - 1] : undefined;
+  return m && month ? `${month} ${Number(m[3])}, ${m[1]}` : iso;
+}
+
+/**
+ * Every ISO date in a text, written as a person reads it; a date with a time ("2026-11-07
+ * 12:00:00 UTC") keeps the time to the minute.
+ */
+export function longDates(s: string): string {
+  return s
+    .replace(
+      /\b(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}):\d{2} UTC\b/g,
+      (all, d: string, t: string) =>
+        longDate(d) === d ? all : `${longDate(d)}, ${t} UTC`,
+    )
+    .replace(/\b\d{4}-\d{2}-\d{2}\b/g, (d) => longDate(d));
+}

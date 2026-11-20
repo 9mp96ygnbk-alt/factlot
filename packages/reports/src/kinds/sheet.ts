@@ -17,7 +17,7 @@ import { countyName, ownerNamesAPerson, runTool } from "@factlot/tools";
 
 import type { Block, Raw, ReportDoc } from "../doc.ts";
 import { PARCEL_URN } from "../validate.ts";
-import { subtitle, type KindInput } from "./common.ts";
+import { bigUsd, coverOf, subtitle, type KindInput } from "./common.ts";
 import { TX_DISCLAIMER, rightsText } from "./tx.ts";
 
 /** Where the plans are (the Worker's GATING_PRICING_URL; a Worker test pins the two together). */
@@ -501,12 +501,12 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
         only: "pdf",
         size: 7,
         columns: [
-          { header: title, fmt: "text", width: 1.2 },
-          { header: "", fmt: "text", width: 1.55 },
-          { header: "Source, as of", fmt: "text", width: 0.75 },
-          { header: "", fmt: "text", width: 1.2 },
-          { header: "", fmt: "text", width: 1.55 },
-          { header: "Source, as of", fmt: "text", width: 0.75 },
+          { header: title, fmt: "text", width: 1.1 },
+          { header: "", fmt: "text", width: 1.35 },
+          { header: "Source, as of", fmt: "text", width: 1.05 },
+          { header: "", fmt: "text", width: 1.1 },
+          { header: "", fmt: "text", width: 1.35 },
+          { header: "Source, as of", fmt: "text", width: 1.05 },
         ],
         rows: paired,
       },
@@ -629,11 +629,26 @@ export function propertySheetDoc(k: KindInput): ReportDoc {
       : { t: "para", size: 7.5, text: "The record cites no source document." },
   );
   const title = address ?? (apn ? `Parcel ${apn}` : urn);
+  const newest = valueRows[0];
+  const money = (v: Raw | undefined): string =>
+    typeof v === "number" ? bigUsd(v) : String(v ?? "not published");
   return {
     title,
     subtitle: subtitle(
       ["Property sheet", county ?? `FIPS ${fips}`, `FactLot ID ${urn}`],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      title,
+      ["Property sheet", county ?? `FIPS ${fips}`],
+      newest
+        ? [
+            { figure: money(newest[1]), label: "Market value" },
+            { figure: money(newest[2]), label: "Appraised value" },
+            { figure: String(newest[0]), label: "Roll year" },
+          ]
+        : [],
     ),
     blocks,
     readme: [
