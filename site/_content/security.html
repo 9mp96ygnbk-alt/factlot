@@ -20,10 +20,13 @@
     yourself.
   </li>
   <li>
-    It stores no request bodies, tool inputs or outputs, and no documents,
-    except a report you build with <code>report_create</code>: that file is kept
-    for 24 hours so you can download it, then deleted. It stores API keys only
-    as hashes, and usage metadata without IP addresses.
+    It stores no request bodies, tool inputs or outputs, and no documents, with
+    two exceptions: a report you build with <code>report_create</code> (that
+    file is kept for 24 hours so you can download it, then deleted), and a fact
+    package you send to another party with <code>fact_package_send</code>, which
+    the Record keeps until you or the other party asks for it to be deleted (the
+    documents themselves are never sent). It stores API keys only as hashes, and
+    usage metadata without IP addresses.
   </li>
   <li>
     Every tool runs without a model, except <code>doc_extract_lease</code> and
@@ -87,8 +90,9 @@
   Cloudflare is a United States company and serves requests from its global
   network. FactLot sets no data-location restriction on any of these stores. The
   <a href="/privacy">privacy notice</a> lists every record, how long it is kept,
-  and the subprocessors (Cloudflare, Stripe, GitHub). Stripe handles card data;
-  FactLot never sees a card number.
+  and the subprocessors (Cloudflare, Stripe, GitHub, Anthropic, and Supabase and
+  Vercel for the Record). Stripe handles card data; FactLot never sees a card
+  number.
 </p>
 
 <h2 id="stored">What is stored, and what is not</h2>

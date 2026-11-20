@@ -24,13 +24,16 @@
         <div class="wrap">
           <h1>Privacy</h1>
           <p class="small">
-            Effective 14 November 2026. The revision history is at the end.
+            Effective 20 November 2026. The revision history is at the end.
           </p>
           <p>
             FactLot collects as little as it can. This notice covers
-            factlot.com, the hosted API and MCP server at api.factlot.com, and
-            paid plans. The open-source packages you run yourself make no
-            network calls and send FactLot nothing.
+            factlot.com, the hosted API and MCP server at api.factlot.com, paid
+            plans, and fact packages sent to another party through the Record.
+            The open-source packages you run yourself send FactLot nothing,
+            unless you call <code>fact_package_send</code> or
+            <code>fact_package_status</code> (in releases after v0.5.0), which
+            reach the Record as described below.
           </p>
 
           <h2 id="who">Who we are</h2>
@@ -328,6 +331,97 @@
             address, removing a record or a list deletes its data, and
             cancelling the subscription deletes all of it.
           </p>
+          <h3>Connecting an app</h3>
+          <p>
+            When an app such as Claude connects to the hosted MCP server through
+            api.factlot.com/mcp/signin, it opens a FactLot sign-in page at
+            api.factlot.com. If you paste a key there, the key travels in the
+            body of the form, is checked once and is not stored by the page; the
+            connection is tied to the subscription the key belongs to, or for a
+            guest key to that key's ID. If you continue on the free tier, the
+            connection is tied to a salted hash of your IP address range, never
+            the address itself, so that free connections from one address share
+            one daily allowance. For each connection we store the app's name and
+            client ID, the web address it returns to, when the connection was
+            made, when it expires and when it was last used; its access and
+            refresh tokens are stored only as hashes. A connection ends 30 days
+            after the app last refreshed it, or when you disconnect it at
+            factlot.com/account, or when the subscription ends. An app that
+            registers itself is recorded by its name and return addresses for 90
+            days.
+          </p>
+          <p>
+            The sign-in page sets two cookies on api.factlot.com. Both hold a
+            random value that scripts cannot read. One ties the sign-in to the
+            browser that opened the page and lasts 1 hour; the other lets a page
+            left open finish in the same browser and lasts 24 hours. Neither
+            identifies you, follows you to another page or is used for anything
+            else. A record of the page (the app's name, where it returns, and
+            hashes of the request and of the second cookie) is kept for 24
+            hours.
+          </p>
+          <h3>Fact packages sent to another party</h3>
+          <p>
+            <code>fact_package_send</code> is the one tool that passes what you
+            give it to someone else. It runs only when you call it with the name
+            of the person who approved sending. FactLot's API passes the package
+            on and keeps no copy; it goes to the Record (cre-record.vercel.app),
+            a separate service run by the same operator as FactLot, which keeps
+            it so that the other party can answer. The Record stores:
+          </p>
+          <ul class="plain">
+            <li>
+              the package: its title and subject label; the name of each
+              organisation and of the person given for each; the email addresses
+              given for the sender and the other party, which are kept with the
+              package and shown on no page; each fact with its quote, its page
+              and the SHA-256 fingerprint of the document it cites; the
+              calculation and each item with both figures; the approver's name
+              and the time; and whether the package was a test;
+            </li>
+            <li>
+              hashes of the two links it returns (the other party's link and the
+              sender's private status link), not the links themselves;
+            </li>
+            <li>
+              for a package sent for real, an ID of the FactLot account that
+              sent it (a hash, never the key);
+            </li>
+            <li>
+              the other party's answers: agree or dispute for each item, any
+              reason they write, the name and organisation they give, and the
+              time;
+            </li>
+            <li>
+              a history of what happened to the package and, for a package sent
+              for real, a reliance record for each item accepted or agreed: the
+              two organisations' names, the subject, the package's digest, the
+              decision and the date.
+            </li>
+          </ul>
+          <p>
+            The Record never receives the documents themselves. Anyone who holds
+            the other party's link can read the package and answer it, and
+            anyone who holds the status link can read the answers, so treat both
+            links as you would the package. For a tenant estoppel, the sender
+            can also name a lender or buyer as a relying party: the Record
+            stores that firm's name and role and a hash of its own view link,
+            and anyone who holds that link can read the statements, the tenant's
+            answers and the document fingerprints, and record that the firm
+            relies on a confirmed statement (kept as a reliance record, with the
+            name the firm gives). <code>fact_package_status</code>
+            reads a package with its status link. The Record's database holds no
+            IP address; the request logs of Supabase and Vercel, which host it,
+            may hold one under their own policies. If you are the other party
+            and received a link, this notice covers what you enter on that page
+            too.
+          </p>
+          <p>
+            Packages are not deleted automatically. To have one deleted, email
+            contact@factlot.com with its link or ID, as the sender or as the
+            other party: we delete the package with its answers and history, and
+            void any reliance records made from it.
+          </p>
           <h3>Billing</h3>
           <p>
             Stripe runs checkout and billing and collects what it needs to take
@@ -358,16 +452,21 @@
             <li>
               Request bodies, tool inputs and outputs, and documents. Document
               text is processed in memory to answer the request and is not
-              stored or logged. The one exception is a report you build with
-              <code>report_create</code>: the generated file is kept for 24
-              hours (see "The hosted API" above).
+              stored or logged. There are two exceptions. A report you build
+              with <code>report_create</code>: the generated file is kept for 24
+              hours (see "The hosted API" above). And a fact package you send
+              with <code>fact_package_send</code>: the Record keeps it (see
+              "Fact packages sent to another party" above).
             </li>
             <li>
               Request headers, other than reading the key to authorise the
               request.
             </li>
             <li>IP addresses in usage records.</li>
-            <li>Cookies, tracking pixels or advertising identifiers.</li>
+            <li>
+              Cookies, tracking pixels or advertising identifiers, other than
+              the two sign-in cookies described under "Connecting an app".
+            </li>
             <li>
               Natural-person names in the registry. The registry holds
               commercial property and the organisations that own it. It is built
@@ -415,6 +514,13 @@
               <strong>To send watch-list alerts you turned on</strong>, and the
               one email that confirms the address: needed to perform our
               agreement with you.
+            </li>
+            <li>
+              <strong>To connect an app and to send a fact package</strong> when
+              you ask for either: needed to perform our agreement with you. What
+              the other party enters on the Record's page is kept to give the
+              sender the answer they asked for: our legitimate interest and the
+              sender's.
             </li>
             <li>
               <strong>To plan capacity</strong>: counting requests by tool path,
@@ -537,6 +643,27 @@
                 </td>
               </tr>
               <tr>
+                <th scope="row">App connections</th>
+                <td>
+                  Until 30 days after the app last refreshed the connection, or
+                  until you disconnect it or the subscription ends; an app's own
+                  registration 90 days
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Sign-in page cookies and record</th>
+                <td>
+                  The cookies 1 hour and 24 hours; the record of the page 24
+                  hours
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Fact packages in the Record</th>
+                <td>
+                  Until the sender or the other party asks us to delete them
+                </td>
+              </tr>
+              <tr>
                 <th scope="row">Key records</th>
                 <td>
                   While the subscription is active, then up to 12 months to
@@ -557,6 +684,12 @@
               <tr>
                 <th scope="row">Cloudflare request logs</th>
                 <td>Under Cloudflare's own policy</td>
+              </tr>
+              <tr>
+                <th scope="row">
+                  Supabase and Vercel request logs (the Record)
+                </th>
+                <td>Under their own policies</td>
               </tr>
             </tbody>
           </table>
@@ -604,6 +737,25 @@
                   <code>report_narrative</code> when you call them
                 </td>
                 <td>United States</td>
+              </tr>
+              <tr>
+                <th scope="row">Supabase</th>
+                <td>
+                  The Record's database and functions, only for fact packages
+                  you send with <code>fact_package_send</code> and the answers
+                  to them
+                </td>
+                <td>United States</td>
+              </tr>
+              <tr>
+                <th scope="row">Vercel</th>
+                <td>
+                  The Record's web page, where the other party reads and answers
+                  a package
+                </td>
+                <td>
+                  United States; requests are served from its global network
+                </td>
               </tr>
             </tbody>
           </table>
@@ -746,6 +898,16 @@
 
           <h2 id="history">Revision history</h2>
           <ul class="plain small">
+            <li>
+              20 November 2026: described two things the hosted server now does
+              when you ask for them, with no change to how anything else is
+              handled: connecting an app through the sign-in page (what a
+              connection stores, and the page's two cookies), and fact packages
+              sent to another party with <code>fact_package_send</code> (what
+              the Record keeps, who can read it, and how to have it deleted);
+              added Supabase and Vercel, which host the Record, to the
+              subprocessors.
+            </li>
             <li>
               14 November 2026 (second update): the site's lookup by address
               (/try/ and /lookup/) was withdrawn; removed its description and

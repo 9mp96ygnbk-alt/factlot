@@ -580,7 +580,7 @@ describe("the brand images", () => {
 // page changes its hash: update it in the same commit as the change, on purpose.
 const LEGAL_TEXT = {
   "privacy.html":
-    "6559981feae779346e33deda384606035e08be7efe40c435c602fd35a1638c46",
+    "50805affaf8470bb9f9830ac02dd97991c56d203bddaa2c4effb652bc4831e33",
   "terms.html":
     "bd0a593038c6622dea829532a6e9c2a787f9638b7175261ea004621f5daed0ce",
 };
@@ -588,7 +588,7 @@ const LEGAL_TEXT = {
 // words. Only the chrome outside <main> was meant to change when the pages took the shell.
 const LEGAL_MAIN = {
   "privacy.html":
-    "8dc9ad2383838a2d04cad7826e416c2b221a8fb3303ae30191f649bf669eacb9",
+    "8d062f00bd646a278f4e1cd876937b2ed8b58d98494052478eaade7e75a6c64d",
   "terms.html":
     "51a1a9501ecbe64259a83032367fa1e39b518146657330fb7c4f0a89b3bac264",
 };
