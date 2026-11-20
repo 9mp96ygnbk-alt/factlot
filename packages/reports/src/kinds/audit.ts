@@ -5,7 +5,6 @@
 import { usd } from "../format.ts";
 import { InstitutionalWriter, type Cell } from "../institutional.ts";
 import type { KindInput } from "./common.ts";
-import { checkSentence } from "./common.ts";
 
 type Json = Record<string, unknown>;
 
@@ -80,6 +79,36 @@ const PREDICATE_WORDS: Record<string, string> = {
   "statement.estimates_paid": "the estimates paid",
   "statement.balance_claimed": "the balance claimed on the statement",
   "statement.separately_billed": "separately billed costs",
+};
+
+/** The terms the audit reads, as a client names them (the Sources table). */
+const TERM_LABEL: Record<string, string> = {
+  "lease.pro_rata_share": "Pro-rata share",
+  "lease.pro_rata_basis": "Share basis (areas)",
+  "lease.cam_cap": "Cap on controllable expenses",
+  "lease.cam_cap_rate": "Cap rate",
+  "lease.cam_admin_fee": "Administrative fee",
+  "lease.cam_gross_up": "Gross-up",
+  "lease.cam_exclusion": "Excluded category",
+  "lease.capex_treatment": "Capital items",
+  "lease.audit_right": "Audit right",
+  "lease.operating_expense_base_year": "Base year",
+  "lease.expense_stop": "Expense stop",
+  "statement.period": "Statement period",
+  "statement.line": "Expense line",
+  "statement.total": "Stated total",
+  "statement.share_applied": "Share applied",
+  "statement.gross_up": "Gross-up applied",
+  "statement.admin_fee": "Administrative fee charged",
+  "statement.cap_reference": "Cap reference amount",
+  "statement.cap_applied": "Cap applied",
+  "statement.base_year_applied": "Base-year deduction",
+  "statement.base_year_total": "Base-year total",
+  "statement.tenant_charge": "Tenant's charge",
+  "statement.estimates_credited": "Estimates credited",
+  "statement.estimates_paid": "Estimates paid",
+  "statement.balance_claimed": "Balance claimed",
+  "statement.separately_billed": "Separately billed cost",
 };
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
@@ -448,11 +477,11 @@ export async function auditPdf(k: KindInput): Promise<Uint8Array> {
   w.section("Basis of preparation", 60);
   const callerText = k.ctx.title || k.ctx.prepared_for;
   w.para(
-    `This report applies deterministic checks to the lease facts and statement facts supplied, each fact carrying the quotation and page it was read from. FactLot runs no model: the same facts give the same findings. A finding is the difference between the landlord's statement and what the quoted lease terms yield, and a check with no verified lease fact behind it is listed as not performed. ${checkSentence(k.checked, "audit_expense_statement")} Prepared by FactLot ${k.p.version} with ${k.p.toolRef} on ${longDate(k.p.generatedAt.toISOString().slice(0, 10))} (UTC).${
+    `This report compares the landlord's statement with the lease terms supplied, each term and each statement figure carrying the quotation and page it was read from. The checks are fixed rules, not estimates: the same facts always give the same findings. A check with no supporting lease term is listed as not performed rather than guessed. Prepared by FactLot ${k.p.version} on ${longDate(k.p.generatedAt.toISOString().slice(0, 10))} (UTC)${
       callerText
-        ? " The title and the prepared-for line were supplied by the caller and are printed as supplied."
+        ? "; the title and the prepared-for line are as the caller supplied them"
         : ""
-    }`,
+    }.`,
     { size: 8, leading: 11.5 },
   );
   w.section("Important information", 50);
@@ -467,13 +496,13 @@ export async function auditPdf(k: KindInput): Promise<Uint8Array> {
     [
       { header: "Document", width: 25 },
       { header: "Page", width: 6, align: "right" },
-      { header: "Predicate", width: 30 },
+      { header: "Term", width: 30 },
       { header: "Fact id", width: 39, mono: true },
     ],
     sources.map((s) => [
       `${s.side === "lease" ? "Lease" : s.side === "statement" ? "Statement" : ""}${digest(s.document_id) ? ` \u00b7 ${digest(s.document_id)}` : ""}`,
       s.page === null ? "" : String(s.page),
-      s.predicate,
+      TERM_LABEL[s.predicate] ?? s.predicate,
       s.fact_id,
     ]),
     { size: 7.75, padY: 3.5 },

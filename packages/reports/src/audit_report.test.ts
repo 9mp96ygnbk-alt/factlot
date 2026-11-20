@@ -156,6 +156,13 @@ describe("expense_audit report", () => {
     assert.match(text, /five percent \(5%\) per year/);
     assert.match(text, /Checks not performed/);
     assert.match(text, /Basis of preparation/);
+    // plain words in the basis of preparation, no internal wording
+    assert.ok(!/audit_expense_statement|arguments sent|Computed:/.test(text));
+    assert.match(text, /the same facts always give the same findings/);
+    assert.match(text, /listed as not performed rather than guessed/);
+    // the Sources table names terms in words, not dotted predicates
+    assert.match(text, /Administrative fee/);
+    assert.ok(!/lease\.cam_admin_fee|statement\.line/.test(text));
     assert.match(text, /Important information/);
     assert.match(text, /Page 2 of \d+/);
     // the footer: one line, no URL
