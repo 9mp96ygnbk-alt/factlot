@@ -50,6 +50,7 @@ import {
   addressUnit,
   addressWhereIssues,
   addressWordsWithoutOrdinals,
+  comparedFileDates,
   configureRegistry,
   hostedWithheldCounties,
   legacyNormalizeAddress,
@@ -636,6 +637,83 @@ test("registry tools: TypeScript matches Python on the shared fixture", () => {
   } finally {
     configureRegistry(undefined);
   }
+});
+
+test("equity compared_files: only cited files, dated by as_of and never by the day they were read", () => {
+  const db = join(
+    mkdtempSync(join(tmpdir(), "factlot-registry-")),
+    "fixture.db",
+  );
+  execFileSync("python3", [join(spec, "build_fixture.py"), db]);
+  configureRegistry(db);
+  type File = {
+    document_id: string;
+    as_of: string | null;
+    read_on: string | null;
+    before_certification_deadline: boolean | null;
+  };
+  type Cited = { citation: { document_id: string } };
+  const run = (args: Record<string, unknown>) => {
+    const r = runTool("registry_tx_equity_candidates", {
+      urn: "fl:parcel:us-48997:1000001",
+      ...args,
+    });
+    assert.ok(r.ok);
+    return r.result as {
+      subject: Cited;
+      candidates: Cited[];
+      sources: { document_id: string; source_id: string; as_of: string }[];
+      selection: { compared_files: File[] };
+    };
+  };
+  const dates = (files: File[]) =>
+    files.map((f) => [f.as_of, f.read_on, f.before_certification_deadline]);
+  try {
+    // The first 2026 roll is in sources (the subject's value history cites it) but no compared value is.
+    const r = run({ tax_year: 2026 });
+    const cited = new Set(
+      [r.subject, ...r.candidates].map((c) => c.citation.document_id),
+    );
+    const first = r.sources.find(
+      (s) => s.source_id === "test-cad-997" && s.as_of === "2026-07-25",
+    );
+    assert.ok(first && !cited.has(first.document_id));
+    assert.deepEqual(
+      new Set(r.selection.compared_files.map((f) => f.document_id)),
+      cited,
+    );
+    assert.deepEqual(dates(r.selection.compared_files), [
+      ["2026-10-15", "2026-10-20", false],
+    ]);
+    // Dated 2027-04-15 and read on 2027-08-02, after July 25: before certification by its as-of date.
+    assert.deepEqual(dates(run({}).selection.compared_files), [
+      ["2027-04-15", "2027-08-02", true],
+    ]);
+    // The 2025 roll's only date is the day it was read: no as-of date and no answer.
+    assert.deepEqual(dates(run({ tax_year: 2025 }).selection.compared_files), [
+      [null, "2025-07-25", null],
+    ]);
+  } finally {
+    configureRegistry(undefined);
+  }
+  assert.deepEqual(
+    comparedFileDates({
+      as_of: "2026-05-01",
+      retrieved_at: "2026-11-02T08:00:00+00:00",
+    }),
+    { as_of: "2026-05-01", read_on: "2026-11-02" },
+  );
+  assert.deepEqual(
+    comparedFileDates({
+      as_of: "2026-11-02",
+      retrieved_at: "2026-11-02T08:00:00+00:00",
+    }),
+    { as_of: null, read_on: "2026-11-02" },
+  );
+  assert.deepEqual(comparedFileDates({ as_of: "", retrieved_at: "" }), {
+    as_of: null,
+    read_on: null,
+  });
 });
 
 test("name and address normalization match the Python vectors", () => {

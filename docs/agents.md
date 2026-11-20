@@ -321,9 +321,11 @@ calls below are in order; each result is reported as returned, with its warnings
    `PlanRequired` without one, uncounted). The subject and every candidate are read from that one
    year's roll files; `selection.compared_files` lists the files the compared values are cited from (building classes
    come from that year's buildings file, in `building_class_sources`),
-   with each file's `as_of` and `before_certification_deadline` (true when the file is dated before
-   July 25 of the tax year, the date Tax Code §26.01(a) sets for certifying the roll, so it can hold
-   preliminary values; the file itself does not say which values are certified). A tax year whose
+   with each file's `as_of`, `read_on` (the day FactLot read it) and `before_certification_deadline`
+   (true when the file is dated before July 25 of the tax year, the date Tax Code §26.01(a) sets for
+   certifying the roll, so it can hold preliminary values; the file itself does not say which values
+   are certified). A file whose only date is the day FactLot read it has `as_of` and
+   `before_certification_deadline` null: the read date says nothing about the roll. A tax year whose
    files hold values but no category code or improvement area gives no candidates, with a warning
    naming the missing facts.
 
