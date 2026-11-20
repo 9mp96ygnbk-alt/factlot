@@ -31,6 +31,11 @@ import {
   verifyFacts,
 } from "./documents.ts";
 import { AuditExpenseStatementInput, auditExpenseStatement } from "./audit.ts";
+import {
+  AuditExpensePortfolioInput,
+  attestPortfolio,
+  auditExpensePortfolio,
+} from "./audit_portfolio.ts";
 import { EstoppelPrepareInput, estoppelPrepare } from "./estoppel.ts";
 import { RentRollCertifyInput, rentRollCertify } from "./rentroll.ts";
 import {
@@ -492,6 +497,16 @@ const packageTools: ToolSpec[] = [
     path: "/v1/audit/expense-statement",
     run: (i: never) =>
       auditExpenseStatement(i as z.output<typeof AuditExpenseStatementInput>),
+  },
+  {
+    name: "audit_expense_portfolio",
+    title: "Audit many expense statements at once",
+    description:
+      "Audit many landlord operating-expense (CAM) statements at once, for a tenant with many locations or for a lease audit firm or tenant-rep broker acting for one. Takes up to 50 audits, each the input audit_expense_statement takes (the lease's verified facts, the statement's verified facts, optionally the prior year's lines) plus a label and optionally the landlord, and one as_of date for all. Runs audit_expense_statement on each location (the same function, not a second implementation). Returns, per location, the audit's summary (findings by class, dollars at stake by class, the dispute deadline, the checks that could not run), its findings in short form with lease and statement pages, a reference to its full result (digests of its input and result; include_results returns the whole result) and its own package_items for fact_package_send; across the portfolio, totals by finding class and by check, dollars at stake in total and by landlord, the locations ranked by dollars at stake, dispute deadlines in date order with days remaining counted from as_of, repeated issues (the same check failing at several locations, or in several statement years for one landlord) and the locations whose input failed validation, each with its issues (the other locations are still audited). Deterministic and no model: same inputs, same answer, no clock. Findings are differences against quoted terms, not legal conclusions. On the hosted API the answer carries, for each location, its own attestation (the one audit_expense_statement returns for that location's input), so each location's package is sent to its own landlord and checked on its own through fact_package_send; a service without a signing key returns none and says so. On the hosted API, callers without a Pro or Team key get the summary only (counts and totals); the one free full document of an email-verified account covers a single audit (audit_expense_statement), not a portfolio, and the answer says so. Metering: the portfolio report (report_create kind expense_audit_portfolio) counts one unit of the monthly report allowance for each location audited in full (report_units); this tool call is not counted, as audit_expense_statement is not.",
+    input: AuditExpensePortfolioInput,
+    path: "/v1/audit/expense-portfolio",
+    run: (i: never) =>
+      auditExpensePortfolio(i as z.output<typeof AuditExpensePortfolioInput>),
   },
   {
     name: "estoppel_prepare",
@@ -1537,9 +1552,15 @@ export async function runToolAsync(
       ok: true,
       // The hosted service signs the result of a tool that computes what fact_package_send carries.
       result:
-        name in ATTESTED_TOOLS
-          ? await attestResult(name, args, result, CATALOG_VERSION)
-          : result,
+        name === "audit_expense_portfolio"
+          ? await attestPortfolio(
+              args as z.output<typeof AuditExpensePortfolioInput>,
+              result,
+              CATALOG_VERSION,
+            )
+          : name in ATTESTED_TOOLS
+            ? await attestResult(name, args, result, CATALOG_VERSION)
+            : result,
     };
   } catch (err) {
     return errorOutcome(err);

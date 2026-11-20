@@ -6044,6 +6044,66 @@
     {
       "type": "function",
       "function": {
+        "name": "audit_expense_portfolio",
+        "description": "Audit many landlord operating-expense (CAM) statements at once, for a tenant with many locations or for a lease audit firm or tenant-rep broker acting for one. Takes up to 50 audits, each the input audit_expense_statement takes (the lease's verified facts, the statement's verified facts, optionally the prior year's lines) plus a label and optionally the landlord, and one as_of date for all. Runs audit_expense_statement on each location (the same function, not a second implementation). Returns, per location, the audit's summary (findings by class, dollars at stake by class, the dispute deadline, the checks that could not run), its findings in short form with lease and statement pages, a reference to its full result (digests of its input and result; include_results returns the whole result) and its own package_items for fact_package_send; across the portfolio, totals by finding class and by check, dollars at stake in total and by landlord, the locations ranked by dollars at stake, dispute deadlines in date order with days remaining counted from as_of, repeated issues (the same check failing at several locations, or in several statement years for one landlord) and the locations whose input failed validation, each with its issues (the other locations are still audited). Deterministic and no model: same inputs, same answer, no clock. Findings are differences against quoted terms, not legal conclusions. On the hosted API the answer carries, for each location, its own attestation (the one audit_expense_statement returns for that location's input), so each location's package is sent to its own landlord and checked on its own through fact_package_send; a service without a signing key returns none and says so. On the hosted API, callers without a Pro or Team key get the summary only (counts and totals); the one free full document of an email-verified account covers a single audit (audit_expense_statement), not a portfolio, and the answer says so. Metering: the portfolio report (report_create kind expense_audit_portfolio) counts one unit of the monthly report allowance for each location audited in full (report_units); this tool call is not counted, as audit_expense_statement is not.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "audits": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "description": "Required: the location's name as the person knows it (a store number, a property name, a suite), 1 to 120 characters, unique within the call. Printed in the answer and the report."
+                  },
+                  "landlord": {
+                    "description": "Optional: the landlord organisation named on the statement, as typed (at most 200 characters). Locations with the same landlord (compared by letters and digits only) are totalled together and checked for repeated issues. Left out: the location is totalled under 'Landlord not named'."
+                  },
+                  "lease_facts": {
+                    "description": "Required: the location's lease facts, exactly as audit_expense_statement's lease_facts (an array of verified facts, each with its quote and page)."
+                  },
+                  "statement_facts": {
+                    "description": "Required: the landlord's statement as verified facts, exactly as audit_expense_statement's statement_facts."
+                  },
+                  "prior_statement_facts": {
+                    "description": "Optional: the prior year's statement.line and statement.period facts for this location, as audit_expense_statement's prior_statement_facts."
+                  },
+                  "yoy_threshold": {
+                    "description": "Optional: this location's year-over-year threshold, a number above 0 and at most 10, as audit_expense_statement's yoy_threshold. Default: the call's yoy_threshold."
+                  }
+                },
+                "additionalProperties": {}
+              },
+              "description": "Up to 50 audits, one per location (or per location and year), each the input audit_expense_statement takes (lease_facts, statement_facts, prior_statement_facts, yoy_threshold) plus a label and optionally the landlord. An entry that fails validation is reported with its issues under locations_invalid and the others are audited; the call does not fail for it."
+            },
+            "as_of": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Today's date, YYYY-MM-DD, for every location. The tool reads no clock: every deadline's days remaining is counted from this date."
+            },
+            "yoy_threshold": {
+              "default": 0.1,
+              "description": "A line that rose by more than this fraction over the prior year is listed as a question to ask (default 0.10 = 10%), for every location that does not set its own.",
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 10
+            },
+            "include_results": {
+              "default": false,
+              "description": "True: each location also carries its whole audit_expense_statement result (every finding with its quotes, pages and calculation steps) under result. Default false: each location carries its summary, its findings in short form and result_ref (the digests of its input and result, to check a result against).",
+              "type": "boolean"
+            }
+          },
+          "required": ["audits", "as_of"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "estoppel_prepare",
         "description": "Prepare the standard statements of a tenant estoppel certificate from verified lease facts, for a lender or buyer who wants the tenant to confirm the lease. Give the lease's facts (doc_abstract_lease or doc_verify_facts, each with its quote and page and passing fact_validate: parties, commencement and expiration, rentable area, base rent schedule, security deposit, free rent, TI allowance, renewal, expansion, termination and purchase options and their notice deadlines), the lease and amendment documents, the premises and as_of, and optionally what the landlord's own records say (rent paid through, deposit held). Returns numbered statements: the lease and amendment list with document fingerprints, commencement, expiration, premises, current base rent and the next step (annual and monthly, worked and shown), security deposit, free rent, TI allowance, each option, each carrying the source quote and page, with a superseded sentence shown as superseded when an amendment changed it; and statements only the tenant can know (no other agreements, deposit paid, rent paid through, no rent paid more than one month ahead, landlord obligations outstanding, no other options, no landlord default, no tenant default, no assignment or sublease), marked tenant to confirm with no lease source. Flags every gap (a term the facts do not supply) and every conflict between the lease and an amendment, and withholds that statement rather than guess. Also returns key figures, totals, package_facts and package_items ready for fact_package_send kind estoppel. Deterministic and no model: same facts, same statements; as_of is an input. These are facts and arithmetic, not legal advice, and the tenant's signature, not FactLot, is what makes a certificate an estoppel. Each statement carries its quote, for a person to review before anything is sent. On the hosted API the whole answer also carries attestation, the service's signature over the items, grades and figures that fact_package_send carries, so the FactLot record can show them as computed by FactLot and unchanged since; a service without a signing key returns none and says so. On the hosted API, callers without a Pro or Team key get the summary only (counts, statement titles and status, gaps and conflicts) and the answer says what is withheld. Each free, email-verified account (an fl_free_ key) gets one whole document in total across audit_expense_statement, estoppel_prepare and rent_roll_certify: that answer says so, and the report built from the same arguments is included for 24 hours; Pro and Team include every document with the monthly allowance.",
         "parameters": {

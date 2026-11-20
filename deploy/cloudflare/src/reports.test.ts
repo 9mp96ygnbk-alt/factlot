@@ -6,12 +6,15 @@ import {
   ENTITY_NOT_PRINTED,
   SHEET_CONTACT,
   SHEET_PRICING_URL,
+  prepareReport,
+  reportUnits,
   unzip,
 } from "@factlot/reports";
 import { PDFDocument, PDFRawStream } from "pdf-lib";
 import { inflateSync } from "node:zlib";
 import { runTool } from "@factlot/tools";
 
+import { samplePortfolio } from "../../../packages/tools/src/audit_portfolio.testkit.test.ts";
 import { CONTACT } from "./contact.ts";
 import {
   generateKey,
@@ -1841,5 +1844,65 @@ describe("expense_audit report: the plan rule", () => {
     );
     assert.ok(paid.ok, JSON.stringify(!paid.ok && paid.body));
     assert.equal(paid.file.content_type, "application/pdf");
+  });
+});
+
+describe("expense_audit_portfolio report: the plan rule and the units", () => {
+  const body = () => ({
+    kind: "expense_audit_portfolio",
+    format: "pdf",
+    arguments: samplePortfolio(),
+  });
+  const opts = { apiBase: "https://api.factlot.com", now: () => T0 };
+  const caller = (subject: string, auditFull = true) => ({
+    tier: "pro" as const,
+    auditFull,
+    subject: async () => subject,
+  });
+  const used = async (t: ReturnType<typeof env>, subject: string) =>
+    (await t.e.METER.quota(subject, "month", 50, "reports")).used;
+
+  it("without a paid plan: PlanRequired, nothing counted, and the free document does not cover it", async () => {
+    const t = env();
+    const refused = await runReport(
+      t.e,
+      {
+        ...caller("sub:p-free", false),
+        tier: "anonymous",
+        freeDocumentCovers: async () => true,
+      },
+      body(),
+      opts,
+    );
+    assert.ok(!refused.ok);
+    assert.equal(refused.status, 403);
+    assert.equal(refused.body.code, "PlanRequired");
+    assert.match(String(refused.body.message), /single audit, not a portfolio/);
+    assert.equal(await used(t, "sub:p-free"), 0);
+  });
+
+  it("a paid caller is counted one report for each location audited in full", async () => {
+    const t = env();
+    const ok = await runReport(t.e, caller("sub:p-paid"), body(), opts);
+    assert.ok(ok.ok, JSON.stringify(!ok.ok && ok.body));
+    const audited = reportUnits(prepareReport(body(), { now: T0 }));
+    assert.ok(audited > 1);
+    assert.equal(await used(t, "sub:p-paid"), audited);
+  });
+
+  it("when the units do not fit the month, 429 with units_needed and nothing counted", async () => {
+    const t = env();
+    await t.e.METER.consume("sub:p-full", {
+      kind: "month",
+      limit: 50,
+      n: 45,
+      counter: "reports",
+    });
+    const refused = await runReport(t.e, caller("sub:p-full"), body(), opts);
+    assert.ok(!refused.ok);
+    assert.equal(refused.status, 429);
+    assert.equal(refused.body.remaining, 5);
+    assert.ok(Number(refused.body.units_needed) > 5);
+    assert.equal(await used(t, "sub:p-full"), 45);
   });
 });

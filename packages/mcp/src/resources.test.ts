@@ -463,6 +463,11 @@ describe("MCP prompts", () => {
       statement: "cam-2025.pdf",
       as_of: "2026-04-01",
     },
+    expense_portfolio_audit: {
+      tenant: "Birchwood Analytics Inc",
+      locations: "Store 12, Alder Court Holdings LLC, 2025",
+      as_of: "2026-04-01",
+    },
     estoppel_certificate: {
       lease: "lease.pdf",
       tenant: "Birchwood Analytics Inc",
@@ -489,6 +494,11 @@ describe("MCP prompts", () => {
       {},
       { lease: "x", statement: "y" },
       { lease: "x", statement: "y", as_of: "April 1" },
+    ],
+    expense_portfolio_audit: [
+      {},
+      { tenant: "x", locations: "y" },
+      { tenant: "x", locations: "y", as_of: "April 1" },
     ],
     estoppel_certificate: [
       {},

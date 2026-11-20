@@ -11,7 +11,7 @@ type Json = Record<string, unknown>;
 export const AUDIT_NOTICE =
   "These findings compare the landlord's statement with what the quoted lease terms yield, worked from the facts shown with their quotations and pages. A finding that follows from the lease states a difference worked from the quoted terms; a finding that depends on a reading, or a question to raise, is labelled so. None is a legal conclusion: confirm each against the lease and its amendments before relying on it.";
 
-const BASIS: Record<string, string> = {
+export const BASIS: Record<string, string> = {
   follows_from_terms: "Follows from the lease",
   depends_on_reading: "Depends on a reading",
   question_to_ask: "Question to raise",
@@ -24,7 +24,7 @@ const BASIS_LONG: Record<string, string> = {
 };
 
 /** Section headings: the finding in a phrase. A code not listed uses the tool's own title. */
-const SHORT_TITLE: Record<string, string> = {
+export const SHORT_TITLE: Record<string, string> = {
   FEE_RATE_ABOVE_CAP: "Administrative fee rate above the lease rate",
   FEE_ON_EXCLUDED_LINES:
     "Administrative fee charged on lines the lease excludes",
@@ -148,13 +148,13 @@ export const readable = (s: string): string =>
     .replace(/\b(?:[a-z]+_)+[a-z]+\b/g, (t) => t.replace(/_/g, " "));
 
 /** Money to the cent, with thousands separators. */
-const cents = (x: number | null): string => (x === null ? "—" : usd(x));
+export const cents = (x: number | null): string => (x === null ? "—" : usd(x));
 /** Money for a large figure: ".00" dropped. */
-const big = (x: number | null): string =>
+export const big = (x: number | null): string =>
   x === null ? "—" : usd(x).replace(/\.00$/, "");
 
 /** A tool's "needs lease.x and statement.y" with the predicates in words. */
-function plainNeeds(reason: string): string {
+export function plainNeeds(reason: string): string {
   let mapped = false;
   let s = reason
     .replace(
@@ -246,7 +246,7 @@ function collectSources(r: Json, args: unknown): SourceRow[] {
   );
 }
 
-const digest = (id: string): string => {
+export const digest = (id: string): string => {
   const m = /sha256-([0-9a-f]{8})/.exec(id);
   return m ? m[1]! : "";
 };

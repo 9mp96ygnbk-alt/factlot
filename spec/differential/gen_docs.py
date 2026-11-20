@@ -740,7 +740,7 @@ def _audit_mutate(r, c):
                                            "cost_shift_threshold": {"type": "amount", "value": r.choice([200, 5000])}}
 
 
-def audit_case(r):
+def audit_case(r, in_portfolio=False):
     c = _audit_base(r)
     for _ in range(r.randint(0, 3)):
         _audit_mutate(r, c)
@@ -770,10 +770,53 @@ def audit_case(r):
     if k < 0.08:
         args["lease_facts"][r.randrange(len(args["lease_facts"]))]["provenance"]["sources"][0]["quote"] = ""
     elif k < 0.12:
-        args["statement_facts"][r.randrange(len(args["statement_facts"]))]["value"] = {"amount": "x"}
+        # a value of the wrong shape: the two languages word that error differently (paths agree), so a
+        # portfolio, which carries each location's messages in its answer, leaves it out
+        if not in_portfolio:
+            args["statement_facts"][r.randrange(len(args["statement_facts"]))]["value"] = {"amount": "x"}
     elif k < 0.15:
         args["statement_facts"].append(dict(args["statement_facts"][-1]))
     return {"tool": "audit_expense_statement", "arguments": args}
+
+
+# --- audit_expense_portfolio: several audit cases as locations, some landlords shared, some entries broken ---
+
+_PORTFOLIO_LANDLORDS = ["Alder Court Holdings LLC", "alder court holdings, llc", "Northgate Property Partners",
+                        "Stonebridge Realty Trust", None, None]
+
+
+def portfolio_case(r):
+    n = r.randint(2, 6)
+    audits = []
+    for i in range(n):
+        a = audit_case(r, True)["arguments"]
+        a.pop("as_of", None)
+        e = {"label": f"Store {i + 1}", **a}
+        ll = r.choice(_PORTFOLIO_LANDLORDS)
+        if ll:
+            e["landlord"] = ll
+        audits.append(e)
+    k = r.random()
+    if k < 0.12:
+        audits[r.randrange(n)]["label"] = audits[0]["label"]
+    elif k < 0.2:
+        audits[r.randrange(n)].pop("label")
+    elif k < 0.28:
+        audits[r.randrange(n)]["lease_fact"] = 1
+    elif k < 0.36:
+        audits[r.randrange(n)]["lease_facts"] = "none"
+    elif k < 0.44:
+        audits[r.randrange(n)]["yoy_threshold"] = r.choice([0, 11, "x"])
+    elif k < 0.5:
+        audits[r.randrange(n)]["landlord"] = r.choice(["", "--", 5])
+    elif k < 0.56:
+        audits[r.randrange(n)].pop("statement_facts")
+    args = {"audits": audits, "as_of": r.choice(["2026-04-01", "2026-08-01", "2027-01-15"])}
+    if r.random() < 0.3:
+        args["yoy_threshold"] = r.choice([0.05, 0.5])
+    if r.random() < 0.3:
+        args["include_results"] = True
+    return {"tool": "audit_expense_portfolio", "arguments": args}
 
 
 # --- estoppel_prepare: an invented lease, random omissions, amendments and conflicts -------------------
@@ -1067,4 +1110,6 @@ def round2_cases(seed, count):
             out.append(audit_case(r))
     rr = random.Random(f"rentroll-{seed}")
     out.extend(rent_roll_case(rr) for _ in range(max(1, count // 6)))
+    pr = random.Random(f"portfolio-{seed}")
+    out.extend(portfolio_case(pr) for _ in range(max(1, count // 25)))
     return out

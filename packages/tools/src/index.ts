@@ -85,6 +85,12 @@ export {
 export type { LookupCall, LookupItem } from "./lookup_batch.ts";
 export { auditSummary, auditLimited, AUDIT_PLAN_URL } from "./audit.ts";
 export {
+  PORTFOLIO_MAX_AUDITS,
+  PORTFOLIO_PLAN_URL,
+  portfolioSummary,
+  portfolioLimited,
+} from "./audit_portfolio.ts";
+export {
   FREE_DOCUMENT_COVER_HOURS,
   FREE_DOCUMENT_PLAN_URL,
   FREE_DOCUMENT_TOOLS,

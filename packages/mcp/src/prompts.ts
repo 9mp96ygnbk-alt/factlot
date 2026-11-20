@@ -163,6 +163,22 @@ export const PROMPT_ARGS = {
       "The landlord organisation the dispute would go to, when the person wants to send it (never invent one).",
     ),
   },
+  expense_portfolio_audit: {
+    tenant: text(
+      200,
+      "The tenant organisation whose locations are audited (the person's own, or the client of the audit firm or broker; never invent one).",
+    ),
+    locations: multiline(
+      2_000,
+      "The locations to audit, one per line: a label, and where the person has it the landlord and the statement year (for example a store number, its landlord, the year), with where each lease and statement is (a PDF path on this machine for a local server, or the name of a document whose pages are in the conversation). Up to 50 per call.",
+    ),
+    as_of: z
+      .string()
+      .regex(DATE, "a date as YYYY-MM-DD")
+      .describe(
+        "Today's date (YYYY-MM-DD): every location's deadline is counted from it and the tools read no clock.",
+      ),
+  },
   estoppel_certificate: {
     lease: text(
       500,
@@ -411,6 +427,23 @@ export function promptText(
         CITE,
       ].join("\n\n");
     }
+    case "expense_portfolio_audit": {
+      const a = args as Args<"expense_portfolio_audit">;
+      return [
+        `Audit the landlords' expense statements for ${a.tenant}'s locations, as of ${a.as_of}, in one portfolio. The locations:\n${a.locations}\n\nYou extract; FactLot verifies and does the arithmetic. Every finding must rest on a verified lease fact: no source, no finding. A location is audited the same way as a single statement; the portfolio adds them up.`,
+        numbered([
+          "For each location, get the lease's pages and the statement's pages exactly as given (doc_read_pdf with the PDF's path on a local server; otherwise the pages in the conversation).",
+          "For each location, doc_abstract_lease (or doc_verify_facts) on the lease for the terms the audit reads (lease.pro_rata_share, lease.cam_cap or lease.cam_cap_rate, lease.operating_expense_base_year or lease.expense_stop, lease.cam_admin_fee, lease.cam_gross_up, one lease.cam_exclusion per excluded category, lease.capex_treatment, lease.audit_right), and doc_verify_facts on the statement (statement.period with the date the tenant received it, one statement.line per billed line, statement.share_applied, statement.admin_fee, statement.gross_up, statement.cap_applied, statement.total, the estimates and the balance), each value with its verbatim quote and page. Hold anything not verified for the person to review; never pass an unverified value on.",
+          "audit_expense_portfolio with one entry in audits per location: its label (unique), the landlord as named on the statement, lease_facts, statement_facts and the prior year's lines if the person has them, and as_of. A location whose input fails validation is listed under locations_invalid with its issues and the others are still audited: show the person each issue, fix that location and run it again. Read each location's checks_not_run first: a check whose lease term is missing did not run, and that is not a clean result.",
+          "Show the person the portfolio first: locations audited, total at stake apart for findings that follow from the leases' terms and findings that depend on a reading, the totals by landlord, the ranking, the dispute deadlines in date order with days remaining, and the repeated issues (the same check failing at several locations, or across years for one landlord). Then each location's findings with their lease pages (include_results returns every quote and calculation step). Say plainly that these are differences against quoted terms, not legal conclusions.",
+          "If the person wants a document, report_create kind expense_audit_portfolio with the same arguments (hosted server; PDF or XLSX with one row per finding). It counts one report for each location audited in full (report_units), so say how many that is before building it.",
+          "To dispute, work one location at a time: fact_package_create from that location's lease and statement facts, then show the person that location's package_items, the landlord and the deadline, ask for the full name of the person who approves, and only after they say it may be sent call fact_package_send with that location's package_items, its attestation (package.attestation, unchanged) and approved_by with approval_confirmed. Never put two locations in one package: each landlord receives only its own location. Say whether it went as a test or for real from the answer's message. fact_package_status reads the answers.",
+        ]),
+        "On the hosted server a caller without a Pro or Team key gets the summary only (counts and totals); the one free full document covers a single audit, not a portfolio, and the answer says so. Relay that in plain words. Results are arithmetic against quoted terms, not legal or accounting advice.",
+        "No registry lookup is needed. If property facts are wanted as well, call registry_coverage first.",
+        CITE,
+      ].join("\n\n");
+    }
     case "estoppel_certificate": {
       const a = args as Args<"estoppel_certificate">;
       return [
@@ -501,6 +534,11 @@ const PROMPTS: Record<PromptName, { title: string; description: string }> = {
     title: "Audit a landlord's expense statement",
     description:
       "A tenant's audit of a CAM statement: abstract the lease, verify the statement, run audit_expense_statement, show every finding with its quote and calculation, get the named person's approval, then send the dispute.",
+  },
+  expense_portfolio_audit: {
+    title: "Audit many expense statements at once",
+    description:
+      "A tenant's audit of many landlords' CAM statements: verify each location's lease and statement, run audit_expense_portfolio, show the totals, ranking, deadlines and repeated issues, then each location's findings, the portfolio report, and one dispute package per landlord.",
   },
   estoppel_certificate: {
     title: "Prepare a tenant estoppel certificate",
