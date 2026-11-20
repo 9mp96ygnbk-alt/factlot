@@ -2753,3 +2753,17 @@ describe("Texas packet: sources and rights", () => {
     );
   });
 });
+
+describe("report_create's published input schema", () => {
+  it("gives every parameter a type (MCP clients and directories require one)", async () => {
+    const { z } = await import("zod");
+    const { ReportRequest } = await import("./index.ts");
+    const schema = z.toJSONSchema(ReportRequest) as {
+      properties: Record<string, { type?: string; enum?: unknown[] }>;
+    };
+    for (const [name, p] of Object.entries(schema.properties))
+      assert.ok(p.type ?? p.enum, `${name} has a type`);
+    assert.equal(schema.properties.input!.type, "object");
+    assert.equal(schema.properties.arguments!.type, "object");
+  });
+});
