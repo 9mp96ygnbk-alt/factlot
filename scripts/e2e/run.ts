@@ -135,7 +135,17 @@ function mcpSuite(connect: () => Promise<Client>) {
     for (const t of tools) {
       assert.equal(t.inputSchema.type, "object", `${t.name} input schema`);
       assert.ok((t.description ?? "").length > 20, `${t.name} description`);
-      assert.equal(t.annotations?.readOnlyHint, true, `${t.name} read-only`);
+      // fact_package_send is the one tool that writes (it sends to an outside party).
+      assert.equal(
+        t.annotations?.readOnlyHint,
+        t.name !== "fact_package_send",
+        `${t.name} readOnlyHint`,
+      );
+      assert.equal(
+        t.annotations?.destructiveHint,
+        false,
+        `${t.name} destructiveHint`,
+      );
     }
   });
 

@@ -65,7 +65,7 @@ export const GENERAL_INSTRUCTIONS =
 
 /** What the server offers besides tools. */
 export const RESOURCES_INSTRUCTIONS =
-  "Resources (resources/read, no key, no lookup used): factlot://coverage for what the hosted registry serves by place, factlot://sources for every reviewed source with its licence, AI use, redistribution and attribution, factlot://markets for a worked example per hosted market, factlot://schemas/tools and factlot://spec/id for the tool schemas and the ID specification, factlot://plans for plans and lookup counting. Prompts (prompts/get) give the tool order for common jobs: property_owner, owner_portfolio, parcel_value_history, tx_unequal_appraisal_candidates, lease_abstract_check and deal_math.";
+  "Resources (resources/read, no key, no lookup used): factlot://coverage for what the hosted registry serves by place, factlot://sources for every reviewed source with its licence, AI use, redistribution and attribution, factlot://markets for a worked example per hosted market, factlot://schemas/tools and factlot://spec/id for the tool schemas and the ID specification, factlot://plans for plans and lookup counting. Prompts (prompts/get) give the tool order for common jobs: property_owner, owner_portfolio, parcel_value_history, tx_unequal_appraisal_candidates, lease_abstract_check, expense_statement_audit and deal_math.";
 
 export const SERVER_INSTRUCTIONS = [
   "FactLot: commercial real estate (CRE) tools with deterministic, cited results. Covers net effective rent, rent schedules, CAM reconciliation, debt sizing (DSCR, LTV, debt yield), loan amortization, yield maintenance and defeasance, ASC 842 lease remeasurement, WALT, NPV, IRR, DCF pro forma, direct capitalization (cap rate), LP/GP equity waterfalls, 1031 exchange deadlines, hotel RevPAR and ADR, multifamily rent rolls, lease critical dates, lease abstract verification, GSA lease comps, Texas property tax protest deadlines, Texas unequal-appraisal arithmetic, and parcel and owner IDs. Use calc_* tools for this math instead of computing in context; cite the returned formula ID and steps, and surface every warning. To read a lease or other document, extract each value with its verbatim quote and page, then call doc_verify_facts (doc_abstract_lease for a lease and its amendments, doc_compare for an estoppel or rent roll, doc_verify_claim for one claim, doc_spread_statement for a T-12, doc_check_use_conflict for exclusives); FactLot checks each value against its quote and returns cited facts. Use id_* for canonical IDs of parcels, entities, buildings, spaces and documents, rules_* for statutory deadlines, lease_comp_search for comps, and fact_validate or fact_package_create before handing facts on. For a Texas unequal-appraisal comparison, registry_tx_equity_candidates lists candidate parcels from the subject's appraisal district roll (calc_args is that list in the calculator's input shape, for the person to review and edit), and calc_tx_unequal_appraisal does the arithmetic on the comparables and adjustments the person chose. registry_coverage lists the regions the hosted registry holds and is never metered: call it before a registry lookup. Use search and fetch to find the right tool.",
@@ -223,6 +223,34 @@ const READ_ONLY = {
   destructiveHint: false,
 } as const;
 
+/**
+ * The tools whose hints differ from READ_ONLY. fact_package_send sends a package to an outside
+ * party through the Record (a write that cannot be recalled, but deletes or overwrites nothing);
+ * fact_package_status only reads, but from the Record, where the counterparty's answers live.
+ */
+const TOOL_ANNOTATIONS: Record<
+  string,
+  {
+    readOnlyHint: boolean;
+    idempotentHint: boolean;
+    openWorldHint: boolean;
+    destructiveHint: boolean;
+  }
+> = {
+  fact_package_send: {
+    readOnlyHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+    destructiveHint: false,
+  },
+  fact_package_status: { ...READ_ONLY, openWorldHint: true },
+};
+
+/** The MCP annotations of a tool: READ_ONLY unless TOOL_ANNOTATIONS says otherwise. */
+export function toolAnnotations(name: string) {
+  return TOOL_ANNOTATIONS[name] ?? READ_ONLY;
+}
+
 export interface CreateServerOptions {
   /**
    * Register registry_* tools. Default: only when a registry is available: a registry file
@@ -324,7 +352,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
         title: tool.title,
         description: tool.description,
         inputSchema: tool.input,
-        annotations: { ...READ_ONLY, title: tool.title },
+        annotations: { ...toolAnnotations(tool.name), title: tool.title },
       },
       handler,
     );

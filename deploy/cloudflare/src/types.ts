@@ -182,6 +182,11 @@ export interface Env {
   /** Static landing page (Workers static assets). */
   ASSETS?: Fetcher;
   /**
+   * Secret, optional: the Record's application token for fact_package_send. With it the hosted
+   * API's sent packages are recorded as real; without it they are sandbox packages.
+   */
+  EXCHANGE_TOKEN?: string;
+  /**
    * Secret. Without it billing answers 503. Checkout opens only with a live key (sk_live_ or
    * rk_live_); with a test key, existing records keep working but checkout stays closed.
    */

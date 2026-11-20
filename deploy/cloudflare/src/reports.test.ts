@@ -1754,3 +1754,92 @@ describe("property_sheet: registry_get as the caller's own call", () => {
     assert.ok(x.includes("available with a Pro or Team key"));
   });
 });
+
+describe("expense_audit report: the plan rule", () => {
+  const f = (
+    id: string,
+    predicate: string,
+    value: unknown,
+    quote: string,
+    page = 1,
+  ) => ({
+    id,
+    subject: "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+    predicate,
+    value,
+    as_of: "2026-03-01",
+    provenance: {
+      method: "extracted",
+      sources: [
+        { document_id: `fl:document:sha256-${"c".repeat(64)}`, page, quote },
+      ],
+    },
+  });
+  const audit = {
+    kind: "expense_audit",
+    format: "pdf",
+    arguments: {
+      as_of: "2026-04-01",
+      lease_facts: [
+        f(
+          "flf_a1",
+          "lease.pro_rata_share",
+          0.08,
+          "Tenant's Proportionate Share is 8.00%",
+        ),
+      ],
+      statement_facts: [
+        f(
+          "flf_a2",
+          "statement.share_applied",
+          { share: 0.085 },
+          "Tenant's share 8.50%",
+          2,
+        ),
+        f(
+          "flf_a3",
+          "statement.line",
+          { label: "Janitorial", amount: 100000 },
+          "Janitorial 100,000",
+          2,
+        ),
+      ],
+    },
+  };
+
+  it("a caller without a paid plan (gating on) is refused with PlanRequired, unbilled; a paid caller gets the PDF", async () => {
+    const t = env();
+    const opts = { apiBase: "https://api.factlot.com", now: () => T0 };
+    const refused = await runReport(
+      t.e,
+      {
+        tier: "anonymous",
+        auditFull: false,
+        subject: async () => "ipm:audit-test",
+      },
+      audit,
+      opts,
+    );
+    assert.ok(!refused.ok);
+    assert.equal(refused.status, 403);
+    assert.equal(refused.body.code, "PlanRequired");
+    assert.equal(refused.body.billed, false);
+    assert.match(String(refused.body.upgrade), /pricing/);
+    assert.equal(
+      (await t.e.METER.quota("ipm:audit-test", "month", 3, "reports")).used,
+      0,
+    );
+    const paid = await runReport(
+      t.e,
+      {
+        tier: "anonymous",
+        auditFull: true,
+        subject: async () => "ipm:audit-test-2",
+      },
+      audit,
+      opts,
+    );
+    assert.ok(paid.ok, JSON.stringify(!paid.ok && paid.body));
+    assert.equal(paid.file.content_type, "application/pdf");
+  });
+});

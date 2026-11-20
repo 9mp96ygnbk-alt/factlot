@@ -280,10 +280,11 @@ def roll_2026(subject_value):
     ]
 
 
-def roll_file(name, text, as_of, records):
+def roll_file(name, text, as_of, records, read_on=None):
+    """A district roll file dated as_of; read_on (default as_of) is the day the registry read it."""
     path = tmp / name
     path.write_text(text)
-    reg.ingest_roll(CAD997, path, records, as_of=as_of, retrieved_at=f"{as_of}T12:00:00+00:00", state_fips="48",
+    reg.ingest_roll(CAD997, path, records, as_of=as_of, retrieved_at=f"{read_on or as_of}T12:00:00+00:00", state_fips="48",
                     account_system="test-cad-997-account", full_roll=True)
 
 
@@ -303,7 +304,10 @@ roll_file("cad-997-2025.txt", "synthetic district 997 roll 2025", "2025-07-25", 
     cad("1000010", "F1", 50000, 2005, "77001", 9500000, tax_year=2025),  # on the 2025 roll only
 ])
 roll_file("cad-997-2026.txt", "synthetic district 997 roll 2026", "2026-07-25", roll_2026(10000000))
-roll_file("cad-997-2026-corrected.txt", "synthetic district 997 corrected roll 2026", "2026-10-15", roll_2026(9800000))
+# The corrected 2026 roll and the 2027 preliminary roll were read after their as-of dates (the 2027 one after
+# July 25, 2027): registry_tx_equity_candidates dates them by as_of, not by the day they were read.
+roll_file("cad-997-2026-corrected.txt", "synthetic district 997 corrected roll 2026", "2026-10-15", roll_2026(9800000),
+          read_on="2026-10-20")
 roll_file("cad-997-2027-preliminary.txt", "synthetic district 997 preliminary roll 2027", "2027-04-15", [
     cad("1000001", "F1", 50000, 2005, "77001", 10500000, nbhd="N100", land=120000, tax_year=2027),
     cad("1000002", "F1", 48000, 2000, "77002", 9500000, nbhd="N150", owner=PARTNERS,
@@ -312,7 +316,7 @@ roll_file("cad-997-2027-preliminary.txt", "synthetic district 997 preliminary ro
         tax_year=2027),  # enlarged: outside the 2027 area band
     cad("1000004", "F2", 40000, 1995, "77001", 7500000, owner=PARTNERS, tax_year=2027),  # reclassified
     cad("1000009", "F1", 45000, 2008, "77003", 9200000, nbhd="N300", tax_year=2027),
-])
+], read_on="2027-08-02")
 buildings_file("", "cad-997-buildings-2026.txt", "2026-07-25", [("1000001", "B"), ("1000002", "B"), ("1000005", "A")])
 buildings_file("-2027", "cad-997-buildings-2027.txt", "2027-04-15", [("1000001", "C"), ("1000002", "A")])
 reg.link_owners()

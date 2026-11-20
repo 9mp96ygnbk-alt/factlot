@@ -356,6 +356,20 @@ def _narrowing(subject: dict[str, Any], same_building_class: bool, same_local_us
     return out
 
 
+_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+
+
+def _compared_file_dates(src: dict[str, Any]) -> tuple[str | None, str | None]:
+    """A compared file's (as_of, read_on) from its ``sources`` entry (``comparedFileDates`` in TS): read_on is the
+    day the registry read the file (the date part of retrieved_at), as_of the date the file's data is as of. A
+    snapshot whose as-of date is the day it was read carries no date from its publisher (``fields`` calls it dated
+    "read"), so its as_of is None rather than the read date; so is one whose as-of is not a date."""
+    def day(v: Any) -> str | None:
+        return v[:10] if isinstance(v, str) and _ISO_DATE.match(v) else None
+    as_of, read_on = day(src["as_of"]), day(src["retrieved_at"])
+    return (None if as_of == read_on else as_of), read_on
+
+
 def _sources(reg: Registry, document_ids: set[str]) -> list[dict[str, Any]]:
     """The cited snapshots with their source's rights, as ``registry_get`` gives each fact's ``rights``."""
     out = []
@@ -521,14 +535,18 @@ def equity_candidates(reg: Registry, urn: str, *, area_band: float = DEFAULTS["a
             else:
                 e["candidates"] += 1
     certification = None if year_used is None else f"{fmt_num(year_used)}-07-25"
-    compared_files = [{
-        "document_id": src["document_id"], "source_id": src["source_id"], "title": src["title"], "as_of": src["as_of"],
-        "tax_year": year_used,
-        "before_certification_deadline": None if certification is None or not isinstance(src["as_of"], str)
-        else src["as_of"] < certification,
-        "subject_value": cited_by[src["document_id"]]["subject"],
-        "candidate_values": cited_by[src["document_id"]]["candidates"],
-    } for src in sources if src["document_id"] in cited_by]
+    compared_files = []
+    for src in sources:
+        if src["document_id"] not in cited_by:
+            continue
+        as_of, read_on = _compared_file_dates(src)
+        compared_files.append({
+            "document_id": src["document_id"], "source_id": src["source_id"], "title": src["title"], "as_of": as_of,
+            "read_on": read_on, "tax_year": year_used,
+            "before_certification_deadline": None if certification is None or as_of is None else as_of < certification,
+            "subject_value": cited_by[src["document_id"]]["subject"],
+            "candidate_values": cited_by[src["document_id"]]["candidates"],
+        })
     subject_summary = (
         f"the subject on {'no roll' if year_used is None else f'the {fmt_num(year_used)} roll'}: "
         f"state property category {_code_text(subject['state_property_category'])}; "

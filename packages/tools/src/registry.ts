@@ -4359,6 +4359,30 @@ export function equityValueCounts(
   };
 }
 
+const ISO_DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}/;
+
+/**
+ * A compared file's dates from its `sources` entry (`_compared_file_dates` in Python): `read_on`, the day the
+ * registry read the file (the date part of retrieved_at), and `as_of`, the date the file's data is as of. A
+ * snapshot whose as-of date is the day it was read carries no date from its publisher (fields.ts calls it dated
+ * "read"), so its as_of is null rather than the read date; so is one whose as-of is not a date.
+ */
+export function comparedFileDates(source: Row): {
+  as_of: string | null;
+  read_on: string | null;
+} {
+  const read =
+    typeof source.retrieved_at === "string" &&
+    ISO_DATE.test(source.retrieved_at)
+      ? source.retrieved_at.slice(0, 10)
+      : null;
+  const asOf =
+    typeof source.as_of === "string" && ISO_DATE.test(source.as_of)
+      ? source.as_of.slice(0, 10)
+      : null;
+  return { as_of: asOf === read ? null : asOf, read_on: read };
+}
+
 /** The `registry_tx_equity_candidates` result from its parts; `sources` gives each cited snapshot's entry. */
 export function assembleTxEquity(
   p: TxEquityParts,
@@ -4491,19 +4515,23 @@ export function assembleTxEquity(
   const certification = yearUsed === null ? null : `${fmtNum(yearUsed)}-07-25`;
   const comparedFiles = srcs
     .filter((s) => citedBy.has(String(s.document_id)))
-    .map((s) => ({
-      document_id: s.document_id,
-      source_id: s.source_id,
-      title: s.title,
-      as_of: s.as_of,
-      tax_year: yearUsed,
-      before_certification_deadline:
-        certification === null || typeof s.as_of !== "string"
-          ? null
-          : s.as_of < certification,
-      subject_value: citedBy.get(String(s.document_id))!.subject,
-      candidate_values: citedBy.get(String(s.document_id))!.candidates,
-    }));
+    .map((s) => {
+      const { as_of, read_on } = comparedFileDates(s);
+      return {
+        document_id: s.document_id,
+        source_id: s.source_id,
+        title: s.title,
+        as_of,
+        read_on,
+        tax_year: yearUsed,
+        before_certification_deadline:
+          certification === null || as_of === null
+            ? null
+            : as_of < certification,
+        subject_value: citedBy.get(String(s.document_id))!.subject,
+        candidate_values: citedBy.get(String(s.document_id))!.candidates,
+      };
+    });
   const subjectSummary =
     `the subject on ${yearUsed === null ? "no roll" : `the ${fmtNum(yearUsed)} roll`}: ` +
     `state property category ${codeText(subject.state_property_category)}; ` +
