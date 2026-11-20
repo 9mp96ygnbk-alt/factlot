@@ -45,12 +45,17 @@ def configure_exchange(url: str | None = None, site_url: str | None = None, toke
 
 
 @contextlib.contextmanager
-def run_with_exchange_caller(account_id: str | None, full_audit: bool | None = None) -> Iterator[None]:
-    """Say which FactLot account is calling (never its key) for the fact_package_send calls inside, and
+def run_with_exchange_caller(account_id: str | None, full_audit: bool | None = None,
+                             test_reason: str | None = None) -> Iterator[None]:
+    """Say which FactLot account is calling (never its key) for the fact_package_send calls inside, why
+    this caller sends test packages only when the host knows (test_reason, e.g. a guest key), and
     (full_audit False) that this caller gets audit_expense_statement's summary only, as the hosted API does."""
     from . import audit
 
-    t = _caller.set({"account_id": account_id} if account_id else {})
+    caller: dict[str, Any] = {"account_id": account_id} if account_id else {}
+    if test_reason:
+        caller["test_reason"] = test_reason
+    t = _caller.set(caller)
     a = audit.set_full_audit(full_audit)
     try:
         yield
@@ -114,8 +119,9 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
     if inp.get("approval_confirmed") is not True:
         issues.append({"path": "approval_confirmed", "message":
-                       "nothing is sent without approval: show the person every item, both figures, the quote and page behind each, "
-                       "the calculation and who it goes to, then set approval_confirmed to true only when they say it may be sent"})
+                       "refused: nothing is sent without approval_confirmed true, confirming that the person named in approved_by "
+                       "reviewed every item, both figures, the quote and page behind each, the calculation and the recipient, "
+                       "and approved sending"})
     if not str(inp["approved_by"]).strip():
         issues.append({"path": "approved_by", "message": "the full name of the person who approved sending is required"})
     if inp["from"]["organisation"].strip().lower() == inp["to"]["organisation"].strip().lower():
@@ -166,15 +172,15 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         reason = ("this FactLot is not connected to the Record as an accredited service (a local or self-hosted install, "
                   "or a service without the Record's application token)")
     elif not account_id:
-        reason = "no FactLot account key came with the call (only a caller with a FactLot account key, free or paid, can send for real)"
+        reason = caller.get("test_reason") or (
+            "no FactLot account key came with the call (only a caller with a FactLot account key, free or paid, can send for real)")
     else:
         reason = str(sent.get("test_mode_reason") or "the Record took it as a test")
     n = len(reliances)
     to_org = inp["to"]["organisation"]
     if sandbox:
         message = (f"TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real "
-                   f"reliance, because {reason}. The counterparty can still open the link and answer, so say clearly to the person "
-                   f"that this was a test.")
+                   f"reliance, because {reason}. The counterparty can still open the link and answer.")
     else:
         message = (f"SENT FOR REAL: the Record recorded {n} reliance{'' if n == 1 else 's'} now (the sender relies on "
                    f"{'the figure' if n == 1 else 'the figures'} it accepted from {to_org}), and each item {to_org} agrees to will be "

@@ -29,7 +29,7 @@ import {
   type LookupItem,
 } from "@factlot/tools";
 
-import { exchangeAccountId } from "./exchange-account.ts";
+import { exchangeAccountId, exchangeTestReason } from "./exchange-account.ts";
 import {
   CONTACT,
   DISCUSSIONS,
@@ -1987,7 +1987,11 @@ async function route(
     // audit_expense_statement reads the plan rule: with gating on, only a Pro or Team caller gets
     // the whole answer (a free key or no key gets the summary).
     return runWithExchangeCaller(
-      { accountId: exchangeAccount, fullAudit: !gating || paid !== undefined },
+      {
+        accountId: exchangeAccount,
+        testReason: exchangeTestReason(paid),
+        fullAudit: !gating || paid !== undefined,
+      },
       () => api.fetch(inner),
     );
   };
