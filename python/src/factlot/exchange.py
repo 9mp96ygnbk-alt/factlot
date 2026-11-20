@@ -1,10 +1,10 @@
 """fact_package_send and fact_package_status: the Python mirror of packages/tools/src/exchange.ts.
 
-Send a fact package to a counterparty for confirmation through the Record, and read the answers.
-Both call the Record's public exchange endpoint. A package is sent for real only when this service
-holds the Record's application token (FACTLOT_EXCHANGE_TOKEN or configure_exchange(token=...)) AND
+Send a fact package to a counterparty for confirmation through the FactLot record, and read the answers.
+Both call the FactLot record's public exchange endpoint. A package is sent for real only when this service
+holds the FactLot record's application token (FACTLOT_EXCHANGE_TOKEN or configure_exchange(token=...)) AND
 the host has said which FactLot account is calling (run_with_exchange_caller); anything else is a
-test that never counts in the Record's measure. Nothing is sent without a named approver and an
+test that never counts in the FactLot record's measure. Nothing is sent without a named approver and an
 explicit confirmation. The only network use is urllib; `transport` replaces it for tests.
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ from .factpackage import verify_fact_package
 
 EXCHANGE_URL = "https://czmyqwkauymguoznzpzr.supabase.co/functions/v1/exchange"
 EXCHANGE_SITE_URL = "https://cre-record.vercel.app"
-# The most facts the Record takes in one rent roll package (a lease-by-lease roll is larger than an estoppel).
+# The most facts the FactLot record takes in one rent roll package (a lease-by-lease roll is larger than an estoppel).
 RENT_ROLL_PACKAGE_FACTS = 600
 
 # (url, headers, body) -> (http status, parsed JSON). Raises OSError when nothing answers.
@@ -88,7 +88,7 @@ def _token() -> str | None:
 def _urllib_transport(url: str, headers: dict[str, str], body: bytes) -> tuple[int, Any]:
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 - the Record's own https endpoint
+        with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 - the FactLot record's own https endpoint
             return r.status, json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         return e.code, json.loads(e.read().decode("utf-8"))
@@ -103,15 +103,15 @@ def _call(body: dict[str, Any], forward_token: bool) -> dict[str, Any]:
     try:
         status, out = transport(_endpoint(), headers, json.dumps(body).encode("utf-8"))
     except json.JSONDecodeError:
-        raise ExchangeUnavailable("the Record's exchange gave an unreadable answer; check fact_package_status before sending again") from None
+        raise ExchangeUnavailable("the FactLot record's exchange gave an unreadable answer; check fact_package_status before sending again") from None
     except OSError:
-        raise ExchangeUnavailable("the Record's exchange did not answer, so nothing was sent; retry in a moment") from None
+        raise ExchangeUnavailable("the FactLot record's exchange did not answer, so nothing was sent; retry in a moment") from None
     if isinstance(out, dict) and out.get("ok") is True:
         return out["result"]
     message = str((out or {}).get("error") or f"the exchange answered {status}") if isinstance(out, dict) else \
         f"the exchange answered {status}"
     if status >= 500:
-        raise ExchangeUnavailable(f"the Record's exchange failed ({message}); check fact_package_status before sending again")
+        raise ExchangeUnavailable(f"the FactLot record's exchange failed ({message}); check fact_package_status before sending again")
     raise DocInputError([{"path": "", "message": message}])
 
 
@@ -170,7 +170,7 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
                                    "a line graded confirmed by tenant names the estoppel package and the statements the tenant agreed"})
                 elif not any(x["id"] == it["estoppel_package_id"] for x in linked):
                     issues.append({"path": f"items.{i}.estoppel_package_id", "message":
-                                   "give the status link of that estoppel in estoppel_links so the Record can check the tenant's answers"})
+                                   "give the status link of that estoppel in estoppel_links so the FactLot record can check the tenant's answers"})
             elif "estoppel_package_id" in it:
                 issues.append({"path": f"items.{i}.estoppel_package_id", "message":
                                "only a line graded confirmed by tenant names an estoppel"})
@@ -234,17 +234,17 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     reliances = sent.get("reliances_recorded") or []
     sandbox = sent.get("sandbox") is True
     if not _token():
-        reason = ("this FactLot is not connected to the Record as an accredited service (a local or self-hosted install, "
-                  "or a service without the Record's application token)")
+        reason = ("this FactLot is not connected to the hosted FactLot record as an accredited service (a local or self-hosted install, "
+                  "or a service without the FactLot record's application token)")
     elif not account_id:
         reason = caller.get("test_reason") or (
             "no full FactLot account key came with the call, and a full FactLot account key (a paid fl_live_ key or an email-verified fl_free_ key) is needed to send for real")
     else:
-        reason = str(sent.get("test_mode_reason") or "the Record took it as a test")
+        reason = str(sent.get("test_mode_reason") or "the FactLot record took it as a test")
     n = len(reliances)
     to_org = inp["to"]["organisation"]
     if sandbox:
-        message = (f"TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real "
+        message = (f"TEST MODE: this package was sent in test mode. It does not count in the FactLot record's measure and records no real "
                    f"reliance, because {reason}. The counterparty can still open the link and {'read it' if rent_roll else 'answer'}.")
     elif rent_roll:
         message = (f"SENT FOR REAL: the certified rent roll was sent to {to_org}. Nothing is recorded as relied on yet: a reliance "
@@ -256,7 +256,7 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
                    f"is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and "
                    f"the tenant, records its own. A disputed statement is never recorded as relied on.")
     else:
-        message = (f"SENT FOR REAL: the Record recorded {n} reliance{'' if n == 1 else 's'} now (the sender relies on "
+        message = (f"SENT FOR REAL: the FactLot record recorded {n} reliance{'' if n == 1 else 's'} now (the sender relies on "
                    f"{'the figure' if n == 1 else 'the figures'} it accepted from {to_org}), and each item {to_org} agrees to will be "
                    f"recorded as relied on by them. Each is tied to the sender's FactLot account.")
     relier_tokens = sent.get("relier_tokens") if isinstance(sent.get("relier_tokens"), list) else []
@@ -279,8 +279,9 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
                  f"status_link_for_sender private: it reads who has relied (fact_package_status).") if rent_roll else
                 (f"Send link_for_counterparty to {to_org} (the tenant); it needs no account. Give each lender or buyer its own link "
                  f"from links_for_relying_parties only after the tenant has answered: it shows the statements, the tenant's answers "
-                 f"and the document fingerprints, and lets that party record reliance. Keep status_link_for_sender private: it reads "
-                 f"the answers and the reliers (fact_package_status).") if estoppel else
+                 f"and the document fingerprints, and lets that party record reliance. The tenant gives the signer's full name and title "
+                 f"and signs electronically on the same page before the answers are accepted. Keep status_link_for_sender private: it reads "
+                 f"the answers, the signer, who opened each lender or buyer link and who relied (fact_package_status).") if estoppel else
                 (f"Send link_for_counterparty to {to_org}; it needs no account. Keep status_link_for_sender private: "
                  f"it reads the answers (fact_package_status)."),
     }
@@ -337,5 +338,21 @@ def fact_package_status(args: dict[str, Any]) -> dict[str, Any]:
         "disputed": sum(1 for x in items if (x["answer"] or {}).get("decision") == "disputed"),
         "reliances": s.get("reliances"),
         **({"reliers": s["reliers"]} if isinstance(s.get("reliers"), list) else {}),
+        **({"signature": _signature_out(s["signature"])} if isinstance(s.get("signature"), dict) else {}),
+        **({"links": [{"link": l.get("link"), "label": l.get("label"), "first_opened_at": l.get("first_opened_at"),
+                       "last_opened_at": l.get("last_opened_at"), "open_count": l.get("open_count") or 0,
+                       "reliance": l.get("reliance") or []} for l in s["links"]]}
+           if isinstance(s.get("links"), list) else {}),
         "responded_at": s.get("responded_at"),
     }
+
+
+def _signature_out(g: dict[str, Any]) -> dict[str, Any]:
+    """The tenant's signature as the FactLot record holds it (name, title, UTC time, consent version and text, content hash)."""
+    if g.get("signed") is not True:
+        return {"signed": False, "answered_without_signature": g.get("answered_without_signature") is True,
+                "signature_required": g.get("signature_required") is True}
+    return {"signed": True, "signer_name": g.get("signer_name"), "signer_title": g.get("signer_title"),
+            "signer_organisation": g.get("signer_organisation"), "signed_at": g.get("signed_at"), "signed_line": g.get("signed_line"),
+            "consent_version": g.get("consent_version"), "consent_text": g.get("consent_text"),
+            "content_sha256": g.get("content_sha256"), "content_check": g.get("content_check")}

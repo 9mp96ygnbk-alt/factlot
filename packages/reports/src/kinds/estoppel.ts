@@ -34,6 +34,12 @@ const sha64 = (id: string | null, sha: string | null): string => {
   return m ? m[1]! : "";
 };
 
+/** "2026-11-20 14:03 UTC" from an ISO timestamp. */
+const utc = (iso: string): string => {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}):\d{2}/.exec(iso);
+  return m ? `${longDate(m[1]!)}, ${m[2]} UTC` : iso;
+};
+
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 /** A gap or flag message as prose: predicate names in words, first letter capital. */
 const prose = (s: string): string =>
@@ -77,6 +83,8 @@ export async function estoppelPdf(k: KindInput): Promise<Uint8Array> {
     (k.ctx.estoppel_answers ?? []).map((a) => [a.key, a] as const),
   );
   const reliers = k.ctx.estoppel_reliers ?? [];
+  const sig = k.ctx.estoppel_signature;
+  const signed = sig?.signed === true && !!sig.signer_name && !!sig.signed_at;
 
   const w = await InstitutionalWriter.create({
     title: "Tenant estoppel certificate",
@@ -242,12 +250,37 @@ export async function estoppelPdf(k: KindInput): Promise<Uint8Array> {
 
   // ---- signature ------------------------------------------------------------------------------
   w.section("Signature of the tenant", 150);
-  w.para(
-    `By signing, ${tenant} states that, as of ${asOf}, the statements above that it has confirmed are true and that the statements it has answered with its own version are as it has written them. The tenant's signature, not FactLot, makes this an estoppel certificate; FactLot has not seen the tenant sign, and the signature lines below are for the parties' own use.`,
-    { size: 8.75, leading: 12.5 },
-  );
-  w.space(4);
-  w.signatureLines([`Signature, for ${tenant}`, "Name", "Title", "Date"]);
+  if (signed && sig) {
+    const when = longDate(str(sig.signed_at).slice(0, 10));
+    w.para(
+      `The tenant's signer confirmed, in the consent wording printed in the electronic signature record below, that the signer is authorised to sign for ${tenant}, intends the typed name as the signature, agrees to sign electronically, and that the statements as answered here are true as of the date of signing. The tenant's signature, not FactLot, makes this an estoppel certificate.`,
+      { size: 8.75, leading: 12.5 },
+    );
+    w.space(4);
+    w.para(
+      `Signed electronically by ${str(sig.signer_name)}, ${str(sig.signer_title)}, ${when}`,
+      { font: "sansBold", size: 9.25 },
+    );
+    w.definitions(
+      [
+        [
+          "Signed for",
+          sig.signer_organisation ? str(sig.signer_organisation) : tenant,
+        ],
+        ["Name", str(sig.signer_name)],
+        ["Title", str(sig.signer_title)],
+        ["Date", when],
+      ],
+      110,
+    );
+  } else {
+    w.para(
+      `By signing, ${tenant} states that, as of ${asOf}, the statements above that it has confirmed are true and that the statements it has answered with its own version are as it has written them. The tenant's signature, not FactLot, makes this an estoppel certificate; FactLot has not seen the tenant sign, and the signature lines below are for the parties' own use.`,
+      { size: 8.75, leading: 12.5 },
+    );
+    w.space(4);
+    w.signatureLines([`Signature, for ${tenant}`, "Name", "Title", "Date"]);
+  }
 
   // ---- back matter ----------------------------------------------------------------------------
   if (gaps.length || conflicts.length) {
@@ -265,7 +298,7 @@ export async function estoppelPdf(k: KindInput): Promise<Uint8Array> {
     );
   }
 
-  w.section("Reliance recorded", 70);
+  w.section("Reliance recorded", 120);
   if (reliers.length === 0)
     w.para("No reliance has been recorded.", { color: "slate" });
   else
@@ -279,11 +312,62 @@ export async function estoppelPdf(k: KindInput): Promise<Uint8Array> {
       reliers.map((x) => [
         x.who,
         x.role ?? "",
-        (x.statements ?? []).join(", "),
+        `${(x.statements ?? []).join(", ")}${
+          (x.statements_disputed ?? []).length
+            ? `. Not confirmed by the tenant, and acknowledged by this party: ${(x.statements_disputed ?? []).join(", ")}`
+            : ""
+        }`,
         x.at ? longDate(x.at.slice(0, 10)) : "",
       ]),
       { size: 8.25, padY: 3.5 },
     );
+
+  if (signed && sig) {
+    w.section("Electronic signature record", 120);
+    w.definitions(
+      [
+        ["Signer", `${str(sig.signer_name)}, ${str(sig.signer_title)}`],
+        ["Signed (UTC)", utc(str(sig.signed_at))],
+        ["Consent wording", str(sig.consent_version)],
+        [
+          "Signed statements",
+          sig.content_check === "changed"
+            ? "The statements as now recorded do not produce the fingerprint below: they differ from what was signed."
+            : sig.content_check === "unchanged"
+              ? "The statements as recorded when this certificate was prepared produce the fingerprint below, so they are unchanged since signing."
+              : "Not rechecked when this certificate was prepared.",
+        ],
+      ],
+      110,
+    );
+    if (sig.content_sha256) {
+      w.space(4);
+      w.table(
+        [
+          {
+            header: "SHA-256 of the signed statements",
+            width: 100,
+            mono: true,
+          },
+        ],
+        [[sig.content_sha256]],
+        { size: 7.75, padY: 3.5 },
+      );
+    }
+    if (sig.consent_text) {
+      w.space(2);
+      w.para("The consent wording the signer saw and accepted:", {
+        size: 8,
+        color: "slate",
+      });
+      for (const line of sig.consent_text.split("\n"))
+        w.para(line, { size: 8, leading: 11.5, indent: 10 });
+    }
+    w.para(
+      "The fingerprint is the SHA-256 of the canonical form (RFC 8785) of each statement as stated, with the tenant's answer, own version and note. No IP address or device data was kept.",
+      { size: 8, leading: 11.5, color: "slate" },
+    );
+  }
 
   w.section("Basis of preparation", 60);
   w.para(

@@ -34,7 +34,7 @@ import { gateDocument } from "./free_document.ts";
 
 export const RENT_ROLL_PLAN_URL = "https://factlot.com/pricing/";
 export const RENT_ROLL_MAX_LINES = 60;
-/** The most facts the Record takes in one rent roll package. */
+/** The most facts the FactLot record takes in one rent roll package. */
 export const RENT_ROLL_MAX_PACKAGE_FACTS = RENT_ROLL_PACKAGE_FACTS;
 
 const Date_ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -2008,7 +2008,7 @@ export function certifyRentRoll(input: RentRollInput): Json {
   });
   if (packageIds.length > RENT_ROLL_MAX_PACKAGE_FACTS)
     warnings.push(
-      `the items rest on ${packageIds.length} facts and the Record takes at most ${RENT_ROLL_MAX_PACKAGE_FACTS} in one rent roll: send the roll in parts (by building or floor)`,
+      `the items rest on ${packageIds.length} facts and the FactLot record takes at most ${RENT_ROLL_MAX_PACKAGE_FACTS} in one rent roll: send the roll in parts (by building or floor)`,
     );
 
   // ---- output lines ------------------------------------------------------------------------------------------
