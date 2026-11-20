@@ -19,10 +19,14 @@ import {
 } from "./limiter.ts";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
+  CONSENT_TTL_SECONDS,
   FREE_CONNECTIONS_PER_DAY,
+  REFRESH_TOKEN_TTL_SECONDS,
+  RESTART_TTL_SECONDS,
   freeConnectionMeter,
   isOAuthToken,
   listConnections,
+  normalizeKey,
   paidUserId,
   prefixedKV,
   type ListableKV,
@@ -901,6 +905,352 @@ describe("sign in with a key: authorization code + PKCE", () => {
     const loc = new URL(res.headers.get("location")!);
     assert.equal(loc.searchParams.get("error"), "access_denied");
     assert.equal(loc.searchParams.get("state"), "st-123");
+  });
+});
+
+describe("a sign-in page left open", () => {
+  /** Every cookie the response sets, as a Cookie header the browser would send back. */
+  const cookiesOf = (res: Response) =>
+    res.headers
+      .getSetCookie()
+      .map((c) => c.split(";")[0]!)
+      .join("; ");
+  const restartOf = (html: string) =>
+    (/name="restart" value="([^"]+)"/.exec(html)?.[1] ?? "").replaceAll(
+      "&amp;",
+      "&",
+    );
+  const later = (minutes: number) => () => Date.now() + minutes * 60_000;
+
+  /** Open the page as a browser does: every cookie kept, the restart field read. */
+  async function open(e: Env) {
+    const { key } = await issue(e);
+    const { client_id } = await register(e);
+    const p = await pkce();
+    const c = await authorize(e, client_id, p.challenge);
+    return {
+      key,
+      client_id,
+      p,
+      c: { ...c, cookie: cookiesOf(c.res) },
+      restart: restartOf(c.html),
+    };
+  }
+
+  function post(
+    e: Env,
+    fields: Record<string, string>,
+    cookie: string,
+    now?: () => number,
+  ): Promise<Response> {
+    return handle(
+      new Request(`${API}/authorize`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: API,
+          cookie,
+          "cf-connecting-ip": IP,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      e,
+      inner,
+      now ? { now } : {},
+    );
+  }
+
+  async function exchange(
+    e: Env,
+    res: Response,
+    client_id: string,
+    verifier: string,
+  ) {
+    assert.equal(res.status, 302, await res.clone().text());
+    const loc = new URL(res.headers.get("location")!);
+    assert.equal(loc.origin + loc.pathname, CLAUDE_REDIRECT);
+    assert.equal(loc.searchParams.get("state"), "st-123");
+    const t = await token(e, {
+      grant_type: "authorization_code",
+      code: loc.searchParams.get("code")!,
+      redirect_uri: CLAUDE_REDIRECT,
+      client_id,
+      code_verifier: verifier,
+      resource: `${API}/mcp`,
+    });
+    assert.ok(t.body.access_token, JSON.stringify(t.body));
+    return t.body.access_token;
+  }
+
+  it("works for an hour: the library's transaction and its cookie are lengthened, tokens are not", async () => {
+    const e = env();
+    const { c, restart } = await open(e);
+    assert.equal(CONSENT_TTL_SECONDS, 60 * 60);
+    const txn = [...e.KEYS.ttl].filter(([k]) =>
+      k.startsWith("oauth:transaction:"),
+    );
+    assert.equal(txn.length, 1);
+    assert.equal(txn[0]![1], CONSENT_TTL_SECONDS);
+    const view = [...e.KEYS.ttl].filter(([k]) => k.startsWith("oauth:view:"));
+    assert.equal(view[0]![1], RESTART_TTL_SECONDS);
+    const set = c.res.headers.getSetCookie();
+    const binding = set.find((x) => x.startsWith("__Host-oauth-consent-"))!;
+    assert.match(binding, new RegExp(`Max-Age=${CONSENT_TTL_SECONDS}(;|$)`));
+    const browser = set.find((x) => x.startsWith("__Host-factlot-signin="))!;
+    assert.match(browser, /HttpOnly/);
+    assert.match(browser, /Secure/);
+    assert.match(browser, new RegExp(`Max-Age=${RESTART_TTL_SECONDS}(;|$)`));
+    assert.match(restart, /^\/authorize\?response_type=code&client_id=/);
+    // Codes and tokens keep their lifetimes.
+    assert.equal(ACCESS_TOKEN_TTL_SECONDS, 60 * 60);
+    assert.equal(REFRESH_TOKEN_TTL_SECONDS, 30 * 24 * 60 * 60);
+  });
+
+  it("the key box is the one obvious action: focused, first, labelled", async () => {
+    const e = env();
+    const { c } = await open(e);
+    assert.match(
+      c.html,
+      /<input id="key" name="key" type="password"[^>]*autofocus/,
+    );
+    assert.match(c.html, /<label for="key">/);
+    const buttons = [...c.html.matchAll(/<button[^>]*value="(\w+)"/g)].map(
+      (m) => m[1],
+    );
+    assert.equal(buttons[0], "key", "Enter submits the key");
+    assert.deepEqual(buttons.slice(1), ["free", "deny"]);
+    assert.match(c.html, /class="button primary" name="decision" value="key"/);
+    assert.match(c.html, /<h1>Connect Claude to FactLot<\/h1>/);
+  });
+
+  it("accepts the key with spaces, line breaks or around it", async () => {
+    const e = env();
+    const { key, client_id, p, c } = await open(e);
+    assert.equal(normalizeKey(`  ${key}\n`), key);
+    assert.equal(normalizeKey(`${key.slice(0, 20)}\r\n${key.slice(20)}`), key);
+    assert.equal(normalizeKey(`FACTLOT_API_KEY="${key}"`), key);
+    assert.equal(normalizeKey(`Authorization: Bearer ${key}`), key);
+    const res = await post(
+      e,
+      { handle: c.handle, decision: "key", key: `\n  ${key} \n` },
+      c.cookie,
+    );
+    const access = await exchange(e, res, client_id, p.verifier);
+    assert.equal(
+      (await mcp(e, access, LIST)).headers.get("x-factlot-tier"),
+      "pro",
+    );
+  });
+
+  it("a key pasted after the page expired connects in the same step", async () => {
+    const e = env();
+    const { key, client_id, p, c, restart } = await open(e);
+    const res = await post(
+      e,
+      { handle: c.handle, restart, decision: "key", key },
+      c.cookie,
+      later(90),
+    );
+    const access = await exchange(e, res, client_id, p.verifier);
+    assert.equal(
+      (await mcp(e, access, LIST)).headers.get("x-factlot-tier"),
+      "pro",
+    );
+    // The page is finished: a second press says so and offers to start again.
+    const again = await post(
+      e,
+      { handle: c.handle, restart, decision: "key", key },
+      c.cookie,
+      later(91),
+    );
+    assert.equal(again.status, 400);
+    const html = await again.text();
+    assert.match(html, /already used/);
+    assert.match(html, /Start again/);
+    const href = /<a class="button primary" href="([^"]+)">Start again/
+      .exec(html)![1]!
+      .replaceAll("&amp;", "&");
+    assert.equal(href, restart);
+    const fresh = await send(e, href);
+    assert.equal(fresh.status, 200);
+    assert.match(await fresh.text(), /Connect Claude to FactLot/);
+  });
+
+  it("when the library's transaction is gone before FactLot's clock says so, the same step still connects", async () => {
+    const e = env();
+    const { key, client_id, p, c, restart } = await open(e);
+    for (const k of [...e.KEYS.data.keys()])
+      if (k.startsWith("oauth:transaction:")) await e.KEYS.delete(k);
+    const res = await post(
+      e,
+      { handle: c.handle, restart, decision: "key", key },
+      c.cookie,
+    );
+    await exchange(e, res, client_id, p.verifier);
+  });
+
+  it("the free tier and Cancel also work after the page expired", async () => {
+    const e = env();
+    const a = await open(e);
+    const free = await post(
+      e,
+      { handle: a.c.handle, restart: a.restart, decision: "free" },
+      a.c.cookie,
+      later(120),
+    );
+    const access = await exchange(e, free, a.client_id, a.p.verifier);
+    assert.equal(
+      (await mcp(e, access, LIST)).headers.get("x-factlot-tier"),
+      "anonymous",
+    );
+    const b = await open(e);
+    const deny = await post(
+      e,
+      { handle: b.c.handle, restart: b.restart, decision: "deny" },
+      b.c.cookie,
+      later(120),
+    );
+    assert.equal(deny.status, 302);
+    const loc = new URL(deny.headers.get("location")!);
+    assert.equal(loc.searchParams.get("error"), "access_denied");
+    assert.equal(loc.searchParams.get("state"), "st-123");
+  });
+
+  it("another browser gets a fresh page for the same request, never a connection", async () => {
+    const e = env();
+    const { key, client_id, p, c, restart } = await open(e);
+    const library = c.cookie
+      .split("; ")
+      .filter((x) => !x.startsWith("__Host-factlot-signin="))
+      .join("; ");
+    const res = await post(
+      e,
+      { handle: c.handle, restart, decision: "key", key },
+      library,
+      later(90),
+    );
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("location"), null);
+    const html = await res.text();
+    assert.match(html, /open a long time/);
+    assert.match(html, /Connect Claude to FactLot/);
+    assert.doesNotMatch(html, new RegExp(key), "the key is never echoed");
+    const handle2 = /name="handle" value="([^"]+)"/.exec(html)![1]!;
+    assert.notEqual(handle2, c.handle);
+    assert.equal(restartOf(html), restart);
+    // Pressing Connect on the fresh page connects (within its own hour).
+    const ok = await post(
+      e,
+      { handle: handle2, restart, decision: "key", key },
+      cookiesOf(res),
+      later(95),
+    );
+    await exchange(e, ok, client_id, p.verifier);
+  });
+
+  it("a tampered restart target is refused", async () => {
+    const e = env();
+    const { key, c, restart } = await open(e);
+    const tampered = [
+      restart.replace("st-123", "st-999"),
+      restart.replace(
+        encodeURIComponent(CLAUDE_REDIRECT),
+        encodeURIComponent("https://evil.example/cb"),
+      ),
+      `https://evil.example${restart}`,
+      `//evil.example${restart}`,
+      restart.replace("/authorize?", "/account?"),
+      `${restart}#x`,
+    ];
+    for (const field of tampered) {
+      for (const at of [undefined, later(90)]) {
+        const res = await post(
+          e,
+          { handle: c.handle, restart: field, decision: "key", key },
+          c.cookie,
+          at,
+        );
+        assert.equal(res.status, 400, field);
+        assert.equal(res.headers.get("location"), null, field);
+        assert.match(await res.text(), /Can&#39;t connect|Can't connect/);
+      }
+    }
+    // Still usable with its own target.
+    const ok = await post(
+      e,
+      { handle: c.handle, restart, decision: "free" },
+      c.cookie,
+    );
+    assert.equal(ok.status, 302);
+  });
+
+  it("an expired page with no restart field, or an unknown handle, says to start again", async () => {
+    const e = env();
+    const { key, c } = await open(e);
+    const res = await post(
+      e,
+      { handle: c.handle, decision: "key", key },
+      c.cookie,
+      later(90),
+    );
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /Start again from your app/);
+    const unknown = await post(
+      e,
+      { handle: "x".repeat(43), decision: "free" },
+      c.cookie,
+    );
+    assert.equal(unknown.status, 400);
+  });
+
+  it("Enter in the email box sends the email link, not an empty key", async () => {
+    const stripe = (async (input: string | URL) => {
+      const u = new URL(String(input));
+      if (u.pathname === "/v1/customers") return Response.json({ data: [] });
+      return Response.json({ data: [] });
+    }) as typeof fetch;
+    const deferred: Promise<unknown>[] = [];
+    const e = env({
+      EMAIL: { send: async () => ({ messageId: "1" }) },
+      RECOVERY_SIGNING_SECRET: "s".repeat(64),
+      STRIPE_SECRET_KEY: "sk_live_x",
+    });
+    const { c } = await open(e);
+    const res = await handle(
+      new Request(`${API}/authorize`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: API,
+          cookie: c.cookie,
+          "cf-connecting-ip": IP,
+        },
+        body: new URLSearchParams({
+          handle: c.handle,
+          decision: "key",
+          key: "",
+          email: "buyer@example.com",
+        }).toString(),
+      }),
+      e,
+      inner,
+      { fetchImpl: stripe, waitUntil: (w) => void deferred.push(w) },
+    );
+    await Promise.all(deferred);
+    assert.equal(res.status, 200);
+    assert.match(await res.text(), /a sign-in link is on its way/);
+  });
+
+  it("a free key is pointed at the free tier", async () => {
+    const e = env();
+    const { c } = await open(e);
+    const res = await post(
+      e,
+      { handle: c.handle, decision: "key", key: `fl_free_${"a".repeat(43)}` },
+      c.cookie,
+    );
+    assert.equal(res.status, 400);
+    assert.match(await res.text(), /Continue on the free tier instead/);
   });
 });
 

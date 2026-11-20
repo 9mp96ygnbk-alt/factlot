@@ -11,7 +11,6 @@ import { messagePage, notice, page } from "./pages.ts";
 import {
   ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
   ANONYMOUS_REQUESTS_PER_MINUTE,
-  PLANS,
   type Plan,
 } from "./plans.ts";
 
@@ -47,9 +46,13 @@ function whoIsAsking(view: ConsentView): string {
   const loopback = view.loopback
     ? `<div class="notice warn" role="note"><p><strong>This sends access to an app on your computer</strong> (${escapeHtml(view.redirect_host)}). Continue only if you just started connecting from it.</p></div>`
     : "";
-  return `<p class="lead">${origin}</p>
-${loopback}
-<dl class="facts"><dt>App</dt><dd>${escapeHtml(view.client)}</dd><dt>Access goes to</dt><dd><code>${escapeHtml(view.redirect_host)}</code></dd><dt>It may</dt><dd>Use FactLot's tools for you (scope <code>mcp</code>): calculators, IDs, documents, rules and registry lookups, at your plan's limits. It cannot change billing or keys.</dd></dl>`;
+  return `<p class="lead">${origin} Access goes to <code>${escapeHtml(view.redirect_host)}</code>.</p>
+${loopback}`;
+}
+
+/** What the connection may do: shown under the choices. */
+function whatItMayDo(view: ConsentView): string {
+  return `<dl class="facts"><dt>App</dt><dd>${escapeHtml(view.client)}</dd><dt>Access goes to</dt><dd><code>${escapeHtml(view.redirect_host)}</code></dd><dt>It may</dt><dd>Use FactLot's tools for you (scope <code>mcp</code>) at your plan's limits. It cannot change billing or keys. See or disconnect apps at factlot.com/account.</dd></dl>`;
 }
 
 export interface ConsentPageOptions {
@@ -57,27 +60,30 @@ export interface ConsentPageOptions {
   email?: boolean;
   status?: number;
   notice?: string;
-  /** The library's consent headers (the browser-binding cookie). */
+  /** The library's consent headers (the browser-binding cookie) and FactLot's browser cookie. */
   cookies?: Headers;
+  /**
+   * The /authorize path and query this page was drawn for, posted back so that a page left open
+   * past its transaction can start again for the same request (checked server-side).
+   */
+  restart?: string;
 }
 
 /**
- * The sign-in and consent page. One form: the key (POSTed, never in a URL) and four buttons. The
- * first, the default on Enter, connects with the key.
+ * The sign-in and consent page. One form, one obvious action: paste the key (POSTed, never in a
+ * URL) and press Connect, the first button and so the one Enter presses. The email link, the free
+ * tier and Cancel come after it.
  */
 export function consentPage(
   view: ConsentView,
   handle: string,
   o: ConsentPageOptions = {},
 ): Response {
-  const pro = PLANS.pro;
-  const team = PLANS.team;
   const status = o.status ?? 200;
   const emailBlock = o.email
-    ? `<section class="step" aria-labelledby="h-email"><h2 id="h-email">No key at hand?</h2>
-<label for="email">Email you paid with</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254">
+    ? `<label for="email">Email you paid with</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254">
 <div class="buttons"><button type="submit" class="button" name="decision" value="email" formnovalidate>Email me a sign-in link</button></div>
-<p class="small">The link connects this app to your subscription. Open it in this browser within 10 minutes.</p></section>`
+<p class="small">Open the link in this browser within 10 minutes.</p>`
     : "";
   const res = page(
     "Connect to FactLot",
@@ -86,18 +92,20 @@ ${o.notice ? notice(o.notice, status >= 400) : ""}
 ${whoIsAsking(view)}
 <form method="post" action="/authorize" autocomplete="off">
 <input type="hidden" name="handle" value="${escapeHtml(handle)}">
-<section class="step" aria-labelledby="h-key"><h2 id="h-key">Sign in with your FactLot key</h2>
-<label for="key">API key</label><input id="key" name="key" type="password" spellcheck="false" placeholder="fl_live_..." autocomplete="off">
+${o.restart ? `<input type="hidden" name="restart" value="${escapeHtml(o.restart)}">` : ""}
+<section class="step" aria-labelledby="h-key"><h2 id="h-key">Paste your FactLot key</h2>
+<label for="key">FactLot key</label><input id="key" name="key" type="password" spellcheck="false" autocapitalize="off" placeholder="fl_live_..." autocomplete="off" autofocus aria-describedby="key-help">
 <div class="buttons"><button type="submit" class="button primary" name="decision" value="key">Connect with my key</button></div>
-<p class="small">The connection gets your plan: ${escapeHtml(pro.name)} ${n(pro.requestsPerMinute)} requests a minute and ${n(pro.registryLookupsPerMonth)} registry lookups a month; ${escapeHtml(team.name)} ${n(team.requestsPerMinute)} and ${n(team.registryLookupsPerMonth)}, shared with your keys. FactLot checks the key once and ties the connection to your subscription, not to the key: replacing the key keeps it connected; if the subscription ends, so does the connection. See or disconnect apps at factlot.com/account.</p>
+<p class="small" id="key-help">Paste it as it is: spaces and line breaks are ignored. No rush: you can leave this page to find your key and come back. The connection gets your plan and stays connected if you replace the key.</p>
 </section>
+<section class="step" aria-labelledby="h-other"><h2 id="h-other">No key at hand?</h2>
 ${emailBlock}
-<section class="step" aria-labelledby="h-free"><h2 id="h-free">No plan?</h2>
 <div class="buttons"><button type="submit" class="button" name="decision" value="free" formnovalidate>Continue on the free tier</button></div>
-<p class="small">Every tool except the two model-backed tools and the registry batch lookup, ${n(ANONYMOUS_REQUESTS_PER_MINUTE)} requests a minute and ${n(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY)} registry lookups a day for this connection, with the current roll year's value history. Paid plans: <a href="https://factlot.com/pricing/">factlot.com/pricing</a>.</p>
+<p class="small">Free: most tools, ${n(ANONYMOUS_REQUESTS_PER_MINUTE)} requests a minute and ${n(ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY)} registry lookups a day. Plans: <a href="https://factlot.com/pricing/">factlot.com/pricing</a>.</p>
 </section>
 <div class="buttons"><button type="submit" class="link" name="decision" value="deny" formnovalidate>Cancel and go back</button></div>
 </form>
+${whatItMayDo(view)}
 <p class="small">Questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
     { status, formAction: formAction(view) },
   );
@@ -118,6 +126,7 @@ export function emailLinkPage(
     "Connect to FactLot",
     `<h1>Connect ${escapeHtml(view.client)} to ${escapeHtml(plan.name)}</h1>
 ${whoIsAsking(view)}
+${whatItMayDo(view)}
 ${
   active
     ? `<form method="post" action="${escapeHtml(action)}"><div class="buttons"><button type="submit" class="button primary">Connect ${escapeHtml(plan.name)}</button></div></form>
@@ -132,6 +141,8 @@ export function oauthMessagePage(
   status: number,
   title: string,
   message: string,
+  /** A button to go on with, such as "Start again" for the same request. */
+  next?: { href: string; label: string },
 ): Response {
-  return messagePage(status, title, message);
+  return messagePage(status, title, message, next ? { next } : {});
 }

@@ -176,6 +176,7 @@ async function main(): Promise<void> {
     await apiChecks(harness);
     await internalRequestChecks(harness);
     await emptyAnswerChecks(harness);
+    await signInChecks(harness);
     await scheduledChecks(harness, apiPath);
     await objectStoreChecks(harness, registryPath, registryOut, pack);
     const errors = allLogs(harness).filter((l) =>
@@ -737,6 +738,156 @@ async function emptyAnswerChecks(harness: Harness): Promise<void> {
       left(found) === 4999,
     "a keyed search that finds something takes one lookup",
     { status: found.status, remaining: left(found), body: fb },
+  );
+}
+
+// --- The OAuth sign-in page: a page left open still connects in one step ------------------------
+//
+// The consent page lengthens the library's transaction and binding cookie to an hour, and a post
+// whose transaction has ended starts a fresh one for the same request (checked against the page's
+// record) and, in the browser that opened the page, finishes in the same step. Here the
+// transaction is deleted from KV to stand for its end.
+
+async function signInChecks(harness: Harness): Promise<void> {
+  const api = harness.getWorker("factlot-api");
+  const API = "https://api.factlot.com";
+  const redirectUri = "https://claude.ai/api/mcp/auth_callback";
+  const call = (path: string, init: RequestInit = {}) =>
+    api.fetch(`${API}${path}`, {
+      ...init,
+      redirect: "manual",
+      headers: {
+        ...(init.headers as Record<string, string> | undefined),
+        "cf-connecting-ip": "203.0.113.9",
+      },
+    } as Parameters<typeof api.fetch>[1]);
+  const key = `fl_live_${randomBytes(32).toString("base64url")}`;
+  const hash = createHash("sha256").update(key).digest("hex");
+  const env = (await api.getEnv()) as {
+    KEYS: {
+      put(k: string, v: string): Promise<void>;
+      delete(k: string): Promise<void>;
+      list(o: { prefix: string }): Promise<{ keys: { name: string }[] }>;
+    };
+  };
+  await env.KEYS.put(
+    `key:${hash}`,
+    JSON.stringify({
+      plan: "pro",
+      status: "active",
+      customer: "cus_workerd_signin",
+      subscription: "sub_workerd_signin",
+      stripe_status: "active",
+      created: new Date().toISOString(),
+      checked_at: Date.now(),
+    }),
+  );
+  await env.KEYS.put("sub:sub_workerd_signin", JSON.stringify([hash]));
+
+  const reg = await call("/register", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      client_name: "Claude",
+      redirect_uris: [redirectUri],
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+    }),
+  });
+  const { client_id } = (await asJson(reg)) as { client_id?: string };
+  expect(reg.status === 201 && !!client_id, "api POST /register", reg.status);
+  const q = new URLSearchParams({
+    response_type: "code",
+    client_id: client_id ?? "",
+    redirect_uri: redirectUri,
+    code_challenge: createHash("sha256")
+      .update(randomBytes(32).toString("base64url"))
+      .digest("base64url"),
+    code_challenge_method: "S256",
+    state: "st-workerd",
+    scope: "mcp",
+    resource: `${API}/mcp`,
+  });
+  const page = async () => {
+    const res = await call(`/authorize?${q}`);
+    const html = await res.text();
+    const cookies = res.headers.getSetCookie();
+    return {
+      res,
+      html,
+      cookies,
+      cookie: cookies.map((c) => c.split(";")[0]).join("; "),
+      handle: /name="handle" value="([^"]+)"/.exec(html)?.[1] ?? "",
+      restart: (
+        /name="restart" value="([^"]+)"/.exec(html)?.[1] ?? ""
+      ).replaceAll("&amp;", "&"),
+    };
+  };
+  const post = (cookie: string, fields: Record<string, string>) =>
+    call("/authorize", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        origin: API,
+        cookie,
+      },
+      body: new URLSearchParams(fields).toString(),
+    });
+
+  const p = await page();
+  expect(
+    p.res.status === 200 &&
+      /id="key"[^>]*autofocus/.test(p.html) &&
+      p.restart.startsWith("/authorize?") &&
+      p.cookies.some(
+        (c) => c.startsWith("__Host-oauth-consent-") && /Max-Age=3600/.test(c),
+      ) &&
+      p.cookies.some((c) => c.startsWith("__Host-factlot-signin=")),
+    "api GET /authorize: the key box focused, a restart field, an hour's binding cookie",
+    { status: p.res.status, cookies: p.cookies.map((c) => c.split("=")[0]) },
+  );
+
+  const tampered = await post(p.cookie, {
+    handle: p.handle,
+    restart: p.restart.replace("st-workerd", "st-other"),
+    decision: "key",
+    key,
+  });
+  expect(
+    tampered.status === 400 && !tampered.headers.get("location"),
+    "api POST /authorize refuses a tampered restart target",
+    tampered.status,
+  );
+
+  const { keys } = await env.KEYS.list({ prefix: "oauth:transaction:" });
+  for (const k of keys) await env.KEYS.delete(k.name);
+  const done = await post(p.cookie, {
+    handle: p.handle,
+    restart: p.restart,
+    decision: "key",
+    key: `  ${key}\n`,
+  });
+  const loc = new URL(done.headers.get("location") ?? "about:blank");
+  expect(
+    done.status === 302 &&
+      loc.origin + loc.pathname === redirectUri &&
+      loc.searchParams.get("state") === "st-workerd" &&
+      !!loc.searchParams.get("code"),
+    "api POST /authorize after the transaction ended: connected in the same step",
+    { status: done.status, location: loc.origin + loc.pathname },
+  );
+  const used = await post(p.cookie, {
+    handle: p.handle,
+    restart: p.restart,
+    decision: "key",
+    key,
+  });
+  const usedHtml = await used.text();
+  expect(
+    used.status === 400 && /Start again/.test(usedHtml),
+    "api POST /authorize on a used page offers Start again",
+    used.status,
   );
 }
 

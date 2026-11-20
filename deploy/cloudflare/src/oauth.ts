@@ -81,8 +81,22 @@ export const OAUTH_SCOPE = "mcp";
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 /** A refresh token lasts 30 days from its issue; each refresh rotates it and starts 30 more. */
 export const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
-/** The consent page's transaction (library): ten minutes, one use, bound to the browser. */
-export const CONSENT_TTL_SECONDS = 10 * 60;
+/**
+ * How long the consent page works as it is: its transaction (one use, bound to the browser) and
+ * FactLot's record of it. Long enough to go and find a key. The library fixes its transaction at
+ * ten minutes (a constant in @cloudflare/workers-oauth-provider, not an option); FactLot keeps it
+ * this long by lengthening the record's storage time and the binding cookie's age
+ * (`longerTransactions`, `stretchConsentCookies`).
+ */
+export const CONSENT_TTL_SECONDS = 60 * 60;
+/**
+ * After that, a post from the page still finishes, or redraws a fresh page for the same request,
+ * for this long (`restartTarget`): the person never has to go back to the app because the page
+ * sat open.
+ */
+export const RESTART_TTL_SECONDS = 24 * 60 * 60;
+/** An emailed sign-in link works once, for this long. */
+export const EMAIL_LINK_TTL_SECONDS = 10 * 60;
 /** The URL a header-less client adds: /mcp, but asking for sign-in when called without credentials. */
 export const MCP_SIGNIN_PATH = "/mcp/signin";
 /** New free-tier connections one address may create per UTC day. */
@@ -213,6 +227,50 @@ export function prefixedKV(kv: ListableKV, prefix = KV_PREFIX): ListableKV {
   };
 }
 
+/**
+ * The library's consent transactions (`transaction:<hash>`) stored for `ttl` seconds instead of
+ * its fixed ten minutes; every other record exactly as the library asks. The binding cookie's age
+ * is lengthened to match (`stretchConsentCookies`): the transaction stays one use and bound to
+ * the browser that opened the page.
+ */
+export function longerTransactions(
+  kv: ListableKV,
+  ttl = CONSENT_TTL_SECONDS,
+): ListableKV {
+  return {
+    get: ((key: string, options?: { type: "json" }) =>
+      options ? kv.get(key, options) : kv.get(key)) as ListableKV["get"],
+    put: (key, value, options) =>
+      kv.put(
+        key,
+        value,
+        key.startsWith("transaction:") &&
+          options?.expirationTtl !== undefined &&
+          options.expirationTtl < ttl
+          ? { ...options, expirationTtl: ttl }
+          : options,
+      ),
+    delete: (key) => kv.delete(key),
+    list: (options) => kv.list(options),
+  };
+}
+
+/** The consent headers with the binding cookie lasting as long as the transaction. */
+export function stretchConsentCookies(
+  headers: Headers,
+  ttl = CONSENT_TTL_SECONDS,
+): Headers {
+  const out = new Headers();
+  for (const [k, v] of headers)
+    out.append(
+      k,
+      k.toLowerCase() === "set-cookie"
+        ? v.replace(/;\s*Max-Age=\d+/i, `; Max-Age=${ttl}`)
+        : v,
+    );
+  return out;
+}
+
 interface OAuthEnv {
   OAUTH_KV: ListableKV;
 }
@@ -222,7 +280,7 @@ const envs = new WeakMap<object, OAuthEnv>();
 function oauthEnv(env: Env): OAuthEnv {
   let e = envs.get(env.KEYS);
   if (!e) {
-    e = { OAUTH_KV: prefixedKV(env.KEYS as ListableKV) };
+    e = { OAUTH_KV: longerTransactions(prefixedKV(env.KEYS as ListableKV)) };
     envs.set(env.KEYS, e);
   }
   return e;
@@ -672,24 +730,82 @@ function viewKey(handle: string): Promise<string> {
   return hashKey(handle).then((h) => `${KV_PREFIX}view:${h}`);
 }
 
-/** What the consent page shows, kept for the transaction's ten minutes (to redraw it on an error). */
-async function saveView(env: Env, handle: string, view: ConsentView) {
-  await env.KEYS.put(await viewKey(handle), JSON.stringify(view), {
-    expirationTtl: CONSENT_TTL_SECONDS,
+/**
+ * FactLot's record of one consent page, kept RESTART_TTL_SECONDS: what the page shows (to redraw
+ * it), and what lets a post from it start again safely after its transaction ended.
+ */
+interface SignInRecord {
+  view: ConsentView;
+  /** SHA-256 of the authorize request's query: the page's restart field must match it. */
+  q: string;
+  /** SHA-256 of the browser's sign-in cookie: only that browser finishes a restart in one step. */
+  b: string;
+  /** When the page was made (milliseconds). */
+  t: number;
+  /** Approved or cancelled: a later post says so instead of connecting again. */
+  done?: true;
+}
+
+async function saveSignIn(env: Env, handle: string, rec: SignInRecord) {
+  await env.KEYS.put(await viewKey(handle), JSON.stringify(rec), {
+    expirationTtl: RESTART_TTL_SECONDS,
   });
 }
 
-async function readView(
+async function readSignIn(
   env: Env,
   handle: string,
-): Promise<ConsentView | undefined> {
+  now: () => number,
+): Promise<SignInRecord | undefined> {
   if (!/^[A-Za-z0-9_-]{20,128}$/.test(handle)) return undefined;
   const raw = await env.KEYS.get(await viewKey(handle));
-  return raw ? (JSON.parse(raw) as ConsentView) : undefined;
+  if (!raw) return undefined;
+  const rec = JSON.parse(raw) as SignInRecord | ConsentView;
+  // A page drawn before these records held more than the view: live, with no restart.
+  return "view" in rec ? rec : { view: rec, q: "", b: "", t: now() };
+}
+
+async function markDone(env: Env, handle: string, now: () => number) {
+  const rec = await readSignIn(env, handle, now);
+  if (rec && !rec.done) await saveSignIn(env, handle, { ...rec, done: true });
+}
+
+/**
+ * A random id for this browser (HttpOnly, this host only), so that a sign-in started again after
+ * its page expired is finished in one step only by the browser that opened the page.
+ */
+const BROWSER_COOKIE = "__Host-factlot-signin";
+
+function browserId(request: Request): string | undefined {
+  for (const part of (request.headers.get("cookie") ?? "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0 && part.slice(0, i).trim() === BROWSER_COOKIE) {
+      const v = part.slice(i + 1).trim();
+      return /^[A-Za-z0-9_-]{43}$/.test(v) ? v : undefined;
+    }
+  }
+  return undefined;
+}
+
+function browserCookie(id: string): string {
+  return `${BROWSER_COOKIE}=${id}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${RESTART_TTL_SECONDS}`;
+}
+
+/**
+ * The key as pasted, forgivingly: spaces and line breaks anywhere are dropped (a key has none),
+ * and a key inside a longer paste (`FACTLOT_API_KEY="fl_live_..."`, `Bearer fl_live_...`) is
+ * picked out. Never logged or shown.
+ */
+export function normalizeKey(raw: string): string {
+  const compact = raw.slice(0, 4096).replace(/\s+/g, "");
+  return /fl_(?:live|free)_[A-Za-z0-9_-]{43}/.exec(compact)?.[0] ?? compact;
 }
 
 const START_AGAIN =
   "This sign-in page has expired or was already used. Start again from your app (Connect, or Reconnect).";
+
+const REFRESHED =
+  "This sign-in page had been open a long time, so here it is again for the same app. Nothing was connected: choose again.";
 
 function errorPage(error: unknown): Response {
   if (error instanceof AuthorizationError)
@@ -752,6 +868,161 @@ async function grant(
   return redirect(redirectTo, approved.headers);
 }
 
+interface OpenedConsent {
+  handle: string;
+  view: ConsentView;
+  /** The page's restart field: this request's /authorize path and query. */
+  restart: string;
+  /** The binding cookie (lengthened) and the browser cookie, to send with the page. */
+  headers: Headers;
+}
+
+/**
+ * Check an authorization request (the GET, or a restart of it) and open a consent transaction
+ * for it: a fresh handle bound to this browser, and FactLot's record of the page. A Response when
+ * the request is refused.
+ */
+async function openConsent(
+  env: Env,
+  helpers: OAuthHelpers,
+  authRequest: Request,
+  browser: string,
+  now: () => number,
+): Promise<OpenedConsent | Response> {
+  let req: AuthRequest;
+  try {
+    req = await helpers.parseAuthRequest(authRequest);
+  } catch (err) {
+    if (err instanceof AuthorizationError && err.redirectTo)
+      return redirect(err.redirectTo);
+    return errorPage(err);
+  }
+  // MCP requires PKCE with S256 for every client; the library requires it of public clients.
+  if (!req.codeChallenge || req.codeChallengeMethod !== "S256")
+    return redirect(
+      authorizationErrorRedirect(
+        req,
+        "invalid_request",
+        "PKCE with code_challenge_method=S256 is required",
+      ),
+    );
+  let details;
+  try {
+    details = await helpers.describeConsent(req);
+  } catch (err) {
+    return errorPage(err);
+  }
+  const consent = await helpers.beginConsent(req);
+  const view: ConsentView = {
+    client: details.clientName,
+    client_id: details.clientId,
+    ...(details.clientDomain ? { domain: details.clientDomain } : {}),
+    redirect_host: details.redirectHost,
+    redirect_origin: new URL(details.redirectUri).origin,
+    loopback: details.redirectIsLoopback,
+  };
+  const search = new URL(authRequest.url).search;
+  await saveSignIn(env, consent.handle, {
+    view,
+    q: await hashKey(search),
+    b: await hashKey(browser),
+    t: now(),
+  });
+  const headers = stretchConsentCookies(consent.headers);
+  headers.append("set-cookie", browserCookie(browser));
+  return {
+    handle: consent.handle,
+    view,
+    restart: `/authorize${search}`,
+    headers,
+  };
+}
+
+/**
+ * The page's restart field, when it is exactly the authorize request the page was drawn for:
+ * /authorize on this origin with the query unchanged (its digest is in the page's record).
+ * Anything else is refused, so the field can never send the browser elsewhere or start another
+ * request.
+ */
+async function restartTarget(
+  field: string,
+  rec: SignInRecord,
+  url: URL,
+): Promise<URL | undefined> {
+  if (!rec.q || field.length > 8192 || !field.startsWith("/authorize?"))
+    return undefined;
+  let target: URL;
+  try {
+    target = new URL(field, url.origin);
+  } catch {
+    return undefined;
+  }
+  if (
+    target.origin !== url.origin ||
+    target.pathname !== "/authorize" ||
+    target.hash
+  )
+    return undefined;
+  return sameString(await hashKey(target.search), rec.q) ? target : undefined;
+}
+
+/** The consent transaction a post answers. */
+interface Txn {
+  handle: string;
+  view: ConsentView;
+  /**
+   * The request that carries the transaction's binding cookie, for the library's approve and deny.
+   * Undefined when this post may only redraw the page.
+   */
+  binding?: Request;
+  /** A transaction opened by this post for the same request (the page's had ended). */
+  fresh: boolean;
+  /** For a redrawn page: a fresh transaction's cookies. */
+  cookies?: Headers;
+  restart?: string;
+}
+
+/**
+ * Open a fresh transaction for the page's own request, after its transaction ended. The browser
+ * that opened the page answers it in this same post: the fresh binding cookie is handed to the
+ * library here, as the browser would hand it on its next post, so a key pasted after an hour
+ * still connects. Any other browser gets the page again, bound to it.
+ */
+async function restartTxn(
+  env: Env,
+  helpers: OAuthHelpers,
+  rec: SignInRecord,
+  target: URL | undefined,
+  browser: string | undefined,
+  now: () => number,
+): Promise<Txn | Response> {
+  if (!target) return oauthMessagePage(400, "Can't connect", START_AGAIN);
+  const opened = await openConsent(
+    env,
+    helpers,
+    new Request(target),
+    browser ?? randomToken(),
+    now,
+  );
+  if (opened instanceof Response) return opened;
+  const same =
+    !!browser && !!rec.b && sameString(await hashKey(browser), rec.b);
+  const bind = [...opened.headers]
+    .filter(([k]) => k.toLowerCase() === "set-cookie")
+    .map(([, v]) => v.split(";")[0]!.trim())
+    .find((c) => !c.startsWith(`${BROWSER_COOKIE}=`));
+  return {
+    handle: opened.handle,
+    view: opened.view,
+    ...(same && bind
+      ? { binding: new Request(target, { headers: { cookie: bind } }) }
+      : {}),
+    fresh: true,
+    cookies: opened.headers,
+    restart: opened.restart,
+  };
+}
+
 async function authorizeRoute(
   request: Request,
   env: Env,
@@ -777,44 +1048,22 @@ async function authorizeRoute(
       "Too many tries",
       "Too many sign-in attempts from this address. Wait a minute, then start again from your app.",
     );
+  const browser = browserId(request);
+  const email = recoveryState(env) === "on";
 
   if (request.method !== "POST") {
-    let req: AuthRequest;
-    try {
-      req = await helpers.parseAuthRequest(request);
-    } catch (err) {
-      if (err instanceof AuthorizationError && err.redirectTo)
-        return redirect(err.redirectTo);
-      return errorPage(err);
-    }
-    // MCP requires PKCE with S256 for every client; the library requires it of public clients.
-    if (!req.codeChallenge || req.codeChallengeMethod !== "S256")
-      return redirect(
-        authorizationErrorRedirect(
-          req,
-          "invalid_request",
-          "PKCE with code_challenge_method=S256 is required",
-        ),
-      );
-    let details;
-    try {
-      details = await helpers.describeConsent(req);
-    } catch (err) {
-      return errorPage(err);
-    }
-    const consent = await helpers.beginConsent(req);
-    const view: ConsentView = {
-      client: details.clientName,
-      client_id: details.clientId,
-      ...(details.clientDomain ? { domain: details.clientDomain } : {}),
-      redirect_host: details.redirectHost,
-      redirect_origin: new URL(details.redirectUri).origin,
-      loopback: details.redirectIsLoopback,
-    };
-    await saveView(env, consent.handle, view);
-    return consentPage(view, consent.handle, {
-      email: recoveryState(env) === "on",
-      cookies: consent.headers,
+    const opened = await openConsent(
+      env,
+      helpers,
+      request,
+      browser ?? randomToken(),
+      now,
+    );
+    if (opened instanceof Response) return opened;
+    return consentPage(opened.view, opened.handle, {
+      email,
+      cookies: opened.headers,
+      restart: opened.restart,
     });
   }
 
@@ -828,20 +1077,85 @@ async function authorizeRoute(
   if (!form)
     return oauthMessagePage(413, "Can't connect", "The form is too large.");
   const handle = form.get("handle") ?? "";
-  const view = await readView(env, handle);
-  if (!view) return oauthMessagePage(400, "Can't connect", START_AGAIN);
-  const decision = form.get("decision") ?? "key";
-  const email = recoveryState(env) === "on";
+  const rec = await readSignIn(env, handle, now);
+  if (!rec) return oauthMessagePage(400, "Can't connect", START_AGAIN);
+  const field = form.get("restart") ?? "";
+  const target = field ? await restartTarget(field, rec, url) : undefined;
+  if (field && !target)
+    return oauthMessagePage(400, "Can't connect", START_AGAIN);
+  if (rec.done)
+    return oauthMessagePage(
+      400,
+      "Already used",
+      `This sign-in page was already used. If ${rec.view.client.slice(0, 100)} shows FactLot as connected, you are done. If not, start again.`,
+      target
+        ? { href: `${target.pathname}${target.search}`, label: "Start again" }
+        : undefined,
+    );
+
+  const key = normalizeKey(form.get("key") ?? "");
+  let decision = form.get("decision") ?? "key";
+  // Enter in the email box submits the form's first button, the key's: with no key, it means email.
+  if (decision === "key" && !key && email && (form.get("email") ?? "").trim())
+    decision = "email";
+
+  // The page's own transaction while it has time left (an emailed link needs its ten minutes),
+  // else a fresh one for the same request.
+  let txn: Txn = {
+    handle,
+    view: rec.view,
+    binding: request,
+    fresh: false,
+    ...(target ? { restart: `${target.pathname}${target.search}` } : {}),
+  };
+  const needed = (decision === "email" ? EMAIL_LINK_TTL_SECONDS : 60) * 1000;
+  if (rec.t + CONSENT_TTL_SECONDS * 1000 - now() < needed) {
+    const t = await restartTxn(env, helpers, rec, target, browser, now);
+    if (t instanceof Response) return t;
+    txn = t;
+  }
   const again = (status: number, notice: string) =>
-    consentPage(view, handle, { email, status, notice });
+    consentPage(txn.view, txn.handle, {
+      email,
+      status,
+      notice,
+      ...(txn.cookies ? { cookies: txn.cookies } : {}),
+      ...(txn.restart ? { restart: txn.restart } : {}),
+    });
+  /**
+   * Approve or deny with the library. When the page's transaction turns out to have ended (or to
+   * be bound to another browser), the same post goes on with a fresh one, or redraws the page.
+   */
+  const answer = async <T>(
+    act: (binding: Request, handle: string) => Promise<T>,
+  ): Promise<T | Response> => {
+    if (txn.binding)
+      try {
+        return await act(txn.binding, txn.handle);
+      } catch (err) {
+        if (!(err instanceof AuthorizationError) || txn.fresh) throw err;
+        const t = await restartTxn(env, helpers, rec, target, browser, now);
+        if (t instanceof Response) return t;
+        txn = t;
+        if (txn.binding) return act(txn.binding, txn.handle);
+      }
+    return again(200, REFRESHED);
+  };
+  const finished = async () => {
+    await markDone(env, handle, now);
+    if (txn.handle !== handle) await markDone(env, txn.handle, now);
+  };
 
   try {
     if (decision === "deny") {
-      const denied = await helpers.denyConsent(request, handle);
+      const denied = await answer((b, h) => helpers.denyConsent(b, h));
+      if (denied instanceof Response) return denied;
+      await finished();
       return redirect(denied.redirectTo, denied.headers);
     }
 
     if (decision === "free") {
+      if (!txn.binding) return again(200, REFRESHED);
       const budget = await env.METER.consume(`oauthfree-new:${address}`, {
         kind: "day",
         limit: FREE_CONNECTIONS_PER_DAY,
@@ -852,14 +1166,16 @@ async function authorizeRoute(
           429,
           `This address has started ${FREE_CONNECTIONS_PER_DAY} free connections today. Connect with a FactLot key, or try again tomorrow.`,
         );
-      const approved = await helpers.approveConsent(request, handle, {
-        scope: [OAUTH_SCOPE],
-      });
+      const approved = await answer((b, h) =>
+        helpers.approveConsent(b, h, { scope: [OAUTH_SCOPE] }),
+      );
+      if (approved instanceof Response) return approved;
       const meter = await freeConnectionMeter(
         clientAddress(request),
         env.IP_HASH_SALT,
       );
-      return await grant(env, approved, { tier: "free", meter }, view);
+      await finished();
+      return await grant(env, approved, { tier: "free", meter }, txn.view);
     }
 
     if (decision === "email") {
@@ -874,7 +1190,7 @@ async function authorizeRoute(
         return again(400, "Enter the email address you paid with.");
       if (!(await env.RL_ANON.limit({ key: `oauth-email:${address}` })).success)
         return again(429, "Too many tries from this address. Wait a minute.");
-      d.defer(sendSignInLinks(d, to, handle, view));
+      d.defer(sendSignInLinks(d, to, txn.handle, txn.view));
       return again(
         200,
         "If that email has a FactLot subscription, a sign-in link is on its way. Open it in this browser within 10 minutes; this page can stay open.",
@@ -885,17 +1201,25 @@ async function authorizeRoute(
     const failKey = `authfail:${address}`;
     if (!(await env.RL_ANON.peek({ key: failKey })).success)
       return again(429, "Too many keys that did not match. Wait a minute.");
-    const key = (form.get("key") ?? "").trim();
-    const caller = key
-      ? await deps.resolveKey(env, key, { fetchImpl: deps.fetchImpl, now })
-      : undefined;
-    if (!caller) {
-      if (key) await env.RL_ANON.limit({ key: failKey });
+    if (!key)
       return again(
         401,
-        key
-          ? "That key was not found. Check it and try again, or continue on the free tier."
-          : "Paste your FactLot API key, or continue on the free tier.",
+        "Paste your FactLot key (it starts with fl_live_), or continue on the free tier.",
+      );
+    if (key.startsWith("fl_free_"))
+      return again(
+        400,
+        "That is a free key (fl_free_...). Free keys do not sign in here: press Continue on the free tier instead.",
+      );
+    const caller = await deps.resolveKey(env, key, {
+      fetchImpl: deps.fetchImpl,
+      now,
+    });
+    if (!caller) {
+      await env.RL_ANON.limit({ key: failKey });
+      return again(
+        401,
+        "That key was not found. Check it and try again, or continue on the free tier.",
       );
     }
     if (!caller.active)
@@ -903,10 +1227,11 @@ async function authorizeRoute(
         403,
         `This key's subscription is not active (${caller.record.hold ?? (caller.record.paused ? "paused" : caller.record.stripe_status)}). Fix billing at factlot.com/account, or continue on the free tier.`,
       );
-    const approved = await helpers.approveConsent(request, handle, {
-      scope: [OAUTH_SCOPE],
-    });
-    await env.KEYS.delete(await viewKey(handle));
+    const approved = await answer((b, h) =>
+      helpers.approveConsent(b, h, { scope: [OAUTH_SCOPE] }),
+    );
+    if (approved instanceof Response) return approved;
+    await finished();
     return await grant(
       env,
       approved,
@@ -916,7 +1241,7 @@ async function authorizeRoute(
         via: "key",
         ...(caller.record.guest ? { guest_key: keyId(caller.hash) } : {}),
       },
-      view,
+      txn.view,
     );
   } catch (err) {
     return errorPage(err);
@@ -988,12 +1313,14 @@ export async function sendSignInLinks(
         subscription: s.subscription,
         handle,
         view,
-        expires_at: new Date(now() + CONSENT_TTL_SECONDS * 1000).toISOString(),
+        expires_at: new Date(
+          now() + EMAIL_LINK_TTL_SECONDS * 1000,
+        ).toISOString(),
       };
       await env.KEYS.put(
         `${KV_PREFIX}link:${await hashKey(id)}`,
         JSON.stringify(rec),
-        { expirationTtl: CONSENT_TTL_SECONDS },
+        { expirationTtl: EMAIL_LINK_TTL_SECONDS },
       );
       links.push(
         `${PLANS[s.record.plan].name}:\n${apiBase(env)}${EMAIL_LINK_PREFIX}${id}.${await signLink(secret, id)}`,
@@ -1080,7 +1407,7 @@ async function emailLinkRoute(
   await env.KEYS.put(
     linkKey,
     JSON.stringify({ ...rec, used_at: new Date(now()).toISOString() }),
-    { expirationTtl: CONSENT_TTL_SECONDS },
+    { expirationTtl: EMAIL_LINK_TTL_SECONDS },
   );
   try {
     const approved = await oauthHelpers(env).approveConsent(
@@ -1090,7 +1417,7 @@ async function emailLinkRoute(
         scope: [OAUTH_SCOPE],
       },
     );
-    await env.KEYS.delete(await viewKey(rec.handle));
+    await markDone(env, rec.handle, now);
     return await grant(
       env,
       approved,
@@ -1102,7 +1429,7 @@ async function emailLinkRoute(
       return oauthMessagePage(
         400,
         "Can't connect",
-        "Open the link in the browser where you started connecting, while that sign-in page is still open (10 minutes). Or start again from your app.",
+        "Open the link in the browser where you started connecting, within an hour of opening that sign-in page. Or start again from your app.",
       );
     throw err;
   }
