@@ -465,14 +465,24 @@ const routes = {
   async r(id, token) {
     view.innerHTML = loading("Opening the statement");
     try {
-      const p = await exGet("get", id, token), mine = p.role === "owner";
+      const p = await exGet("get", id, token), mine = p.role === "owner", rel = p.role === "relier", est = p.kind === "estoppel";
       const fig = (v, unit) => (v == null || v === "" ? "–" : typeof v === "number" ? (unit === "USD" ? usd(v, Number.isInteger(v) ? 0 : 2) : v.toLocaleString("en-US")) : esc(v));
       const ours = p.items.filter((i) => i.position === "state_ours"), theirs = p.items.filter((i) => i.position === "accept_theirs");
-      const open = p.status === "sent" && !mine && ours.length > 0;
+      const open = p.status === "sent" && p.role === "counterparty" && ours.length > 0;
       const agreed = ours.filter((i) => i.response?.decision === "confirm").length, disputed = ours.filter((i) => i.response?.decision === "dispute").length;
       const stamp = p.status === "confirmed" ? `<div class="stamp">Agreed<small>${esc(p.to.organisation)}, ${day(p.responded_at)}</small></div>` : p.status === "disputed" ? `<div class="stamp bad">Some items disputed<small>${esc(p.to.organisation)}, ${day(p.responded_at)}</small></div>` : "";
       const proof = (f) => f.sources.map((s) => `<blockquote style="margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--seal);background:var(--seal-wash);border-radius:0 6px 6px 0">“${esc(s.quote)}”<div class="hint" style="margin-top:4px">${esc(s.title || "Document")}, page ${esc(s.page)}. Fingerprint <span class="hash">${esc(short(s.sha256))}</span></div></blockquote>`).join("");
-      const itemCard = (i, n) => `<div class="sheet pad stack" data-item="${esc(i.key)}">
+      const estStamp = p.status === "confirmed" ? `<div class="stamp">Confirmed<small>${esc(p.to.organisation)}, ${day(p.responded_at)}</small></div>` : p.status === "disputed" ? `<div class="stamp bad">Some statements not confirmed<small>${esc(p.to.organisation)}, ${day(p.responded_at)}</small></div>` : "";
+      const answerChip = (i) => i.response ? `<div><span class="chip ${i.response.decision === "confirm" ? "ok" : "bad"}">${i.response.decision === "confirm" ? "Confirmed" : "Not confirmed"} by ${esc(i.response.responded_by_name)}</span>${i.response.own_value ? `<div style="margin-top:4px"><b>${i.needs_tenant_value ? "Stated by the tenant" : "The tenant's own version"}:</b> ${esc(i.response.own_value)}</div>` : ""}${i.response.note ? `<div class="hint" style="margin-top:4px">${esc(i.response.note)}</div>` : ""}</div>` : '<span class="chip">Waiting for the tenant</span>';
+      const estCard = (i, n) => `<div class="sheet pad stack" data-item="${esc(i.key)}">
+        <h3>${esc(i.number ?? n)}. ${esc(i.label)}</h3>
+        <p style="margin:0">${esc(i.text || i.label)}</p>
+        <p class="hint" style="margin:0">${i.tenant_to_confirm ? "Tenant to confirm. " + (i.note ? esc(i.note) : "No sentence in the lease supports or contradicts this: only the tenant can say.") : "From the lease." + (i.note ? " " + esc(i.note) : "")}</p>
+        ${i.facts.length ? `<details><summary style="cursor:pointer;font-weight:600">What this rests on</summary>${i.facts.map((f) => proof(f)).join("")}</details>` : ""}
+        ${open ? `<div class="dec" style="flex-wrap:wrap"><label><input type="radio" name="d_${esc(i.key)}" value="agree" required>I confirm this statement</label><label><input type="radio" name="d_${esc(i.key)}" value="dispute">I do not confirm it: here is my version</label></div>
+          ${i.needs_tenant_value ? `<input name="v_${esc(i.key)}" placeholder="Your date or figure (required)" required>` : `<input name="v_${esc(i.key)}" placeholder="Your version of this statement" hidden>`}
+          <textarea name="n_${esc(i.key)}" rows="2" placeholder="Why it differs (optional if you gave your version)" hidden></textarea>` : answerChip(i)}</div>`;
+      const itemCard = (i, n) => est ? estCard(i, n) : `<div class="sheet pad stack" data-item="${esc(i.key)}">
         <h3>${n}. ${esc(i.label)}</h3>
         <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
           <div><div class="hint">${esc(p.from.organisation)} says</div><div class="figure">${fig(i.value, i.unit)}</div></div>
@@ -486,18 +496,21 @@ const routes = {
       view.innerHTML = `<div class="stack-l"><div class="grid2" style="grid-template-columns:1fr auto;gap:24px"><div class="stack">
           <p class="hint">${mine ? "Your statement to " + esc(p.to.organisation) : "From " + esc(p.from.organisation)} ${p.sandbox ? '<span class="chip">Test: not counted</span>' : ""}</p>
           <h2>${esc(p.title)}</h2>
-          <p>${mine ? "Sent" : esc(p.from.person) + " sent this to you"} on ${when(p.created_at)}, approved by ${esc(p.approved_by)}. ${p.subject_label ? "About " + esc(p.subject_label) + "." : ""}</p>
+          <p>${mine ? "Sent" : rel ? esc(p.from.person) + " sent this to " + esc(p.to.organisation) : esc(p.from.person) + " sent this to you"} on ${when(p.created_at)}, approved by ${esc(p.approved_by)}. ${p.subject_label ? "About " + esc(p.subject_label) + "." : ""}</p>
           <p class="hint">${p.integrity === "ok" ? '<span class="chip ok">Unchanged since it was sent</span>' : '<span class="chip bad">Does not match what was sent</span>'} Fingerprint <span class="hash">${esc(p.package_root)}</span></p></div>
-          <div style="padding:8px 12px 0 0">${stamp}</div></div>
-        ${mine ? (p.status === "sent" ? `<div class="notice">Waiting for ${esc(p.to.organisation)}. This page shows their answers when they give them.</div>` : `<div class="notice ${disputed ? "bad" : "ok"}">${agreed} agreed, ${disputed} disputed.</div>`)
+          <div style="padding:8px 12px 0 0">${est ? estStamp : stamp}</div></div>
+        ${est && rel ? (p.status === "sent" ? `<div class="notice">${esc(p.to.organisation)} has not answered these statements yet. You can read them now; reliance can be recorded once the tenant has answered.</div>` : `<div class="notice ${disputed ? "bad" : "ok"}">The tenant confirmed ${agreed} and did not confirm ${disputed}. Reliance is recorded only for the statements it confirmed.</div>`)
+          : est && open ? `<div class="notice"><b>${ours.length} statements need your answer.</b> ${esc(p.from.organisation)} states each of these about your lease. Confirm each one, or give your own version. Where a statement rests on the lease, the sentence and page are shown. Some only you can know. Your signature, not FactLot, is what makes this an estoppel certificate. You do not need an account.</div>`
+          : mine ? (p.status === "sent" ? `<div class="notice">Waiting for ${esc(p.to.organisation)}. This page shows their answers when they give them.</div>` : `<div class="notice ${disputed ? "bad" : "ok"}">${agreed} agreed, ${disputed} disputed.</div>`)
           : open ? `<div class="notice"><b>${ours.length} ${ours.length === 1 ? "item needs" : "items need"} your answer.</b> For each one, ${esc(p.from.organisation)} gives its figure and the line in the lease or statement it rests on. Agree or dispute each. A dispute needs a short reason. You do not need an account.</div>`
           : `<div class="notice ${p.status === "disputed" ? "bad" : "ok"}">This statement has been answered: ${agreed} agreed, ${disputed} disputed.</div>`}
         ${p.calculation ? `<section class="stack"><h3>How the figures were worked out</h3>${exCalc(p.calculation)}</section>` : ""}
         <form id="rf" class="stack">
-          ${ours.length ? `<section class="stack"><h3>${open ? "Items for you to answer" : "Items that were put to " + esc(p.to.organisation)}</h3>${ours.map((i, n) => itemCard(i, n + 1)).join("")}</section>` : ""}
+          ${ours.length ? `<section class="stack"><h3>${est ? "Statements" : open ? "Items for you to answer" : "Items that were put to " + esc(p.to.organisation)}</h3>${ours.map((i, n) => itemCard(i, n + 1)).join("")}</section>` : ""}
           ${theirs.length ? `<section class="stack"><h3>Figures from your statement that ${esc(p.from.organisation)} accepted</h3><p class="hint">Nothing to do here. These are recorded as relied on by ${esc(p.from.organisation)}.</p><div class="sheet scroll"><table><thead><tr><th>Item</th><th class="num">Figure</th><th>Rests on</th></tr></thead><tbody>${theirs.map((i) => `<tr><td>${esc(i.label)}</td><td class="num"><b>${fig(i.value, i.unit)}</b></td><td>${i.facts.map((f) => f.sources.map((s) => `<div class="hint">“${esc(s.quote)}”, page ${esc(s.page)}</div>`).join("")).join("")}</td></tr>`).join("")}</tbody></table></div></section>` : ""}
-          ${open ? `<section class="sheet pad stack"><h3>Your answer</h3><div class="cols"><div><label>Your name</label><input name="who" required autocomplete="name"></div><div><label>Your organisation</label><input name="org" required value="${esc(p.to.organisation)}"></div></div><div><button class="btn">Send my answers</button> <span class="hint">Each item you agree with is recorded as relied on by ${esc(p.to.organisation)}.</span></div><div id="rout"></div></section>` : ""}
+          ${open ? `<section class="sheet pad stack"><h3>Your answer</h3><div class="cols"><div><label>Your name</label><input name="who" required autocomplete="name"></div><div><label>Your organisation</label><input name="org" required value="${esc(p.to.organisation)}"></div></div><div><button class="btn">Send my answers</button> <span class="hint">${est ? "A lender or buyer can rely on each statement you confirm, and the Record keeps who confirmed what and when." : "Each item you agree with is recorded as relied on by " + esc(p.to.organisation) + "."}</span></div><div id="rout"></div></section>` : ""}
         </form>
+        ${est && rel ? `<form id="rely" class="sheet pad stack"><h3>Record that you are relying on this</h3><p class="hint">Give your name, your firm and your role. One reliance is recorded for each statement the tenant confirmed, in your firm's name. Statements the tenant did not confirm are never recorded. You must be a different firm from the sender and the tenant.</p><div class="cols"><div><label>Your name</label><input name="rname" required autocomplete="name"></div><div><label>Your firm</label><input name="rfirm" required autocomplete="organization"></div><div><label>Your role</label><select name="rrole" required><option value="lender">Lender</option><option value="buyer">Buyer</option><option value="other">Other</option></select></div></div><div><button class="btn"${p.status === "sent" ? " disabled" : ""}>Record my reliance</button></div><div id="relyout"></div></form>` : ""}
         <section class="stack"><h3>The documents behind this</h3>
           <p class="hint">The Record never holds these documents. It keeps each fact, the exact words it was taken from, the page, and a fingerprint (SHA-256) of the document. To check that your copy is the one used, choose it here: the fingerprint is worked out on your device and nothing is uploaded.</p>
           <div class="sheet pad stack">${p.documents.map((d) => `<div><b>${esc(d.title || d.document_id)}</b><div class="hash">${esc(d.sha256 || "")}</div></div>`).join("")}
@@ -510,12 +523,22 @@ const routes = {
         $("#docout").innerHTML = m ? `<span class="chip ok">Matches</span> ${esc(m.title || m.document_id)}` : '<span class="chip bad">No match</span> This file is not one of the documents listed above.';
       };
       const rf = $("#rf");
+      if (est && rel) $("#rely").onsubmit = async (e) => {
+        e.preventDefault();
+        const f = e.target;
+        try {
+          $("#relyout").innerHTML = loading("Recording");
+          const o = await exPost({ action: "rely", id, token, name: f.rname.value, firm: f.rfirm.value, role: f.rrole.value });
+          const names = new Map(p.items.map((i) => [i.key, i.number ? i.number + ". " + i.label : i.label]));
+          $("#relyout").innerHTML = `<div class="notice ok"><b>${o.reliances_recorded.length} ${o.reliances_recorded.length === 1 ? "reliance" : "reliances"} recorded</b>${o.already_recorded.length ? `, ${o.already_recorded.length} already recorded for your firm` : ""}.${o.sandbox ? " This is a test package: nothing counts in the Record's measure." : ""}</div>${o.not_recorded.length ? `<div class="notice bad">Not recorded: ${o.not_recorded.map((x) => esc((names.get(x.item) || x.item) + " (" + x.reason + ")")).join("; ")}</div>` : ""}`;
+        } catch (err) { $("#relyout").innerHTML = fail(err); }
+      };
       if (open) {
-        rf.addEventListener("change", (e) => { if (e.target.type === "radio") { const n = rf["n_" + e.target.name.slice(2)]; n.hidden = e.target.value !== "dispute"; n.required = e.target.value === "dispute"; } });
+        rf.addEventListener("change", (e) => { if (e.target.type === "radio") { const k = e.target.name.slice(2), n = rf["n_" + k], v = rf["v_" + k], dis = e.target.value === "dispute"; if (est) { n.hidden = !dis; if (v && !v.required) { v.hidden = !dis; v.required = dis; } } else { n.hidden = !dis; n.required = dis; } } });
         rf.onsubmit = async (e) => {
           e.preventDefault();
           try {
-            const decisions = ours.map((i) => ({ key: i.key, decision: rf["d_" + i.key].value, note: rf["n_" + i.key].value.trim() || null }));
+            const decisions = ours.map((i) => ({ key: i.key, decision: rf["d_" + i.key].value, note: rf["n_" + i.key].value.trim() || null, ...(est && rf["v_" + i.key].value.trim() ? { own_value: rf["v_" + i.key].value.trim() } : {}) }));
             $("#rout").innerHTML = loading("Recording");
             await exPost({ action: "respond", id, token, responded_by_name: rf.who.value, responded_by_org: rf.org.value, decisions });
             routes.r(id, token); window.scrollTo({ top: 0 });
