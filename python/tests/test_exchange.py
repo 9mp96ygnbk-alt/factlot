@@ -133,7 +133,7 @@ class ExchangeTools(unittest.TestCase):
         with run_with_exchange_caller("acct_fictional_0001"):
             r = run_tool("fact_package_send", self.inp)
         self.assertTrue(r["test_mode"])
-        self.assertIn("not connected to the Record", r["message"])
+        self.assertIn("not connected to the hosted FactLot record", r["message"])
         self.assertNotIn("authorization", fake.seen[0]["headers"])
         self.assertNotIn("sender_account", fake.seen[0]["body"])
 

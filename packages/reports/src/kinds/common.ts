@@ -128,13 +128,40 @@ export const ReportContext = z.strictObject({
         who: z.string().min(1).max(260),
         role: z.string().max(80).nullable().optional(),
         statements: z.array(z.string().max(60)).max(100).optional(),
+        statements_disputed: z
+          .array(z.string().max(60))
+          .max(100)
+          .nullable()
+          .optional(),
         at: z.string().max(40).nullable().optional(),
       }),
     )
     .max(20)
     .optional()
     .describe(
-      "estoppel_certificate: who has recorded reliance (fact_package_status reliers: who, role, statements, at). Printed as a table in the back matter.",
+      "estoppel_certificate: who has recorded reliance (fact_package_status reliers: who, role, statements, statements_disputed, at). Printed as a table in the back matter; a relying party that acknowledged disputed statements is shown with them.",
+    ),
+  estoppel_signature: z
+    .strictObject({
+      signed: z.boolean(),
+      signer_name: z.string().max(120).optional(),
+      signer_title: z.string().max(120).optional(),
+      signer_organisation: z.string().max(120).nullable().optional(),
+      signed_at: z.string().max(40).optional(),
+      consent_version: z.string().max(80).optional(),
+      consent_text: z.string().max(2000).optional(),
+      content_sha256: z
+        .string()
+        .regex(/^[0-9a-f]{64}$/)
+        .optional(),
+      content_check: z.enum(["unchanged", "changed"]).optional(),
+      signed_line: z.string().max(400).optional(),
+      answered_without_signature: z.boolean().optional(),
+      signature_required: z.boolean().optional(),
+    })
+    .optional()
+    .describe(
+      "estoppel_certificate: the tenant's electronic signature as fact_package_status returns it (signature). When signed, the certificate prints 'Signed electronically by name, title, date' in the signature block and, in the back matter, the signer, the time in UTC, the consent wording's version and text and the SHA-256 of the signed statements. The signer's name and title are business-contact data for the parties to the package.",
     ),
   rent_roll_reliers: z
     .array(

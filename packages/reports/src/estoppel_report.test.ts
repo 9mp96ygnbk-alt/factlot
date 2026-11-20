@@ -250,6 +250,50 @@ describe("estoppel_certificate report", () => {
     assert.deepEqual(again.bytes, f.bytes);
   });
 
+  it("prints the signed-electronically line, the signature record and the content fingerprint", async () => {
+    const hash = "c".repeat(64);
+    const f = await createReport(
+      {
+        kind: "estoppel_certificate",
+        format: "pdf",
+        arguments: args(),
+        context: {
+          ...CTX,
+          estoppel_reliers: [
+            {
+              ...CTX.estoppel_reliers[0]!,
+              statements_disputed: ["S06"],
+            },
+          ],
+          estoppel_signature: {
+            signed: true,
+            signer_name: "Tess Tenant",
+            signer_title: "Vice President, Finance",
+            signer_organisation: "Birchwood Analytics Inc",
+            signed_at: "2026-11-25T10:07:00.000Z",
+            consent_version: "estoppel-consent-test.1",
+            consent_text:
+              "By ticking this box I confirm that:\n(1) I am authorised to sign.",
+            content_sha256: hash,
+            content_check: "unchanged" as const,
+          },
+        },
+      },
+      { now: NOW },
+    );
+    const text = await pdfText(f.bytes);
+    assert.match(
+      text,
+      /Signed electronically by Tess Tenant, Vice President, Finance, November 25, 2026/,
+    );
+    assert.match(text, /Electronic signature record/);
+    assert.match(text, /estoppel-consent-test\.1/);
+    assert.match(text, /c{64}/);
+    assert.match(text, /unchanged since signing/);
+    assert.match(text, /acknowledged by this party: S06/);
+    assert.ok(!/Signature, for/.test(text), "no blank signature lines");
+  });
+
   it("builds without answers and refuses other formats and bad arguments", async () => {
     const f = await createReport(
       { kind: "estoppel_certificate", format: "pdf", arguments: args() },
