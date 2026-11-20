@@ -9,6 +9,16 @@
  * ```
  */
 export * from "./catalog.ts";
+export {
+  ExchangeUnavailableError,
+  configureExchange,
+  runWithExchangeCaller,
+  currentExchangeCaller,
+  type ExchangeCaller,
+  EXCHANGE_URL,
+  EXCHANGE_SITE_URL,
+  type ExchangeConfig,
+} from "./exchange.ts";
 export * from "./providers.ts";
 export * from "./registry.ts";
 export * from "./fields.ts";
@@ -58,3 +68,4 @@ export {
   lookupSameStreet,
 } from "./lookup_batch.ts";
 export type { LookupCall, LookupItem } from "./lookup_batch.ts";
+export { auditSummary, auditLimited, AUDIT_PLAN_URL } from "./audit.ts";

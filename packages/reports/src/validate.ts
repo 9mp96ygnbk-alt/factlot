@@ -21,7 +21,7 @@ import {
   round,
   texasToday,
 } from "@factlot/calc";
-import { getTool, runTool } from "@factlot/tools";
+import { getTool, runTool, runWithExchangeCaller } from "@factlot/tools";
 import { z } from "zod";
 
 export const REPORT_KINDS = [
@@ -35,6 +35,7 @@ export const REPORT_KINDS = [
   "critical_dates",
   "tx_protest_deadline",
   "property_sheet",
+  "expense_audit",
 ] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
 
@@ -59,6 +60,7 @@ export const KIND_TOOLS: Record<ReportKind, readonly string[]> = {
     "rules_tx_property_tax_protest_deadline_batch",
   ],
   property_sheet: ["registry_get"],
+  expense_audit: ["audit_expense_statement"],
 };
 
 export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
@@ -72,6 +74,7 @@ export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
   critical_dates: ["xlsx", "pdf", "ics"],
   tx_protest_deadline: ["ics", "pdf"],
   property_sheet: ["pdf", "xlsx"],
+  expense_audit: ["pdf"],
 };
 
 export interface Issue {
@@ -642,6 +645,48 @@ export type ProtestDeadlineT = z.output<
   z.ZodObject<typeof ProtestDeadlineFields>
 >;
 
+/** audit_expense_statement's whole answer (the summary a limited caller gets is not a report's source). */
+const AuditResult = z.looseObject({
+  as_of: IsoDate,
+  statement_year: Int.nullable(),
+  findings: z.array(
+    z.looseObject({
+      id: z.string(),
+      code: z.string(),
+      title: z.string(),
+      class: z.enum([
+        "follows_from_terms",
+        "depends_on_reading",
+        "question_to_ask",
+      ]),
+      landlord_figure: N.nullable(),
+      lease_figure: N.nullable(),
+      difference: N.nullable(),
+      lease_fact_ids: z.array(z.string()).min(1),
+      sources: z.array(
+        z.looseObject({ side: z.string(), quote: z.string(), page: Int }),
+      ),
+      steps: z.array(z.string()),
+      confirm: z.array(z.string()),
+    }),
+  ),
+  totals: z.looseObject({
+    finding_count: Int,
+    follows_from_terms: Int,
+    depends_on_reading: Int,
+    question_to_ask: Int,
+    firm_difference: N,
+    total_difference: N,
+  }),
+  deadlines: z.array(z.looseObject({ last_day: IsoDate, status: z.string() })),
+  cost_shifting: z.looseObject({ threshold_amount: N }).nullable(),
+  checks_not_run: z.array(
+    z.looseObject({ check: z.string(), reason: z.string() }),
+  ),
+  facts_used: z.array(z.string()),
+});
+type AuditResultT = z.output<typeof AuditResult>;
+
 const SCHEMAS: Record<string, z.ZodType> = {
   calc_tx_unequal_appraisal: calcResult("calc.tx_unequal_appraisal", TxValue),
   calc_cam_reconciliation: CamStatement,
@@ -660,6 +705,7 @@ const SCHEMAS: Record<string, z.ZodType> = {
   rules_tx_property_tax_protest_deadline: ProtestResult,
   rules_tx_property_tax_protest_deadline_batch: ProtestBatchResult,
   doc_abstract_lease: LeaseAbstract,
+  audit_expense_statement: AuditResult,
 };
 
 // --- the links every genuine result satisfies --------------------------------------------------
@@ -987,6 +1033,25 @@ function leaseLinks(r: LeaseAbstractResult, bad: Issue[]): void {
       });
 }
 
+function auditLinks(r: AuditResultT, bad: Issue[]): void {
+  if (r.totals.finding_count !== r.findings.length)
+    bad.push({
+      path: "totals.finding_count",
+      message: "does not match the findings listed",
+    });
+  const sum = (c: string) => r.findings.filter((f) => f.class === c).length;
+  for (const [k, c] of [
+    ["follows_from_terms", "follows_from_terms"],
+    ["depends_on_reading", "depends_on_reading"],
+    ["question_to_ask", "question_to_ask"],
+  ] as const)
+    if (r.totals[k] !== sum(c))
+      bad.push({
+        path: `totals.${k}`,
+        message: "does not match the findings listed",
+      });
+}
+
 const LINKS: Record<string, (r: never, bad: Issue[]) => void> = {
   calc_tx_unequal_appraisal: txLinks,
   calc_cam_reconciliation: (r: CamResult, bad) =>
@@ -1001,6 +1066,7 @@ const LINKS: Record<string, (r: never, bad: Issue[]) => void> = {
     protestLinks(r.value, "value", bad),
   rules_tx_property_tax_protest_deadline_batch: protestBatchLinks,
   doc_abstract_lease: leaseLinks,
+  audit_expense_statement: auditLinks,
 };
 
 // --- entry --------------------------------------------------------------------------------------
@@ -1110,7 +1176,13 @@ export function checkInput(
       );
     return { tool, result: checkSupplied(tool, input), check: "supplied" };
   }
-  const out = runTool(tool, runArgs(kind, args, now));
+  // The plan rule (whole answer or summary) is the host's, applied before a report is charged.
+  const out =
+    kind === "expense_audit"
+      ? runWithExchangeCaller({ fullAudit: true }, () =>
+          runTool(tool, runArgs(kind, args, now)),
+        )
+      : runTool(tool, runArgs(kind, args, now));
   if (!out.ok)
     throw new ReportInputError(
       "ArgumentsError",

@@ -29,6 +29,7 @@ import {
   verifyClaim,
   verifyFacts,
 } from "./documents.ts";
+import { AuditExpenseStatementInput, auditExpenseStatement } from "./audit.ts";
 import {
   FactPackageCreateInput,
   FactPackageVerifyInput,
@@ -79,6 +80,13 @@ import {
   withTxEquityCalcArgs,
 } from "./registry.ts";
 import {
+  ExchangeUnavailableError,
+  FactPackageSendInput,
+  FactPackageStatusInput,
+  factPackageStatus,
+  sendFactPackage,
+} from "./exchange.ts";
+import {
   INPUT_LIMITS,
   appliesUnitPolicy,
   inputShapeIssue,
@@ -120,7 +128,8 @@ export interface ToolError {
     | "InputError"
     | "UnknownTool"
     | "RegistryUnavailable"
-    | "NotFound";
+    | "NotFound"
+    | "ExchangeUnavailable";
   message: string;
   issues: { path: string; message: string }[];
   /** On a registry NotFound: whether the region or registry asked about is loaded in this file. */
@@ -470,6 +479,38 @@ const packageTools: ToolSpec[] = [
     async: true,
     run: (i: never) =>
       verifyFactPackage(i as z.output<typeof FactPackageVerifyInput>),
+  },
+  {
+    name: "audit_expense_statement",
+    title: "Audit a landlord's expense statement against the lease",
+    description:
+      "Audit a landlord's operating-expense (CAM) statement for a tenant, from verified facts only. Give the lease's facts (doc_abstract_lease or doc_verify_facts: pro-rata share, cap, base year or stop, admin fee, gross-up, excluded categories, capital-item treatment, audit right) and the statement's facts (each billed line, share applied, fee, gross-up, cap applied, totals, estimates, the date the tenant received it), each with its quote and page and passing fact_validate; optionally the prior year's lines. Returns findings, each with a stable code, the landlord's figure, the figure the lease yields, the dollar difference, the lease and statement fact ids with the quotes and pages, the calculation steps, a confidence class (follows_from_terms: the arithmetic follows from a quoted term and the statement's own numbers; depends_on_reading: it depends on how the lease sentence is read; question_to_ask: a question, never an overcharge) and what a person must confirm; totals; the last day to dispute or invoke the audit right with the notice form the lease requires; whether the difference crosses the lease's cost-shifting threshold; package_items ready for fact_package_send (state_ours with the landlord's figure as their_value for each finding, accept_theirs for lines with no finding); and checks_not_run with the reason (a missing lease term is never guessed). Twelve checks: management fee, cap, capital items, gross-up, pro-rata share, excluded categories, duplicates, base year or stop, arithmetic, year over year, deadlines, cost-shifting. Deterministic and no model: a finding without a verified lease fact behind it is never produced; same inputs, same findings; as_of is an input. Findings are differences against quoted terms, not legal conclusions: show every finding to the person with its quote before anything is sent. On the hosted API, callers without a Pro or Team key get the summary only (finding count, total difference, deadlines, checks not run) and the answer says what is withheld.",
+    input: AuditExpenseStatementInput,
+    path: "/v1/audit/expense-statement",
+    run: (i: never) =>
+      auditExpenseStatement(i as z.output<typeof AuditExpenseStatementInput>),
+  },
+  {
+    name: "fact_package_send",
+    title: "Send a fact package to a counterparty for confirmation",
+    description:
+      "Send a fact package to another firm for confirmation through the Record, and get back a link for them. For an expense (CAM) reconciliation: the tenant's facts (lease terms and the landlord's statement figures, each with its quote and page, from doc_verify_facts or doc_abstract_lease) go in a package from fact_package_create, the arithmetic is calc_cam_reconciliation's output as calculation, and each line is an item: accept_theirs where the sender accepts the counterparty's figure, state_ours where the lease gives a different figure and the counterparty is asked to agree or dispute it. The counterparty opens the link on a plain web page (no account, no Claude), sees every item with both figures, the quote, page and document fingerprint, and agrees or disputes each. Every accepted or agreed item is recorded as a reliance, citing the package digest. The Record keeps each fact, its quote, the page and each document's SHA-256, never the documents. THIS SENDS TO AN OUTSIDE PARTY AND CANNOT BE RECALLED. Before calling it, show the person everything: every item with both figures, the quote and page behind each, the calculation, the counterparty named, and what will be recorded; ask for the full name of the person who approves and wait for them to say it may be sent in this conversation. approved_by must be that person's name (never invent one, never your own) and approval_confirmed true only after they said so; otherwise the call is refused. The package must pass fact_package_verify's integrity checks and every item's fact_ids must be in it. TEST MODE VERSUS A REAL SEND: a package is sent for real only when the call comes through the hosted FactLot API with a FactLot account key (free, email-confirmed, or paid), so that every real package traces to an accountable account. A real send records reliances at once between the named organisations (the sender relies on each figure it accepted from the counterparty, and each item the counterparty agrees to is recorded as relied on by them), so the person must understand it is a commitment on the record, not a draft. Every other call (no key, a local or self-hosted FactLot) is sent in test mode: the counterparty can still open the link, but nothing counts in the Record's measure. The answer says which happened (recorded_as, test_mode, message); relay that message to the person in plain words, especially when it was a test. Returns the package id, digest, link_for_counterparty, status_link_for_sender (keep private) and what was recorded. Read the answers later with fact_package_status.",
+    input: FactPackageSendInput,
+    path: "/v1/facts/package/send",
+    async: true,
+    run: (i: never) =>
+      sendFactPackage(i as z.output<typeof FactPackageSendInput>),
+  },
+  {
+    name: "fact_package_status",
+    title: "Read a sent fact package's status and answers",
+    description:
+      "Read the status of a package sent with fact_package_send: for each item, whether the counterparty agreed or disputed it (with their reason and who answered), which items the sender accepted, the reliances recorded, and the package's integrity. Give the sender's private status_link (or package_id with token). Needs no account and costs nothing; it reads only your own package, and the counterparty's link cannot read it. The answer says whether the package was sent in test mode (test_mode true: it does not count in the Record's measure) or for real.",
+    input: FactPackageStatusInput,
+    path: "/v1/facts/package/status",
+    async: true,
+    run: (i: never) =>
+      factPackageStatus(i as z.output<typeof FactPackageStatusInput>),
   },
 ];
 
@@ -1349,6 +1390,12 @@ function errorOutcome(err: unknown): ToolOutcome {
         message: err.message,
         issues: err.issues,
       },
+    };
+  }
+  if (err instanceof ExchangeUnavailableError) {
+    return {
+      ok: false,
+      error: { error: "ExchangeUnavailable", message: err.message, issues: [] },
     };
   }
   if (err instanceof NotFoundError) {

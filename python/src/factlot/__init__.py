@@ -60,6 +60,13 @@ from .ids import (  # noqa: E402
     short_id,
     space_id,
 )
+from .audit import audit_limited  # noqa: E402
+from .exchange import (  # noqa: E402
+    ExchangeUnavailable,
+    configure_exchange,
+    current_exchange_caller,
+    run_with_exchange_caller,
+)
 from .tools import (  # noqa: E402
     anthropic_tools,
     bedrock_tool_config,
@@ -72,6 +79,11 @@ from .tools import (  # noqa: E402
 )
 
 __all__ = [
+    "audit_limited",
+    "ExchangeUnavailable",
+    "configure_exchange",
+    "current_exchange_caller",
+    "run_with_exchange_caller",
     "CALCULATORS",
     "CalcInputError",
     "DRAFT_RULES",

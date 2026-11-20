@@ -458,6 +458,11 @@ describe("MCP prompts", () => {
       tax_year: "2026",
     },
     lease_abstract_check: { document: "lease.pdf", as_of: "2026-01-01" },
+    expense_statement_audit: {
+      lease: "lease.pdf",
+      statement: "cam-2025.pdf",
+      as_of: "2026-04-01",
+    },
     deal_math: {
       question: "NER on a 10-year lease at $42/sf, 6 months free",
       calculation: "net_effective_rent",
@@ -469,6 +474,11 @@ describe("MCP prompts", () => {
     parcel_value_history: [{}, { parcel: "x", as_of: "June 2025" }],
     tx_unequal_appraisal_candidates: [{}, { parcel: "x", tax_year: "26" }],
     lease_abstract_check: [{}, { document: "x", as_of: "2026-1-1" }],
+    expense_statement_audit: [
+      {},
+      { lease: "x", statement: "y" },
+      { lease: "x", statement: "y", as_of: "April 1" },
+    ],
     deal_math: [{}, { question: "x", calculation: "cap_rate_guess" }],
   };
 

@@ -14,6 +14,7 @@ import {
   TX_EQUITY_RULE,
   configureRegistry,
   configureRegistryRunner,
+  currentExchangeCaller,
   getTool,
   runTool,
   runToolAsync,
@@ -13591,4 +13592,104 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
     it(`${f.id}: keyless and free-key callers are refused or cut, a Pro key is not`, async () => {
       await scenarios[f.id]!();
     });
+});
+
+describe("fact_package_send: which account is calling", () => {
+  /** An inner API that answers with the caller the router set around the call. */
+  const probe = () => ({
+    fetch: async (r: Request) =>
+      new Response(
+        JSON.stringify({
+          caller: currentExchangeCaller() ?? null,
+          sawAuthorization: r.headers.has("authorization"),
+        }),
+        { headers: { "content-type": "application/json" } },
+      ),
+  });
+  const send = async (e: ReturnType<typeof env>, key?: string) => {
+    const res = await call(e, probe(), "/v1/facts/package/send", { key });
+    return (await res.json()) as {
+      caller: { accountId?: string } | null;
+      sawAuthorization: boolean;
+    };
+  };
+
+  it("a paid key gives a stable account id shared by the subscription's keys, never the key", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    const a = await issue(e);
+    const b = await issue(e);
+    const other = await issue(e, { subscription: "sub_2", customer: "cus_2" });
+    const ra = await send(e, a.key);
+    const rb = await send(e, b.key);
+    const ro = await send(e, other.key);
+    assert.match(ra.caller!.accountId!, /^acct_[0-9a-f]{32}$/);
+    assert.equal(ra.caller!.accountId, rb.caller!.accountId);
+    assert.notEqual(ra.caller!.accountId, ro.caller!.accountId);
+    for (const r of [ra, rb, ro]) {
+      assert.equal(r.sawAuthorization, false, "the key is not forwarded");
+      assert.ok(!JSON.stringify(r).includes(a.key));
+    }
+  });
+
+  it("a free key (email-confirmed) is an account; no key is not", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    const key = `fl_free_${generateKey().slice("fl_live_".length)}`;
+    await e.KEYS.put(
+      `freekey:${await hashKey(key)}`,
+      JSON.stringify({ email_hash: "e".repeat(64), created: "2026-11-07" }),
+    );
+    const r = await send(e, key);
+    assert.match(r.caller!.accountId!, /^acct_free_[0-9a-f]{32}$/);
+    assert.ok(!JSON.stringify(r).includes(key));
+    const anon = await send(e);
+    assert.equal(anon.caller!.accountId, undefined);
+  });
+
+  it("an inactive paid key is refused before any tool runs, so it is never an account", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    const k = await issue(e, { status: "inactive", stripe_status: "canceled" });
+    const res = await call(e, probe(), "/v1/facts/package/send", {
+      key: k.key,
+    });
+    assert.ok(res.status >= 400);
+    await res.body?.cancel();
+  });
+});
+
+describe("audit_expense_statement: the plan rule the router hands to the tool", () => {
+  const probe = () => ({
+    fetch: async () =>
+      new Response(
+        JSON.stringify({ full: currentExchangeCaller()?.fullAudit ?? null }),
+        { headers: { "content-type": "application/json" } },
+      ),
+  });
+  const full = async (e: ReturnType<typeof env>, key?: string) => {
+    const res = await call(e, probe(), "/v1/audit/expense-statement", { key });
+    return ((await res.json()) as { full: boolean | null }).full;
+  };
+
+  it("gating on: a paid key gets the whole answer; a free key and no key get the summary", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    e.GATING_ENABLED = "true";
+    const paid = await issue(e);
+    const free = `fl_free_${generateKey().slice("fl_live_".length)}`;
+    await e.KEYS.put(
+      `freekey:${await hashKey(free)}`,
+      JSON.stringify({ email_hash: "e".repeat(64), created: "2026-11-07" }),
+    );
+    assert.equal(await full(e, paid.key), true);
+    assert.equal(await full(e, free), false);
+    assert.equal(await full(e), false);
+  });
+
+  it("gating off (the default): everyone gets the whole answer, as the other gated tools do", async () => {
+    const e = env();
+    e.RL_ANON = new CountingLimit(1000);
+    assert.equal(await full(e), true);
+  });
 });

@@ -577,6 +577,205 @@ except ImportError:
     HAVE_SIGNING = False
 
 
+def send_refusal_case(r):
+    """A fact_package_send call that is refused before anything is sent (so no network in either runner)."""
+    from factlot.tools import run_tool
+
+    pkg = None
+    for _ in range(20):
+        c = package_case(r)
+        if c["tool"] != "fact_package_create":
+            continue
+        made = run_tool("fact_package_create", c["arguments"])
+        if "package" in made and made["package"]["facts"]:
+            pkg = made["package"]
+            break
+    if pkg is None:
+        return package_case(r)
+    ids = [f["id"] for f in pkg["facts"]]
+    items = []
+    for i in range(r.randint(1, 4)):
+        pos = r.choice(["accept_theirs", "state_ours"])
+        it = {"key": f"item{i}", "label": f"Item {i}", "value": r.choice(["8.00%", 0, 12500]), "position": pos,
+              "fact_ids": [r.choice(ids)]}
+        if pos == "accept_theirs" or r.random() < 0.7:
+            it["their_value"] = r.choice(["8.00%", 20000])
+        items.append(it)
+    inp = {"package": pkg, "kind": "expense_reconciliation", "title": "Synthetic",
+           "subject": {"label": "Suite 1 (synthetic)"},
+           "from": {"organisation": "Tenant Co", "person": "Pat Tenant", "email": "pat@example.invalid"},
+           "to": {"organisation": "Landlord Co", "person": "Lee Landlord", "email": "lee@example.invalid"},
+           "items": items, "approved_by": "Pat Tenant", "approval_confirmed": True}
+    defect = r.choice(["approval", "approver", "same_org", "dup_key", "their_value", "unknown_fact", "tamper"])
+    if defect == "approval":
+        inp["approval_confirmed"] = r.choice([False, False, None])
+        if inp["approval_confirmed"] is None:
+            del inp["approval_confirmed"]
+    elif defect == "approver":
+        inp["approved_by"] = r.choice(["", "   "])
+    elif defect == "same_org":
+        inp["to"]["organisation"] = r.choice([" tenant co ", "TENANT CO", "Tenant Co"])
+    elif defect == "dup_key":
+        inp["items"].append(dict(inp["items"][0]))
+    elif defect == "their_value":
+        inp["items"][0]["position"] = "state_ours"
+        inp["items"][0].pop("their_value", None)
+    elif defect == "unknown_fact":
+        inp["items"][-1]["fact_ids"] = ["flf_not_in_package"]
+    else:
+        inp["package"]["facts"][0]["value"] = perturb(r, inp["package"]["facts"][0]["value"])
+    return {"tool": "fact_package_send", "arguments": inp}
+
+
+# --- audit_expense_statement: invented building, random mutations -----------------------------------
+
+_AUDIT_DOC = "fl:document:sha256-" + "a" * 64
+
+
+def _audit_fact(n, predicate, value, page=1):
+    if predicate == "lease.pro_rata_share":
+        quote = f"Tenant's Proportionate Share is {value * 100:.2f}%"
+    elif predicate == "lease.cam_cap":
+        quote = ("Controllable Operating Expenses shall not increase by more than five percent (5%) per year, "
+                 "on a cumulative and compounding basis")
+    elif predicate == "lease.operating_expense_base_year":
+        quote = f"the Base Year shall be calendar year {value}"
+    else:
+        quote = f"Synthetic clause stating {predicate} number {n}"
+    return {"id": f"flf_a{n}", "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4", "predicate": predicate, "value": value,
+            "as_of": "2026-03-01", "provenance": {"method": "extracted", "sources": [
+                {"document_id": _AUDIT_DOC, "page": page, "quote": quote}]}}
+
+
+def _audit_base(r):
+    share = r.choice([0.08, 0.0425, 0.125])
+    lines = [
+        {"label": "Real estate taxes", "amount": r.choice([400000, 312500.5]), "controllable": False, "variable": False},
+        {"label": "Insurance", "amount": r.choice([100000, 87650]), "controllable": False, "variable": False},
+        {"label": "Janitorial", "amount": r.choice([150000, 96400.25]), "controllable": True, "variable": True},
+        {"label": "Repairs and maintenance", "amount": 120000, "controllable": True, "variable": False},
+        {"label": "Landscaping", "amount": 80000, "controllable": True, "variable": False},
+    ]
+    total = sum(l["amount"] for l in lines)
+    return {
+        "lease": {
+            "lease.pro_rata_share": share,
+            "lease.cam_cap": {"method": "compounding_from_base", "rate": 0.05},
+            "lease.cam_admin_fee": {"rate": r.choice([0.1, 0.15]), "base": r.choice(["actual", "grossed_up"]),
+                                    "excluded_from_base": ["real estate taxes", "insurance"]},
+            "lease.cam_exclusion": [{"category": "advertising"}, "ground rent"],
+            "lease.capex_treatment": {"keywords": ["roof", "replacement"], "recoverable": "excluded"},
+            "lease.cam_gross_up": {"target_occupancy": 0.95, "applies_to": "variable_expenses"},
+            "lease.audit_right": {"window_days": r.choice([60, 90, 120]), "starts_from": "statement_receipt",
+                                  "notice_form": "written notice by certified mail",
+                                  "cost_shift_threshold": {"type": "percent_of_billed", "value": 0.03}},
+        },
+        "lines": lines,
+        "st": {
+            "statement.period": {"year": 2025, "statement_date": "2026-03-01", "received_date": "2026-03-10"},
+            "statement.share_applied": {"share": share},
+            "statement.total": {"amount": total},
+            "statement.admin_fee": {"rate": 0.1, "base_amount": round(share * 100000, 2), "amount": round(share * 10000, 2)},
+            "statement.cap_reference": {"year": 2022, "amount": 24000},
+            "statement.cap_applied": {"limit": r.choice([None, 27783])},
+            "statement.tenant_charge": {"amount": 70583},
+            "statement.estimates_credited": {"amount": 66000},
+            "statement.estimates_paid": {"amount": 66000},
+            "statement.balance_claimed": {"amount": 4583},
+        },
+    }
+
+
+def _audit_mutate(r, c):
+    k = r.randrange(16)
+    if k == 0:
+        c["st"]["statement.admin_fee"] = {"rate": r.choice([0.12, 0.2]), "base_amount": 28000, "amount": 3360}
+    elif k == 1:
+        a = round(c["st"]["statement.share_applied"]["share"] * sum(l["amount"] for l in c["lines"]), 2)
+        c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": a, "amount": round(a / 10, 2)}
+    elif k == 2:
+        c["st"]["statement.share_applied"] = {"share": r.choice([0.085, 0.09]), "building_sf": r.choice([94000, 100000])}
+        c["lease"]["lease.pro_rata_basis"] = {"tenant_sf": 8000, "building_sf": 100000}
+    elif k == 3:
+        c["lines"].append({"label": r.choice(["Advertising and promotion", "Ground rent", "Roof replacement"]),
+                           "amount": r.choice([25000, 4100.5]), "controllable": r.choice([True, False]), "variable": False})
+    elif k == 4:
+        c["lines"].append(dict(c["lines"][r.randrange(len(c["lines"]))]))
+    elif k == 5:
+        c["lines"][r.randrange(len(c["lines"]))]["grossed_up_amount"] = r.choice([126000, 158333.33, 99999.99])
+        c["st"]["statement.gross_up"] = {"actual_occupancy": r.choice([0.8, 0.9]), "target_occupancy": r.choice([0.95, 1])}
+    elif k == 6:
+        c["lease"]["lease.operating_expense_base_year"] = 2023
+        c["st"]["statement.base_year_applied"] = {"base_year": r.choice([2023, 2024]), "deduction": r.choice([50000, 56000])}
+        if r.random() < 0.6:
+            c["st"]["statement.base_year_total"] = {"year": 2023, "amount": 700000}
+    elif k == 7:
+        c["lease"]["lease.expense_stop"] = {"amount": 700000}
+        c["st"]["statement.base_year_applied"] = {"stop_amount": r.choice([600000, 700000]), "deduction": 48000}
+    elif k == 8:
+        c["st"]["statement.total"] = {"amount": c["st"]["statement.total"]["amount"] + r.choice([-500, 10000])}
+        c["st"]["statement.estimates_credited"] = {"amount": r.choice([64000, 66000])}
+    elif k == 9:
+        for p in r.sample(sorted(c["lease"]), r.randint(1, 3)):
+            if p != "lease.pro_rata_share" or r.random() < 0.2:
+                del c["lease"][p]
+    elif k == 10:
+        c["lease"].pop("lease.cam_cap", None)
+        c["lease"]["lease.cam_cap_rate"] = {"rate": 0.05}
+    elif k == 11:
+        del c["lines"][r.randrange(len(c["lines"]))]["controllable"]
+    elif k == 12:
+        c["separately"] = [{"label": r.choice(["Landscaping", "Janitorial"]), "amount": r.choice([6400, 3000])}]
+    elif k == 13:
+        c["priorPeriod"] = {"year": 2024, "statement_date": "2025-03-01", "received_date": "2025-03-10"}
+        c["prior"] = [{"label": l["label"], "amount": round(l["amount"] / r.choice([1.02, 1.3, 2]), 2)} for l in c["lines"][:4]]
+    elif k == 14:
+        c["lease"]["lease.capex_treatment"] = {"keywords": ["roof"], "recoverable": "amortized", "amortization_years": 10,
+                                               "interest_rate": r.choice([0, 0.06])}
+        c["lines"].append({"label": "Roof work", "amount": 9000, "controllable": False, "variable": False,
+                           **({"amortization": {"cost": 50000, "years": 5, "rate": 0.06}} if r.random() < 0.5 else {})})
+    else:
+        c["lease"]["lease.audit_right"] = {"window_days": 45, "starts_from": r.choice(["statement_date", "statement_receipt"]),
+                                           "notice_form": "written notice",
+                                           "cost_shift_threshold": {"type": "amount", "value": r.choice([200, 5000])}}
+
+
+def audit_case(r):
+    c = _audit_base(r)
+    for _ in range(r.randint(0, 3)):
+        _audit_mutate(r, c)
+    n = 0
+    lease_facts = []
+    for p, v in c["lease"].items():
+        for x in (v if p == "lease.cam_exclusion" else [v]):
+            n += 1
+            lease_facts.append(_audit_fact(n, p, x))
+    statement_facts = []
+    for p, v in c["st"].items():
+        n += 1
+        statement_facts.append(_audit_fact(n, p, v, 2))
+    for l in c["lines"]:
+        n += 1
+        statement_facts.append(_audit_fact(n, "statement.line", l, 2))
+    for sb in c.get("separately", []):
+        n += 1
+        statement_facts.append(_audit_fact(n, "statement.separately_billed", sb, 3))
+    args = {"lease_facts": lease_facts, "statement_facts": statement_facts,
+            "as_of": r.choice(["2026-04-01", "2026-08-01", "2027-01-15"])}
+    if c.get("prior"):
+        args["prior_statement_facts"] = [_audit_fact(n + 1, "statement.period", c["priorPeriod"], 2)] + \
+            [_audit_fact(n + 2 + i, "statement.line", l, 2) for i, l in enumerate(c["prior"])]
+        args["yoy_threshold"] = r.choice([0.05, 0.1, 0.5])
+    k = r.random()
+    if k < 0.08:
+        args["lease_facts"][r.randrange(len(args["lease_facts"]))]["provenance"]["sources"][0]["quote"] = ""
+    elif k < 0.12:
+        args["statement_facts"][r.randrange(len(args["statement_facts"]))]["value"] = {"amount": "x"}
+    elif k < 0.15:
+        args["statement_facts"].append(dict(args["statement_facts"][-1]))
+    return {"tool": "audit_expense_statement", "arguments": args}
+
+
 def round2_cases(seed, count):
     import os
     import sys
@@ -592,6 +791,10 @@ def round2_cases(seed, count):
             out.append(statement_case(r))
         elif k < 0.8:
             out.append(use_conflict_case(r))
-        else:
+        elif k < 0.88:
             out.append(package_case(r))
+        elif k < 0.92:
+            out.append(send_refusal_case(r))
+        else:
+            out.append(audit_case(r))
     return out

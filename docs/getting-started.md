@@ -2,13 +2,13 @@
 
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
 tools from one catalog: twenty-six calculators, the Texas protest-deadline rule and its batch form,
-FactLot IDs, fact validation, document tools and lease comps (46 tools). The MCP servers (local and `/mcp`) always add
+FactLot IDs, fact validation, document tools and lease comps (49 tools). The MCP servers (local and `/mcp`) always add
 `search`/`fetch`/`schema_get`. The eleven `registry_*` tools are listed (in MCP `tools/list`,
 `GET /v1/tools`, and both OpenAPI documents) only when a registry is available: a registry database
 configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
 routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the
 regions `registry_coverage` lists (<!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, 21 counties in Utah, eighteen Texas counties (Harris, Dallas, Travis, Collin, Cameron, Bell, Nueces, Denton, Williamson, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Johnson, Guadalupe and Kaufman), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, Connecticut (statewide, by town), Sacramento County (CA), DeKalb County (GA), Marion County (IN), Oakland County (MI), Wake County (NC), and Allegheny County (PA)<!-- /hosted:places -->; <!-- hosted:withheld -->Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.<!-- /hosted:withheld -->), so it lists
-57 tools over REST (`GET /v1/tools`) and 61 over MCP: those, `search`/`fetch`/`schema_get`, and the
+60 tools over REST (`GET /v1/tools`) and 64 over MCP: those, `search`/`fetch`/`schema_get`, and the
 hosted `report_create` (also `POST /v1/reports`; see [reports](reports.md)). A key adds
 `account_status` and `account_usage` over MCP, and on Pro and Team the model-backed tools
 `doc_extract_lease` and `report_narrative`. The TypeScript and Python tool exports always
