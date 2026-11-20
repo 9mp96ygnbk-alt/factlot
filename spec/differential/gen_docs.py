@@ -723,7 +723,7 @@ def _audit_mutate(r, c):
         c["lease"].pop("lease.cam_cap", None)
         c["lease"]["lease.cam_cap_rate"] = {"rate": 0.05}
     elif k == 11:
-        del c["lines"][r.randrange(len(c["lines"]))]["controllable"]
+        c["lines"][r.randrange(len(c["lines"]))].pop("controllable", None)
     elif k == 12:
         c["separately"] = [{"label": r.choice(["Landscaping", "Janitorial"]), "amount": r.choice([6400, 3000])}]
     elif k == 13:
