@@ -1,8 +1,8 @@
 /** Pieces every report kind shares: the audit trail, warnings, and how the input was checked. */
 import { z } from "zod";
 
-import type { Block, Fmt, Provenance, ReportDoc } from "../doc.ts";
-import { isRounded, roundInText, ungrouped } from "../format.ts";
+import type { Block, Cover, Fmt, Provenance, ReportDoc } from "../doc.ts";
+import { isRounded, roundInText, ungrouped, usd } from "../format.ts";
 import { TEXT_LIMITS } from "../text.ts";
 import { TxCitation, type Checked } from "../validate.ts";
 
@@ -355,3 +355,35 @@ export function subtitle(
 }
 
 export type Builder = (k: KindInput) => ReportDoc;
+
+/** Money for a key figure: the cents are dropped only when they are zero. */
+export const bigUsd = (x: number): string => usd(x).replace(/\.00$/, "");
+
+/**
+ * The PDF's first page: the document type as the title, one line saying what and for which
+ * property (the caller's title first), who it is prepared for, and the key figures.
+ */
+export function coverOf(
+  k: KindInput,
+  title: string,
+  parts: (string | undefined | false)[],
+  figures: { figure: string; label: string }[],
+  asOf?: string,
+): Cover {
+  const supplied =
+    k.ctx.title && k.ctx.prepared_for
+      ? "Title and prepared-for line supplied by the caller"
+      : k.ctx.title
+        ? "Title supplied by the caller"
+        : k.ctx.prepared_for
+          ? "Prepared-for line supplied by the caller"
+          : undefined;
+  return {
+    title,
+    line: [k.ctx.title, ...parts].filter(Boolean).join("  ·  "),
+    ...(k.ctx.prepared_for ? { preparedFor: k.ctx.prepared_for } : {}),
+    ...(asOf ? { asOf } : {}),
+    ...(supplied ? { note: supplied } : {}),
+    figures,
+  };
+}

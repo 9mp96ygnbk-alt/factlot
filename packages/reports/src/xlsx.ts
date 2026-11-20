@@ -85,7 +85,7 @@ const NUMFMT_CODES: Record<number, string> = {
   165: "0.0000",
   166: "0.0000%",
   167: "#,##0",
-  168: "yyyy\\-mm\\-dd",
+  168: "mmmm d, yyyy",
   169: "0.000000",
   170: "0.00000000",
   171: "0.00%",
@@ -165,35 +165,43 @@ const esc = (s: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+/** Book-style rules instead of fills: a navy line under a header, a hairline above a total. */
+const BORDER_OF: Partial<Record<Style, number>> = {
+  header: 1,
+  total_money: 2,
+  total_text: 2,
+};
+
 function stylesXml(): string {
+  // The house style: Arial (Helvetica's Office twin) for text, Times New Roman for the title,
+  // ink #14181F, navy #0B2545, slate #5A6270 and one bronze #8A6A3B accent; no fills.
+  const font = (opts: string, sz: number, color: string, name = "Arial") =>
+    `<font>${opts}<sz val="${sz}"/><color rgb="FF${color}"/><name val="${name}"/></font>`;
   const fonts: Record<Font, string> = {
-    normal: '<font><sz val="11"/><name val="Calibri"/></font>',
-    bold: '<font><b/><sz val="11"/><name val="Calibri"/></font>',
-    blue: '<font><sz val="11"/><color rgb="FF0000FF"/><name val="Calibri"/></font>',
-    white_bold:
-      '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>',
-    red_bold:
-      '<font><b/><sz val="11"/><color rgb="FFC00000"/><name val="Calibri"/></font>',
-    grey_italic:
-      '<font><i/><sz val="10"/><color rgb="FF595959"/><name val="Calibri"/></font>',
-    title: '<font><b/><sz val="14"/><name val="Calibri"/></font>',
-    grey: '<font><sz val="9"/><color rgb="FF595959"/><name val="Calibri"/></font>',
+    normal: font("", 10, "14181F"),
+    bold: font("<b/>", 10, "14181F"),
+    blue: font("", 10, "8A6A3B"),
+    white_bold: font("<b/>", 10, "0B2545"),
+    red_bold: font("<b/>", 10, "8A6A3B"),
+    grey_italic: font("<i/>", 9, "5A6270"),
+    title: font("<b/>", 14, "0B2545", "Times New Roman"),
+    grey: font("", 9, "5A6270"),
   };
-  const solid = (rgb: string) =>
-    `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/></patternFill></fill>`;
+  // No fills: the colour fills of the old workbooks are left out (the cells keep their fonts).
+  const empty = '<fill><patternFill patternType="none"/></fill>';
   const fills: Record<Fill, string> = {
-    none: '<fill><patternFill patternType="none"/></fill>',
+    none: empty,
     gray125: '<fill><patternFill patternType="gray125"/></fill>',
-    header: solid("FF1F3864"),
-    input: solid("FFFFF2CC"),
-    good: solid("FFE2EFDA"),
-    warn: solid("FFFCE4D6"),
-    band: solid("FFF2F2F2"),
+    header: empty,
+    input: empty,
+    good: empty,
+    warn: empty,
+    band: empty,
   };
   const xfs = STYLE_NAMES.map((name) => {
     const [font, fill, fmt, wrap] = STYLE_TABLE[name];
     const align = wrap ? '<alignment vertical="top" wrapText="1"/>' : "";
-    return `<xf numFmtId="${NUMFMTS[fmt]}" fontId="${FONTS.indexOf(font)}" fillId="${FILLS.indexOf(fill)}" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"${wrap ? ' applyAlignment="1"' : ""}>${align}</xf>`;
+    return `<xf numFmtId="${NUMFMTS[fmt]}" fontId="${FONTS.indexOf(font)}" fillId="${FILLS.indexOf(fill)}" borderId="${BORDER_OF[name] ?? 0}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"${BORDER_OF[name] ? ' applyBorder="1"' : ""}${wrap ? ' applyAlignment="1"' : ""}>${align}</xf>`;
   });
   return (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
@@ -207,7 +215,9 @@ function stylesXml(): string {
     "</numFmts>" +
     `<fonts count="${FONTS.length}">${FONTS.map((f) => fonts[f]).join("")}</fonts>` +
     `<fills count="${FILLS.length}">${FILLS.map((f) => fills[f]).join("")}</fills>` +
-    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left/><right/><top/><bottom style="thin"><color rgb="FF0B2545"/></bottom><diagonal/></border>' +
+    '<border><left/><right/><top style="hair"><color rgb="FFC8CDD5"/></top><bottom/><diagonal/></border></borders>' +
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
     `<cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs>` +
     '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
