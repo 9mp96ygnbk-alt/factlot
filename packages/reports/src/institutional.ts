@@ -777,6 +777,91 @@ export class InstitutionalWriter {
     this.y -= 10;
   }
 
+  // --- statements and signature (estoppel_certificate) -------------------------------------
+
+  /**
+   * A numbered statement with the tenant's answer set beside it: a hairline above, the heading
+   * (Times bold 10.5), a slate tag and the statement at the left (3.9 in), and at the right the
+   * answer's label, its headline in bold and its detail lines. Kept on one page, with `keep`
+   * points of what follows (its quotations) if they fit.
+   */
+  statementHead(opts: {
+    heading: string;
+    tag: string;
+    text: string;
+    answerLabel: string;
+    answerHead: string;
+    answerLines: string[];
+    keep?: number;
+  }): void {
+    const LW = 3.9 * IN;
+    const GAP = 0.25 * IN;
+    const RX = ML + LW + GAP;
+    const RW = CONTENT_W - LW - GAP;
+    const pad = 9;
+    const hl = this.wrap(opts.heading, 10.5, LW, "serifBold");
+    const tl = this.wrap(opts.text, 9.25, LW, "sans");
+    const ah = this.wrap(opts.answerHead, 8.75, RW, "sansBold");
+    const al = opts.answerLines.flatMap((l) => this.wrap(l, 8.25, RW, "sans"));
+    const leftH = hl.length * 14 + 11 + 5 + tl.length * 13.5;
+    const rightH = 11 + 4 + ah.length * 12.5 + al.length * 11.5;
+    const h = 2 * pad + Math.max(leftH, rightH);
+    this.ensure(h + (opts.keep ?? 0));
+    const top = this.y;
+    this.hline(top, "hair", 0.5);
+    let y = top - pad;
+    hl.forEach((l, k) =>
+      this.text(l, ML, this.base(y, 10.5, 14, k), 10.5, "serifBold", "navy"),
+    );
+    y -= hl.length * 14;
+    this.text(
+      this.clean(opts.tag),
+      ML,
+      this.base(y, 7.5, 11),
+      7.5,
+      "sans",
+      "slate",
+    );
+    y -= 11 + 5;
+    tl.forEach((l, k) =>
+      this.text(l, ML, this.base(y, 9.25, 13.5, k), 9.25, "sans", "ink"),
+    );
+    let ry = top - pad;
+    this.text(
+      this.clean(opts.answerLabel),
+      RX,
+      this.base(ry, 7.5, 11),
+      7.5,
+      "sans",
+      "slate",
+    );
+    ry -= 11 + 4;
+    ah.forEach((l, k) =>
+      this.text(l, RX, this.base(ry, 8.75, 12.5, k), 8.75, "sansBold", "ink"),
+    );
+    ry -= ah.length * 12.5;
+    al.forEach((l, k) =>
+      this.text(l, RX, this.base(ry, 8.25, 11.5, k), 8.25, "sans", "slate"),
+    );
+    this.y = top - h;
+  }
+
+  /**
+   * Signature lines: each label in slate under a hairline, 34 points apart. The block stays on
+   * one page.
+   */
+  signatureLines(labels: string[]): void {
+    const step = 34;
+    this.ensure(labels.length * step + 6);
+    for (const label of labels) {
+      this.y -= step - 12;
+      this.hline(this.y, "navy", 0.5, ML, 3.6 * IN);
+      this.text(this.clean(label), ML, this.y - 10, 7.5, "sans", "slate");
+      this.y -= 12;
+    }
+    this.y -= 6;
+  }
+
   // --- output -------------------------------------------------------------------------------
 
   async bytes(): Promise<Uint8Array> {

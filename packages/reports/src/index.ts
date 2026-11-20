@@ -25,6 +25,7 @@ import {
   type KindInput,
 } from "./kinds/common.ts";
 import { auditPdf } from "./kinds/audit.ts";
+import { estoppelPdf } from "./kinds/estoppel.ts";
 import {
   asc842Doc,
   camDoc,
@@ -119,6 +120,7 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   tx_protest_deadline: "Texas protest deadline",
   property_sheet: "Property sheet",
   expense_audit: "Expense statement audit",
+  estoppel_certificate: "Tenant estoppel certificate",
 };
 
 export const ReportRequest = z.strictObject({
@@ -417,6 +419,7 @@ export async function renderReport(
   else if (kind === "tx_unequal_appraisal" && format === "xlsx")
     bytes = await txXlsx(k);
   else if (kind === "expense_audit") bytes = await auditPdf(k);
+  else if (kind === "estoppel_certificate") bytes = await estoppelPdf(k);
   else {
     const doc = BUILDERS[kind](k);
     bytes =
@@ -454,7 +457,7 @@ export async function renderReport(
 }
 
 const BUILDERS: Record<
-  Exclude<ReportKind, "expense_audit">,
+  Exclude<ReportKind, "expense_audit" | "estoppel_certificate">,
   (k: KindInput) => ReportDoc
 > = {
   tx_unequal_appraisal: txDoc,

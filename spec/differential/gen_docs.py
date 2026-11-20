@@ -776,6 +776,108 @@ def audit_case(r):
     return {"tool": "audit_expense_statement", "arguments": args}
 
 
+# --- estoppel_prepare: an invented lease, random omissions, amendments and conflicts -------------------
+
+_E_DOCS = ["fl:document:sha256-" + "c" * 64, "fl:document:sha256-" + "d" * 64]
+
+
+def _e_fact(n, predicate, value, quote, doc=0, page=1, valid_from=None, supersedes=None):
+    f = {"id": f"flf_e{n}", "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4", "predicate": predicate, "value": value,
+         "as_of": "2026-03-01", "provenance": {"method": "extracted", "sources": [
+             {"document_id": _E_DOCS[doc], "page": page, "quote": quote}]}}
+    if valid_from:
+        f["valid_from"] = valid_from
+    if supersedes:
+        f["supersedes"] = supersedes
+    return f
+
+
+def estoppel_case(r):
+    n = [0]
+
+    def nf(*a, **k):
+        n[0] += 1
+        return _e_fact(n[0], *a, **k)
+
+    year = r.choice([2021, 2022, 2023])
+    term = r.choice([5, 7, 10])
+    area = r.choice([2400, 5150, 8400, 12000])
+    base = r.choice([24, 28.5, 32.75])
+    step = r.choice([0.02, 0.03])
+    comm = f"{year}-07-01"
+    exp = f"{year + term}-06-30"
+    sched = []
+    quote_parts = []
+    for i in range(term):
+        a = f"{year + i}-07-01"
+        b = f"{year + i + 1}-06-30"
+        psf = round(base * (1 + step) ** i, 2)
+        sched.append({"from": a, "to": b, "annual_rent_psf": psf})
+        quote_parts.append(f"{a} to {b}: ${psf:.2f} per RSF")
+    facts = []
+    if r.random() < 0.95:
+        facts.append(nf("lease.landlord", "Alder Court Holdings LLC", "entered into by Alder Court Holdings LLC"))
+    if r.random() < 0.95:
+        facts.append(nf("lease.tenant", "Birchwood Analytics Inc", "and Birchwood Analytics Inc"))
+    if r.random() < 0.92:
+        facts.append(nf("lease.commencement_date", comm, f"The Commencement Date is {comm}."))
+    exp_old = None
+    if r.random() < 0.92:
+        exp_old = nf("lease.expiration_date", exp, f"The Term shall expire on {exp}.", page=2)
+        facts.append(exp_old)
+    if r.random() < 0.9:
+        facts.append(nf("lease.rentable_area_sf", area, f"containing approximately {area} rentable square feet"))
+    rent_old = None
+    if r.random() < 0.9:
+        rent_old = nf("lease.base_rent_schedule", sched, "; ".join(quote_parts), page=3)
+        facts.append(rent_old)
+    if r.random() < 0.85:
+        facts.append(nf("lease.security_deposit", r.choice([10000, 30000, 45500.5]), "a security deposit as stated", page=4))
+    if r.random() < 0.4:
+        facts.append(nf("lease.free_rent", {"months": 2, "applies_to": "base_rent"},
+                        "Base Rent shall be abated for the first two (2) months of the Term", page=3))
+    if r.random() < 0.4:
+        facts.append(nf("lease.ti_allowance", r.choice([50000, 168000]), "Landlord shall provide a tenant improvement allowance", page=5))
+    if r.random() < 0.5:
+        facts.append(nf("lease.renewal_option", {"count": 1, "term_months": 60, "notice_months": 12, "rent": "Fair Market Rent"},
+                        "Tenant shall have one (1) option to extend the Term for sixty (60) months", page=6))
+    if r.random() < 0.2:
+        facts.append(nf("lease.termination_option", {"earliest": f"{year + 3}-07-01", "notice_months": 9, "fee": "unamortized costs"},
+                        "Tenant may terminate the Lease early on nine (9) months' notice", page=7))
+    if r.random() < 0.15:
+        facts.append(nf("lease.purchase_option", {"kind": "rofr"}, "Tenant has a right of first refusal to purchase the Property", page=8))
+    k = r.random()
+    amend_exp = f"{year + term + 5}-06-30"
+    if exp_old is not None and k < 0.35:
+        facts.append(nf("lease.expiration_date", amend_exp, f"The Term shall expire on {amend_exp}.", doc=1,
+                        valid_from=f"{year + 2}-01-01", supersedes=[exp_old["id"]]))
+    elif exp_old is not None and k < 0.45:
+        facts.append(nf("lease.expiration_date", amend_exp, f"The Term shall expire on {amend_exp}.", doc=1))
+    elif k < 0.55:
+        facts.append(nf("lease.expiration_date", "2040-06-30", "The Term shall expire on a later date.", doc=1,
+                        valid_from="2030-01-01"))
+    if rent_old is not None and r.random() < 0.2:
+        facts.append(nf("lease.base_rent_schedule", [{"from": f"{year + term}-07-01", "to": f"{year + term + 4}-06-30",
+                                                      "annual_rent_psf": 40}], "next period: $40.00 per RSF", doc=1,
+                        valid_from=f"{year + 2}-01-01", supersedes=[rent_old["id"]]))
+    r.shuffle(facts)
+    args = {
+        "lease_facts": facts,
+        "parties": {"tenant": {"organisation": "Birchwood Analytics Inc"}, "landlord": {"organisation": "Alder Court Holdings LLC"}},
+        "premises": {"label": "Alder Court, Suite 210"},
+        "as_of": r.choice([f"{year + 1}-11-20", f"{year + 3}-03-15", f"{year + term}-01-10", "2026-11-20"]),
+    }
+    if r.random() < 0.4:
+        args["parties"]["requested_by"] = {"organisation": "Northfield Credit Partners LLC", "role": r.choice(["lender", "buyer"])}
+    if r.random() < 0.3:
+        args["landlord_records"] = {"rent_paid_through": r.choice([f"{year + 1}-10-31", "2026-11-30"])}
+    if r.random() < 0.3:
+        args["documents"] = [{"document_id": _E_DOCS[0], "role": "original"}, {"document_id": _E_DOCS[1], "role": "amendment"}]
+    if r.random() < 0.05:
+        args["as_of"] = "20 Nov 2026"
+    return {"tool": "estoppel_prepare", "arguments": args}
+
+
 def round2_cases(seed, count):
     import os
     import sys
@@ -795,6 +897,8 @@ def round2_cases(seed, count):
             out.append(package_case(r))
         elif k < 0.92:
             out.append(send_refusal_case(r))
+        elif k < 0.96:
+            out.append(estoppel_case(r))
         else:
             out.append(audit_case(r))
     return out

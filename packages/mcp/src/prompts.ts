@@ -163,6 +163,26 @@ export const PROMPT_ARGS = {
       "The landlord organisation the dispute would go to, when the person wants to send it (never invent one).",
     ),
   },
+  estoppel_certificate: {
+    lease: text(
+      500,
+      "The tenant's lease (with its amendments): a PDF path on this machine (local server), or the name of a lease whose pages are in the conversation.",
+    ),
+    tenant: text(
+      200,
+      "The tenant organisation that will be asked to confirm the statements (never invent one).",
+    ),
+    as_of: z
+      .string()
+      .regex(DATE, "a date as YYYY-MM-DD")
+      .describe(
+        "The date the statements are made as of (YYYY-MM-DD): the certificate reads no clock.",
+      ),
+    relying_party: optionalText(
+      200,
+      "The lender or buyer that asked for the estoppel and will rely on it, when the person has named one (never invent one).",
+    ),
+  },
   deal_math: {
     question: multiline(
       2_000,
@@ -367,6 +387,24 @@ export function promptText(
         CITE,
       ].join("\n\n");
     }
+    case "estoppel_certificate": {
+      const a = args as Args<"estoppel_certificate">;
+      return [
+        `Prepare a tenant estoppel certificate for ${a.tenant} from the lease (${a.lease}), as of ${a.as_of}${a.relying_party ? `, for ${a.relying_party} to rely on` : ""}. You extract; FactLot verifies and prepares. Every statement from the lease must rest on a verified lease fact: no source, no statement.`,
+        numbered([
+          "Get the lease's pages and every amendment's pages exactly as given (doc_read_pdf with the PDF's path on a local server; otherwise the pages in the conversation).",
+          "doc_abstract_lease (or doc_verify_facts) on the lease and each amendment for the terms the estoppel reads: lease.landlord, lease.tenant, lease.commencement_date, lease.expiration_date, lease.rentable_area_sf, lease.base_rent_schedule, lease.security_deposit, lease.free_rent, lease.ti_allowance and any option (lease.renewal_option, lease.expansion_option, lease.termination_option, lease.rofr, lease.rofo, lease.purchase_option). An amendment's fact names the earlier fact it changes in supersedes. Each value comes with its verbatim quote and page. Hold anything not verified for the person to review.",
+          "estoppel_prepare with the verified lease facts, the parties, the premises, the documents (original and amendments, by document_id) and as_of. Read gaps and conflicts first: a missing term is a gap, a lease and an amendment that disagree is a conflict, and neither is guessed or resolved.",
+          "Show the person every statement in full with its quote and page, and say which are for the tenant to confirm because no lease sentence can support them. Say plainly that these are facts and arithmetic, not legal conclusions, and that the tenant's signature, not FactLot, makes it an estoppel.",
+          "fact_package_create from the package_facts, then show the person the package_items, the tenant and the relying party, ask for the full name of the person who approves, and only after they say it may be sent call fact_package_send with kind estoppel, the package_items as items, relying_parties and approved_by with approval_confirmed. Say whether it went as a test or for real from the answer's message. Send link_for_counterparty to the tenant; give each relying party its own link from links_for_relying_parties only after the tenant has answered.",
+          "fact_package_status reads the tenant's answers (agreed, disputed, or its own version) and who has recorded reliance. A disputed statement is never recorded as relied on: show the person what the tenant said.",
+          "For the certificate, report_create kind estoppel_certificate with estoppel_prepare's arguments, the tenant's answers as context.estoppel_answers and the reliers as context.estoppel_reliers (hosted server; PDF).",
+        ]),
+        "On the hosted server a caller without a Pro or Team key gets the summary only (counts, statement titles and status, gaps and conflicts) and the answer says what is withheld; relay that in plain words. Nothing is sent without the named person's approval, and real sending needs a FactLot account key.",
+        "No registry lookup is needed. If property facts are wanted as well, call registry_coverage first.",
+        CITE,
+      ].join("\n\n");
+    }
     case "deal_math": {
       const a = args as Args<"deal_math">;
       const calc = a.calculation
@@ -420,6 +458,11 @@ const PROMPTS: Record<PromptName, { title: string; description: string }> = {
     title: "Audit a landlord's expense statement",
     description:
       "A tenant's audit of a CAM statement: abstract the lease, verify the statement, run audit_expense_statement, show every finding with its quote and calculation, get the named person's approval, then send the dispute.",
+  },
+  estoppel_certificate: {
+    title: "Prepare a tenant estoppel certificate",
+    description:
+      "A tenant estoppel from a lease: abstract the lease and amendments, run estoppel_prepare, show every statement with its quote, get the named person's approval, send to the tenant with a link for the lender or buyer, read the answers and reliance, then the certificate.",
   },
   deal_math: {
     title: "Deal maths with the calculators",

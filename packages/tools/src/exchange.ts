@@ -145,16 +145,43 @@ export const ExchangeItem = z.object({
   ),
   fact_ids: z
     .array(z.string().min(1).max(200))
-    .min(1)
+    .min(0)
     .max(20)
     .describe(
-      "The ids of the facts in the package this item rests on. Each fact must carry a source quote, page and document sha256.",
+      "The ids of the facts in the package this item rests on. Each fact must carry a source quote, page and document sha256. Only an estoppel statement the tenant alone can confirm (tenant_to_confirm true) may have none.",
     ),
   note: z
     .string()
     .max(600)
     .optional()
     .describe("A sentence on why, shown to the counterparty."),
+  number: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .optional()
+    .describe("Estoppel: the statement's number in the certificate."),
+  text: z
+    .string()
+    .min(1)
+    .max(700)
+    .optional()
+    .describe(
+      "Estoppel: the statement as the tenant reads and answers it (estoppel_prepare package_items[].text).",
+    ),
+  tenant_to_confirm: z
+    .boolean()
+    .optional()
+    .describe(
+      "Estoppel: true for a statement with no lease source that only the tenant can confirm. It has no fact_ids.",
+    ),
+  needs_tenant_value: z
+    .boolean()
+    .optional()
+    .describe(
+      "Estoppel: true when the tenant must state the figure or date itself (for example the date rent is paid through); the tenant's answer then carries its own version.",
+    ),
 });
 
 export const FactPackageSendInput = z.object({
@@ -162,8 +189,10 @@ export const FactPackageSendInput = z.object({
     .record(z.string(), z.unknown())
     .describe("The package from fact_package_create (signed or not)."),
   kind: z
-    .enum(["expense_reconciliation", "fact_confirmation"])
-    .describe("What is being confirmed."),
+    .enum(["expense_reconciliation", "fact_confirmation", "estoppel"])
+    .describe(
+      "What is being confirmed. estoppel: the statements from estoppel_prepare, answered by the tenant and then open to a lender or buyer through relying_parties.",
+    ),
   title: z.string().min(1).max(160).describe("A title the counterparty sees."),
   subject: z
     .object({
@@ -201,6 +230,13 @@ export const FactPackageSendInput = z.object({
     .optional()
     .describe(
       "A calc tool's output (for example calc_cam_reconciliation) shown to the counterparty with every step.",
+    ),
+  relying_parties: z
+    .array(z.string().min(1).max(120))
+    .max(5)
+    .optional()
+    .describe(
+      "Estoppel only: a label for each lender or buyer that is to get its own view link and token (for example the lender's name). Each can read the statements and the tenant's answers and record its own reliance; none can answer for the tenant. With none given the Record makes one link.",
     ),
   approved_by: z
     .string()
@@ -300,6 +336,12 @@ export async function sendFactPackage(
         "the counterparty must be a different organisation from the sender",
     });
   const seen = new Set<string>();
+  const estoppel = input.kind === "estoppel";
+  if (!estoppel && input.relying_parties)
+    issues.push({
+      path: "relying_parties",
+      message: "relying parties are for kind estoppel only",
+    });
   input.items.forEach((it, i) => {
     if (seen.has(it.key))
       issues.push({
@@ -307,11 +349,49 @@ export async function sendFactPackage(
         message: `duplicate item key ${it.key}`,
       });
     seen.add(it.key);
-    if (it.position === "state_ours" && it.their_value === undefined)
-      issues.push({
-        path: `items.${i}.their_value`,
-        message: "give the counterparty's figure for an item the sender states",
-      });
+    if (estoppel) {
+      if (it.position !== "state_ours")
+        issues.push({
+          path: `items.${i}.position`,
+          message:
+            "every estoppel statement is state_ours: the tenant answers each one",
+        });
+      if (it.tenant_to_confirm === true && it.fact_ids.length > 0)
+        issues.push({
+          path: `items.${i}.fact_ids`,
+          message:
+            "a tenant_to_confirm statement has no lease source: leave fact_ids empty",
+        });
+      if (it.tenant_to_confirm !== true && it.fact_ids.length === 0)
+        issues.push({
+          path: `items.${i}.fact_ids`,
+          message:
+            "give the lease facts the statement rests on, or mark it tenant_to_confirm",
+        });
+    } else {
+      if (it.fact_ids.length === 0)
+        issues.push({
+          path: `items.${i}.fact_ids`,
+          message: "give at least one fact the item rests on",
+        });
+      if (
+        it.tenant_to_confirm !== undefined ||
+        it.needs_tenant_value !== undefined ||
+        it.number !== undefined ||
+        it.text !== undefined
+      )
+        issues.push({
+          path: `items.${i}`,
+          message:
+            "number, text, tenant_to_confirm and needs_tenant_value are for kind estoppel only",
+        });
+      if (it.position === "state_ours" && it.their_value === undefined)
+        issues.push({
+          path: `items.${i}.their_value`,
+          message:
+            "give the counterparty's figure for an item the sender states",
+        });
+    }
   });
   const ids = new Set(
     Array.isArray(input.package.facts)
@@ -376,6 +456,9 @@ export async function sendFactPackage(
       to: input.to,
       items: input.items,
       ...(input.calculation ? { calculation: input.calculation } : {}),
+      ...(estoppel && input.relying_parties
+        ? { relying_parties: input.relying_parties }
+        : {}),
       approved_by: input.approved_by,
       approval_confirmed: true,
       ...(forward ? { sender_account: accountId } : {}),
@@ -393,7 +476,12 @@ export async function sendFactPackage(
       : String(sent.test_mode_reason ?? "the Record took it as a test");
   const message = sandbox
     ? `TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and answer.`
-    : `SENT FOR REAL: the Record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
+    : estoppel
+      ? `SENT FOR REAL: the estoppel statements were sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and the tenant, records its own. A disputed statement is never recorded as relied on.`
+      : `SENT FOR REAL: the Record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
+  const relierTokens = Array.isArray(sent.relier_tokens)
+    ? (sent.relier_tokens as Json[])
+    : [];
   return {
     package_id: id,
     digest: sent.digest,
@@ -404,6 +492,14 @@ export async function sendFactPackage(
     message,
     link_for_counterparty: link(id, String(sent.counterparty_token)),
     status_link_for_sender: link(id, String(sent.owner_token)),
+    ...(estoppel
+      ? {
+          links_for_relying_parties: relierTokens.map((r) => ({
+            label: r.label ?? null,
+            link: link(id, String(r.token)),
+          })),
+        }
+      : {}),
     recorded: {
       reliances_recorded: reliances.length,
       items_accepted: reliances.map((r) => r.item),
@@ -412,7 +508,9 @@ export async function sendFactPackage(
         .map((x) => x.key),
       counts_in_the_measure: !sandbox,
     },
-    note: `Send link_for_counterparty to ${input.to.organisation}; it needs no account. Keep status_link_for_sender private: it reads the answers (fact_package_status).`,
+    note: estoppel
+      ? `Send link_for_counterparty to ${input.to.organisation} (the tenant); it needs no account. Give each lender or buyer its own link from links_for_relying_parties only after the tenant has answered: it shows the statements, the tenant's answers and the document fingerprints, and lets that party record reliance. Keep status_link_for_sender private: it reads the answers and the reliers (fact_package_status).`
+      : `Send link_for_counterparty to ${input.to.organisation}; it needs no account. Keep status_link_for_sender private: it reads the answers (fact_package_status).`,
   };
 }
 
@@ -453,6 +551,9 @@ export async function factPackageStatus(
     position: it.position,
     value: it.value,
     their_value: it.their_value ?? null,
+    ...(it.number !== undefined ? { number: it.number } : {}),
+    ...(it.text !== undefined ? { text: it.text } : {}),
+    ...(it.tenant_to_confirm === true ? { tenant_to_confirm: true } : {}),
     answer: it.response
       ? {
           decision:
@@ -460,6 +561,7 @@ export async function factPackageStatus(
               ? "agreed"
               : "disputed",
           note: (it.response as Json).note ?? null,
+          tenants_own_version: (it.response as Json).own_value ?? null,
           by: (it.response as Json).responded_by_name,
           at: (it.response as Json).responded_at,
         }
@@ -487,6 +589,7 @@ export async function factPackageStatus(
       (x) => (x.answer as Json | null)?.decision === "disputed",
     ).length,
     reliances: s.reliances,
+    ...(Array.isArray(s.reliers) ? { reliers: s.reliers } : {}),
     responded_at: s.responded_at,
   };
 }
