@@ -183,6 +183,30 @@ export const PROMPT_ARGS = {
       "The lender or buyer that asked for the estoppel and will rely on it, when the person has named one (never invent one).",
     ),
   },
+  rent_roll_certification: {
+    rent_roll: text(
+      500,
+      "The rent roll to certify: a PDF path on this machine (local server), or the name of a rent roll whose pages are in the conversation.",
+    ),
+    property: text(
+      240,
+      "The property in words: name and address (never invent one).",
+    ),
+    as_of: z
+      .string()
+      .regex(DATE, "a date as YYYY-MM-DD")
+      .describe(
+        "The date of the rent roll (YYYY-MM-DD): the certification reads no clock.",
+      ),
+    certifier: text(
+      200,
+      "The borrower or seller (or the broker acting for one) that certifies the roll (never invent one).",
+    ),
+    relying_party: optionalText(
+      200,
+      "The lender or buyer that asked for the certification and will rely on it, when the person has named one (never invent one).",
+    ),
+  },
   deal_math: {
     question: multiline(
       2_000,
@@ -405,6 +429,25 @@ export function promptText(
         CITE,
       ].join("\n\n");
     }
+    case "rent_roll_certification": {
+      const a = args as Args<"rent_roll_certification">;
+      return [
+        `Certify the rent roll (${a.rent_roll}) for ${a.property}, as of ${a.as_of}, on behalf of ${a.certifier}${a.relying_party ? `, for ${a.relying_party} to rely on` : ""}. You extract; FactLot verifies, checks and grades. Every figure on the roll and in a lease must rest on a verified fact with its quote and page: no source, no fact.`,
+        numbered([
+          "Get the rent roll's pages exactly as given (doc_read_pdf with the PDF's path on a local server; otherwise the pages in the conversation).",
+          "doc_verify_facts on the rent roll for each line, one fact per field with the line's verbatim row as the quote and its page: rent_roll.tenant_name, rent_roll.suite, rent_roll.rentable_area_sf, rent_roll.lease_start_date, rent_roll.lease_expiration_date, rent_roll.base_rent_monthly, rent_roll.base_rent_annual, rent_roll.base_rent_psf, and where the roll states them rent_roll.next_rent_step, rent_roll.security_deposit, rent_roll.free_rent_outstanding, rent_roll.renewal_option, rent_roll.recoveries. Mark a vacant suite occupancy vacant. Hold anything not verified for the person to review.",
+          "For each tenant whose lease the person supplies, doc_abstract_lease on the lease and every amendment (lease.tenant, lease.commencement_date, lease.expiration_date, lease.rentable_area_sf, lease.base_rent_schedule, lease.security_deposit, lease.free_rent, lease.renewal_option, and lease.suite, lease.recovery_structure, lease.operating_expense_base_year if the lease states them). A tenant with no lease supplied is simply left without one: it is graded no lease supplied, never assumed.",
+          "Optionally, for a tenant with a confirmed estoppel (estoppel_prepare then fact_package_send kind estoppel, fact_package_status), pass its statement keys, codes and the tenant's answers as that lease's estoppel.",
+          "rent_roll_certify with the lines, the leases, as_of, the parties and building_area_sf if known. Read the flags and each line's grade first: matches lease, matches lease and confirmed by tenant, differs (with both figures, the difference and the quotes), no lease supplied, not checkable (with the reason). Show the person every difference with its quotes, and say plainly that these are facts and arithmetic, not legal, appraisal or lending advice.",
+          "fact_package_create from the package_facts, then show the person the package_items, the totals and the recipient, ask for the full name of the person who approves, and only after they say it may be sent call fact_package_send with kind rent_roll, the package_items as items, package_calculation as calculation, to the lender or buyer, estoppel_links for any line confirmed by a tenant, and approved_by with approval_confirmed. Say whether it went as a test or for real from the answer's message. Send link_for_counterparty to the lender or buyer: it shows each line with its grade, quotes, pages and document fingerprints and lets them record reliance on the lines graded as matching, never on a line that differs, has no lease or could not be checked.",
+          "fact_package_status shows who has recorded reliance and on which lines.",
+          "For the certificate, report_create kind rent_roll_certificate with rent_roll_certify's arguments and who has relied as context.rent_roll_reliers (hosted server; PDF, or XLSX of the line grid).",
+        ]),
+        "The certifying party's certification, not FactLot, is what the lender or buyer relies on, and FactLot checked the roll against the documents supplied only: say so. On the hosted server a caller without a Pro or Team key gets the summary only (totals, key figures, counts of each grade, flags) and the answer says what is withheld; relay that in plain words. Nothing is sent without the named person's approval, and real sending needs a FactLot account key.",
+        "No registry lookup is needed. If property facts are wanted as well, call registry_coverage first.",
+        CITE,
+      ].join("\n\n");
+    }
     case "deal_math": {
       const a = args as Args<"deal_math">;
       const calc = a.calculation
@@ -463,6 +506,11 @@ const PROMPTS: Record<PromptName, { title: string; description: string }> = {
     title: "Prepare a tenant estoppel certificate",
     description:
       "A tenant estoppel from a lease: abstract the lease and amendments, run estoppel_prepare, show every statement with its quote, get the named person's approval, send to the tenant with a link for the lender or buyer, read the answers and reliance, then the certificate.",
+  },
+  rent_roll_certification: {
+    title: "Certify a rent roll against the leases",
+    description:
+      "A commercial rent roll certified for a lender or buyer: verify each roll line and each lease, run rent_roll_certify, show every grade and difference with its quote, get the named person's approval, send to the lender or buyer who records reliance on the lines graded as matching, then the certificate.",
   },
   deal_math: {
     title: "Deal maths with the calculators",

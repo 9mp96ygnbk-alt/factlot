@@ -468,6 +468,12 @@ describe("MCP prompts", () => {
       tenant: "Birchwood Analytics Inc",
       as_of: "2026-11-20",
     },
+    rent_roll_certification: {
+      rent_roll: "rent-roll.pdf",
+      property: "Alder Court Office Building",
+      as_of: "2026-11-20",
+      certifier: "Alder Court Holdings LLC",
+    },
     deal_math: {
       question: "NER on a 10-year lease at $42/sf, 6 months free",
       calculation: "net_effective_rent",
@@ -488,6 +494,11 @@ describe("MCP prompts", () => {
       {},
       { lease: "x", tenant: "y" },
       { lease: "x", tenant: "y", as_of: "Nov 20" },
+    ],
+    rent_roll_certification: [
+      {},
+      { rent_roll: "x", property: "y", certifier: "z" },
+      { rent_roll: "x", property: "y", certifier: "z", as_of: "Nov 20" },
     ],
     deal_math: [{}, { question: "x", calculation: "cap_rate_guess" }],
   };

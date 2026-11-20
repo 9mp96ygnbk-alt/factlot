@@ -22,6 +22,7 @@ import {
 } from "./kinds/common.ts";
 import { auditPdf } from "./kinds/audit.ts";
 import { estoppelPdf } from "./kinds/estoppel.ts";
+import { rentRollPdf, rentRollXlsx } from "./kinds/rentroll.ts";
 import {
   asc842Doc,
   camDoc,
@@ -117,6 +118,7 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   property_sheet: "Property sheet",
   expense_audit: "Expense statement audit",
   estoppel_certificate: "Tenant estoppel certificate",
+  rent_roll_certificate: "Rent roll certificate",
 };
 
 export const ReportRequest = z.strictObject({
@@ -419,6 +421,8 @@ export async function renderReport(
     bytes = await txXlsx(k);
   else if (kind === "expense_audit") bytes = await auditPdf(k);
   else if (kind === "estoppel_certificate") bytes = await estoppelPdf(k);
+  else if (kind === "rent_roll_certificate")
+    bytes = format === "xlsx" ? await rentRollXlsx(k) : await rentRollPdf(k);
   else {
     const doc = BUILDERS[kind](k);
     bytes =
@@ -481,7 +485,10 @@ function pdfFooter(
 }
 
 const BUILDERS: Record<
-  Exclude<ReportKind, "expense_audit" | "estoppel_certificate">,
+  Exclude<
+    ReportKind,
+    "expense_audit" | "estoppel_certificate" | "rent_roll_certificate"
+  >,
   (k: KindInput) => ReportDoc
 > = {
   tx_unequal_appraisal: txDoc,

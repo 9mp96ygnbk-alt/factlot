@@ -136,6 +136,20 @@ export const ReportContext = z.strictObject({
     .describe(
       "estoppel_certificate: who has recorded reliance (fact_package_status reliers: who, role, statements, at). Printed as a table in the back matter.",
     ),
+  rent_roll_reliers: z
+    .array(
+      z.strictObject({
+        who: z.string().min(1).max(260),
+        role: z.string().max(80).nullable().optional(),
+        lines: z.array(z.string().max(60)).max(100).optional(),
+        at: z.string().max(40).nullable().optional(),
+      }),
+    )
+    .max(20)
+    .optional()
+    .describe(
+      "rent_roll_certificate: who has recorded reliance (fact_package_status reliers: who, role, statements as lines, at). Printed as a table in the back matter.",
+    ),
   selection_rule: ContextSelectionRule.optional().describe(
     "tx_unequal_appraisal: the `selection_rule` of registry_tx_equity_candidates as returned. The packet and workbook print FactLot's default candidate rule with the parameters, narrowing, step counts and tier counts applied.",
   ),
