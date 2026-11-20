@@ -177,7 +177,7 @@ const Candidate = z.object({
         .min(1)
         .max(200)
         .describe(
-          'The name or role of the PERSON who read the clause and confirmed the value, e.g. "J. Smith, lease administrator". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction.',
+          'The name or role of the PERSON who read the clause and confirmed the value, e.g. "J. Smith, lease administrator". FactLot does not authenticate it. Only for a value a person has read: a confirmation by the extractor itself does not count as a confirmation by a person.',
         ),
       at: z
         .union([IsoDate, IsoDateTime])
