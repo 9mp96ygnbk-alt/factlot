@@ -389,7 +389,7 @@ export async function sendFactPackage(
     ? "this FactLot is not connected to the Record as an accredited service (a local or self-hosted install, or a service without the Record's application token)"
     : !accountId
       ? (caller?.testReason ??
-        "no FactLot account key came with the call (only a caller with a FactLot account key, free or paid, can send for real)")
+        "no full FactLot account key came with the call, and a full FactLot account key (a paid fl_live_ key or an email-verified fl_free_ key) is needed to send for real")
       : String(sent.test_mode_reason ?? "the Record took it as a test");
   const message = sandbox
     ? `TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and answer.`

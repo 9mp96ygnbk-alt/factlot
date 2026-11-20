@@ -173,7 +173,7 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
                   "or a service without the Record's application token)")
     elif not account_id:
         reason = caller.get("test_reason") or (
-            "no FactLot account key came with the call (only a caller with a FactLot account key, free or paid, can send for real)")
+            "no full FactLot account key came with the call, and a full FactLot account key (a paid fl_live_ key or an email-verified fl_free_ key) is needed to send for real")
     else:
         reason = str(sent.get("test_mode_reason") or "the Record took it as a test")
     n = len(reliances)
