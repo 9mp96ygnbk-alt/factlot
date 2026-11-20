@@ -1,0 +1,2643 @@
+{
+  "property": {
+    "label": "Alder Court Office Building, Alder Street"
+  },
+  "as_of": "2026-11-20",
+  "parties": {
+    "certifier": {
+      "organisation": "Alder Court Holdings LLC",
+      "role": "borrower"
+    },
+    "relying_party": {
+      "organisation": "Northfield Credit Partners LLC",
+      "role": "lender"
+    }
+  },
+  "roll_document": {
+    "title": "Rent roll as of November 20, 2026"
+  },
+  "building_area_sf": 62000,
+  "roll_lines": [
+    {
+      "line_id": "L1",
+      "facts": [
+        {
+          "id": "flf_rr1",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Birchwood Analytics Inc",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr2",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "210",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr3",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 8400,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr4",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2023-07-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr5",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2033-06-30",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr6",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 23100,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr7",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 277200,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr8",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 33,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr9",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.security_deposit",
+          "value": 46200,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr10",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.next_rent_step",
+          "value": {
+            "date": "2027-07-01",
+            "annual_rent_psf": 34
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr11",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.renewal_option",
+          "value": {
+            "count": 2,
+            "term_months": 60
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr12",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.recoveries",
+          "value": {
+            "structure": "nnn"
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Birchwood Analytics Inc  210  8,400  2023-07-01  2033-06-30  23,100.00  277,200.00  33.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L2",
+      "facts": [
+        {
+          "id": "flf_rr20",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Larkspur Dental Group LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr21",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "110",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr22",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 3200,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr23",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2022-04-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr24",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2029-03-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr25",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 9866.67,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr26",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 118400,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr27",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 37,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Larkspur Dental Group LLC  110  3,200  2022-04-01  2029-03-31  9,866.67  118,400.00  37.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L3",
+      "facts": [
+        {
+          "id": "flf_rr33",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Quillfeather Legal Partners",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr34",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "300",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr35",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 11000,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr36",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2021-03-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr37",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2027-02-28",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr38",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 28416.67,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr39",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 341000,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr40",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 31,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Quillfeather Legal Partners  300  11,000  2021-03-01  2027-02-28  28,416.67  341,000.00  31.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L4",
+      "facts": [
+        {
+          "id": "flf_rr46",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Meridian Fox Coffee Co",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr47",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "100",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr48",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 1800,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr49",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2024-01-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr50",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2029-12-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr51",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 6300,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr52",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 75600,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr53",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 42,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Meridian Fox Coffee Co  100  1,800  2024-01-01  2029-12-31  6,300.00  75,600.00  42.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L5",
+      "facts": [
+        {
+          "id": "flf_rr54",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Tamarack Engineering Inc",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr55",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "400",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr56",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 9600,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr57",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2019-10-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr58",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2030-09-30",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr59",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 25600,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr60",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 307200,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr61",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 32,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Tamarack Engineering Inc  400  9,600  2019-10-01  2030-09-30  25,600.00  307,200.00  32.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L6",
+      "facts": [
+        {
+          "id": "flf_rr67",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Northgate Pediatrics PA",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr68",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "120",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr69",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 4500,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr70",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2020-06-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr71",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2030-05-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr72",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 15750,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr73",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 189000,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr74",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 42,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 1,
+                "quote": "Northgate Pediatrics PA  120  4,500  2020-06-01  2030-05-31  15,750.00  189,000.00  42.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L7",
+      "facts": [
+        {
+          "id": "flf_rr79",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Ironbridge Staffing LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr80",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "220",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr81",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 6250,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr82",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2023-01-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr83",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2028-12-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr84",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 17708.33,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr85",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 212500,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr86",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 34,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr87",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.security_deposit",
+          "value": 35416.66,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr88",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.renewal_option",
+          "value": {
+            "count": 1,
+            "term_months": 36
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr89",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.recoveries",
+          "value": {
+            "structure": "base_year",
+            "base_year": 2023
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ironbridge Staffing LLC  220  6,250  2023-01-01  2028-12-31  17,708.33  212,500.00  34.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L8",
+      "facts": [
+        {
+          "id": "flf_rr99",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Willowmere Financial Planning LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr100",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "310",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr101",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 2750,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr102",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2025-09-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr103",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2030-08-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr104",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 8250,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr105",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 99000,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr106",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 36,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr107",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.free_rent_outstanding",
+          "value": {
+            "months": 2
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Willowmere Financial Planning LLC  310  2,750  2025-09-01  2030-08-31  8,250.00  99,000.00  36.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L9",
+      "facts": [
+        {
+          "id": "flf_rr114",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Ostrander Print & Signs Inc",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr115",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "130",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr116",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 3800,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr117",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2021-01-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr118",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2026-12-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr119",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 9500,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr120",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 114000,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr121",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 30,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Ostrander Print & Signs Inc  130  3,800  2021-01-01  2026-12-31  9,500.00  114,000.00  30.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L10",
+      "facts": [
+        {
+          "id": "flf_rr127",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.tenant_name",
+          "value": "Halcyon Yoga Studio LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr128",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "140",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr129",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 2900,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr130",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_start_date",
+          "value": "2024-05-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr131",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.lease_expiration_date",
+          "value": "2031-04-30",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr132",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_monthly",
+          "value": 9425,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr133",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_annual",
+          "value": 113100,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr134",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.base_rent_psf",
+          "value": 39,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Halcyon Yoga Studio LLC  140  2,900  2024-05-01  2031-04-30  9,425.00  113,100.00  39.00"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "V1",
+      "occupancy": "vacant",
+      "facts": [
+        {
+          "id": "flf_rr142",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.suite",
+          "value": "500",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Vacant  500  7,800"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr143",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "rent_roll.rentable_area_sf",
+          "value": 7800,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "page": 2,
+                "quote": "Vacant  500  7,800"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "leases": [
+    {
+      "line_id": "L1",
+      "facts": [
+        {
+          "id": "flf_rr13",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Birchwood Analytics Inc",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1111111111111111111111111111111111111111111111111111111111111111",
+                "page": 1,
+                "quote": "and Birchwood Analytics Inc (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr14",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2023-07-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1111111111111111111111111111111111111111111111111111111111111111",
+                "page": 1,
+                "quote": "The Commencement Date is 2023-07-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr15",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2033-06-30",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1111111111111111111111111111111111111111111111111111111111111111",
+                "page": 2,
+                "quote": "The Term shall expire on 2033-06-30."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr16",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 8400,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1111111111111111111111111111111111111111111111111111111111111111",
+                "page": 1,
+                "quote": "containing approximately 8,400 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr17",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 33
+            },
+            {
+              "from": "2027-07-01",
+              "to": "2028-06-30",
+              "annual_rent_psf": 34
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1111111111111111111111111111111111111111111111111111111111111111",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $33.00 per RSF; 2027-07-01 to 2028-06-30: $34.00 per RSF"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr18",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.security_deposit",
+          "value": 46200,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1111111111111111111111111111111111111111111111111111111111111111",
+                "page": 4,
+                "quote": "Tenant shall deposit $46,200.00 as security"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr19",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.renewal_option",
+          "value": {
+            "count": 2,
+            "term_months": 60,
+            "notice_months": 12
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-1111111111111111111111111111111111111111111111111111111111111111",
+                "page": 6,
+                "quote": "Tenant has 2 option(s) to extend for 60 months on 12 months notice"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L2",
+      "facts": [
+        {
+          "id": "flf_rr28",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Larkspur Dental Group LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-2222222222222222222222222222222222222222222222222222222222222222",
+                "page": 1,
+                "quote": "and Larkspur Dental Group LLC (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr29",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2022-04-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-2222222222222222222222222222222222222222222222222222222222222222",
+                "page": 1,
+                "quote": "The Commencement Date is 2022-04-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr30",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2029-03-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-2222222222222222222222222222222222222222222222222222222222222222",
+                "page": 2,
+                "quote": "The Term shall expire on 2029-03-31."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr31",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 3200,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-2222222222222222222222222222222222222222222222222222222222222222",
+                "page": 1,
+                "quote": "containing approximately 3,200 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr32",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 36
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-2222222222222222222222222222222222222222222222222222222222222222",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $36.00 per RSF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L3",
+      "facts": [
+        {
+          "id": "flf_rr41",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Quillfeather Legal Partners",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-3333333333333333333333333333333333333333333333333333333333333333",
+                "page": 1,
+                "quote": "and Quillfeather Legal Partners (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr42",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2021-03-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-3333333333333333333333333333333333333333333333333333333333333333",
+                "page": 1,
+                "quote": "The Commencement Date is 2021-03-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr43",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2027-02-28",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-3333333333333333333333333333333333333333333333333333333333333333",
+                "page": 2,
+                "quote": "The Term shall expire on 2027-02-28."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr44",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 11000,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-3333333333333333333333333333333333333333333333333333333333333333",
+                "page": 1,
+                "quote": "containing approximately 11,000 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr45",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 31
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-3333333333333333333333333333333333333333333333333333333333333333",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $31.00 per RSF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L5",
+      "facts": [
+        {
+          "id": "flf_rr62",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Tamarack Engineering Inc",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-5555555555555555555555555555555555555555555555555555555555555555",
+                "page": 1,
+                "quote": "and Tamarack Engineering Inc (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr63",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2019-10-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-5555555555555555555555555555555555555555555555555555555555555555",
+                "page": 1,
+                "quote": "The Commencement Date is 2019-10-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr64",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2029-09-30",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-5555555555555555555555555555555555555555555555555555555555555555",
+                "page": 2,
+                "quote": "The Term shall expire on 2029-09-30."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr65",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 9600,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-5555555555555555555555555555555555555555555555555555555555555555",
+                "page": 1,
+                "quote": "containing approximately 9,600 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr66",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 32
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-5555555555555555555555555555555555555555555555555555555555555555",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $32.00 per RSF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L6",
+      "facts": [
+        {
+          "id": "flf_rr75",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Northgate Pediatrics PA",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-6666666666666666666666666666666666666666666666666666666666666666",
+                "page": 1,
+                "quote": "and Northgate Pediatrics PA (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr76",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2020-06-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-6666666666666666666666666666666666666666666666666666666666666666",
+                "page": 1,
+                "quote": "The Commencement Date is 2020-06-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr77",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2030-05-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-6666666666666666666666666666666666666666666666666666666666666666",
+                "page": 2,
+                "quote": "The Term shall expire on 2030-05-31."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr78",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 4500,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-6666666666666666666666666666666666666666666666666666666666666666",
+                "page": 1,
+                "quote": "containing approximately 4,500 rentable square feet"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L7",
+      "facts": [
+        {
+          "id": "flf_rr90",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Ironbridge Staffing LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 1,
+                "quote": "and Ironbridge Staffing LLC (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr91",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2023-01-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 1,
+                "quote": "The Commencement Date is 2023-01-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr92",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2028-12-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 2,
+                "quote": "The Term shall expire on 2028-12-31."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr93",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 6250,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 1,
+                "quote": "containing approximately 6,250 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr94",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 34
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $34.00 per RSF"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr95",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.security_deposit",
+          "value": 35416.66,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 4,
+                "quote": "Tenant shall deposit $35,416.66 as security"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr96",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.renewal_option",
+          "value": {
+            "count": 1,
+            "term_months": 36,
+            "notice_months": 12
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 6,
+                "quote": "Tenant has 1 option(s) to extend for 36 months on 12 months notice"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr97",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.recovery_structure",
+          "value": {
+            "structure": "base_year"
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 5,
+                "quote": "Tenant pays its share of increases over the Base Year"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr98",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.operating_expense_base_year",
+          "value": 2023,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-7777777777777777777777777777777777777777777777777777777777777777",
+                "page": 5,
+                "quote": "The Base Year is calendar year 2023"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L8",
+      "facts": [
+        {
+          "id": "flf_rr108",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Willowmere Financial Planning LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-8888888888888888888888888888888888888888888888888888888888888888",
+                "page": 1,
+                "quote": "and Willowmere Financial Planning LLC (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr109",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2025-09-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-8888888888888888888888888888888888888888888888888888888888888888",
+                "page": 1,
+                "quote": "The Commencement Date is 2025-09-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr110",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2030-08-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-8888888888888888888888888888888888888888888888888888888888888888",
+                "page": 2,
+                "quote": "The Term shall expire on 2030-08-31."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr111",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2750,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-8888888888888888888888888888888888888888888888888888888888888888",
+                "page": 1,
+                "quote": "containing approximately 2,750 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr112",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 36
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-8888888888888888888888888888888888888888888888888888888888888888",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $36.00 per RSF"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr113",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.free_rent",
+          "value": {
+            "months": 3,
+            "applies_to": "base_rent"
+          },
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-8888888888888888888888888888888888888888888888888888888888888888",
+                "page": 3,
+                "quote": "Base Rent is abated for 3 months"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L9",
+      "facts": [
+        {
+          "id": "flf_rr122",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Ostrander Print & Signs Inc",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-9999999999999999999999999999999999999999999999999999999999999999",
+                "page": 1,
+                "quote": "and Ostrander Print & Signs Inc (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr123",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2021-01-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-9999999999999999999999999999999999999999999999999999999999999999",
+                "page": 1,
+                "quote": "The Commencement Date is 2021-01-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr124",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2026-12-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-9999999999999999999999999999999999999999999999999999999999999999",
+                "page": 2,
+                "quote": "The Term shall expire on 2026-12-31."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr125",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 3800,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-9999999999999999999999999999999999999999999999999999999999999999",
+                "page": 1,
+                "quote": "containing approximately 3,800 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr126",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 30
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-9999999999999999999999999999999999999999999999999999999999999999",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $30.00 per RSF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "line_id": "L10",
+      "facts": [
+        {
+          "id": "flf_rr135",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Halcyon Yoga Studio LLC",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "page": 1,
+                "quote": "and Halcyon Yoga Studio LLC (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr136",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.commencement_date",
+          "value": "2024-05-01",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "page": 1,
+                "quote": "The Commencement Date is 2024-05-01."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr137",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2031-04-30",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "page": 2,
+                "quote": "The Term shall expire on 2031-04-30."
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr138",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.rentable_area_sf",
+          "value": 2900,
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "page": 1,
+                "quote": "containing approximately 2,900 rentable square feet"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr139",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.base_rent_schedule",
+          "value": [
+            {
+              "from": "2026-07-01",
+              "to": "2027-06-30",
+              "annual_rent_psf": 39
+            }
+          ],
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "page": 3,
+                "quote": "2026-07-01 to 2027-06-30: $39.00 per RSF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "Tidewater Surveying Inc",
+      "facts": [
+        {
+          "id": "flf_rr140",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.tenant",
+          "value": "Tidewater Surveying Inc",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "page": 1,
+                "quote": "and Tidewater Surveying Inc (“Tenant”)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "flf_rr141",
+          "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4",
+          "predicate": "lease.expiration_date",
+          "value": "2028-03-31",
+          "as_of": "2026-11-20",
+          "provenance": {
+            "method": "extracted",
+            "sources": [
+              {
+                "document_id": "fl:document:sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "page": 2,
+                "quote": "The Term shall expire on 2028-03-31."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

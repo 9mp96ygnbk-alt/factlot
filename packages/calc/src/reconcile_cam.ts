@@ -184,6 +184,18 @@ const MONEY: [keyof OtherRow, keyof CamReconciliation][] = [
   ["balance_due", "balance_due"],
 ];
 
+/** The same error with every issue path put under `prefix` (the Python port's _prefixed). */
+function prefixed(err: CalcInputError, prefix: string): CalcInputError {
+  const issues = err.issues.map((x) => ({
+    path: x.path ? `${prefix}.${x.path}` : prefix,
+    message: x.message,
+  }));
+  const message = issues.length
+    ? `invalid input: ${issues.map((x) => `${x.path}: ${x.message}`).join("; ")}`
+    : `${prefix}: ${err.message}`;
+  return new CalcInputError(message, issues);
+}
+
 /**
  * Tie FactLot's CAM reconciliation out against another system's per-tenant results: runs
  * calc_cam_reconciliation_batch, matches tenants, compares share, gross-up, cap, admin fee,
@@ -194,7 +206,15 @@ export function reconcileCam(raw: ReconcileCamInput): CalcResult<ReconcileCam> {
   const input = parseInput(ReconcileCamInput, raw);
   const t = new Trace();
   // The cam input as sent, so the statements name the flags it left to their defaults.
-  const batch = camReconciliationBatch(raw.cam);
+  let batch: ReturnType<typeof camReconciliationBatch>;
+  try {
+    batch = camReconciliationBatch(raw.cam);
+  } catch (err) {
+    // A runtime check inside the batch (a move-out outside the period, say) names a path inside
+    // cam; the caller's input has it under cam, as the schema's own issues do.
+    if (err instanceof CalcInputError) throw prefixed(err, "cam");
+    throw err;
+  }
   const cam = input.cam;
   const tolAbs = input.tolerance.absolute;
   const tolRel = input.tolerance.relative;

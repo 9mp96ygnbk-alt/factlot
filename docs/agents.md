@@ -139,7 +139,7 @@ live answer.
 Prompts (`prompts/get`) give the tool order for common jobs and ask for every fact to be cited:
 `property_owner`, `owner_portfolio`, `parcel_value_history`, `tx_unequal_appraisal_candidates`
 (candidates under FactLot's default rule for a person to review, never a selection of comparables),
-`lease_abstract_check`, `expense_statement_audit` (a tenant's audit of a landlord's expense statement, then the dispute), `estoppel_certificate` (a tenant estoppel from a lease, sent to the tenant and open to a lender or buyer) and `deal_math`.
+`lease_abstract_check`, `expense_statement_audit` (a tenant's audit of a landlord's expense statement, then the dispute), `estoppel_certificate` (a tenant estoppel from a lease, sent to the tenant and open to a lender or buyer), `rent_roll_certification` (a commercial rent roll graded line by line against the leases, sent to a lender or buyer who records reliance on the lines that match) and `deal_math`.
 
 ## Hosted plans
 

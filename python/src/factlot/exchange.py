@@ -23,6 +23,8 @@ from .factpackage import verify_fact_package
 
 EXCHANGE_URL = "https://czmyqwkauymguoznzpzr.supabase.co/functions/v1/exchange"
 EXCHANGE_SITE_URL = "https://cre-record.vercel.app"
+# The most facts the Record takes in one rent roll package (a lease-by-lease roll is larger than an estoppel).
+RENT_ROLL_PACKAGE_FACTS = 600
 
 # (url, headers, body) -> (http status, parsed JSON). Raises OSError when nothing answers.
 Transport = Callable[[str, dict[str, str], bytes], "tuple[int, Any]"]
@@ -128,13 +130,48 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         issues.append({"path": "to.organisation", "message": "the counterparty must be a different organisation from the sender"})
     seen: set[str] = set()
     estoppel = inp["kind"] == "estoppel"
-    if not estoppel and inp.get("relying_parties") is not None:
-        issues.append({"path": "relying_parties", "message": "relying parties are for kind estoppel only"})
+    rent_roll = inp["kind"] == "rent_roll"
+    if not estoppel and not rent_roll and inp.get("relying_parties") is not None:
+        issues.append({"path": "relying_parties", "message": "relying parties are for kinds estoppel and rent_roll only"})
+    if not rent_roll and inp.get("estoppel_links") is not None:
+        issues.append({"path": "estoppel_links", "message": "estoppel_links are for kind rent_roll only"})
+    linked: list[dict[str, str]] = []
+    for i, link in enumerate(inp.get("estoppel_links") or []):
+        m = re.search(r"#/r/([0-9a-f-]{36})/([0-9a-zA-Z]+)/?$", link.strip())
+        if not m:
+            issues.append({"path": f"estoppel_links.{i}", "message": "not a status link from fact_package_send"})
+        else:
+            linked.append({"id": m.group(1), "token": m.group(2)})
     for i, it in enumerate(inp["items"]):
         if it["key"] in seen:
             issues.append({"path": f"items.{i}.key", "message": f"duplicate item key {it['key']}"})
         seen.add(it["key"])
-        if estoppel:
+        rr_only = any(k in it for k in ("grade", "grade_label", "differences", "estoppel_package_id", "estoppel_statements"))
+        if rr_only and not rent_roll:
+            issues.append({"path": f"items.{i}", "message":
+                           "grade, grade_label, differences, estoppel_package_id and estoppel_statements are for kind rent_roll only"})
+        if rent_roll:
+            if it["position"] != "state_ours":
+                issues.append({"path": f"items.{i}.position", "message":
+                               "every rent roll line is state_ours: the sender asserts it and the lender or buyer relies on it"})
+            if "grade" not in it:
+                issues.append({"path": f"items.{i}.grade", "message": "give the line's grade from rent_roll_certify"})
+            if len(it["fact_ids"]) == 0:
+                issues.append({"path": f"items.{i}.fact_ids", "message": "give the roll and lease facts the line rests on"})
+            if any(k in it for k in ("tenant_to_confirm", "needs_tenant_value", "text")):
+                issues.append({"path": f"items.{i}", "message":
+                               "text, tenant_to_confirm and needs_tenant_value are for kind estoppel only"})
+            if it.get("grade") == "matches_lease_confirmed_by_tenant":
+                if not it.get("estoppel_package_id") or not (it.get("estoppel_statements") or []):
+                    issues.append({"path": f"items.{i}.estoppel_package_id", "message":
+                                   "a line graded confirmed by tenant names the estoppel package and the statements the tenant agreed"})
+                elif not any(x["id"] == it["estoppel_package_id"] for x in linked):
+                    issues.append({"path": f"items.{i}.estoppel_package_id", "message":
+                                   "give the status link of that estoppel in estoppel_links so the Record can check the tenant's answers"})
+            elif "estoppel_package_id" in it:
+                issues.append({"path": f"items.{i}.estoppel_package_id", "message":
+                               "only a line graded confirmed by tenant names an estoppel"})
+        elif estoppel:
             if it["position"] != "state_ours":
                 issues.append({"path": f"items.{i}.position", "message":
                                "every estoppel statement is state_ours: the tenant answers each one"})
@@ -159,6 +196,10 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         for j, fid in enumerate(it["fact_ids"]):
             if fid not in ids:
                 issues.append({"path": f"items.{i}.fact_ids.{j}", "message": f"{fid} is not a fact in the package"})
+    if rent_roll and isinstance(pkg.get("facts"), list) and len(pkg["facts"]) > RENT_ROLL_PACKAGE_FACTS:
+        issues.append({"path": "package.facts", "message":
+                       f"a rent roll package holds at most {RENT_ROLL_PACKAGE_FACTS} facts (this one has {len(pkg['facts'])}): "
+                       "send the roll in parts, by building or floor"})
     if issues:
         raise DocInputError(issues[:20])
 
@@ -180,7 +221,8 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         "subject": {"label": subject["label"], **({"ref": ref} if ref else {})},
         "from": inp["from"], "to": inp["to"], "items": inp["items"],
         **({"calculation": inp["calculation"]} if inp.get("calculation") else {}),
-        **({"relying_parties": inp["relying_parties"]} if estoppel and inp.get("relying_parties") else {}),
+        **({"relying_parties": inp["relying_parties"]} if (estoppel or rent_roll) and inp.get("relying_parties") else {}),
+        **({"linked_estoppels": linked} if rent_roll and linked else {}),
         "approved_by": inp["approved_by"], "approval_confirmed": True,
         **({"sender_account": account_id} if forward else {}),
     }
@@ -200,7 +242,12 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     to_org = inp["to"]["organisation"]
     if sandbox:
         message = (f"TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real "
-                   f"reliance, because {reason}. The counterparty can still open the link and answer.")
+                   f"reliance, because {reason}. The counterparty can still open the link and {'read it' if rent_roll else 'answer'}.")
+    elif rent_roll:
+        message = (f"SENT FOR REAL: the certified rent roll was sent to {to_org}. Nothing is recorded as relied on yet: a reliance "
+                   f"is recorded for each line graded as matching when a lender or buyer, a different firm from the sender, "
+                   f"records its own. A line that differs from its lease, has no lease or could not be checked is never recorded "
+                   f"as relied on. The sender's certification, not FactLot, is what the lender or buyer relies on.")
     elif estoppel:
         message = (f"SENT FOR REAL: the estoppel statements were sent to {to_org}. Nothing is recorded as relied on yet: a reliance "
                    f"is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and "
@@ -216,14 +263,18 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         "link_for_counterparty": _link(id_, str(sent["counterparty_token"])),
         "status_link_for_sender": _link(id_, str(sent["owner_token"])),
         **({"links_for_relying_parties": [{"label": r.get("label"), "link": _link(id_, str(r["token"]))} for r in relier_tokens]}
-           if estoppel else {}),
+           if estoppel or rent_roll else {}),
         "recorded": {
             "reliances_recorded": n,
             "items_accepted": [r.get("item") for r in reliances],
-            "items_awaiting_answer": [x["key"] for x in inp["items"] if x["position"] == "state_ours"],
+            "items_awaiting_answer": [x["key"] for x in inp["items"] if not rent_roll and x["position"] == "state_ours"],
             "counts_in_the_measure": not sandbox,
         },
-        "note": (f"Send link_for_counterparty to {to_org} (the tenant); it needs no account. Give each lender or buyer its own link "
+        "note": (f"Send link_for_counterparty to {to_org} (the lender or buyer); it needs no account and shows each line with its "
+                 f"grade, its quotes and pages, and the document fingerprints, and lets that party record reliance on the lines "
+                 f"graded as matching. Give any other lender or buyer its own link from links_for_relying_parties. Keep "
+                 f"status_link_for_sender private: it reads who has relied (fact_package_status).") if rent_roll else
+                (f"Send link_for_counterparty to {to_org} (the tenant); it needs no account. Give each lender or buyer its own link "
                  f"from links_for_relying_parties only after the tenant has answered: it shows the statements, the tenant's answers "
                  f"and the document fingerprints, and lets that party record reliance. Keep status_link_for_sender private: it reads "
                  f"the answers and the reliers (fact_package_status).") if estoppel else
@@ -255,6 +306,8 @@ def fact_package_status(args: dict[str, Any]) -> dict[str, Any]:
                                              "by": r.get("responded_by_name"), "at": r.get("responded_at")}
         elif it.get("position") == "accept_theirs":
             answer = {"decision": "accepted_by_sender"}
+        elif it.get("grade") is not None:
+            answer = {"decision": "asserted_by_sender"}
         else:
             answer = None
         row: dict[str, Any] = {"key": it.get("key"), "label": it.get("label"), "position": it.get("position"), "value": it.get("value"),
@@ -265,6 +318,11 @@ def fact_package_status(args: dict[str, Any]) -> dict[str, Any]:
             row["text"] = it["text"]
         if it.get("tenant_to_confirm") is True:
             row["tenant_to_confirm"] = True
+        if it.get("grade") is not None:
+            row["grade"] = it["grade"]
+            row["grade_label"] = it.get("grade_label")
+            if it.get("differences"):
+                row["differences"] = it["differences"]
         row["answer"] = answer
         items.append(row)
     return {

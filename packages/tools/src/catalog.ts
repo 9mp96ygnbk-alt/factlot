@@ -31,6 +31,7 @@ import {
 } from "./documents.ts";
 import { AuditExpenseStatementInput, auditExpenseStatement } from "./audit.ts";
 import { EstoppelPrepareInput, estoppelPrepare } from "./estoppel.ts";
+import { RentRollCertifyInput, rentRollCertify } from "./rentroll.ts";
 import {
   FactPackageCreateInput,
   FactPackageVerifyInput,
@@ -500,6 +501,16 @@ const packageTools: ToolSpec[] = [
     path: "/v1/estoppel/prepare",
     run: (i: never) =>
       estoppelPrepare(i as z.output<typeof EstoppelPrepareInput>),
+  },
+  {
+    name: "rent_roll_certify",
+    title: "Certify a rent roll against the leases, line by line",
+    description:
+      "Certify a commercial rent roll for a lender or buyer: check each line of the roll, given as verified facts (each value with its verbatim quote and page from the rent roll document), against the leases' verified facts (and, where there is one, the answers of a confirmed estoppel), and grade it. Compares per line the tenant name, suite, rentable area, lease start and expiration, current base rent (per year, per month and per SF, the lease's worked from its rent schedule and area), next rent step, security deposit, free rent outstanding, renewal options and recoveries structure, wherever both the roll and a lease fact state it. Each line is graded: matches lease; matches lease and confirmed by tenant (the tenant agreed the premises, expiration and base rent statements of an estoppel); differs (both figures, the dollar difference and the quotes); no lease supplied; or not checkable, with the reason. A field no lease fact covers is not checked, never assumed. Totals: occupied and vacant area, occupancy, annual base rent as stated against as the leases yield and the difference, WALT (calc_walt, by area and by rent), rollover by year and top-tenant concentration. Flags: leases expiring within 12 months, tenants on the roll with no lease, leases with no roll line, rent on the roll above the lease, the roll's own arithmetic. Returns package_items and package_calculation for fact_package_send kind rent_roll. Deterministic, no model, no clock (as_of is an input). Facts and arithmetic, not legal, appraisal or lending advice: the certifying party's certification, not FactLot, is what the lender or buyer relies on, and FactLot checked the roll against the documents supplied only. On the hosted API, callers without a Pro or Team key get the summary only (totals, key figures, grade counts, flags) and the answer says what is withheld.",
+    input: RentRollCertifyInput,
+    path: "/v1/rent-roll/certify",
+    run: (i: never) =>
+      rentRollCertify(i as z.output<typeof RentRollCertifyInput>),
   },
   {
     name: "fact_package_send",

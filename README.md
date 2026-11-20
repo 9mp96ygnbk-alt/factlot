@@ -59,7 +59,7 @@ government-tenant leases, not market comps for every use. Search them from any a
 | Python agents                  | `pip install "git+https://github.com/9mp96ygnbk-alt/factlot.git@v0.5.0#subdirectory=python"`                                                                                                                                               |
 | Self-hosted REST and MCP       | `docker run -p 8787:8787 ghcr.io/9mp96ygnbk-alt/factlot:0.5.0`                                                                                                                                                                             |
 
-The hosted endpoint is free with no key at 60 requests a minute. The local package, the Desktop extension, the Python install and the Docker image above are release v0.5.0. Their next release brings what the hosted server already runs: the tools `registry_lookup_batch`, `registry_recorded_facts`, `audit_expense_statement`, `estoppel_prepare`, `fact_package_send` and `fact_package_status`, new inputs on existing tools (`registry_search_address` `address`, `city`, `state`, `postal_code` and `county_fips`; `registry_coverage` `fields`; `same_building_class`, `same_local_use_code` and `local_use_codes` on the equity-candidate tools; `address` and `label` on the subject and comparables of `calc_tx_unequal_appraisal`; `as_of` on the Texas deadline rules), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only. It is listed in the
+The hosted endpoint is free with no key at 60 requests a minute. The local package, the Desktop extension, the Python install and the Docker image above are release v0.5.0. Their next release brings what the hosted server already runs: the tools `registry_lookup_batch`, `registry_recorded_facts`, `audit_expense_statement`, `estoppel_prepare`, `rent_roll_certify`, `fact_package_send` and `fact_package_status`, new inputs on existing tools (`registry_search_address` `address`, `city`, `state`, `postal_code` and `county_fips`; `registry_coverage` `fields`; `same_building_class`, `same_local_use_code` and `local_use_codes` on the equity-candidate tools; `address` and `label` on the subject and comparables of `calc_tx_unequal_appraisal`; `as_of` on the Texas deadline rules), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only. It is listed in the
 [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.9mp96ygnbk-alt/factlot)
 as `io.github.9mp96ygnbk-alt/factlot`. Runnable examples for REST, Python and agent SDKs are in
 [`examples/`](examples/).
@@ -231,7 +231,7 @@ The server provides these tools:
   `calc_tx_unequal_appraisal`
 - **Rules:** `rules_tx_property_tax_protest_deadline`, `rules_tx_property_tax_protest_deadline_batch`
 - **IDs and facts:** `id_parcel`, `id_entity`, `id_space`, `id_building`, `id_document`,
-  `id_parse`, `fact_validate`, `fact_package_create`, `fact_package_verify`, `fact_package_send`, `fact_package_status`, `audit_expense_statement`, `estoppel_prepare`, `lease_comp_validate`
+  `id_parse`, `fact_validate`, `fact_package_create`, `fact_package_verify`, `fact_package_send`, `fact_package_status`, `audit_expense_statement`, `estoppel_prepare`, `rent_roll_certify`, `lease_comp_validate`
 - **Documents:** `doc_verify_facts`, `doc_abstract_lease`, `doc_compare`, `doc_verify_claim`,
   `doc_spread_statement`, `doc_check_use_conflict`, `doc_predicates`
 - **Reports** (hosted only, every plan: 3 a month free per IP address, 50 on Pro, 1,000 on Team):
@@ -249,7 +249,7 @@ The server provides these tools:
   no key, no registry lookup): `factlot://coverage`,
   `factlot://sources`, `factlot://markets`, `factlot://schemas/tools`, `factlot://schemas/fact`,
   `factlot://spec/id`, `factlot://plans`; prompts `property_owner`, `owner_portfolio`,
-  `parcel_value_history`, `tx_unequal_appraisal_candidates`, `lease_abstract_check`, `expense_statement_audit`, `estoppel_certificate`, `deal_math`
+  `parcel_value_history`, `tx_unequal_appraisal_candidates`, `lease_abstract_check`, `expense_statement_audit`, `estoppel_certificate`, `rent_roll_certification`, `deal_math`
   ([docs/agents.md](docs/agents.md#mcp-resources-and-prompts))
 
 ## Quick start: Python agents

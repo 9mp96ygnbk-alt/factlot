@@ -37,6 +37,7 @@ export const REPORT_KINDS = [
   "property_sheet",
   "expense_audit",
   "estoppel_certificate",
+  "rent_roll_certificate",
 ] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
 
@@ -63,6 +64,7 @@ export const KIND_TOOLS: Record<ReportKind, readonly string[]> = {
   property_sheet: ["registry_get"],
   expense_audit: ["audit_expense_statement"],
   estoppel_certificate: ["estoppel_prepare"],
+  rent_roll_certificate: ["rent_roll_certify"],
 };
 
 export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
@@ -78,6 +80,7 @@ export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
   property_sheet: ["pdf", "xlsx"],
   expense_audit: ["pdf"],
   estoppel_certificate: ["pdf"],
+  rent_roll_certificate: ["pdf", "xlsx"],
 };
 
 export interface Issue {
@@ -727,6 +730,46 @@ const EstoppelResult = z.looseObject({
 });
 type EstoppelResultT = z.output<typeof EstoppelResult>;
 
+const RentRollResult = z.looseObject({
+  as_of: IsoDate,
+  property: z.string(),
+  lines: z.array(
+    z.looseObject({
+      number: Int,
+      line_id: z.string(),
+      occupancy: z.enum(["occupied", "vacant"]),
+      grade: z
+        .enum([
+          "matches_lease",
+          "matches_lease_confirmed_by_tenant",
+          "differs",
+          "no_lease_supplied",
+          "not_checkable",
+        ])
+        .nullable(),
+      checks: z.array(z.looseObject({ field: z.string(), status: z.string() })),
+    }),
+  ),
+  key_figures: z.looseObject({}),
+  area: z.looseObject({ occupied_sf: z.number() }),
+  base_rent: z.looseObject({
+    stated_total: z.number(),
+    per_leases: z.number(),
+    difference: z.number(),
+  }),
+  walt: z.looseObject({}),
+  rollover: z.array(z.looseObject({ period: z.string() })),
+  concentration: z.looseObject({}),
+  totals: z.looseObject({
+    lines: Int,
+    occupied_lines: Int,
+    vacant_lines: Int,
+    grades: z.looseObject({}),
+  }),
+  flags: z.array(z.looseObject({ code: z.string(), message: z.string() })),
+});
+type RentRollResultT = z.output<typeof RentRollResult>;
+
 const SCHEMAS: Record<string, z.ZodType> = {
   calc_tx_unequal_appraisal: calcResult("calc.tx_unequal_appraisal", TxValue),
   calc_cam_reconciliation: CamStatement,
@@ -747,6 +790,7 @@ const SCHEMAS: Record<string, z.ZodType> = {
   doc_abstract_lease: LeaseAbstract,
   audit_expense_statement: AuditResult,
   estoppel_prepare: EstoppelResult,
+  rent_roll_certify: RentRollResult,
 };
 
 // --- the links every genuine result satisfies --------------------------------------------------
@@ -1101,6 +1145,31 @@ function estoppelLinks(r: EstoppelResultT, bad: Issue[]): void {
     });
 }
 
+function rentRollLinks(r: RentRollResultT, bad: Issue[]): void {
+  if (r.totals.lines !== r.lines.length)
+    bad.push({
+      path: "totals.lines",
+      message: "does not match the lines listed",
+    });
+  r.lines.forEach((l, i) => {
+    if (l.number !== i + 1)
+      bad.push({ path: `lines.${i}.number`, message: `should be ${i + 1}` });
+    if ((l.occupancy === "vacant") !== (l.grade === null))
+      bad.push({
+        path: `lines.${i}.grade`,
+        message: "a vacant line has no grade and an occupied line has one",
+      });
+  });
+  if (
+    r.totals.occupied_lines !==
+    r.lines.filter((l) => l.occupancy === "occupied").length
+  )
+    bad.push({
+      path: "totals.occupied_lines",
+      message: "does not match the occupied lines",
+    });
+}
+
 function auditLinks(r: AuditResultT, bad: Issue[]): void {
   if (r.totals.finding_count !== r.findings.length)
     bad.push({
@@ -1136,6 +1205,7 @@ const LINKS: Record<string, (r: never, bad: Issue[]) => void> = {
   doc_abstract_lease: leaseLinks,
   audit_expense_statement: auditLinks,
   estoppel_prepare: estoppelLinks,
+  rent_roll_certify: rentRollLinks,
 };
 
 // --- entry --------------------------------------------------------------------------------------
@@ -1247,7 +1317,9 @@ export function checkInput(
   }
   // The plan rule (whole answer or summary) is the host's, applied before a report is charged.
   const out =
-    kind === "expense_audit" || kind === "estoppel_certificate"
+    kind === "expense_audit" ||
+    kind === "estoppel_certificate" ||
+    kind === "rent_roll_certificate"
       ? runWithExchangeCaller({ fullAudit: true }, () =>
           runTool(tool, runArgs(kind, args, now)),
         )
