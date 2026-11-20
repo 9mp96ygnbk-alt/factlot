@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   generateKey,
   hashKey,
+  keyId,
   readKey,
   writeKey,
   type KeyRecord,
@@ -1301,6 +1302,42 @@ describe("quota accounting", () => {
       coverage.headers.get("x-factlot-registry-quota-remaining"),
       "4997",
     );
+  });
+});
+
+describe("a guest key (keys.ts)", () => {
+  it("counts on its own meter, by key and by its sign-in; the owner's sign-in never lands on it", async () => {
+    const e = env();
+    const owner = await issue(e);
+    // Minted after the owner's key: the newest key of the subscription.
+    const guest = await issue(e, {
+      guest: true,
+      created: "2026-11-19T00:00:00Z",
+    });
+    const ownerToken = (await connect(e, { decision: "key", key: owner.key }))
+      .tokens.access_token;
+    const guestToken = (await connect(e, { decision: "key", key: guest.key }))
+      .tokens.access_token;
+    const remaining = async (bearer: string, id: number) =>
+      (await mcp(e, bearer, lookup(id))).headers.get(
+        "x-factlot-registry-quota-remaining",
+      );
+    assert.equal(await remaining(guest.key, 1), "4999");
+    assert.equal(await remaining(guestToken, 2), "4998");
+    assert.equal(await remaining(owner.key, 3), "4999");
+    assert.equal(await remaining(ownerToken, 4), "4998");
+    assert.equal((await e.METER.quota("sub:sub_1", "month", 5000)).used, 2);
+    assert.equal(
+      (await e.METER.quota(`key:${keyId(guest.hash)}`, "month", 5000)).used,
+      2,
+    );
+    // Revoking the guest key ends its connection, not the owner's.
+    await writeKey(e.KEYS, guest.hash, {
+      ...(await readKey(e.KEYS, guest.hash))!,
+      revoked_at: "2026-11-19T01:00:00Z",
+    });
+    assert.equal((await mcp(e, guestToken, LIST)).status, 401);
+    assert.equal((await mcp(e, ownerToken, LIST)).status, 200);
   });
 });
 

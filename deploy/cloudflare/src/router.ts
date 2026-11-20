@@ -2806,14 +2806,23 @@ async function accountApi(
       {},
       { allow },
     );
+  // A guest key (keys.ts) reads its own plan and usage; everything that manages the
+  // subscription belongs to the subscription's own keys.
+  if (record.guest && path !== "/v1/account" && path !== "/v1/account/usage")
+    return apiError(
+      403,
+      "GuestKey",
+      `This is a guest key: it calls every tool on its own allowance, and cannot open billing or change keys or connected apps. Its plan and usage: GET /v1/account. Questions: ${CONTACT}.`,
+      "GET /v1/account",
+    );
   if (path === "/v1/account") {
     if (request.method !== "GET" && request.method !== "POST")
       return wrongMethod("GET");
     const [summary, connections] = await Promise.all([
       metered(accountSummary(env, hash, record)),
-      listConnections(env, record.subscription),
+      record.guest ? undefined : listConnections(env, record.subscription),
     ]);
-    return json(200, { ...summary, connections });
+    return json(200, record.guest ? summary : { ...summary, connections });
   }
   // DELETE /v1/account/connections/{id}: disconnect an app signed in with OAuth.
   if (path.startsWith("/v1/account/connections/")) {
@@ -2976,6 +2985,11 @@ async function accountRoute(
     );
   }
   const { hash, record } = paid;
+  if (record.guest)
+    return formPage(
+      403,
+      `This is a guest key: it calls every tool on its own allowance and has no account page. Its plan and usage: GET ${(env.API_URL ?? "https://api.factlot.com").replace(/\/$/, "")}/v1/account with the key. Questions: ${CONTACT}.`,
+    );
   const show = async (
     k: string,
     h: string,

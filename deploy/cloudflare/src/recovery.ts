@@ -39,6 +39,7 @@ import {
   hashKey,
   keyId,
   liveKeys,
+  ownerKeys,
   randomToken,
   type KeyRecord,
 } from "./keys.ts";
@@ -175,7 +176,7 @@ export async function subscriptionsForEmail(
     })) as { data?: { id?: unknown }[] };
     for (const s of subs.data ?? []) {
       if (typeof s.id !== "string") continue;
-      const keys = await liveKeys(d.env.KEYS, s.id);
+      const keys = ownerKeys(await liveKeys(d.env.KEYS, s.id));
       if (keys.length > 0 && out.length < MAX_LINKS)
         out.push({ subscription: s.id, record: keys[keys.length - 1]!.record });
     }
@@ -302,7 +303,8 @@ export async function recoverLinkRoute(
     return messagePage(503, "Recover your account", RECOVERY_SETUP_NOTICE);
   const check = await checkRecoveryToken(env, token, now());
   if (!check.ok) return linkProblem(check.why);
-  const keys = await liveKeys(env.KEYS, check.rec.subscription);
+  // The subscription's own keys: recovery never lands on a guest key (keys.ts).
+  const keys = ownerKeys(await liveKeys(env.KEYS, check.rec.subscription));
   if (keys.length === 0)
     return messagePage(
       404,

@@ -26,6 +26,7 @@ import {
   keyId,
   liveKeys,
   meterSubject,
+  ownerKeys,
   readKey,
   removeSubscriptionKey,
   settle,
@@ -930,6 +931,7 @@ function freshRecord(record: KeyRecord, now: number): KeyRecord {
   delete next.replaced_by;
   delete next.revoked_at;
   delete next.inactive_since;
+  delete next.guest;
   return next;
 }
 
@@ -970,7 +972,7 @@ export async function mintKey(
   const limit = PLANS[record.plan].maxKeys;
   // KV is eventually consistent: two mints at the same moment from two regions can both pass
   // this count. The plan's limits are per subscription, so an extra key adds no capacity.
-  if ((await liveKeys(kv, record.subscription)).length >= limit)
+  if (ownerKeys(await liveKeys(kv, record.subscription)).length >= limit)
     return { ok: false, limit };
   const key = generateKey();
   const hash = await hashKey(key);
@@ -989,7 +991,8 @@ export async function revokeKey(
   const keys = await liveKeys(kv, record.subscription);
   const target = keys.find((k) => keyId(k.hash) === id);
   if (!target) return "not_found";
-  if (keys.length <= 1) return "last_key";
+  // A guest key can always go; the subscription keeps at least one key of its own.
+  if (!target.record.guest && ownerKeys(keys).length <= 1) return "last_key";
   await writeKey(
     kv,
     target.hash,
@@ -1042,8 +1045,12 @@ export interface AccountSummary {
       current: boolean;
       /** ISO, to the minute; null when unknown (never used, or before this was recorded). */
       last_used_at: string | null;
+      /** A guest key (on its own meter; see GET /v1/account with that key). */
+      guest?: true;
     }[];
   };
+  /** Set for a guest key: tools only, on its own allowance; no billing or key changes. */
+  guest?: true;
   /** ISO: when the subscription renews (Stripe current_period_end); null when it will not or is unknown. */
   renewal_at: string | null;
   /** ISO: when a subscription set to cancel ends. */
@@ -1066,7 +1073,8 @@ export async function accountSummary(
   const plan = PLANS[record.plan];
   const subject = meterSubject(record, hash);
   const allowance = MODEL_ALLOWANCES[record.plan];
-  const [keys, q, pages, narratives, reports] = await Promise.all([
+  const guest = record.guest === true;
+  const [all, q, pages, narratives, reports] = await Promise.all([
     liveKeys(env.KEYS, record.subscription),
     env.METER.quota(subject, "month", plan.registryLookupsPerMonth),
     env.METER.quota(
@@ -1127,11 +1135,12 @@ export async function accountSummary(
       limit: reports.limit,
       resets_at: reports.resets_at,
     },
+    // A guest sees its own key only; the subscription sees every key, guests marked.
     keys: {
-      count: keys.length,
-      limit: plan.maxKeys,
+      count: guest ? 1 : ownerKeys(all).length,
+      limit: guest ? 1 : plan.maxKeys,
       items: await Promise.all(
-        keys.map(async (k) => ({
+        (guest ? all.filter((k) => k.hash === hash) : all).map(async (k) => ({
           id: keyId(k.hash),
           created: k.record.created,
           current: k.hash === hash,
@@ -1139,16 +1148,19 @@ export async function accountSummary(
             (await env.METER.lastUsed(`key:${keyId(k.hash)}`).catch(
               () => undefined,
             )) ?? null,
+          ...(k.record.guest ? { guest: true as const } : {}),
         })),
       ),
     },
+    ...(guest ? { guest: true as const } : {}),
     renewal_at:
+      !guest &&
       record.period_end &&
       !record.cancel_at_period_end &&
       deriveStatus(record) === "active"
         ? record.period_end
         : null,
-    ...(record.period_end && record.cancel_at_period_end
+    ...(!guest && record.period_end && record.cancel_at_period_end
       ? { ends_at: record.period_end }
       : {}),
     manage: `${siteUrl(env)}/account`,
