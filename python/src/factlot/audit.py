@@ -302,6 +302,31 @@ def _has_words(label: str, phrase: str) -> bool:
     return p != "" and f" {p} " in f" {_norm(label)} "
 
 
+_FIGURE_LABELS: dict[str, tuple[str, str]] = {
+    "FEE_RATE_ABOVE_CAP": ("Fee at the rate billed", "Fee at the lease rate"),
+    "FEE_ON_EXCLUDED_LINES": ("Fee on the landlord's base", "Fee on the lease's base"),
+    "FEE_ON_GROSSED_UP_BASE": ("Fee on the landlord's base", "Fee on the lease's base"),
+    "FEE_BASE_UNRECONCILED": ("Fee on the landlord's base", "Fee on the lease's base"),
+    "CAP_EXCEEDED": ("Controllable charge billed", "Charge at the cap"),
+    "CAP_METHOD_AMBIGUOUS": ("Controllable charge billed", "Charge at the cap"),
+    "CAPEX_BILLED_AS_OPERATING": ("Charged to the tenant", "Recoverable under the lease"),
+    "CAPEX_AMORTIZATION": ("Charged to the tenant", "Recoverable under the lease"),
+    "GROSSUP_ON_FIXED_EXPENSE": ("Charge as grossed up", "Charge without gross-up"),
+    "GROSSUP_WRONG_OCCUPANCY": ("Charge at the landlord's occupancy", "Charge at the lease's occupancy"),
+    "SHARE_DIFFERS": ("Charge at the share applied", "Charge at the lease share"),
+    "EXCLUDED_CATEGORY_BILLED": ("Charged to the tenant", "Recoverable under the lease"),
+    "DUPLICATE_LINE": ("Charged to the tenant", "Charged once"),
+    "DUPLICATE_OF_SEPARATE_BILL": ("Charged to the tenant", "Charged once"),
+    "BASE_YEAR_DIFFERS": ("Deduction the landlord applied", "Deduction the lease yields"),
+    "BASE_YEAR_DEDUCTION": ("Deduction the landlord applied", "Deduction the lease yields"),
+    "STOP_DIFFERS": ("Deduction the landlord applied", "Deduction the lease yields"),
+    "ARITH_LINES_VS_TOTAL": ("Share of the stated total", "Share of the lines"),
+    "ARITH_ESTIMATES": ("Estimates credited", "Estimates paid"),
+    "ARITH_BALANCE": ("Balance claimed", "Balance the figures yield"),
+    "ARITH_FEE": ("Fee stated", "Fee the rate and base yield"),
+    "YOY_RISE": ("This year's line", "Prior year's line"),
+}
+
 _CHECKS = [
     ("management_fee", "Management or admin fee"),
     ("cap", "Cap on controllable expenses"),
@@ -392,6 +417,8 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
         lf, sf = _uniq(lease_facts), _uniq(statement_facts)
         findings.append({
             "id": f"{code}.{n}", "code": code, "check": check, "title": title, "class": cls,
+            "landlord_label": _FIGURE_LABELS.get(code, ("Landlord's figure", "Figure the lease yields"))[0],
+            "lease_label": _FIGURE_LABELS.get(code, ("Landlord's figure", "Figure the lease yields"))[1],
             "landlord_figure": landlord, "lease_figure": lease_, "difference": difference, "unit": "USD",
             "lease_fact_ids": [x.id for x in lf], "statement_fact_ids": [x.id for x in sf],
             "line_fact_ids": [x.id for x in _uniq(lines or [])],
@@ -519,12 +546,17 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
             def near(x: float) -> bool:
                 return abs(b - x) <= BASE_TOL
 
-            def base(code: str, title: str, excess: float, cls: str, step: str, confirm_extra: str, ls: list[_Fact]) -> None:
-                add("management_fee", code, title=title, cls=cls, landlord=_usd(rl * excess), lease_=0,
-                    difference=_usd(rl * excess), lease_facts=[fee_fact, *anchor], statement_facts=[fee_statement, *ls],
+            def base(code: str, title: str, hi: float, lo: float, cls: str, step: str, confirm_extra: str,
+                     ls: list[_Fact]) -> None:
+                # Two fees at the lease's rate, on the base before and after the error: comparable totals.
+                diff = _usd(_usd(rl * hi) - _usd(rl * lo))
+                add("management_fee", code, title=title, cls=cls, landlord=_usd(rl * hi), lease_=_usd(rl * lo),
+                    difference=diff, lease_facts=[fee_fact, *anchor], statement_facts=[fee_statement, *ls],
                     lines=ls,
                     steps=[f"Fee base on the statement: {_money(b)}; the base the lease yields: {_money(ideal)}", step,
-                           f"Fee on the excess at the lease rate: {_pct(rl)} x {_money(excess)} = {_money(rl * excess)}"],
+                           f"Fee at the lease rate on the higher base: {_pct(rl)} x {_money(hi)} = {_money(rl * hi)}",
+                           f"Fee at the lease rate on the lower base: {_pct(rl)} x {_money(lo)} = {_money(rl * lo)}",
+                           f"Difference: {_money(rl * hi)} less {_money(rl * lo)} = {_money(diff)}"],
                     confirm=[confirm_extra])
 
             if b > ideal + BASE_TOL:
@@ -532,32 +564,32 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
                 which = "which lines the landlord included in its fee base (the statement gives only the total)"
                 labels = "; ".join(l.label for l in excluded)
                 if fee["base"] == "actual" and near(A):
-                    base("FEE_ON_EXCLUDED_LINES", "Fee charged on lines the lease excludes from the fee base", A - C,
+                    base("FEE_ON_EXCLUDED_LINES", "Fee charged on lines the lease excludes from the fee base", A, C,
                          "depends_on_reading",
                          f"The statement's fee base equals the share of every line ({_money(A)}), so it includes: {labels}",
                          which, ex_lines)
                 elif fee["base"] == "actual" and near(B):
                     base("FEE_ON_GROSSED_UP_BASE", "Fee charged on a grossed-up base; the lease says actual expenses",
-                         B - A, "depends_on_reading",
+                         B, A, "depends_on_reading",
                          f"The statement's fee base equals the share of every line grossed up ({_money(B)}), not of actual amounts ({_money(A)})",
                          which, [])
                     if A - C > BASE_TOL:
-                        base("FEE_ON_EXCLUDED_LINES", "Fee charged on lines the lease excludes from the fee base", A - C,
+                        base("FEE_ON_EXCLUDED_LINES", "Fee charged on lines the lease excludes from the fee base", A, C,
                              "depends_on_reading", f"The base also includes: {labels}", which, ex_lines)
                 elif fee["base"] == "actual" and near(D):
                     base("FEE_ON_GROSSED_UP_BASE", "Fee charged on a grossed-up base; the lease says actual expenses",
-                         D - C, "depends_on_reading",
+                         D, C, "depends_on_reading",
                          f"The statement's fee base equals the share of the non-excluded lines grossed up ({_money(D)}), not of actual amounts ({_money(C)})",
                          which, [])
                 elif fee["base"] == "grossed_up" and near(B):
-                    base("FEE_ON_EXCLUDED_LINES", "Fee charged on lines the lease excludes from the fee base", B - D,
+                    base("FEE_ON_EXCLUDED_LINES", "Fee charged on lines the lease excludes from the fee base", B, D,
                          "depends_on_reading",
                          f"The statement's fee base equals the share of every line grossed up ({_money(B)}), so it includes: {labels}",
                          which, ex_lines)
                 else:
                     base("FEE_BASE_UNRECONCILED",
                          "Fee base is higher than any base the lease allows, and matches none of the statement's lines",
-                         b - ideal, "depends_on_reading",
+                         b, ideal, "depends_on_reading",
                          f"The statement's fee base ({_money(b)}) matches none of: all lines ({_money(A)}), all lines grossed up ({_money(B)}), lines the lease allows ({_money(C)}), those grossed up ({_money(D)})",
                          "how the landlord built its fee base (ask for the workpaper)", [])
 
@@ -864,8 +896,8 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
             if abs(t - total_sum) > TOL:
                 add("arithmetic", "ARITH_LINES_VS_TOTAL",
                     title=f"The lines add to {_money(total_sum)}; the statement's total is {_money(t)}",
-                    cls="follows_from_terms", landlord=_usd(t), lease_=_usd(total_sum),
-                    difference=_usd(share * (t - total_sum) if t > total_sum else 0), lease_facts=anchor,
+                    cls="follows_from_terms", landlord=_usd(share * t), lease_=_usd(share * total_sum),
+                    difference=_usd(max(0, _usd(share * t) - _usd(share * total_sum))), lease_facts=anchor,
                     statement_facts=[total_fact, *(l.fact for l in lines)],
                     steps=[f"Sum of the {len(lines)} lines: {_money(total_sum)}; stated total: {_money(t)}; gap {_money(t - total_sum)}",
                            f"If the charge is computed from the total, the tenant's share of the gap is {_pct(share)} x {_money(t - total_sum)} = {_money(share * (t - total_sum))}"

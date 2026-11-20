@@ -139,17 +139,51 @@ describe("expense_audit report", () => {
     assert.match(f.filename, /^factlot-[a-z0-9-]+-2026-11-07\.pdf$/);
     assert.equal(f.content_type, "application/pdf");
     const text = await pdfText(f.bytes);
+    assert.match(text, /Operating expense statement audit/);
     assert.match(text, /Expense statement audit, 2025/);
-    assert.match(text, /CAP_EXCEEDED\.1/);
-    assert.match(text, /FEE_ON_EXCLUDED_LINES\.1/);
-    assert.match(text, /\$217\.00/);
+    assert.match(text, /Prepared for Birchwood Analytics Inc/);
+    // the two figures a reader compares are comparable totals: the fee the landlord's base
+    // gives ($6,800.00) and the lease's ($2,800.00), and the difference is theirs ($4,000.00)
+    assert.match(text, /\$6,800\.00/);
+    assert.match(text, /\$2,800\.00/);
     assert.match(text, /\$4,000\.00/);
-    assert.match(text, /2026-07-08/);
+    assert.match(text, /\$217\.00/);
+    // dates as a person reads them, never ISO
+    assert.match(text, /July 8, 2026/);
+    assert.ok(!/\b\d{4}-\d{2}-\d{2}\b/.test(text), "no ISO date is printed");
     assert.match(text, /certified mail/);
-    assert.match(text, /page 4/);
+    assert.match(text, /Lease, page 5/);
     assert.match(text, /five percent \(5%\) per year/);
-    assert.match(text, /Checks that could not run/);
-    assert.match(text, /not legal conclusions/);
+    assert.match(text, /Checks not performed/);
+    assert.match(text, /Basis of preparation/);
+    assert.match(text, /Important information/);
+    assert.match(text, /Page 2 of \d+/);
+    // the footer: one line, no URL
+    assert.match(
+      text,
+      /Prepared from the documents supplied\. Not legal advice\. FactLot /,
+    );
+    assert.ok(!/https?:\/\/|factlot\.com/.test(text), "no URL anywhere");
+    // fact ids are in the Sources appendix only, never in the body before it
+    const at = text.indexOf("Sources");
+    assert.ok(at > 0);
+    assert.ok(!/flf_/.test(text.slice(0, text.lastIndexOf("Sources"))));
+    assert.match(text.slice(text.lastIndexOf("Sources")), /flf_r\d+/);
+    // no identifier codes in the body
+    assert.ok(!/CAP_EXCEEDED|FEE_ON_EXCLUDED_LINES/.test(text));
+    // standard fonts only; deterministic
+    const doc = await PDFDocument.load(f.bytes, { updateMetadata: false });
+    assert.ok(doc.getPageCount() >= 3);
+    const again = await createReport(
+      {
+        kind: "expense_audit",
+        format: "pdf",
+        arguments: a,
+        context: { prepared_for: "Birchwood Analytics Inc" },
+      },
+      { now: NOW },
+    );
+    assert.deepEqual(again.bytes, f.bytes);
     // the run is FactLot's: a result sent with the request is compared, never used
     const out = runTool("audit_expense_statement", a);
     assert.ok(out.ok);
@@ -180,5 +214,89 @@ describe("expense_audit report", () => {
       (e: unknown) =>
         e instanceof ReportInputError && e.code === "ArgumentsError",
     );
+  });
+
+  it("never leaves a heading alone at the foot of a page, and never draws outside the margins", async () => {
+    // a case with many findings so the layout has to break pages
+    const a = args();
+    n += 100;
+    const sf = a.statement_facts as Json[];
+    const idx = (p: string) => sf.findIndex((x) => x.predicate === p);
+    sf[idx("statement.share_applied")] = fact(
+      "statement.share_applied",
+      { share: 0.09 },
+      "Tenant's share 9.00%",
+      2,
+    );
+    const long = "The landlord states the amount in a long sentence. ".repeat(
+      6,
+    );
+    sf.push(
+      fact(
+        "statement.line",
+        { label: "Janitorial", amount: 150000, controllable: true },
+        `Janitorial 150,000 ${long}`,
+        2,
+      ),
+      fact(
+        "statement.line",
+        { label: "Advertising", amount: 20000, controllable: true },
+        `Advertising 20,000 ${long}`,
+        2,
+      ),
+    );
+    (a.lease_facts as Json[]).push(
+      fact(
+        "lease.cam_exclusion",
+        { category: "advertising" },
+        "Operating Expenses exclude advertising costs",
+        3,
+      ),
+    );
+    const f = await createReport(
+      { kind: "expense_audit", format: "pdf", arguments: a },
+      { now: NOW },
+    );
+    const doc = await PDFDocument.load(f.bytes, { updateMetadata: false });
+    // each page's content stream, in page order (registered in page order)
+    const streams: string[] = [];
+    for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+      if (!(obj instanceof PDFRawStream)) continue;
+      const ops = inflateSync(obj.contents).toString("latin1");
+      if (ops.includes(" Tf ")) streams.push(ops);
+    }
+    assert.equal(streams.length, doc.getPageCount());
+    assert.ok(streams.length >= 4);
+    for (const [i, ops] of streams.entries()) {
+      const texts = [
+        ...ops.matchAll(
+          /\/(F\d) ([\d.]+) Tf ([\d.]+) ([\d.]+) Td <([0-9A-Fa-f]*)> Tj/g,
+        ),
+      ].map((m) => ({
+        font: m[1]!,
+        size: Number(m[2]),
+        x: Number(m[3]),
+        y: Number(m[4]),
+        text: Buffer.from(m[5]!, "hex").toString("latin1"),
+      }));
+      // body text only: above the footer line (y > 61.2) and below the running header
+      const body = texts.filter((t) => t.y > 61.2 + 4 && t.y < 792 - 0.9 * 72);
+      for (const t of body) {
+        assert.ok(
+          t.x >= 0.95 * 72 - 0.01,
+          `page ${i + 1}: text left of the margin`,
+        );
+        assert.ok(t.y >= 61.2, `page ${i + 1}: text below the bottom margin`);
+      }
+      // the lowest body text is not a section heading (Times bold 13.5) or a subheading (10.5)
+      const lowest = body.reduce((m, t) => (t.y < m.y ? t : m), body[0]!);
+      assert.ok(
+        !(
+          lowest.font === "F4" &&
+          (lowest.size === 13.5 || lowest.size === 10.5)
+        ),
+        `page ${i + 1} ends on a heading: ${lowest.text}`,
+      );
+    }
   });
 });

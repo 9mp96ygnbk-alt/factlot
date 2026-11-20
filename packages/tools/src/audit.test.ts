@@ -212,6 +212,12 @@ test("a fee-base error and a cap error: figures worked by hand", () => {
   // (taxes and insurance are excluded from the fee base): excess 40,000 x 10% = 4,000.
   const fee = find(r, "FEE_ON_EXCLUDED_LINES")!;
   assert.equal(fee.difference, 4000);
+  // The two figures are comparable totals: the fee on the landlord's base (10% x 68,000) and on
+  // the lease's base (10% x 28,000); the difference is theirs.
+  assert.equal(fee.landlord_figure, 6800);
+  assert.equal(fee.lease_figure, 2800);
+  assert.equal(fee.landlord_label, "Fee on the landlord's base");
+  assert.equal(fee.lease_label, "Fee on the lease's base");
   assert.equal(fee.class, "depends_on_reading");
   // Cap: 24,000 x 1.05^3 = 27,783.00; billed 8% x 350,000 = 28,000; difference 217.00.
   const cap = find(r, "CAP_EXCEEDED")!;
@@ -683,4 +689,22 @@ test("package_items go to fact_package_send as they are: its schema accepts ever
     parsed.success,
     JSON.stringify(parsed.success ? "" : parsed.error.issues),
   );
+});
+
+test("a finding's two figures are comparable: the difference is their difference", () => {
+  // every code but the ones whose figures are credits (deductions, estimates, a balance)
+  const credit = /^(STOP|BASE_YEAR|ARITH_ESTIMATES|ARITH_BALANCE)/;
+  for (const c of [flawedCase()]) {
+    const r = run(c);
+    for (const f of r.findings as Json[]) {
+      if (credit.test(String(f.code)) || f.difference === null) continue;
+      assert.equal(
+        Math.round(
+          ((f.landlord_figure as number) - (f.lease_figure as number)) * 100,
+        ),
+        Math.round((f.difference as number) * 100),
+        String(f.code),
+      );
+    }
+  }
 });

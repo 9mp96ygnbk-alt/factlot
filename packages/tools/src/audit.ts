@@ -351,6 +351,8 @@ interface Finding {
   check: string;
   title: string;
   class: Class;
+  landlord_label: string;
+  lease_label: string;
   landlord_figure: number | null;
   lease_figure: number | null;
   difference: number | null;
@@ -368,6 +370,59 @@ interface NotRun {
   status: "not_run" | "partly_run";
   reason: string;
 }
+
+/** What the two figures of a finding are, as a reader names them: [the landlord's, the lease's]. */
+const FIGURE_LABELS: Record<string, [string, string]> = {
+  FEE_RATE_ABOVE_CAP: ["Fee at the rate billed", "Fee at the lease rate"],
+  FEE_ON_EXCLUDED_LINES: [
+    "Fee on the landlord's base",
+    "Fee on the lease's base",
+  ],
+  FEE_ON_GROSSED_UP_BASE: [
+    "Fee on the landlord's base",
+    "Fee on the lease's base",
+  ],
+  FEE_BASE_UNRECONCILED: [
+    "Fee on the landlord's base",
+    "Fee on the lease's base",
+  ],
+  CAP_EXCEEDED: ["Controllable charge billed", "Charge at the cap"],
+  CAP_METHOD_AMBIGUOUS: ["Controllable charge billed", "Charge at the cap"],
+  CAPEX_BILLED_AS_OPERATING: [
+    "Charged to the tenant",
+    "Recoverable under the lease",
+  ],
+  CAPEX_AMORTIZATION: ["Charged to the tenant", "Recoverable under the lease"],
+  GROSSUP_ON_FIXED_EXPENSE: ["Charge as grossed up", "Charge without gross-up"],
+  GROSSUP_WRONG_OCCUPANCY: [
+    "Charge at the landlord's occupancy",
+    "Charge at the lease's occupancy",
+  ],
+  SHARE_DIFFERS: ["Charge at the share applied", "Charge at the lease share"],
+  EXCLUDED_CATEGORY_BILLED: [
+    "Charged to the tenant",
+    "Recoverable under the lease",
+  ],
+  DUPLICATE_LINE: ["Charged to the tenant", "Charged once"],
+  DUPLICATE_OF_SEPARATE_BILL: ["Charged to the tenant", "Charged once"],
+  BASE_YEAR_DIFFERS: [
+    "Deduction the landlord applied",
+    "Deduction the lease yields",
+  ],
+  BASE_YEAR_DEDUCTION: [
+    "Deduction the landlord applied",
+    "Deduction the lease yields",
+  ],
+  STOP_DIFFERS: [
+    "Deduction the landlord applied",
+    "Deduction the lease yields",
+  ],
+  ARITH_LINES_VS_TOTAL: ["Share of the stated total", "Share of the lines"],
+  ARITH_ESTIMATES: ["Estimates credited", "Estimates paid"],
+  ARITH_BALANCE: ["Balance claimed", "Balance the figures yield"],
+  ARITH_FEE: ["Fee stated", "Fee the rate and base yield"],
+  YOY_RISE: ["This year's line", "Prior year's line"],
+};
 
 const CHECKS: [string, string][] = [
   ["management_fee", "Management or admin fee"],
@@ -494,6 +549,8 @@ function audit(input: AuditInput): Json {
       check,
       title: f.title,
       class: f.class,
+      landlord_label: FIGURE_LABELS[code]?.[0] ?? "Landlord's figure",
+      lease_label: FIGURE_LABELS[code]?.[1] ?? "Figure the lease yields",
       landlord_figure: f.landlord,
       lease_figure: f.lease,
       difference: f.difference,
@@ -699,10 +756,14 @@ function audit(input: AuditInput): Json {
       const D = share * sumGross(clean);
       const ideal = fee!.base === "actual" ? C : D;
       const near = (x: number) => Math.abs(b - x) <= BASE_TOL;
+      // Each fee-base finding compares two fees at the lease's rate: on the base before the
+      // error and on the base after it, so the two figures are comparable totals and the
+      // difference is their difference.
       const base = (
         code: string,
         title: string,
-        excess: number,
+        hi: number,
+        lo: number,
         cls: Class,
         step: string,
         confirmExtra: string,
@@ -711,16 +772,18 @@ function audit(input: AuditInput): Json {
         add("management_fee", code, {
           title,
           class: cls,
-          landlord: usd(rl * excess),
-          lease: 0,
-          difference: usd(rl * excess),
+          landlord: usd(rl * hi),
+          lease: usd(rl * lo),
+          difference: usd(usd(rl * hi) - usd(rl * lo)),
           leaseFacts: [feeFact!, ...anchor],
           statementFacts: [feeStatement!, ...ls],
           lines: ls,
           steps: [
             `Fee base on the statement: ${money(b)}; the base the lease yields: ${money(ideal)}`,
             step,
-            `Fee on the excess at the lease rate: ${pct(rl)} x ${money(excess)} = ${money(rl * excess)}`,
+            `Fee at the lease rate on the higher base: ${pct(rl)} x ${money(hi)} = ${money(rl * hi)}`,
+            `Fee at the lease rate on the lower base: ${pct(rl)} x ${money(lo)} = ${money(rl * lo)}`,
+            `Difference: ${money(rl * hi)} less ${money(rl * lo)} = ${money(usd(rl * hi) - usd(rl * lo))}`,
           ],
           confirm: [confirmExtra],
         });
@@ -730,7 +793,8 @@ function audit(input: AuditInput): Json {
           base(
             "FEE_ON_EXCLUDED_LINES",
             "Fee charged on lines the lease excludes from the fee base",
-            A - C,
+            A,
+            C,
             "depends_on_reading",
             `The statement's fee base equals the share of every line (${money(A)}), so it includes: ${excluded.map((l) => l.label).join("; ")}`,
             "which lines the landlord included in its fee base (the statement gives only the total)",
@@ -740,7 +804,8 @@ function audit(input: AuditInput): Json {
           base(
             "FEE_ON_GROSSED_UP_BASE",
             "Fee charged on a grossed-up base; the lease says actual expenses",
-            B - A,
+            B,
+            A,
             "depends_on_reading",
             `The statement's fee base equals the share of every line grossed up (${money(B)}), not of actual amounts (${money(A)})`,
             "which lines the landlord included in its fee base (the statement gives only the total)",
@@ -750,7 +815,8 @@ function audit(input: AuditInput): Json {
             base(
               "FEE_ON_EXCLUDED_LINES",
               "Fee charged on lines the lease excludes from the fee base",
-              A - C,
+              A,
+              C,
               "depends_on_reading",
               `The base also includes: ${excluded.map((l) => l.label).join("; ")}`,
               "which lines the landlord included in its fee base (the statement gives only the total)",
@@ -760,7 +826,8 @@ function audit(input: AuditInput): Json {
           base(
             "FEE_ON_GROSSED_UP_BASE",
             "Fee charged on a grossed-up base; the lease says actual expenses",
-            D - C,
+            D,
+            C,
             "depends_on_reading",
             `The statement's fee base equals the share of the non-excluded lines grossed up (${money(D)}), not of actual amounts (${money(C)})`,
             "which lines the landlord included in its fee base (the statement gives only the total)",
@@ -770,7 +837,8 @@ function audit(input: AuditInput): Json {
           base(
             "FEE_ON_EXCLUDED_LINES",
             "Fee charged on lines the lease excludes from the fee base",
-            B - D,
+            B,
+            D,
             "depends_on_reading",
             `The statement's fee base equals the share of every line grossed up (${money(B)}), so it includes: ${excluded.map((l) => l.label).join("; ")}`,
             "which lines the landlord included in its fee base (the statement gives only the total)",
@@ -780,7 +848,8 @@ function audit(input: AuditInput): Json {
           base(
             "FEE_BASE_UNRECONCILED",
             "Fee base is higher than any base the lease allows, and matches none of the statement's lines",
-            b - ideal,
+            b,
+            ideal,
             "depends_on_reading",
             `The statement's fee base (${money(b)}) matches none of: all lines (${money(A)}), all lines grossed up (${money(B)}), lines the lease allows (${money(C)}), those grossed up (${money(D)})`,
             "how the landlord built its fee base (ask for the workpaper)",
@@ -1336,9 +1405,9 @@ function audit(input: AuditInput): Json {
         add("arithmetic", "ARITH_LINES_VS_TOTAL", {
           title: `The lines add to ${money(sum)}; the statement's total is ${money(t)}`,
           class: "follows_from_terms",
-          landlord: usd(t),
-          lease: usd(sum),
-          difference: usd(t > sum ? share * (t - sum) : 0),
+          landlord: usd(share * t),
+          lease: usd(share * sum),
+          difference: usd(Math.max(0, usd(share * t) - usd(share * sum))),
           leaseFacts: anchor,
           statementFacts: [totalFact, ...lines.map((l) => l.fact)],
           steps: [

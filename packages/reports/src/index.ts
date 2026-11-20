@@ -24,7 +24,7 @@ import {
   SUPPLIED_LABEL,
   type KindInput,
 } from "./kinds/common.ts";
-import { auditDoc } from "./kinds/audit.ts";
+import { auditPdf } from "./kinds/audit.ts";
 import {
   asc842Doc,
   camDoc,
@@ -416,6 +416,7 @@ export async function renderReport(
       kind === "tx_protest_deadline" ? await protestIcs(k) : await datesIcs(k);
   else if (kind === "tx_unequal_appraisal" && format === "xlsx")
     bytes = await txXlsx(k);
+  else if (kind === "expense_audit") bytes = await auditPdf(k);
   else {
     const doc = BUILDERS[kind](k);
     bytes =
@@ -452,7 +453,10 @@ export async function renderReport(
   };
 }
 
-const BUILDERS: Record<ReportKind, (k: KindInput) => ReportDoc> = {
+const BUILDERS: Record<
+  Exclude<ReportKind, "expense_audit">,
+  (k: KindInput) => ReportDoc
+> = {
   tx_unequal_appraisal: txDoc,
   lease_abstract: leaseDoc,
   cam_reconciliation: camDoc,
@@ -463,7 +467,6 @@ const BUILDERS: Record<ReportKind, (k: KindInput) => ReportDoc> = {
   critical_dates: datesDoc,
   tx_protest_deadline: protestDoc,
   property_sheet: propertySheetDoc,
-  expense_audit: auditDoc,
 };
 
 /**

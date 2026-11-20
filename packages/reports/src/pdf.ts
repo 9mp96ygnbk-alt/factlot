@@ -72,7 +72,7 @@ export function capText(s: string): string {
 }
 
 /** Unicode → WinAnsi-safe text. */
-const REPLACE: Record<string, string> = {
+export const REPLACE: Record<string, string> = {
   "\u2212": "-",
   "\u2010": "-",
   "\u2011": "-",

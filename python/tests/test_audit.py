@@ -141,7 +141,9 @@ class AuditTests(unittest.TestCase):
 
     def test_fee_base_and_cap_errors(self):
         r = run(flawed_case())
-        self.assertEqual(find(r, "FEE_ON_EXCLUDED_LINES")["difference"], 4000)
+        fee = find(r, "FEE_ON_EXCLUDED_LINES")
+        self.assertEqual((fee["landlord_figure"], fee["lease_figure"], fee["difference"]), (6800, 2800, 4000))
+        self.assertEqual((fee["landlord_label"], fee["lease_label"]), ("Fee on the landlord's base", "Fee on the lease's base"))
         cap = find(r, "CAP_EXCEEDED")
         self.assertEqual((cap["landlord_figure"], cap["lease_figure"], cap["difference"]), (28000, 27783, 217))
         self.assertEqual(sorted(codes(r)), ["CAP_EXCEEDED", "FEE_ON_EXCLUDED_LINES"])
