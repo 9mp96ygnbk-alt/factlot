@@ -322,4 +322,31 @@ describe("estoppel_certificate report", () => {
       ReportInputError,
     );
   });
+  it("prints whether the figures were computed by FactLot and unchanged since, only when known", async () => {
+    const make = (context?: object) =>
+      createReport(
+        {
+          kind: "estoppel_certificate",
+          format: "pdf",
+          arguments: args(),
+          ...(context ? { context } : {}),
+        },
+        { now: NOW },
+      );
+    const att = await pdfText(
+      (
+        await make({
+          package_attestation: { status: "attested", tool: "estoppel_prepare" },
+        })
+      ).bytes,
+    );
+    assert.match(att, /Computed by FactLot and unchanged since/);
+    const no = await pdfText(
+      (await make({ package_attestation: { status: "unattested" } })).bytes,
+    );
+    assert.match(no, /Not verified/);
+    assert.ok(
+      !/Verification of the figures/.test(await pdfText((await make()).bytes)),
+    );
+  });
 });

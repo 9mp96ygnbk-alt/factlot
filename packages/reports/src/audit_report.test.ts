@@ -306,4 +306,36 @@ describe("expense_audit report", () => {
       );
     }
   });
+  it("prints whether the figures were computed by FactLot and unchanged since, only when known", async () => {
+    const make = (context?: object) =>
+      createReport(
+        {
+          kind: "expense_audit",
+          format: "pdf",
+          arguments: args(),
+          ...(context ? { context } : {}),
+        },
+        { now: NOW },
+      );
+    const att = await pdfText(
+      (
+        await make({
+          package_attestation: {
+            status: "attested",
+            tool: "audit_expense_statement",
+            key_id: "k1",
+          },
+        })
+      ).bytes,
+    );
+    assert.match(att, /Verification of the figures/);
+    assert.match(att, /Computed by FactLot and unchanged since/);
+    const no = await pdfText(
+      (await make({ package_attestation: { status: "unattested" } })).bytes,
+    );
+    assert.match(no, /Not verified/);
+    assert.ok(
+      !/Verification of the figures/.test(await pdfText((await make()).bytes)),
+    );
+  });
 });

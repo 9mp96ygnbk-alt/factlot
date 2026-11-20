@@ -220,6 +220,17 @@ export interface Env {
    */
   EXCHANGE_TOKEN?: string;
   /**
+   * Secret, optional: the service's Ed25519 private key (PKCS#8, PEM or base64) that signs the
+   * attestation returned with the items of audit_expense_statement, estoppel_prepare and
+   * rent_roll_certify. Without it those tools work and return no attestation. Its public key is
+   * published at /.well-known/factlot-attestation-keys.json.
+   */
+  ATTESTATION_SIGNING_KEY?: string;
+  /** Variable, optional: an id for the signing key (default: derived from its public key). */
+  ATTESTATION_KEY_ID?: string;
+  /** Variable, optional: earlier public keys (base64url, comma-separated) still published, so attestations they signed still verify. */
+  ATTESTATION_PREVIOUS_PUBLIC_KEYS?: string;
+  /**
    * Secret. Without it billing answers 503. Checkout opens only with a live key (sk_live_ or
    * rk_live_); with a test key, existing records keep working but checkout stays closed.
    */

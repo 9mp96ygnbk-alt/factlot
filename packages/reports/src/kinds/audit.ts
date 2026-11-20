@@ -4,7 +4,7 @@
  */
 import { usd } from "../format.ts";
 import { InstitutionalWriter, type Cell } from "../institutional.ts";
-import type { KindInput } from "./common.ts";
+import { attestationParagraph, type KindInput } from "./common.ts";
 
 type Json = Record<string, unknown>;
 
@@ -484,6 +484,11 @@ export async function auditPdf(k: KindInput): Promise<Uint8Array> {
     }.`,
     { size: 8, leading: 11.5 },
   );
+  const attestationText = attestationParagraph(k.ctx);
+  if (attestationText) {
+    w.section("Verification of the figures", 50);
+    w.para(attestationText, { size: 8, leading: 11.5 });
+  }
   w.section("Important information", 50);
   w.para(
     "This report is prepared from the documents supplied and has not been checked against any other source. It is not legal advice and states no legal conclusion; a finding that depends on a reading of the lease, or a question to raise, is labelled as such. Confirm each finding against the lease and its amendments, and take advice before disputing a statement or giving notice. Deadlines are counted from the dates on the statement as supplied: confirm how the lease counts days and what counts as notice.",

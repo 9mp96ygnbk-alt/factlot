@@ -3,13 +3,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import {
+  keyMap,
+  checkAttested,
+  throwawayKey,
+} from "./attestation.testkit.test.ts";
 import { ExchangeItem, FactPackageSendInput } from "./exchange.ts";
 import {
   RENT_ROLL_GRADES,
   rentRollCase,
   rentRollSummary,
+  configureAttestation,
+  factsInInput,
   runTool,
+  runToolAsync,
   runWithExchangeCaller,
+  verifyAttestation,
   documentId,
   type FreeDocumentHost,
 } from "./index.ts";
@@ -587,4 +596,70 @@ test("free document: a limited caller the host entitles gets the whole answer on
   runWithExchangeCaller({ fullAudit: true, freeDocument: host }, () => run(a));
   run(a);
   assert.equal(used.length, n);
+});
+
+test("the hosted service attests the rent roll result; every tamper is refused", async () => {
+  const r = await checkAttested("rent_roll_certify", rentRollCase());
+  assert.ok((r.attestation as Json).calculation_digest);
+  // The attested items go to fact_package_send unchanged.
+  for (const it of r.package_items as Json[]) ExchangeItem.parse(it);
+});
+
+test("an altered grade is refused", async () => {
+  const pem = await throwawayKey();
+  configureAttestation({ signingKey: pem });
+  try {
+    const o = await runToolAsync("rent_roll_certify", rentRollCase());
+    assert.ok(o.ok);
+    const res = o.result as Json;
+    const items = JSON.parse(JSON.stringify(res.package_items)) as Json[];
+    const k = items.findIndex((i) => i.grade === "differs");
+    assert.ok(k >= 0);
+    items[k]!.grade = "matches_lease";
+    items[k]!.grade_label = "Matches lease";
+    delete items[k]!.differences;
+    const facts = [...factsInInput(rentRollCase()).values()].map((l) => l[0]!);
+    const v = await verifyAttestation(
+      res.attestation,
+      {
+        kind: "rent_roll",
+        items,
+        calculation: res.package_calculation as Json,
+        facts: facts as Json[],
+      },
+      await keyMap(),
+    );
+    assert.equal(v.ok, false);
+    assert.match(v.problems[0]!, new RegExp(`item ${items[k]!.key as string}`));
+  } finally {
+    configureAttestation(undefined);
+  }
+});
+
+test("without a signing key the answer has no attestation; a hosted run says so", async () => {
+  configureAttestation(undefined);
+  const local = await runToolAsync("rent_roll_certify", rentRollCase());
+  assert.ok(local.ok);
+  assert.equal("attestation" in (local.result as Json), false);
+  const hosted = await runWithExchangeCaller({ hosted: true }, () =>
+    runToolAsync("rent_roll_certify", rentRollCase()),
+  );
+  assert.ok(hosted.ok);
+  const h = hosted.result as Json;
+  assert.equal(h.attestation, null);
+  assert.match(String(h.attestation_note), /no attestation signing key/);
+  assert.ok((h.package_items as Json[]).length > 0);
+});
+
+test("a summary-only answer carries no items and no attestation", async () => {
+  configureAttestation({ signingKey: await throwawayKey() });
+  try {
+    const o = await runWithExchangeCaller({ fullAudit: false }, () =>
+      runToolAsync("rent_roll_certify", rentRollCase()),
+    );
+    assert.ok(o.ok);
+    assert.equal("attestation" in (o.result as Json), false);
+  } finally {
+    configureAttestation(undefined);
+  }
 });

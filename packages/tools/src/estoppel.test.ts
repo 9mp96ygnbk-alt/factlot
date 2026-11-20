@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { checkAttested } from "./attestation.testkit.test.ts";
 import { ExchangeItem, FactPackageSendInput } from "./exchange.ts";
 import {
   documentId,
@@ -537,4 +538,10 @@ test("free document: a limited caller the host entitles gets the whole answer on
   runWithExchangeCaller({ fullAudit: true, freeDocument: host }, () => run(a));
   run(a);
   assert.equal(used.length, n);
+});
+
+test("the hosted service attests the estoppel statements; every tamper is refused", async () => {
+  const r = await checkAttested("estoppel_prepare", args());
+  assert.equal((r.attestation as Json).calculation_digest, null);
+  assert.ok((r.package_items as Json[]).length > 10);
 });

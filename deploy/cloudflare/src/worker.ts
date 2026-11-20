@@ -5,7 +5,11 @@
 import { createServer } from "node:http";
 import { httpServerHandler } from "cloudflare:node";
 import { createHandler } from "@factlot/server";
-import { configureExchange, configureRegistryRunner } from "@factlot/tools";
+import {
+  configureAttestation,
+  configureExchange,
+  configureRegistryRunner,
+} from "@factlot/tools";
 
 import {
   objectLimiter,
@@ -77,6 +81,21 @@ export default {
       configureRegistryRunner(registryRunner(raw.REGISTRY));
     }
     if (raw.EXCHANGE_TOKEN) configureExchange({ token: raw.EXCHANGE_TOKEN });
+    // The attestation key stays in this isolate's memory; without it the tools return no attestation.
+    configureAttestation(
+      raw.ATTESTATION_SIGNING_KEY
+        ? {
+            signingKey: raw.ATTESTATION_SIGNING_KEY,
+            ...(raw.ATTESTATION_KEY_ID
+              ? { keyId: raw.ATTESTATION_KEY_ID }
+              : {}),
+            previousPublicKeys: (raw.ATTESTATION_PREVIOUS_PUBLIC_KEYS ?? "")
+              .split(",")
+              .map((x) => x.trim())
+              .filter(Boolean),
+          }
+        : undefined,
+    );
     const api: Fetcher = { fetch: (r) => node.fetch(r, raw, ctx) };
     try {
       const waitUntil = (ctx as { waitUntil?: (p: Promise<unknown>) => void })

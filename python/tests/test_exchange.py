@@ -162,6 +162,27 @@ class ExchangeTools(unittest.TestCase):
         self.assertEqual(fake.seen[0]["body"]["sender_account"], "acct_fictional_0001")
         self.assertNotIn("acct_fictional_0001", json.dumps(r))
 
+    def test_attestation_is_forwarded_and_reported(self):
+        att_in = {"format": "factlot.result_attestation", "version": 1, "signature": "sig"}
+        line = "Computed by FactLot and unchanged since."
+        def reply(b):
+            code, body = sent_ok(True)(b)
+            body["result"]["attestation"] = {"status": "attested", "line": line}
+            body["result"]["package_signature"] = {"status": "absent"}
+            return code, body
+        fake = Fake(reply)
+        configure_exchange(transport=fake)
+        r = run_tool("fact_package_send", {**self.inp, "attestation": att_in})
+        self.assertNotIn("error", r, r)
+        self.assertEqual(fake.seen[0]["body"]["attestation"], att_in)
+        self.assertEqual(r["attestation"]["status"], "attested")
+        self.assertIn("ATTESTED: " + line, r["message"])
+        self.assertEqual(r["package_signature"]["status"], "absent")
+        fake2 = Fake(sent_ok(True))
+        configure_exchange(transport=fake2)
+        run_tool("fact_package_send", self.inp)
+        self.assertNotIn("attestation", fake2.seen[0]["body"])
+
     def test_platform_test_mode_reason_and_errors(self):
         configure_exchange(transport=Fake(sent_ok(True, "the application token is not valid")), token="t")
         with run_with_exchange_caller("acct_fictional_0001"):

@@ -21,9 +21,11 @@
  * with isError; other tools keep working.
  */
 import {
+  ATTESTATION_KEYS_PATH,
   LOOKUP_BATCH_MAX_ITEMS,
   TX_EQUITY_BATCH_MAX_SUBJECTS,
   lookupItemStateFips,
+  publishedAttestationKeys,
   runWithExchangeCaller,
   tools,
   type FreeDocumentHost,
@@ -1265,6 +1267,26 @@ async function route(
     if (moved) return Response.redirect(new URL(moved, url), 301);
   }
 
+  // The public keys that verify attestations of computed results (attestation.ts). Public, no key
+  // needed, cached for five minutes. `keys` is empty while the service has no signing key.
+  if (
+    path === ATTESTATION_KEYS_PATH &&
+    (request.method === "GET" || request.method === "HEAD")
+  ) {
+    const keys = await publishedAttestationKeys();
+    return withHeaders(
+      json(200, {
+        format: "factlot.attestation_keys",
+        version: 1,
+        keys,
+      }),
+      {
+        ...corsHeaders(),
+        "cache-control": "public, max-age=300",
+      },
+    );
+  }
+
   // Landing page on the apex and www hosts.
   if (!isApiHost(host) && !isApiPath(path) && env.ASSETS)
     return env.ASSETS.fetch(request);
@@ -2029,6 +2051,7 @@ async function route(
         accountId: exchangeAccount,
         testReason: exchangeTestReason(paid),
         fullAudit: !gating || paid !== undefined,
+        hosted: true,
         ...(freeDocument ? { freeDocument } : {}),
       },
       () => api.fetch(inner),

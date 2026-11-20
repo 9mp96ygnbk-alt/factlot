@@ -133,6 +133,11 @@ names the provider and says how long it may keep what it receives. Lease extract
   Cloudflare Worker secrets, set by the maintainer with `wrangler secret put`. They are not in the
   repository; the Worker configuration only names them
   ([`wrangler.jsonc`](../deploy/cloudflare/wrangler.jsonc)).
+- The hosted service's attestation signing key (`ATTESTATION_SIGNING_KEY`, an Ed25519 private key) is
+  one more Worker secret. It signs what the three computing tools return so the FactLot record can
+  check that a package carries what was computed. Its public keys are published at
+  `/.well-known/factlot-attestation-keys.json`; see
+  [`deploy/cloudflare/README.md`](../deploy/cloudflare/README.md).
 - The repository's GitHub secret scanning and push protection are on (a repository setting, checked
   on 7 November 2026).
 - The CI workflow runs with read-only repository permission and does not keep the checkout token on

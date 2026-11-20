@@ -183,7 +183,7 @@ export const RentRollCertifyInput = z.object({
           })
           .optional()
           .describe(
-            "Optional: the tenant's answers to a confirmed estoppel for this lease (join estoppel_prepare's statement keys and codes with fact_package_status' answers). A line whose tenant, area, expiration and rent all match the lease is then graded confirmed by tenant only if the tenant agreed the premises, expiration and base rent statements and the estoppel speaks to the same rent step as the roll. A statement the tenant disputed makes the line differ. fact_package_send checks the estoppel with the Record when the roll is sent.",
+            "Optional: the tenant's answers to a confirmed estoppel for this lease (join estoppel_prepare's statement keys and codes with fact_package_status' answers). A line whose tenant, area, expiration and rent all match the lease is then graded confirmed by tenant only if the tenant agreed the premises, expiration and base rent statements and the estoppel speaks to the same rent step as the roll. A statement the tenant disputed makes the line differ. fact_package_send checks the estoppel with the FactLot record when the roll is sent.",
           ),
       }),
     )

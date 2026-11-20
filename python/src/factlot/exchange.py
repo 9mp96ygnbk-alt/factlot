@@ -226,6 +226,7 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         **({"calculation": inp["calculation"]} if inp.get("calculation") else {}),
         **({"relying_parties": inp["relying_parties"]} if (estoppel or rent_roll) and inp.get("relying_parties") else {}),
         **({"linked_estoppels": linked} if rent_roll and linked else {}),
+        **({"attestation": inp["attestation"]} if inp.get("attestation") else {}),
         "approved_by": inp["approved_by"], "approval_confirmed": True,
         **({"sender_account": account_id} if forward else {}),
     }
@@ -259,10 +260,14 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         message = (f"SENT FOR REAL: the FactLot record recorded {n} reliance{'' if n == 1 else 's'} now (the sender relies on "
                    f"{'the figure' if n == 1 else 'the figures'} it accepted from {to_org}), and each item {to_org} agrees to will be "
                    f"recorded as relied on by them. Each is tied to the sender's FactLot account.")
+    att = sent.get("attestation") if isinstance(sent.get("attestation"), dict) else None
+    att_note = (f" {'ATTESTED' if att.get('status') == 'attested' else 'NOT ATTESTED'}: {att.get('line')}" if att else "")
     relier_tokens = sent.get("relier_tokens") if isinstance(sent.get("relier_tokens"), list) else []
     return {
         "package_id": id_, "digest": sent.get("digest"), "package_root": sent.get("package_root"), "status": sent.get("status"),
-        "recorded_as": "sandbox" if sandbox else "real", "test_mode": sandbox, "message": message,
+        "recorded_as": "sandbox" if sandbox else "real", "test_mode": sandbox, "message": message + att_note,
+        **({"attestation": att} if att else {}),
+        **({"package_signature": sent["package_signature"]} if isinstance(sent.get("package_signature"), dict) else {}),
         "link_for_counterparty": _link(id_, str(sent["counterparty_token"])),
         "status_link_for_sender": _link(id_, str(sent["owner_token"])),
         **({"links_for_relying_parties": [{"label": r.get("label"), "link": _link(id_, str(r["token"]))} for r in relier_tokens]}
@@ -337,6 +342,8 @@ def fact_package_status(args: dict[str, Any]) -> dict[str, Any]:
         "agreed": sum(1 for x in items if (x["answer"] or {}).get("decision") == "agreed"),
         "disputed": sum(1 for x in items if (x["answer"] or {}).get("decision") == "disputed"),
         "reliances": s.get("reliances"),
+        **({"attestation": s["attestation"]} if isinstance(s.get("attestation"), dict) else {}),
+        **({"package_signature": s["package_signature"]} if isinstance(s.get("package_signature"), dict) else {}),
         **({"reliers": s["reliers"]} if isinstance(s.get("reliers"), list) else {}),
         **({"signature": _signature_out(s["signature"])} if isinstance(s.get("signature"), dict) else {}),
         **({"links": [{"link": l.get("link"), "label": l.get("label"), "first_opened_at": l.get("first_opened_at"),

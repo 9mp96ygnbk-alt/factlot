@@ -12,6 +12,7 @@ import { createHandler } from "@factlot/server";
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
+  configureAttestation,
   configureRegistry,
   configureRegistryRunner,
   currentExchangeCaller,
@@ -1453,6 +1454,57 @@ describe("router", () => {
     }
     assert.equal(asked.length, 5);
     assert.deepEqual(seen, [...paths, ...paths]);
+  });
+
+  it("publishes the attestation public keys: none without a signing key, the current and previous keys with one", async () => {
+    const { api } = innerApi();
+    const get = () =>
+      handle(
+        new Request(
+          "https://api.factlot.com/.well-known/factlot-attestation-keys.json",
+        ),
+        env({ ASSETS: assets }),
+        api,
+      );
+    configureAttestation(undefined);
+    const none = await get();
+    assert.equal(none.status, 200);
+    assert.deepEqual(((await none.json()) as { keys: unknown[] }).keys, []);
+    const k = (await globalThis.crypto.subtle.generateKey(
+      { name: "Ed25519" },
+      true,
+      ["sign", "verify"],
+    )) as {
+      privateKey: Parameters<typeof globalThis.crypto.subtle.exportKey>[1];
+    };
+    const pem = `-----BEGIN PRIVATE KEY-----\n${Buffer.from(
+      await globalThis.crypto.subtle.exportKey("pkcs8", k.privateKey),
+    ).toString("base64")}\n-----END PRIVATE KEY-----`;
+    const previous = Buffer.alloc(32, 7).toString("base64url");
+    configureAttestation({
+      signingKey: pem,
+      keyId: "k-2026-11",
+      previousPublicKeys: [previous],
+    });
+    try {
+      const res = await get();
+      assert.equal(res.status, 200);
+      assert.match(res.headers.get("cache-control") ?? "", /max-age=300/);
+      const body = (await res.json()) as {
+        keys: { kid: string; alg: string; x: string; status: string }[];
+      };
+      assert.equal(body.keys.length, 2);
+      assert.deepEqual(
+        [body.keys[0]!.kid, body.keys[0]!.status, body.keys[0]!.alg],
+        ["k-2026-11", "current", "Ed25519"],
+      );
+      assert.equal(Buffer.from(body.keys[0]!.x, "base64url").length, 32);
+      assert.equal(body.keys[1]!.status, "previous");
+      assert.equal(body.keys[1]!.x, previous);
+      assert.ok(!JSON.stringify(body).includes("PRIVATE"));
+    } finally {
+      configureAttestation(undefined);
+    }
   });
 
   it("serves its own robots.txt on the API host", async () => {

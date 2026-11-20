@@ -12,6 +12,7 @@ import {
   runTool,
   runWithExchangeCaller,
 } from "./index.ts";
+import { checkAttested } from "./attestation.testkit.test.ts";
 import { FactPackageSendInput } from "./exchange.ts";
 
 type Json = Record<string, unknown>;
@@ -766,4 +767,11 @@ test("free document: a limited caller the host entitles gets the whole answer on
   );
   runAudit(a);
   assert.equal(used.length, n);
+});
+
+test("the hosted service attests the audit result; every tamper is refused", async () => {
+  const r = await checkAttested("audit_expense_statement", build(flawedCase()));
+  // The audit returns no calculation, so the attestation covers the items and the facts only.
+  assert.equal((r.attestation as Json).calculation_digest, null);
+  assert.ok((r.package_items as Json[]).length > 0);
 });

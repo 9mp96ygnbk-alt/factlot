@@ -19,6 +19,21 @@ export {
   EXCHANGE_SITE_URL,
   type ExchangeConfig,
 } from "./exchange.ts";
+export {
+  ATTESTATION_FORMAT,
+  ATTESTATION_KEYS_PATH,
+  ATTESTATION_PREFIX,
+  ATTESTATION_VERSION,
+  ATTESTED_TOOLS,
+  attestResult,
+  factsInInput,
+  attestationEnabled,
+  configureAttestation,
+  publishedAttestationKeys,
+  verifyAttestation,
+  type AttestationConfig,
+  type PublishedKey,
+} from "./attestation.ts";
 export * from "./providers.ts";
 export * from "./registry.ts";
 export * from "./fields.ts";

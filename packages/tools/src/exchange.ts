@@ -81,6 +81,11 @@ export interface ExchangeCaller {
    * Only read when fullAudit is false.
    */
   freeDocument?: FreeDocumentHost;
+  /**
+   * True when the host is the hosted FactLot service. Then a computing tool run without a signing
+   * key says that its result carries no attestation; a local run adds nothing.
+   */
+  hosted?: boolean;
 }
 const callerStore = new AsyncLocalStorage<ExchangeCaller>();
 
@@ -317,6 +322,12 @@ export const FactPackageSendInput = z.object({
     .optional()
     .describe(
       "Rent roll only: the sender's status link (status_link_for_sender) of each estoppel that backs a matches_lease_confirmed_by_tenant line. The FactLot record opens each with its private token to check the tenant agreed the statements; the token is not stored.",
+    ),
+  attestation: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      "The attestation that the hosted FactLot service returned with package_items from audit_expense_statement, estoppel_prepare or rent_roll_certify, passed unchanged. The FactLot record checks the service's signature and that the items, grades, figures and facts sent are the ones the service computed. Without it the package is recorded as unattested.",
     ),
   approved_by: z
     .string()
@@ -624,6 +635,7 @@ export async function sendFactPackage(
       ...(rentRoll && linked.length ? { linked_estoppels: linked } : {}),
       approved_by: input.approved_by,
       approval_confirmed: true,
+      ...(input.attestation ? { attestation: input.attestation } : {}),
       ...(forward ? { sender_account: accountId } : {}),
     },
     forward,
@@ -644,6 +656,12 @@ export async function sendFactPackage(
       : estoppel
         ? `SENT FOR REAL: the estoppel statements were sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and the tenant, records its own. A disputed statement is never recorded as relied on.`
         : `SENT FOR REAL: the FactLot record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
+  const att = isJson(sent.attestation) ? sent.attestation : undefined;
+  const attNote = att
+    ? att.status === "attested"
+      ? ` ATTESTED: ${String(att.line)}`
+      : ` NOT ATTESTED: ${String(att.line)}`
+    : "";
   const relierTokens = Array.isArray(sent.relier_tokens)
     ? (sent.relier_tokens as Json[])
     : [];
@@ -654,7 +672,11 @@ export async function sendFactPackage(
     status: sent.status,
     recorded_as: sandbox ? "sandbox" : "real",
     test_mode: sandbox,
-    message,
+    message: `${message}${attNote}`,
+    ...(att ? { attestation: att } : {}),
+    ...(isJson(sent.package_signature)
+      ? { package_signature: sent.package_signature }
+      : {}),
     link_for_counterparty: link(id, String(sent.counterparty_token)),
     status_link_for_sender: link(id, String(sent.owner_token)),
     ...(estoppel || rentRoll
@@ -765,6 +787,10 @@ export async function factPackageStatus(
       (x) => (x.answer as Json | null)?.decision === "disputed",
     ).length,
     reliances: s.reliances,
+    ...(isJson(s.attestation) ? { attestation: s.attestation } : {}),
+    ...(isJson(s.package_signature)
+      ? { package_signature: s.package_signature }
+      : {}),
     ...(Array.isArray(s.reliers) ? { reliers: s.reliers } : {}),
     ...(isJson(s.signature) ? { signature: signatureOut(s.signature) } : {}),
     ...(Array.isArray(s.links)
