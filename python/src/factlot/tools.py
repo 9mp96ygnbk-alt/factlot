@@ -30,7 +30,7 @@ from . import __version__
 from ._core import CalcInputError, input_shape_issue, num_str
 from .calc import CALCULATORS
 from .rules import RULES
-from . import audit, comps, comps_search, docverify, exchange, factpackage, predicates, statements, uses
+from . import audit, comps, comps_search, docverify, estoppel, exchange, factpackage, predicates, statements, uses
 from .ids import FactLotIdError, building_id, document_id, entity_id, parcel_id, parse, short_id, space_id
 
 
@@ -442,6 +442,7 @@ _DOC_TOOLS = {
     "fact_package_create": lambda a: factpackage.create_fact_package(a),
     "fact_package_verify": lambda a: factpackage.verify_fact_package(a),
     "audit_expense_statement": lambda a: audit.audit_expense_statement(a),
+    "estoppel_prepare": lambda a: estoppel.estoppel_prepare(a),
     "fact_package_send": lambda a: exchange.send_fact_package(a),
     "fact_package_status": lambda a: exchange.fact_package_status(a),
 }

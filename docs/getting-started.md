@@ -2,13 +2,13 @@
 
 Three ways to use FactLot, depending on where your agent runs. All three serve the same core
 tools from one catalog: twenty-six calculators, the Texas protest-deadline rule and its batch form,
-FactLot IDs, fact validation, document tools and lease comps (49 tools). The MCP servers (local and `/mcp`) always add
+FactLot IDs, fact validation, document tools and lease comps (50 tools). The MCP servers (local and `/mcp`) always add
 `search`/`fetch`/`schema_get`. The eleven `registry_*` tools are listed (in MCP `tools/list`,
 `GET /v1/tools`, and both OpenAPI documents) only when a registry is available: a registry database
 configured with `FACTLOT_REGISTRY_DB`, or the hosted API's registry service. Without one, their REST
 routes answer `503 RegistryUnavailable`. The hosted API at `https://api.factlot.com` serves the
 regions `registry_coverage` lists (<!-- hosted:places -->Maryland (all 24 jurisdictions), the District of Columbia, 21 counties in Utah, eighteen Texas counties (Harris, Dallas, Travis, Collin, Cameron, Bell, Nueces, Denton, Williamson, Galveston, Jefferson, Brazos, Midland, Ector, Grayson, Johnson, Guadalupe and Kaufman), New York City (all five boroughs), Los Angeles County, San Francisco, the City of Boston, Denver, Connecticut (statewide, by town), Sacramento County (CA), DeKalb County (GA), Marion County (IN), Oakland County (MI), Wake County (NC), and Allegheny County (PA)<!-- /hosted:places -->; <!-- hosted:withheld -->Tarrant County is not served by the hosted registry while the publisher's terms for AI use are unclear.<!-- /hosted:withheld -->), so it lists
-60 tools over REST (`GET /v1/tools`) and 64 over MCP: those, `search`/`fetch`/`schema_get`, and the
+61 tools over REST (`GET /v1/tools`) and 65 over MCP: those, `search`/`fetch`/`schema_get`, and the
 hosted `report_create` (also `POST /v1/reports`; see [reports](reports.md)). A key adds
 `account_status` and `account_usage` over MCP, and on Pro and Team the model-backed tools
 `doc_extract_lease` and `report_narrative`. The TypeScript and Python tool exports always
@@ -34,7 +34,7 @@ including Python's `urllib`, are accepted.
 > below lists the commands that work now first: from a clone, from git, or from the files
 > attached to each [GitHub release](https://github.com/9mp96ygnbk-alt/factlot/releases). The
 > `npx -y @factlot/mcp` and `pip install factlot` forms are marked **after first publish**.
-> The latest release is `v0.5.0`. The next release brings what the hosted server already runs: the tools `registry_lookup_batch`, `registry_recorded_facts`, `audit_expense_statement`, `fact_package_send` and `fact_package_status`, new inputs on existing tools (`registry_search_address` `address`, `city`, `state`, `postal_code` and `county_fips`; `registry_coverage` `fields`; `same_building_class`, `same_local_use_code` and `local_use_codes` on the equity-candidate tools; `address` and `label` on the subject and comparables of `calc_tx_unequal_appraisal`; `as_of` on the Texas deadline rules), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only.
+> The latest release is `v0.5.0`. The next release brings what the hosted server already runs: the tools `registry_lookup_batch`, `registry_recorded_facts`, `audit_expense_statement`, `estoppel_prepare`, `fact_package_send` and `fact_package_status`, new inputs on existing tools (`registry_search_address` `address`, `city`, `state`, `postal_code` and `county_fips`; `registry_coverage` `fields`; `same_building_class`, `same_local_use_code` and `local_use_codes` on the equity-candidate tools; `address` and `label` on the subject and comparables of `calc_tx_unequal_appraisal`; `as_of` on the Texas deadline rules), and MCP resources and prompts. `report_create`, the account tools and the model-backed tools are hosted only.
 > On every release tag the release
 > workflows install each release file the way a user would and test it; the last hand-run pass
 > over every install path was made on version 0.1.0 (see

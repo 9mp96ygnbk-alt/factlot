@@ -463,6 +463,11 @@ describe("MCP prompts", () => {
       statement: "cam-2025.pdf",
       as_of: "2026-04-01",
     },
+    estoppel_certificate: {
+      lease: "lease.pdf",
+      tenant: "Birchwood Analytics Inc",
+      as_of: "2026-11-20",
+    },
     deal_math: {
       question: "NER on a 10-year lease at $42/sf, 6 months free",
       calculation: "net_effective_rent",
@@ -478,6 +483,11 @@ describe("MCP prompts", () => {
       {},
       { lease: "x", statement: "y" },
       { lease: "x", statement: "y", as_of: "April 1" },
+    ],
+    estoppel_certificate: [
+      {},
+      { lease: "x", tenant: "y" },
+      { lease: "x", tenant: "y", as_of: "Nov 20" },
     ],
     deal_math: [{}, { question: "x", calculation: "cap_rate_guess" }],
   };

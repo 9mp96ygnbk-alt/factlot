@@ -127,12 +127,31 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     if inp["from"]["organisation"].strip().lower() == inp["to"]["organisation"].strip().lower():
         issues.append({"path": "to.organisation", "message": "the counterparty must be a different organisation from the sender"})
     seen: set[str] = set()
+    estoppel = inp["kind"] == "estoppel"
+    if not estoppel and inp.get("relying_parties") is not None:
+        issues.append({"path": "relying_parties", "message": "relying parties are for kind estoppel only"})
     for i, it in enumerate(inp["items"]):
         if it["key"] in seen:
             issues.append({"path": f"items.{i}.key", "message": f"duplicate item key {it['key']}"})
         seen.add(it["key"])
-        if it["position"] == "state_ours" and "their_value" not in it:
-            issues.append({"path": f"items.{i}.their_value", "message": "give the counterparty's figure for an item the sender states"})
+        if estoppel:
+            if it["position"] != "state_ours":
+                issues.append({"path": f"items.{i}.position", "message":
+                               "every estoppel statement is state_ours: the tenant answers each one"})
+            if it.get("tenant_to_confirm") is True and len(it["fact_ids"]) > 0:
+                issues.append({"path": f"items.{i}.fact_ids", "message":
+                               "a tenant_to_confirm statement has no lease source: leave fact_ids empty"})
+            if it.get("tenant_to_confirm") is not True and len(it["fact_ids"]) == 0:
+                issues.append({"path": f"items.{i}.fact_ids", "message":
+                               "give the lease facts the statement rests on, or mark it tenant_to_confirm"})
+        else:
+            if len(it["fact_ids"]) == 0:
+                issues.append({"path": f"items.{i}.fact_ids", "message": "give at least one fact the item rests on"})
+            if any(k in it for k in ("tenant_to_confirm", "needs_tenant_value", "number", "text")):
+                issues.append({"path": f"items.{i}", "message":
+                               "number, text, tenant_to_confirm and needs_tenant_value are for kind estoppel only"})
+            if it["position"] == "state_ours" and "their_value" not in it:
+                issues.append({"path": f"items.{i}.their_value", "message": "give the counterparty's figure for an item the sender states"})
     pkg = inp["package"]
     ids = {f.get("id") for f in pkg.get("facts", []) if isinstance(f, dict) and isinstance(f.get("id"), str)} \
         if isinstance(pkg.get("facts"), list) else set()
@@ -161,6 +180,7 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         "subject": {"label": subject["label"], **({"ref": ref} if ref else {})},
         "from": inp["from"], "to": inp["to"], "items": inp["items"],
         **({"calculation": inp["calculation"]} if inp.get("calculation") else {}),
+        **({"relying_parties": inp["relying_parties"]} if estoppel and inp.get("relying_parties") else {}),
         "approved_by": inp["approved_by"], "approval_confirmed": True,
         **({"sender_account": account_id} if forward else {}),
     }
@@ -181,23 +201,34 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     if sandbox:
         message = (f"TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real "
                    f"reliance, because {reason}. The counterparty can still open the link and answer.")
+    elif estoppel:
+        message = (f"SENT FOR REAL: the estoppel statements were sent to {to_org}. Nothing is recorded as relied on yet: a reliance "
+                   f"is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and "
+                   f"the tenant, records its own. A disputed statement is never recorded as relied on.")
     else:
         message = (f"SENT FOR REAL: the Record recorded {n} reliance{'' if n == 1 else 's'} now (the sender relies on "
                    f"{'the figure' if n == 1 else 'the figures'} it accepted from {to_org}), and each item {to_org} agrees to will be "
                    f"recorded as relied on by them. Each is tied to the sender's FactLot account.")
+    relier_tokens = sent.get("relier_tokens") if isinstance(sent.get("relier_tokens"), list) else []
     return {
         "package_id": id_, "digest": sent.get("digest"), "package_root": sent.get("package_root"), "status": sent.get("status"),
         "recorded_as": "sandbox" if sandbox else "real", "test_mode": sandbox, "message": message,
         "link_for_counterparty": _link(id_, str(sent["counterparty_token"])),
         "status_link_for_sender": _link(id_, str(sent["owner_token"])),
+        **({"links_for_relying_parties": [{"label": r.get("label"), "link": _link(id_, str(r["token"]))} for r in relier_tokens]}
+           if estoppel else {}),
         "recorded": {
             "reliances_recorded": n,
             "items_accepted": [r.get("item") for r in reliances],
             "items_awaiting_answer": [x["key"] for x in inp["items"] if x["position"] == "state_ours"],
             "counts_in_the_measure": not sandbox,
         },
-        "note": f"Send link_for_counterparty to {to_org}; it needs no account. Keep status_link_for_sender private: "
-                f"it reads the answers (fact_package_status).",
+        "note": (f"Send link_for_counterparty to {to_org} (the tenant); it needs no account. Give each lender or buyer its own link "
+                 f"from links_for_relying_parties only after the tenant has answered: it shows the statements, the tenant's answers "
+                 f"and the document fingerprints, and lets that party record reliance. Keep status_link_for_sender private: it reads "
+                 f"the answers and the reliers (fact_package_status).") if estoppel else
+                (f"Send link_for_counterparty to {to_org}; it needs no account. Keep status_link_for_sender private: "
+                 f"it reads the answers (fact_package_status)."),
     }
 
 
@@ -220,13 +251,22 @@ def fact_package_status(args: dict[str, Any]) -> dict[str, Any]:
         r = it.get("response")
         if r:
             answer: dict[str, Any] | None = {"decision": "agreed" if r.get("decision") == "confirm" else "disputed",
-                                             "note": r.get("note"), "by": r.get("responded_by_name"), "at": r.get("responded_at")}
+                                             "note": r.get("note"), "tenants_own_version": r.get("own_value"),
+                                             "by": r.get("responded_by_name"), "at": r.get("responded_at")}
         elif it.get("position") == "accept_theirs":
             answer = {"decision": "accepted_by_sender"}
         else:
             answer = None
-        items.append({"key": it.get("key"), "label": it.get("label"), "position": it.get("position"), "value": it.get("value"),
-                      "their_value": it.get("their_value"), "answer": answer})
+        row: dict[str, Any] = {"key": it.get("key"), "label": it.get("label"), "position": it.get("position"), "value": it.get("value"),
+                               "their_value": it.get("their_value")}
+        if it.get("number") is not None:
+            row["number"] = it["number"]
+        if it.get("text") is not None:
+            row["text"] = it["text"]
+        if it.get("tenant_to_confirm") is True:
+            row["tenant_to_confirm"] = True
+        row["answer"] = answer
+        items.append(row)
     return {
         "package_id": s.get("id"), "title": s.get("title"), "status": s.get("status"), "sandbox": s.get("sandbox"),
         "test_mode": s.get("sandbox"), "to": (s.get("to") or {}).get("organisation"), "package_root": s.get("package_root"),
@@ -234,5 +274,7 @@ def fact_package_status(args: dict[str, Any]) -> dict[str, Any]:
         "awaiting_answer": sum(1 for x in items if x["position"] == "state_ours" and x["answer"] is None),
         "agreed": sum(1 for x in items if (x["answer"] or {}).get("decision") == "agreed"),
         "disputed": sum(1 for x in items if (x["answer"] or {}).get("decision") == "disputed"),
-        "reliances": s.get("reliances"), "responded_at": s.get("responded_at"),
+        "reliances": s.get("reliances"),
+        **({"reliers": s["reliers"]} if isinstance(s.get("reliers"), list) else {}),
+        "responded_at": s.get("responded_at"),
     }

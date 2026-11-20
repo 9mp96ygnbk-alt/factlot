@@ -36,6 +36,7 @@ exactly as sent.
 | `tx_protest_deadline`  | `rules_tx_property_tax_protest_deadline` or its `_batch`     | `ics`, `pdf`         |
 | `property_sheet`       | `registry_get` (run by the hosted API as your own call)      | `pdf`, `xlsx`        |
 | `expense_audit`        | `audit_expense_statement`                                    | `pdf`                |
+| `estoppel_certificate` | `estoppel_prepare`                                           | `pdf`                |
 
 - **tx_unequal_appraisal.** The PDF is an evidence packet: the subject, the comparables grid, the
   adjustments with their reasons, the adjusted values in ascending order, the median, the
@@ -133,6 +134,7 @@ exactly as sent.
   arguments and the provenance. Every date is the rule's; nothing in it says whether to protest.
 
 - **expense_audit.** A tenant's audit of a landlord's expense statement, built from `audit_expense_statement`'s run on the verified lease and statement facts you send as `arguments`: the summary, the deadline and the notice form the lease requires, the audit cost-shifting test, each finding with its class (follows from the lease's terms, depends on a reading, or a question), the landlord's figure, the figure the lease yields, the difference, the calculation, and the quote and page of every fact behind it, then the checks that could not run and why. With gating on, the report is part of the paid plans (Pro and Team): other callers get `PlanRequired`, unbilled, and the free summary from the tool. It is set in the institutional style (a restrained research-paper layout on the PDF standard fonts: Times for the title, headings and quotations, Helvetica for text and tables, Courier for fact ids): a title block and key figures, a summary table, one numbered section per finding (the two comparable totals, the calculation, the quotations with their pages, what to confirm), the checks not performed, and a Sources appendix that holds every fact id. Dates are written as people read them.
+- **estoppel_certificate.** A tenant estoppel certificate built from `estoppel_prepare`'s run on the verified lease facts you send as `arguments`: a key-figures band, a summary, the parties and the lease documents, then each numbered statement with the lease quote and page it rests on (a sentence an amendment replaced is shown as superseded), the tenant's answer beside it once you send `context.estoppel_answers` (from `fact_package_status`: each statement's key, agreed or disputed, the tenant's own version and note), a signature block, the gaps and conflicts, who has recorded reliance (`context.estoppel_reliers`), the sources and the SHA-256 of each document. It says the tenant's signature, not FactLot, makes it an estoppel, and prints the tenant's answers as recorded, not re-read. Part of the paid plans (Pro and Team) when gating is on.
 - **property_sheet.** One page for one parcel. Send `arguments: { "urn": "<the parcel's FactLot
 ID>" }` and nothing else (no `input`, no `context`); `registry_search_address` gives the ID for
   an address. The hosted API first reserves the report, then runs `registry_get` on the parcel as

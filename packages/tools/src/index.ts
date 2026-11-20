@@ -69,3 +69,9 @@ export {
 } from "./lookup_batch.ts";
 export type { LookupCall, LookupItem } from "./lookup_batch.ts";
 export { auditSummary, auditLimited, AUDIT_PLAN_URL } from "./audit.ts";
+export {
+  estoppelSummary,
+  estoppelLimited,
+  prepareEstoppel,
+  ESTOPPEL_PLAN_URL,
+} from "./estoppel.ts";

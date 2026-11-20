@@ -36,6 +36,7 @@ export const REPORT_KINDS = [
   "tx_protest_deadline",
   "property_sheet",
   "expense_audit",
+  "estoppel_certificate",
 ] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
 
@@ -61,6 +62,7 @@ export const KIND_TOOLS: Record<ReportKind, readonly string[]> = {
   ],
   property_sheet: ["registry_get"],
   expense_audit: ["audit_expense_statement"],
+  estoppel_certificate: ["estoppel_prepare"],
 };
 
 export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
@@ -75,6 +77,7 @@ export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
   tx_protest_deadline: ["ics", "pdf"],
   property_sheet: ["pdf", "xlsx"],
   expense_audit: ["pdf"],
+  estoppel_certificate: ["pdf"],
 };
 
 export interface Issue {
@@ -687,6 +690,43 @@ const AuditResult = z.looseObject({
 });
 type AuditResultT = z.output<typeof AuditResult>;
 
+const EstoppelResult = z.looseObject({
+  as_of: IsoDate,
+  premises: z.string(),
+  parties: z.looseObject({ tenant: z.string(), landlord: z.string() }),
+  statements: z.array(
+    z.looseObject({
+      number: Int,
+      key: z.string(),
+      code: z.string(),
+      title: z.string(),
+      basis: z.enum(["lease", "tenant"]),
+      status: z.enum(["ready", "tenant_to_confirm", "gap", "conflict"]),
+      text: z.string(),
+      sources: z.array(
+        z.looseObject({ quote: z.string(), page: Int, fact_id: z.string() }),
+      ),
+      steps: z.array(z.string()),
+    }),
+  ),
+  documents: z.array(
+    z.looseObject({ document_id: z.string(), role: z.string() }),
+  ),
+  key_figures: z.looseObject({}),
+  totals: z.looseObject({
+    statement_count: Int,
+    from_lease: Int,
+    tenant_to_confirm: Int,
+    gaps: Int,
+    conflicts: Int,
+    sendable: Int,
+  }),
+  gaps: z.array(z.looseObject({ message: z.string() })),
+  conflicts: z.array(z.looseObject({ number: Int })),
+  facts_used: z.array(z.string()),
+});
+type EstoppelResultT = z.output<typeof EstoppelResult>;
+
 const SCHEMAS: Record<string, z.ZodType> = {
   calc_tx_unequal_appraisal: calcResult("calc.tx_unequal_appraisal", TxValue),
   calc_cam_reconciliation: CamStatement,
@@ -706,6 +746,7 @@ const SCHEMAS: Record<string, z.ZodType> = {
   rules_tx_property_tax_protest_deadline_batch: ProtestBatchResult,
   doc_abstract_lease: LeaseAbstract,
   audit_expense_statement: AuditResult,
+  estoppel_prepare: EstoppelResult,
 };
 
 // --- the links every genuine result satisfies --------------------------------------------------
@@ -1033,6 +1074,33 @@ function leaseLinks(r: LeaseAbstractResult, bad: Issue[]): void {
       });
 }
 
+function estoppelLinks(r: EstoppelResultT, bad: Issue[]): void {
+  const n = r.statements.length;
+  if (r.totals.statement_count !== n)
+    bad.push({
+      path: "totals.statement_count",
+      message: "does not match the statements listed",
+    });
+  r.statements.forEach((s, i) => {
+    if (s.number !== i + 1)
+      bad.push({
+        path: `statements.${i}.number`,
+        message: `should be ${i + 1}`,
+      });
+    if (s.basis === "tenant" && s.sources.length > 0)
+      bad.push({
+        path: `statements.${i}.sources`,
+        message: "a statement only the tenant can confirm has no lease source",
+      });
+  });
+  const gapN = r.statements.filter((s) => s.status === "gap").length;
+  if (r.totals.gaps !== gapN)
+    bad.push({
+      path: "totals.gaps",
+      message: "does not match the statements with a gap",
+    });
+}
+
 function auditLinks(r: AuditResultT, bad: Issue[]): void {
   if (r.totals.finding_count !== r.findings.length)
     bad.push({
@@ -1067,6 +1135,7 @@ const LINKS: Record<string, (r: never, bad: Issue[]) => void> = {
   rules_tx_property_tax_protest_deadline_batch: protestBatchLinks,
   doc_abstract_lease: leaseLinks,
   audit_expense_statement: auditLinks,
+  estoppel_prepare: estoppelLinks,
 };
 
 // --- entry --------------------------------------------------------------------------------------
@@ -1178,7 +1247,7 @@ export function checkInput(
   }
   // The plan rule (whole answer or summary) is the host's, applied before a report is charged.
   const out =
-    kind === "expense_audit"
+    kind === "expense_audit" || kind === "estoppel_certificate"
       ? runWithExchangeCaller({ fullAudit: true }, () =>
           runTool(tool, runArgs(kind, args, now)),
         )

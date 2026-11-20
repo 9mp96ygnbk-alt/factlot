@@ -98,6 +98,44 @@ export const ReportContext = z.strictObject({
     .describe(
       "tx_unequal_appraisal: the rows of registry_tx_equity_candidates' `subject` and `candidates` for this calculation's subject and comparables only, as returned, matched by id. Each row's value and improvement_area_sf must equal that subject's or comparable's in the calculation, and every id must be one of them (InputError otherwise). The packet and workbook print the account number (apn), state property category, building class, local use code, land area and year built as sent, and value per SF computed from the calculation's value and area.",
     ),
+  estoppel_answers: z
+    .array(
+      z.strictObject({
+        key: z
+          .string()
+          .min(1)
+          .max(60)
+          .describe(
+            "The statement's key (S01, S02 ...) from estoppel_prepare.",
+          ),
+        decision: z
+          .enum(["agreed", "disputed"])
+          .describe("The tenant's answer, as fact_package_status gives it."),
+        note: z.string().max(600).nullable().optional(),
+        tenants_own_version: z.string().max(400).nullable().optional(),
+        by: z.string().max(120).nullable().optional(),
+        at: z.string().max(40).nullable().optional(),
+      }),
+    )
+    .max(100)
+    .optional()
+    .describe(
+      "estoppel_certificate: the tenant's answers as fact_package_status returns them (items[].answer with the item's key). The certificate prints each beside its statement as recorded, attributed to the tenant; FactLot did not re-read them.",
+    ),
+  estoppel_reliers: z
+    .array(
+      z.strictObject({
+        who: z.string().min(1).max(260),
+        role: z.string().max(80).nullable().optional(),
+        statements: z.array(z.string().max(60)).max(100).optional(),
+        at: z.string().max(40).nullable().optional(),
+      }),
+    )
+    .max(20)
+    .optional()
+    .describe(
+      "estoppel_certificate: who has recorded reliance (fact_package_status reliers: who, role, statements, at). Printed as a table in the back matter.",
+    ),
   selection_rule: ContextSelectionRule.optional().describe(
     "tx_unequal_appraisal: the `selection_rule` of registry_tx_equity_candidates as returned. The packet and workbook print FactLot's default candidate rule with the parameters, narrowing, step counts and tier counts applied.",
   ),
