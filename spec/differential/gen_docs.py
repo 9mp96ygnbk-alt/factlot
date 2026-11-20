@@ -878,6 +878,170 @@ def estoppel_case(r):
     return {"tool": "estoppel_prepare", "arguments": args}
 
 
+# --- rent_roll_certify: an invented roll, leases that match, differ, are missing or conflict ------------
+
+_R_ROLL = "fl:document:sha256-" + "e" * 64
+_R_LEASE = ["fl:document:sha256-" + c * 64 for c in "123456789"]
+_R_NAMES = ["Birchwood Analytics Inc", "Cobalt Dental Group PLLC", "Fenwick & Marsh Architects LLP",
+            "Juniper Row Bakery Inc", "Halcyon Yoga Studio LLC", "Quillfeather Staffing Inc", "Tidewater Surveying Inc"]
+
+
+def rent_roll_case(r):
+    n = [0]
+
+    def nf(predicate, value, quote, doc, page=1, valid_from=None, supersedes=None):
+        n[0] += 1
+        f = {"id": f"flf_r{n[0]}", "subject": "fl:lease:01jbx3k8q2v7m9c4t6w8y0a2b4", "predicate": predicate,
+             "value": value, "as_of": "2026-11-20",
+             "provenance": {"method": "extracted", "sources": [{"document_id": doc, "page": page, "quote": quote}]}}
+        if valid_from:
+            f["valid_from"] = valid_from
+        if supersedes:
+            f["supersedes"] = supersedes
+        return f
+
+    as_of = r.choice(["2026-11-20", "2026-11-20", "2027-02-01", "2026-06-30"])
+    names = r.sample(_R_NAMES, r.randint(2, 5))
+    roll_lines, leases, expected_vac = [], [], 0
+    for i, name in enumerate(names):
+        area = r.choice([2400, 2750, 5150, 8400])
+        psf = r.choice([24, 28.5, 33, 36.75])
+        annual = round(area * psf, 2)
+        monthly = round(annual / 12, 2)
+        start = r.choice(["2021-01-01", "2023-07-01", "2025-09-01"])
+        exp = r.choice(["2026-12-31", "2027-06-30", "2029-03-31", "2033-06-30"])
+        row = f"{name}  {i + 100}  {area:,}  {start}  {exp}  {monthly:,.2f}  {annual:,.2f}  {psf:.2f}"
+        rl = lambda p, v: nf(f"rent_roll.{p}", v, row, _R_ROLL, 1 + i // 3)
+        facts = []
+        if r.random() < 0.97:
+            facts.append(rl("tenant_name", name))
+        if r.random() < 0.9:
+            facts.append(rl("suite", str(i + 100)))
+        if r.random() < 0.93:
+            facts.append(rl("rentable_area_sf", area))
+        if r.random() < 0.8:
+            facts.append(rl("lease_start_date", start))
+        if r.random() < 0.93:
+            facts.append(rl("lease_expiration_date", exp))
+        k = r.random()
+        if k < 0.35:
+            facts += [rl("base_rent_monthly", monthly), rl("base_rent_annual", annual), rl("base_rent_psf", psf)]
+        elif k < 0.55:
+            facts.append(rl("base_rent_annual", annual))
+        elif k < 0.7:
+            facts.append(rl("base_rent_monthly", monthly))
+        elif k < 0.85:
+            facts.append(rl("base_rent_psf", psf))
+        if r.random() < 0.15:
+            facts.append(rl("base_rent_annual", annual + 100))  # a second value for one field: refused
+        if r.random() < 0.5:
+            facts.append(rl("security_deposit", round(monthly * 2, 2)))
+        if r.random() < 0.4:
+            facts.append(rl("next_rent_step", {"date": "2027-07-01", "annual_rent_psf": psf + 1}))
+        if r.random() < 0.3:
+            facts.append(rl("free_rent_outstanding", {"months": r.choice([0, 1, 2])}))
+        if r.random() < 0.3:
+            facts.append(rl("renewal_option", {"count": r.choice([0, 1, 2]), "term_months": 60}))
+        if r.random() < 0.3:
+            facts.append(rl("recoveries", {"structure": r.choice(["nnn", "base_year", "gross"]), "base_year": 2024}))
+        r.shuffle(facts)
+        line = {"line_id": f"L{i + 1}", "facts": facts}
+        roll_lines.append(line)
+        if r.random() < 0.15:
+            continue  # no lease supplied
+        doc = _R_LEASE[i]
+        lf = lambda p, v, q, pg=1, **kw: nf(f"lease.{p}", v, q, doc, pg, **kw)
+        lease_name = name if r.random() < 0.9 else name + " Holdings"
+        l_exp = exp if r.random() < 0.8 else "2029-12-31"
+        l_area = area if r.random() < 0.85 else area + 150
+        l_psf = psf if r.random() < 0.8 else round(psf + 0.5, 2)
+        lfacts = []
+        if r.random() < 0.9:
+            lfacts.append(lf("tenant", lease_name, f"and {lease_name} (Tenant)"))
+        if r.random() < 0.9:
+            lfacts.append(lf("rentable_area_sf", l_area, f"approximately {l_area:,} rentable square feet"))
+        if r.random() < 0.9:
+            lfacts.append(lf("expiration_date", l_exp, f"The Term shall expire on {l_exp}.", 2))
+        if r.random() < 0.8:
+            lfacts.append(lf("commencement_date", start, f"The Commencement Date is {start}."))
+        sched = [{"from": "2025-07-01", "to": "2026-06-30", "annual_rent_psf": round(l_psf - 1, 2)},
+                 {"from": "2026-07-01", "to": "2027-06-30", "annual_rent_psf": l_psf},
+                 {"from": "2027-07-01", "to": "2028-06-30", "annual_rent_psf": l_psf + 1}]
+        old = None
+        if r.random() < 0.9:
+            old = lf("base_rent_schedule", sched, "; ".join(
+                f"{x['from']} to {x['to']}: ${x['annual_rent_psf']:.2f} per RSF" for x in sched), 3)
+            lfacts.append(old)
+        if old is not None and r.random() < 0.15:
+            lfacts.append(lf("base_rent_schedule", [{"from": "2026-07-01", "to": "2027-06-30", "annual_rent_psf": l_psf + 2}],
+                             f"2026-07-01 to 2027-06-30: ${l_psf + 2:.2f} per RSF",
+                             3, supersedes=[old["id"]] if r.random() < 0.5 else None))
+        if r.random() < 0.4:
+            dep = r.choice([round(monthly * 2, 2), 5000])
+            lfacts.append(lf("security_deposit", dep, f"a security deposit of ${dep:,.2f}", 4))
+        if r.random() < 0.3:
+            lfacts.append(lf("free_rent", {"months": 2}, "Base Rent is abated for 2 months", 3))
+        if r.random() < 0.3:
+            rcd = r.choice(["2025-01-01", "2027-03-01"])
+            lfacts.append(lf("rent_commencement_date", rcd, f"Rent commences on {rcd}", 3))
+        if r.random() < 0.3:
+            lfacts.append(lf("renewal_option", {"count": 1, "term_months": 60}, "one option to extend for 60 months", 6))
+        if r.random() < 0.3:
+            lfacts.append(lf("recovery_structure", {"structure": r.choice(["nnn", "base_year"])}, "Tenant pays its share", 5))
+        if r.random() < 0.2:
+            by = r.choice([2023, 2024])
+            lfacts.append(lf("operating_expense_base_year", by, f"The Base Year is calendar year {by}", 5))
+        if r.random() < 0.15:
+            lfacts.append(lf("expiration_date", "2031-12-31", "The Term shall expire on 2031-12-31.", 2,
+                             valid_from=r.choice(["2025-01-01", "2030-01-01"])))
+        if not lfacts:
+            continue
+        entry = {"facts": lfacts}
+        if r.random() < 0.8:
+            entry["line_id"] = f"L{i + 1}"
+        if r.random() < 0.1:
+            entry["label"] = f"Lease {i + 1}"
+        if r.random() < 0.5:
+            codes = ["COMMENCEMENT", "EXPIRATION", "PREMISES", "BASE_RENT"]
+            entry["estoppel"] = {
+                "package_id": "00000000-0000-4000-8000-000000000001",
+                "as_of": r.choice([as_of, as_of, "2026-08-01", "2027-03-01"]),
+                "statements": [{"key": f"S{j + 1:02d}", "code": c, "decision": r.choice(["agreed"] * 5 + ["disputed"]),
+                                **({"tenants_own_version": "a different figure"} if r.random() < 0.3 else {})}
+                               for j, c in enumerate(codes) if r.random() < 0.9] or [
+                    {"key": "S01", "code": "BASE_RENT", "decision": "agreed"}],
+            }
+        leases.append(entry)
+    if r.random() < 0.3:
+        roll_lines.append({"line_id": "V1", "occupancy": "vacant", "facts": [
+            nf("rent_roll.rentable_area_sf", 3200, "Vacant  500  3,200", _R_ROLL, 2),
+            *([nf("rent_roll.suite", "500", "Vacant  500  3,200", _R_ROLL, 2)] if r.random() < 0.7 else [])]})
+        expected_vac = 1
+    if r.random() < 0.2:
+        leases.append({"label": "Orphan lease", "facts": [
+            nf("lease.tenant", "Orphan Tenant Inc", "and Orphan Tenant Inc (Tenant)", _R_LEASE[8])]})
+    args = {
+        "property": {"label": "Alder Court, 100 Example Street"},
+        "as_of": as_of,
+        "parties": {"certifier": {"organisation": "Alder Court Holdings LLC", "role": "borrower"}},
+        "roll_lines": roll_lines,
+    }
+    if leases:
+        args["leases"] = leases
+    if r.random() < 0.4:
+        args["parties"]["relying_party"] = {"organisation": r.choice(["Northfield Credit Partners LLC", "Alder Court Holdings LLC"]),
+                                            "role": "lender"}
+    if r.random() < 0.4:
+        args["building_area_sf"] = r.choice([20000, 30000, 12000])
+    if r.random() < 0.2:
+        args["tolerance"] = {"annual_usd": r.choice([0, 1, 50]), "psf": r.choice([0, 0.01, 0.5])}
+    if r.random() < 0.3:
+        args["roll_document"] = {"title": "Rent roll, as of the date"}
+    if r.random() < 0.05:
+        args["as_of"] = "20 Nov 2026"
+    return {"tool": "rent_roll_certify", "arguments": args}
+
+
 def round2_cases(seed, count):
     import os
     import sys
@@ -901,4 +1065,6 @@ def round2_cases(seed, count):
             out.append(estoppel_case(r))
         else:
             out.append(audit_case(r))
+    rr = random.Random(f"rentroll-{seed}")
+    out.extend(rent_roll_case(rr) for _ in range(max(1, count // 6)))
     return out

@@ -12,6 +12,7 @@ import {
   runWithExchangeCaller,
 } from "./index.ts";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Json = Record<string, any>;
 
 function run(input: Json = rentRollCase()): Json {
