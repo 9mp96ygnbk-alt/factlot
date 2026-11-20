@@ -36,6 +36,7 @@ import {
   writeKey,
   type KeyRecord,
 } from "./keys.ts";
+import { DOCUMENTS_BLOCK } from "./free-document.ts";
 import { modelSubject } from "./limiter.ts";
 import { modelEnabled } from "./model.ts";
 import {
@@ -1015,6 +1016,7 @@ export async function portalUrl(
 }
 
 export interface AccountSummary {
+  documents: typeof DOCUMENTS_BLOCK;
   plan: PlanId;
   plan_name: string;
   price: string;
@@ -1110,6 +1112,7 @@ export async function accountSummary(
     created: record.created,
     key_id: keyId(hash),
     registry_lookups: { used: q.used, limit: q.limit, resets_at: q.resets_at },
+    documents: DOCUMENTS_BLOCK,
     model_tools: {
       available,
       tools: available

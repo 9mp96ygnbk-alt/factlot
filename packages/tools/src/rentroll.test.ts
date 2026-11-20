@@ -10,6 +10,8 @@ import {
   rentRollSummary,
   runTool,
   runWithExchangeCaller,
+  documentId,
+  type FreeDocumentHost,
 } from "./index.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -540,4 +542,49 @@ test("fact_package_send kind rent_roll: items, estoppel links and relying partie
     (x) => ((x.items as Json[])[3]!.position = "accept_theirs"),
     /state_ours/,
   );
+});
+
+// ---- the first full document free (hosted, free_document.ts) --------------------------------
+
+test("free document: a limited caller the host entitles gets the whole answer once, flagged; later the summary", () => {
+  const used: string[] = [];
+  const host: FreeDocumentHost = {
+    use(tool, id) {
+      used.push(`${tool}:${id}`);
+      return used.length === 1
+        ? { granted: true, covers_until: "2026-11-21T00:00:00.000Z" }
+        : {
+            granted: false,
+            used_at: "2026-11-20T00:00:00.000Z",
+            used_tool: tool,
+          };
+    },
+  };
+  const a = rentRollCase();
+  const whole = runWithExchangeCaller(
+    { fullAudit: false, freeDocument: host },
+    () => run(a),
+  );
+  const local = run(a);
+  // the whole answer, plus a plain statement that it was the one free document
+  const { free_document: note, ...rest } = whole;
+  assert.deepEqual(rest, local);
+  assert.equal(note.free_document, true);
+  assert.match(note.note, /one free full document/);
+  assert.match(note.note, /Pro or Team/);
+  assert.match(note.note, /pricing/);
+  // the id the host saw is the hash of the whole answer, the same one report_create computes
+  assert.equal(used[0], `rent_roll_certify:${documentId(local)}`);
+  const summary = runWithExchangeCaller(
+    { fullAudit: false, freeDocument: host },
+    () => run(a),
+  );
+  assert.equal(summary.limited, true);
+  assert.equal(summary.free_document.free_document, false);
+  assert.match(summary.free_document.note, /already used/);
+  // the host is not asked when the caller is paid or local
+  const n = used.length;
+  runWithExchangeCaller({ fullAudit: true, freeDocument: host }, () => run(a));
+  run(a);
+  assert.equal(used.length, n);
 });

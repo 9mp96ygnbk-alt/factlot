@@ -26,10 +26,17 @@ import {
   lookupItemStateFips,
   runWithExchangeCaller,
   tools,
+  type FreeDocumentHost,
   type LookupItem,
 } from "@factlot/tools";
 
 import { exchangeAccountId, exchangeTestReason } from "./exchange-account.ts";
+import {
+  callsDocumentTool,
+  freeDocumentCovers,
+  freeDocumentSubject,
+  startFreeDocument,
+} from "./free-document.ts";
 import {
   CONTACT,
   DISCUSSIONS,
@@ -1845,10 +1852,23 @@ async function route(
   // Reports: metered per month against reports_per_month (reports.ts).
   const reportAddressSubject = () =>
     addressSubject(clientAddress(request), now(), env.IP_HASH_SALT, "month");
+  // The free document (free-document.ts): a free, email-verified account (a free key, nothing else)
+  // gets its one whole document when gating would otherwise give it the summary.
+  const freeDocSubject =
+    gating && freeKey && !paid && !oauth
+      ? await freeDocumentSubject(freeKey.email_hash)
+      : undefined;
   const reportCaller: ReportCaller = {
     tier,
     // expense_audit is part of the paid plans when gating is on (reports.ts refuses it otherwise).
     auditFull: !gating || paid !== undefined,
+    // The free account's one full document also covers that document's report.
+    ...(freeDocSubject !== undefined
+      ? {
+          freeDocumentCovers: (tool: string, documentId: string) =>
+            freeDocumentCovers(env, freeDocSubject, tool, documentId, now()),
+        }
+      : {}),
     per: freeKey ? "email address behind a free key" : undefined,
     subject: async () =>
       paid
@@ -1964,7 +1984,25 @@ async function route(
   // the client sent: the public scheme is always https, the host is the one Cloudflare routed,
   // and the client address is Cloudflare's.
   const exchangeAccount = await exchangeAccountId(paid, freeKey);
-  const forward = (body?: string) => {
+  const forward = async (body?: string): Promise<Response> => {
+    const run =
+      freeDocSubject !== undefined && callsDocumentTool(path, body)
+        ? await startFreeDocument(env, freeDocSubject, now)
+        : undefined;
+    // The request may have to run twice (see below): keep its body to run it again.
+    if (run && body === undefined && request.method === "POST")
+      body = await request.clone().text();
+    const res = await forwardOnce(body, run?.host);
+    if (!run) return res;
+    const done = await run.finish(res.status < 400);
+    // The whole answer is returned only once it is on record; else the summary, as without it.
+    if (done.consumed && !done.committed) {
+      await res.body?.cancel();
+      return forwardOnce(body, undefined);
+    }
+    return res;
+  };
+  const forwardOnce = (body?: string, freeDocument?: FreeDocumentHost) => {
     const inner =
       body === undefined
         ? new Request(request)
@@ -1991,6 +2029,7 @@ async function route(
         accountId: exchangeAccount,
         testReason: exchangeTestReason(paid),
         fullAudit: !gating || paid !== undefined,
+        ...(freeDocument ? { freeDocument } : {}),
       },
       () => api.fetch(inner),
     );

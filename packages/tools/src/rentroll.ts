@@ -30,6 +30,7 @@ import { z } from "zod";
 import { ToolInputError, jsonEqual, validateFact } from "./documents.ts";
 import type { Json } from "./documents.ts";
 import { RENT_ROLL_PACKAGE_FACTS, currentExchangeCaller } from "./exchange.ts";
+import { gateDocument } from "./free_document.ts";
 
 export const RENT_ROLL_PLAN_URL = "https://factlot.com/pricing/";
 export const RENT_ROLL_MAX_LINES = 60;
@@ -2179,5 +2180,10 @@ export function rentRollLimited(): boolean {
 
 export function rentRollCertify(input: RentRollInput): Json {
   const full = certifyRentRoll(input);
-  return rentRollLimited() ? rentRollSummary(full) : full;
+  return gateDocument(
+    "rent_roll_certify",
+    full,
+    rentRollSummary,
+    rentRollLimited(),
+  );
 }

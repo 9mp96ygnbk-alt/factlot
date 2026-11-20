@@ -32,6 +32,8 @@
  * The plain per-minute limiter (`objectLimiter`) uses the same class without touching storage.
  */
 import type {
+  FreeDocumentRecord,
+  FreeDocumentReservation,
   HitResult,
   MeterService,
   QuotaCounter,
@@ -532,6 +534,59 @@ export class Meter {
     };
   }
 
+  /**
+   * The free account's one full document. One record per object: `used` once committed, or a
+   * `held` reservation of one request with the time it lapses. Synchronous, so two requests
+   * cannot both reserve. No alarm is set for it: the record stays until the account is forgotten.
+   */
+  freeDocument(
+    op:
+      | { op: "reserve"; ttl_ms: number }
+      | { op: "commit"; id: string; tool: string; document_id: string }
+      | { op: "release"; id: string }
+      | { op: "status" },
+  ): Record<string, unknown> {
+    const raw = this.store.getMeta("freedoc");
+    const rec = (raw ? JSON.parse(raw) : {}) as {
+      used?: { tool: string; document_id: string; at: string };
+      held?: { id: string; until: number };
+    };
+    const now = this.now();
+    const save = () => this.store.setMeta("freedoc", JSON.stringify(rec));
+    if (op.op === "status") return rec.used ? { used: rec.used } : {};
+    if (op.op === "reserve") {
+      if (rec.used) return { state: "used", used: rec.used };
+      if (rec.held && rec.held.until > now) return { state: "busy" };
+      const id = crypto.randomUUID();
+      rec.held = {
+        id,
+        until: now + Math.min(10 * 60_000, Math.max(1_000, op.ttl_ms)),
+      };
+      save();
+      return { state: "available", id };
+    }
+    if (op.op === "release") {
+      if (!rec.used && rec.held?.id === op.id) {
+        delete rec.held;
+        save();
+      }
+      return { released: true };
+    }
+    // commit: only the request that holds the reservation, or (its hold lapsed) while nobody else
+    // has taken it or used it.
+    if (rec.used) return { committed: false };
+    if (rec.held && rec.held.id !== op.id && rec.held.until > now)
+      return { committed: false };
+    delete rec.held;
+    rec.used = {
+      tool: op.tool,
+      document_id: op.document_id,
+      at: new Date(now).toISOString(),
+    };
+    save();
+    return { committed: true };
+  }
+
   /** Store `value` under `name` unless something is stored already; returns what is stored. */
   claim(name: string, value: string): string {
     const existing = this.store.getClaim(name);
@@ -673,6 +728,11 @@ export class RateLimiterObject {
       this.alarmAt = undefined;
       return jsonResponse({ forgotten: true });
     }
+    if (url.pathname === "/freedoc") {
+      // No alarm: the record is kept until the account's data is forgotten (/forget).
+      const b = (await request.json()) as Parameters<Meter["freeDocument"]>[0];
+      return jsonResponse(this.meter.freeDocument(b));
+    }
     if (url.pathname === "/claim") {
       const b = (await request.json()) as { name: string; value: string };
       const value = this.meter.claim(b.name, b.value);
@@ -808,6 +868,32 @@ export function objectMeter(
       }),
     forget: async (subject) => {
       await call(ns, `meter:${subject}`, "/forget", {});
+    },
+    freeDocument: {
+      reserve: (subject, ttl_ms) =>
+        call<FreeDocumentReservation>(ns, `meter:${subject}`, "/freedoc", {
+          op: "reserve",
+          ttl_ms,
+        }),
+      commit: async (subject, id, tool, document_id) =>
+        (
+          await call<{ committed: boolean }>(
+            ns,
+            `meter:${subject}`,
+            "/freedoc",
+            { op: "commit", id, tool, document_id },
+          )
+        ).committed,
+      release: async (subject, id) => {
+        await call(ns, `meter:${subject}`, "/freedoc", { op: "release", id });
+      },
+      status: (subject) =>
+        call<{ used?: FreeDocumentRecord }>(
+          ns,
+          `meter:${subject}`,
+          "/freedoc",
+          { op: "status" },
+        ),
     },
     claim: async (name, value) =>
       (

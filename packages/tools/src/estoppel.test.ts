@@ -4,7 +4,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { ExchangeItem, FactPackageSendInput } from "./exchange.ts";
-import { estoppelSummary, runTool, runWithExchangeCaller } from "./index.ts";
+import {
+  documentId,
+  type FreeDocumentHost,
+  estoppelSummary,
+  runTool,
+  runWithExchangeCaller,
+} from "./index.ts";
 
 type Json = Record<string, unknown>;
 
@@ -485,4 +491,50 @@ test("plan rule: a caller without a paid plan gets counts, titles, gaps and conf
   runWithExchangeCaller({ fullAudit: true }, () => {
     assert.deepEqual(run(), full);
   });
+});
+
+// ---- the first full document free (hosted, free_document.ts) --------------------------------
+
+test("free document: a limited caller the host entitles gets the whole answer once, flagged; later the summary", () => {
+  const used: string[] = [];
+  const host: FreeDocumentHost = {
+    use(tool, id) {
+      used.push(`${tool}:${id}`);
+      return used.length === 1
+        ? { granted: true, covers_until: "2026-11-21T00:00:00.000Z" }
+        : {
+            granted: false,
+            used_at: "2026-11-20T00:00:00.000Z",
+            used_tool: tool,
+          };
+    },
+  };
+  const a = args();
+  const whole = runWithExchangeCaller(
+    { fullAudit: false, freeDocument: host },
+    () => run(a),
+  );
+  const local = run(a);
+  // the whole answer, plus a plain statement that it was the one free document
+  const { free_document: note, ...rest } = whole;
+  assert.deepEqual(rest, local);
+  const nt = note as Json;
+  assert.equal(nt.free_document, true);
+  assert.match(String(nt.note), /one free full document/);
+  assert.match(String(nt.note), /Pro or Team/);
+  assert.match(String(nt.note), /pricing/);
+  // the id the host saw is the hash of the whole answer, the same one report_create computes
+  assert.equal(used[0], `estoppel_prepare:${documentId(local)}`);
+  const summary = runWithExchangeCaller(
+    { fullAudit: false, freeDocument: host },
+    () => run(a),
+  );
+  assert.equal(summary.limited, true);
+  assert.equal((summary.free_document as Json).free_document, false);
+  assert.match(String((summary.free_document as Json).note), /already used/);
+  // the host is not asked when the caller is paid or local
+  const n = used.length;
+  runWithExchangeCaller({ fullAudit: true, freeDocument: host }, () => run(a));
+  run(a);
+  assert.equal(used.length, n);
 });

@@ -932,4 +932,6 @@ def estoppel_limited() -> bool:
 
 def estoppel_prepare(inp: dict[str, Any]) -> dict[str, Any]:
     full = prepare_estoppel(inp)
-    return estoppel_summary(full) if estoppel_limited() else full
+    from .free_document import gate_document
+
+    return gate_document("estoppel_prepare", full, estoppel_summary, estoppel_limited())

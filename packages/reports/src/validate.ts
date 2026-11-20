@@ -21,7 +21,13 @@ import {
   round,
   texasToday,
 } from "@factlot/calc";
-import { getTool, runTool, runWithExchangeCaller } from "@factlot/tools";
+import {
+  FREE_DOCUMENT_TOOLS,
+  documentId,
+  getTool,
+  runTool,
+  runWithExchangeCaller,
+} from "@factlot/tools";
 import { z } from "zod";
 
 export const REPORT_KINDS = [
@@ -1273,6 +1279,8 @@ export interface Checked {
   check: "computed" | "supplied";
   /** The tool's arguments when given (validated by the tool). */
   args?: unknown;
+  /** The three document tools: the id of the whole answer (documentId), for the free-document rule. */
+  document_id?: string;
   /** A result was sent with the arguments: true when it differs from FactLot's run (unused). */
   result_mismatch?: boolean;
 }
@@ -1350,6 +1358,9 @@ export function checkInput(
     result: parsed.data,
     check: "computed",
     args,
+    ...((FREE_DOCUMENT_TOOLS as readonly string[]).includes(tool)
+      ? { document_id: documentId(out.result as never) }
+      : {}),
     ...(input !== undefined
       ? {
           result_mismatch: !jsonEqual(

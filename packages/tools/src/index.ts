@@ -70,6 +70,14 @@ export {
 export type { LookupCall, LookupItem } from "./lookup_batch.ts";
 export { auditSummary, auditLimited, AUDIT_PLAN_URL } from "./audit.ts";
 export {
+  FREE_DOCUMENT_COVER_HOURS,
+  FREE_DOCUMENT_PLAN_URL,
+  FREE_DOCUMENT_TOOLS,
+  documentId,
+  type FreeDocumentHost,
+  type FreeDocumentUse,
+} from "./free_document.ts";
+export {
   estoppelSummary,
   estoppelLimited,
   prepareEstoppel,

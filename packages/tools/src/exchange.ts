@@ -18,6 +18,7 @@ import { z } from "zod";
 
 import { ToolInputError } from "./documents.ts";
 import type { Json } from "./documents.ts";
+import type { FreeDocumentHost } from "./free_document.ts";
 import { verifyFactPackage } from "./packages.ts";
 
 export const EXCHANGE_URL =
@@ -75,6 +76,11 @@ export interface ExchangeCaller {
    * only (no Pro or Team key while gating is on). Unset (a local call) means the whole answer.
    */
   fullAudit?: boolean;
+  /**
+   * The hosted rule that gives a free, email-verified account one full document (free_document.ts).
+   * Only read when fullAudit is false.
+   */
+  freeDocument?: FreeDocumentHost;
 }
 const callerStore = new AsyncLocalStorage<ExchangeCaller>();
 

@@ -48,20 +48,23 @@ def configure_exchange(url: str | None = None, site_url: str | None = None, toke
 
 @contextlib.contextmanager
 def run_with_exchange_caller(account_id: str | None, full_audit: bool | None = None,
-                             test_reason: str | None = None) -> Iterator[None]:
+                             test_reason: str | None = None, free_document: Any = None) -> Iterator[None]:
     """Say which FactLot account is calling (never its key) for the fact_package_send calls inside, why
     this caller sends test packages only when the host knows (test_reason, e.g. a guest key), and
-    (full_audit False) that this caller gets audit_expense_statement's summary only, as the hosted API does."""
-    from . import audit
+    (full_audit False) that this caller gets audit_expense_statement's summary only, as the hosted API does.
+    free_document is the host's hook that gives a free account one whole document (free_document.py)."""
+    from . import audit, free_document as fd
 
     caller: dict[str, Any] = {"account_id": account_id} if account_id else {}
     if test_reason:
         caller["test_reason"] = test_reason
     t = _caller.set(caller)
     a = audit.set_full_audit(full_audit)
+    f = fd.set_free_document(free_document)
     try:
         yield
     finally:
+        fd._free_document.reset(f)
         audit._full_audit.reset(a)
         _caller.reset(t)
 

@@ -26,6 +26,7 @@ import { z } from "zod";
 import { ToolInputError, jsonEqual, validateFact } from "./documents.ts";
 import type { Json } from "./documents.ts";
 import { currentExchangeCaller } from "./exchange.ts";
+import { gateDocument } from "./free_document.ts";
 
 export const ESTOPPEL_PLAN_URL = "https://factlot.com/pricing/";
 export const ESTOPPEL_MAX_FACTS = 200;
@@ -1578,5 +1579,10 @@ export function estoppelLimited(): boolean {
 
 export function estoppelPrepare(input: EstoppelInput): Json {
   const full = prepareEstoppel(input);
-  return estoppelLimited() ? estoppelSummary(full) : full;
+  return gateDocument(
+    "estoppel_prepare",
+    full,
+    estoppelSummary,
+    estoppelLimited(),
+  );
 }

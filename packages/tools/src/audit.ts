@@ -27,6 +27,7 @@ import { z } from "zod";
 import { ToolInputError, validateFact } from "./documents.ts";
 import type { Json } from "./documents.ts";
 import { currentExchangeCaller } from "./exchange.ts";
+import { gateDocument } from "./free_document.ts";
 
 export const AUDIT_MAX_FACTS = 1_000;
 export const AUDIT_PLAN_URL = "https://factlot.com/pricing/";
@@ -1784,5 +1785,10 @@ export function auditLimited(): boolean {
 
 export function auditExpenseStatement(input: AuditInput): Json {
   const full = audit(input);
-  return auditLimited() ? auditSummary(full) : full;
+  return gateDocument(
+    "audit_expense_statement",
+    full,
+    auditSummary,
+    auditLimited(),
+  );
 }

@@ -1119,4 +1119,6 @@ def audit_summary(full: dict[str, Any]) -> dict[str, Any]:
 
 def audit_expense_statement(inp: dict[str, Any]) -> dict[str, Any]:
     full = _audit(inp)
-    return audit_summary(full) if audit_limited() else full
+    from .free_document import gate_document
+
+    return gate_document("audit_expense_statement", full, audit_summary, audit_limited())

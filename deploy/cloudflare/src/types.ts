@@ -63,7 +63,40 @@ export interface HitResult {
 }
 
 /** Per-caller metering (Durable Objects): requests per minute, registry quota, claims. */
+/** The one free full document of a free account (free-document.ts). */
+export interface FreeDocumentRecord {
+  tool: string;
+  /** SHA-256 of the whole answer (documentId in @factlot/tools). */
+  document_id: string;
+  /** ISO time it was recorded. */
+  at: string;
+}
+
+export type FreeDocumentReservation =
+  | { state: "available"; id: string }
+  | { state: "used"; used: FreeDocumentRecord }
+  | { state: "busy" };
+
+/** Durable, strongly consistent (one Durable Object per account); never expires. */
+export interface FreeDocumentMeter {
+  /** Take the free document for one request (held for `ttl_ms`), unless used or held. */
+  reserve(subject: string, ttl_ms: number): Promise<FreeDocumentReservation>;
+  /** Make a reservation the account's use. False when it is no longer this request's to commit. */
+  commit(
+    subject: string,
+    id: string,
+    tool: string,
+    document_id: string,
+  ): Promise<boolean>;
+  /** Give a reservation back unused. */
+  release(subject: string, id: string): Promise<void>;
+  /** Whether it was used, with no side effect. */
+  status(subject: string): Promise<{ used?: FreeDocumentRecord }>;
+}
+
 export interface MeterService {
+  /** The free account's one full document; absent on a meter that does not keep it (then none is given). */
+  freeDocument?: FreeDocumentMeter;
   /**
    * One request against `perMinute` for `subject` (`ip:<hash>` or `key:<key id>`), plus up to
    * `quota.n` registry lookups from the same subject's quota when given.
