@@ -121,8 +121,16 @@ class TxEquity(unittest.TestCase):
         self.assertEqual([st["left"] for st in sel["steps"]], [9, 8, 7])
         self.assertEqual(sel["narrowing"], [])
         self.assertNotIn("with the narrowing listed", r["selection_rule"]["notice"])
-        self.assertEqual([(f["as_of"], f["before_certification_deadline"], f["subject_value"], f["candidate_values"])
-                          for f in sel["compared_files"]], [("2026-10-15", False, True, 7)])
+        self.assertEqual([(f["as_of"], f["read_on"], f["before_certification_deadline"], f["subject_value"],
+                           f["candidate_values"]) for f in sel["compared_files"]],
+                         [("2026-10-15", "2026-10-20", False, True, 7)])
+        # Only files a compared value cites: the first 2026 roll is in sources (the subject's value history cites
+        # it) but no compared value comes from it, so compared_files leaves it out.
+        by_as_of = {s["as_of"]: s["document_id"] for s in r["sources"] if s["source_id"] == "test-cad-997"}
+        self.assertIn("2026-07-25", by_as_of)
+        cited = {c["citation"]["document_id"] for c in [r["subject"], *r["candidates"]]}
+        self.assertNotIn(by_as_of["2026-07-25"], cited)
+        self.assertEqual({f["document_id"] for f in sel["compared_files"]}, cited)
         self.assertEqual(r["selection_rule"]["steps"], sel["steps"])
 
         r = self.run_tool({"urn": SUBJECT, "tax_year": 2026, "same_local_use_code": True})
@@ -179,9 +187,22 @@ class TxEquity(unittest.TestCase):
         self.assertIn("same_building_class not applied: the subject has no building class on the 2026 roll",
                       r["warnings"])
 
-        # The 2027 preliminary roll is dated before July 25, 2027.
+        # The 2027 preliminary roll is dated before July 25, 2027 and was read after it: its as-of date counts.
         r = self.run_tool({"urn": SUBJECT})
-        self.assertEqual([f["before_certification_deadline"] for f in r["selection"]["compared_files"]], [True])
+        self.assertEqual([(f["as_of"], f["read_on"], f["before_certification_deadline"])
+                          for f in r["selection"]["compared_files"]], [("2027-04-15", "2027-08-02", True)])
+        # The 2025 roll's only date is the day it was read: no as-of date and no answer, rather than a guess.
+        r = self.run_tool({"urn": SUBJECT, "tax_year": 2025})
+        self.assertEqual([(f["as_of"], f["read_on"], f["before_certification_deadline"])
+                          for f in r["selection"]["compared_files"]], [(None, "2025-07-25", None)])
+
+    def test_compared_file_dates(self):
+        from factlot.registry.tx_equity import _compared_file_dates
+        self.assertEqual(_compared_file_dates({"as_of": "2026-05-01", "retrieved_at": "2026-11-02T08:00:00+00:00"}),
+                         ("2026-05-01", "2026-11-02"))
+        self.assertEqual(_compared_file_dates({"as_of": "2026-11-02", "retrieved_at": "2026-11-02T08:00:00+00:00"}),
+                         (None, "2026-11-02"))
+        self.assertEqual(_compared_file_dates({"as_of": "", "retrieved_at": ""}), (None, None))
 
     def test_limit_warning_names_the_county_tier(self):
         # min_matches 6: the neighborhood and ZIP code tiers hold 6, so 1000009 in the rest of the county is left out.
