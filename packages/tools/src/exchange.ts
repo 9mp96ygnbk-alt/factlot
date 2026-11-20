@@ -1,11 +1,11 @@
 /**
  * fact_package_send and fact_package_status: send a fact package to a counterparty for
- * confirmation through the Record, and read the counterparty's answers.
+ * confirmation through the FactLot record, and read the counterparty's answers.
  *
- * Both call the Record's public exchange endpoint, the same one anyone could call (no private
+ * Both call the FactLot record's public exchange endpoint, the same one anyone could call (no private
  * door). The one thing a configured FactLot service adds is an application token: with it, the
  * Record counts the package as real; without it (a local server, a test) the package is a
- * sandbox package and never counts in the Record's measure. Nothing is sent without a named
+ * sandbox package and never counts in the FactLot record's measure. Nothing is sent without a named
  * person's approval (approved_by and approval_confirmed), and the package must pass
  * fact_package_verify's integrity checks first.
  *
@@ -22,7 +22,7 @@ import { verifyFactPackage } from "./packages.ts";
 
 export const EXCHANGE_URL =
   "https://czmyqwkauymguoznzpzr.supabase.co/functions/v1/exchange";
-/** The most facts the Record takes in one rent roll package (a lease-by-lease roll is larger than an estoppel). */
+/** The most facts the FactLot record takes in one rent roll package (a lease-by-lease roll is larger than an estoppel). */
 export const RENT_ROLL_PACKAGE_FACTS = 600;
 export const EXCHANGE_SITE_URL = "https://cre-record.vercel.app";
 
@@ -106,7 +106,7 @@ const Party = z.object({
     .max(200)
     .optional()
     .describe(
-      "Kept by the Record to reach the person; never shown to the other party.",
+      "Kept by FactLot to reach the person; never shown to the other party.",
     ),
 });
 const Counterparty = z.object({
@@ -116,7 +116,7 @@ const Counterparty = z.object({
     .string()
     .max(200)
     .optional()
-    .describe("Kept by the Record; never shown to anyone else."),
+    .describe("Kept by FactLot; never shown to anyone else."),
 });
 const Figure = z.union([z.string().min(1).max(400), z.number().finite()]);
 
@@ -303,14 +303,14 @@ export const FactPackageSendInput = z.object({
     .max(5)
     .optional()
     .describe(
-      "Estoppel and rent_roll only: a label for each lender or buyer that is to get its own view link and token (for example the lender's name). Each can read the package and record its own reliance; none can answer for the tenant. For an estoppel with none given the Record makes one link; for a rent roll the party named in to has a link already and these are additional.",
+      "Estoppel and rent_roll only: a label for each lender or buyer that is to get its own view link and token (for example the lender's name). Each can read the package and record its own reliance; none can answer for the tenant. For an estoppel with none given FactLot makes one link; for a rent roll the party named in to has a link already and these are additional.",
     ),
   estoppel_links: z
     .array(z.string().max(500))
     .max(60)
     .optional()
     .describe(
-      "Rent roll only: the sender's status link (status_link_for_sender) of each estoppel that backs a matches_lease_confirmed_by_tenant line. The Record opens each with its private token to check the tenant agreed the statements; the token is not stored.",
+      "Rent roll only: the sender's status link (status_link_for_sender) of each estoppel that backs a matches_lease_confirmed_by_tenant line. The FactLot record opens each with its private token to check the tenant agreed the statements; the token is not stored.",
     ),
   approved_by: z
     .string()
@@ -360,7 +360,7 @@ async function call(body: Json, forwardToken: boolean): Promise<Json> {
     });
   } catch {
     throw new ExchangeUnavailableError(
-      "the Record's exchange did not answer, so nothing was sent; retry in a moment",
+      "the FactLot record's exchange did not answer, so nothing was sent; retry in a moment",
     );
   }
   let out: Json;
@@ -368,14 +368,14 @@ async function call(body: Json, forwardToken: boolean): Promise<Json> {
     out = (await res.json()) as Json;
   } catch {
     throw new ExchangeUnavailableError(
-      "the Record's exchange gave an unreadable answer; check fact_package_status before sending again",
+      "the FactLot record's exchange gave an unreadable answer; check fact_package_status before sending again",
     );
   }
   if (out.ok === true) return out.result as Json;
   const message = String(out.error ?? `the exchange answered ${res.status}`);
   if (res.status >= 500)
     throw new ExchangeUnavailableError(
-      `the Record's exchange failed (${message}); check fact_package_status before sending again`,
+      `the FactLot record's exchange failed (${message}); check fact_package_status before sending again`,
     );
   throw new ToolInputError([{ path: "", message }]);
 }
@@ -489,7 +489,7 @@ export async function sendFactPackage(
           issues.push({
             path: `items.${i}.estoppel_package_id`,
             message:
-              "give the status link of that estoppel in estoppel_links so the Record can check the tenant's answers",
+              "give the status link of that estoppel in estoppel_links so the FactLot record can check the tenant's answers",
           });
       } else if (it.estoppel_package_id !== undefined)
         issues.push({
@@ -595,7 +595,7 @@ export async function sendFactPackage(
   }
 
   const ref = input.subject.record_id ?? input.subject.urn;
-  // A package can be real only when this service holds the Record's application token and the
+  // A package can be real only when this service holds the FactLot record's application token and the
   // host has said which FactLot account is calling. Otherwise it is sent without the token, which
   // the Record can only take as a test.
   const caller = callerStore.getStore();
@@ -626,18 +626,18 @@ export async function sendFactPackage(
   const reliances = (sent.reliances_recorded as Json[]) ?? [];
   const sandbox = sent.sandbox === true;
   const reason = !appToken()
-    ? "this FactLot is not connected to the Record as an accredited service (a local or self-hosted install, or a service without the Record's application token)"
+    ? "this FactLot is not connected to the hosted FactLot record as an accredited service (a local or self-hosted install, or a service without the FactLot record's application token)"
     : !accountId
       ? (caller?.testReason ??
         "no full FactLot account key came with the call, and a full FactLot account key (a paid fl_live_ key or an email-verified fl_free_ key) is needed to send for real")
-      : String(sent.test_mode_reason ?? "the Record took it as a test");
+      : String(sent.test_mode_reason ?? "the FactLot record took it as a test");
   const message = sandbox
-    ? `TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and ${rentRoll ? "read it" : "answer"}.`
+    ? `TEST MODE: this package was sent in test mode. It does not count in the FactLot record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and ${rentRoll ? "read it" : "answer"}.`
     : rentRoll
       ? `SENT FOR REAL: the certified rent roll was sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each line graded as matching when a lender or buyer, a different firm from the sender, records its own. A line that differs from its lease, has no lease or could not be checked is never recorded as relied on. The sender's certification, not FactLot, is what the lender or buyer relies on.`
       : estoppel
         ? `SENT FOR REAL: the estoppel statements were sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and the tenant, records its own. A disputed statement is never recorded as relied on.`
-        : `SENT FOR REAL: the Record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
+        : `SENT FOR REAL: the FactLot record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
   const relierTokens = Array.isArray(sent.relier_tokens)
     ? (sent.relier_tokens as Json[])
     : [];
@@ -670,7 +670,7 @@ export async function sendFactPackage(
     note: rentRoll
       ? `Send link_for_counterparty to ${input.to.organisation} (the lender or buyer); it needs no account and shows each line with its grade, its quotes and pages, and the document fingerprints, and lets that party record reliance on the lines graded as matching. Give any other lender or buyer its own link from links_for_relying_parties. Keep status_link_for_sender private: it reads who has relied (fact_package_status).`
       : estoppel
-        ? `Send link_for_counterparty to ${input.to.organisation} (the tenant); it needs no account. Give each lender or buyer its own link from links_for_relying_parties only after the tenant has answered: it shows the statements, the tenant's answers and the document fingerprints, and lets that party record reliance. Keep status_link_for_sender private: it reads the answers and the reliers (fact_package_status).`
+        ? `Send link_for_counterparty to ${input.to.organisation} (the tenant); it needs no account. Give each lender or buyer its own link from links_for_relying_parties only after the tenant has answered: it shows the statements, the tenant's answers and the document fingerprints, and lets that party record reliance. The tenant gives the signer's full name and title and signs electronically on the same page before the answers are accepted. Keep status_link_for_sender private: it reads the answers, the signer, who opened each lender or buyer link and who relied (fact_package_status).`
         : `Send link_for_counterparty to ${input.to.organisation}; it needs no account. Keep status_link_for_sender private: it reads the answers (fact_package_status).`,
   };
 }
@@ -760,6 +760,48 @@ export async function factPackageStatus(
     ).length,
     reliances: s.reliances,
     ...(Array.isArray(s.reliers) ? { reliers: s.reliers } : {}),
+    ...(isJson(s.signature) ? { signature: signatureOut(s.signature) } : {}),
+    ...(Array.isArray(s.links)
+      ? {
+          links: (s.links as Json[]).map((l) => ({
+            link: l.link,
+            label: l.label ?? null,
+            first_opened_at: l.first_opened_at ?? null,
+            last_opened_at: l.last_opened_at ?? null,
+            open_count: l.open_count ?? 0,
+            reliance: l.reliance ?? [],
+          })),
+        }
+      : {}),
     responded_at: s.responded_at,
+  };
+}
+
+const isJson = (v: unknown): v is Json =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * The tenant's signature as the FactLot record holds it: the signer's name and title, the time (UTC), the
+ * consent wording's version and text, and the SHA-256 over the canonical answered statements, with whether
+ * the signed content is unchanged. A package answered before signing existed says so.
+ */
+function signatureOut(g: Json): Json {
+  if (g.signed !== true)
+    return {
+      signed: false,
+      answered_without_signature: g.answered_without_signature === true,
+      signature_required: g.signature_required === true,
+    };
+  return {
+    signed: true,
+    signer_name: g.signer_name,
+    signer_title: g.signer_title,
+    signer_organisation: g.signer_organisation ?? null,
+    signed_at: g.signed_at,
+    signed_line: g.signed_line,
+    consent_version: g.consent_version,
+    consent_text: g.consent_text,
+    content_sha256: g.content_sha256,
+    content_check: g.content_check,
   };
 }

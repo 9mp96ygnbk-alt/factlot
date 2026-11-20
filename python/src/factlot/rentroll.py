@@ -998,7 +998,7 @@ def certify_rent_roll(inp: dict[str, Any]) -> dict[str, Any]:
         }
         items.append(item)
     if len(package_ids) > RENT_ROLL_PACKAGE_FACTS:
-        warnings.append(f"the items rest on {len(package_ids)} facts and the Record takes at most {RENT_ROLL_PACKAGE_FACTS} in one rent roll: send the roll in parts (by building or floor)")
+        warnings.append(f"the items rest on {len(package_ids)} facts and the FactLot record takes at most {RENT_ROLL_PACKAGE_FACTS} in one rent roll: send the roll in parts (by building or floor)")
 
     # ---- output lines
     out_lines = []

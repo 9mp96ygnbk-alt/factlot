@@ -269,7 +269,7 @@ test("sends through the public endpoint; the token is added only when configured
   assert.equal(noTok.seen[0]!.body.sender_account, undefined);
   assert.match(
     (u.result as Json).message as string,
-    /^TEST MODE: .*not connected to the Record/,
+    /^TEST MODE: .*not connected to the hosted FactLot record/,
   );
 
   // Token and account together: forwarded, and the answer says it was for real.
@@ -287,7 +287,7 @@ test("sends through the public endpoint; the token is added only when configured
   assert.equal(rr.test_mode, false);
   assert.match(
     rr.message as string,
-    /^SENT FOR REAL: the Record recorded 1 reliance now/,
+    /^SENT FOR REAL: the FactLot record recorded 1 reliance now/,
   );
   assert.ok(!JSON.stringify(rr).includes("cre_testtoken"));
 });
@@ -412,6 +412,92 @@ test("fact_package_status reads the sender's link and summarises the answers", a
   assert.ok(!bad.ok && bad.error.error === "InputError");
   const none = await runToolAsync("fact_package_status", {});
   assert.ok(!none.ok);
+});
+
+test("fact_package_status returns the signer, the signature record and each relying-party link", async () => {
+  const hash = "d".repeat(64);
+  const view = {
+    ok: true,
+    result: {
+      id: "11111111-2222-3333-4444-555555555555",
+      title: "T",
+      status: "confirmed",
+      sandbox: true,
+      to: { organisation: "Tenant Co" },
+      package_root: "r",
+      integrity: "ok",
+      responded_at: "2026-11-19T00:00:00Z",
+      reliances: [],
+      items: [],
+      signature: {
+        signed: true,
+        signer_name: "Tess Tenant",
+        signer_title: "Controller",
+        signer_organisation: "Tenant Co",
+        signed_at: "2026-11-19T10:00:00.000Z",
+        signed_line:
+          "Signed electronically by Tess Tenant, Controller, November 19, 2026",
+        consent_version: "v1",
+        consent_text: "text",
+        content_sha256: hash,
+        content_check: "unchanged",
+        ip: "must not pass through",
+      },
+      links: [
+        {
+          link: 1,
+          label: "Lender",
+          first_opened_at: "2026-11-19T11:00:00Z",
+          last_opened_at: "2026-11-19T12:00:00Z",
+          open_count: 3,
+          reliance: [
+            {
+              name: "Rae",
+              firm: "Bank Co",
+              role: "lender",
+              statements_disputed: ["S06"],
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const { f } = fakeExchange(() => ({ json: view }));
+  configureExchange({ fetch: f });
+  const out = await runToolAsync("fact_package_status", {
+    status_link:
+      "https://site.test/#/r/11111111-2222-3333-4444-555555555555/ownertoken1",
+  });
+  assert.ok(out.ok);
+  const r = out.result as Json;
+  const sg = r.signature as Json;
+  assert.equal(sg.signer_title, "Controller");
+  assert.equal(sg.content_sha256, hash);
+  assert.equal(sg.content_check, "unchanged");
+  assert.equal(sg.ip, undefined, "no address passes through");
+  const l = (r.links as Json[])[0]!;
+  assert.equal(l.open_count, 3);
+  assert.equal(l.first_opened_at, "2026-11-19T11:00:00Z");
+  // A package answered before signing says so.
+  const old = {
+    ok: true,
+    result: {
+      ...view.result,
+      signature: { signed: false, answered_without_signature: true },
+    },
+  };
+  const { f: f2 } = fakeExchange(() => ({ json: old }));
+  configureExchange({ fetch: f2 });
+  const o2 = await runToolAsync("fact_package_status", {
+    status_link:
+      "https://site.test/#/r/11111111-2222-3333-4444-555555555555/ownertoken1",
+  });
+  assert.ok(o2.ok);
+  assert.deepEqual((o2.result as Json).signature, {
+    signed: false,
+    answered_without_signature: true,
+    signature_required: false,
+  });
 });
 
 test("fact_package_send and fact_package_status need runToolAsync; runTool says so", () => {

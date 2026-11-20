@@ -6372,7 +6372,7 @@
     {
       "type": "function",
       "name": "fact_package_send",
-      "description": "Send a fact package to another firm for confirmation through the Record, and get back a link for them. For an expense (CAM) reconciliation: the tenant's facts (lease terms and the landlord's statement figures, each with its quote and page, from doc_verify_facts or doc_abstract_lease) go in a package from fact_package_create, the arithmetic is calc_cam_reconciliation's output as calculation, and each line is an item: accept_theirs where the sender accepts the counterparty's figure, state_ours where the lease gives a different figure and the counterparty is asked to agree or dispute it. The counterparty opens the link on a plain web page (no account needed), sees every item with both figures, the quote, page and document fingerprint, and agrees or disputes each. Every accepted or agreed item is recorded as a reliance, citing the package digest. The Record keeps each fact, its quote, the page and each document's SHA-256, never the documents. A send goes to an outside party and cannot be recalled. Refuses without approved_by, the full name of the person who reviewed every item, and approval_confirmed: true. Refuses a package that fails fact_package_verify's integrity checks, and an item whose fact_ids are not in the package. Real or test: a package is sent for real only through the hosted FactLot API with the subscription's own FactLot key (paid, or an email-confirmed free key) or a connection signed in with one; a real send records reliances between the named organisations at once. Every other call is a test (no key, a free connection without a key, a guest key, or a local or self-hosted FactLot): the counterparty can still open the link and answer, but nothing is recorded as a reliance or counted in the Record's measure. The answer says which happened (recorded_as, test_mode, and message with the reason). Returns the package id, digest, link_for_counterparty, status_link_for_sender (private to the sender) and what was recorded. For a tenant estoppel (kind estoppel) the items are the statements from estoppel_prepare package_items, every one state_ours: the tenant confirms each, or states its own version, on the same page; relying_parties gives a lender or buyer its own view link (links_for_relying_parties), which shows the statements, the tenant's answers and the document fingerprints and lets that firm record its own reliance, one per confirmed statement and never on a disputed one; the relying firm must differ from the sender and the tenant. fact_package_status reads the answers and the reliers later.",
+      "description": "Send a fact package to another firm for confirmation through the FactLot record, and get back a link for them. For an expense (CAM) reconciliation: the tenant's facts (lease terms and the landlord's statement figures, each with its quote and page, from doc_verify_facts or doc_abstract_lease) go in a package from fact_package_create, the arithmetic is calc_cam_reconciliation's output as calculation, and each line is an item: accept_theirs where the sender accepts the counterparty's figure, state_ours where the lease gives a different figure and the counterparty is asked to agree or dispute it. The counterparty opens the link on a plain web page (no account needed), sees every item with both figures, the quote, page and document fingerprint, and agrees or disputes each. Every accepted or agreed item is recorded as a reliance, citing the package digest. The FactLot record keeps each fact, its quote, the page and each document's SHA-256, never the documents. A send goes to an outside party and cannot be recalled. Refuses without approved_by, the full name of the person who reviewed every item, and approval_confirmed: true. Refuses a package that fails fact_package_verify's integrity checks, and an item whose fact_ids are not in the package. Real or test: a package is sent for real only through the hosted FactLot API with the subscription's own FactLot key (paid, or an email-confirmed free key) or a connection signed in with one; a real send records reliances between the named organisations at once. Every other call is a test (no key, a free connection without a key, a guest key, or a local or self-hosted FactLot): the counterparty can still open the link and answer, but nothing is recorded as a reliance or counted in the FactLot record's measure. The answer says which happened (recorded_as, test_mode, and message with the reason). Returns the package id, digest, link_for_counterparty, status_link_for_sender (private to the sender) and what was recorded. For a tenant estoppel (kind estoppel) the items are the statements from estoppel_prepare package_items, every one state_ours: the tenant confirms each, or states its own version, on the same page; the tenant gives the signer's full name and title and signs electronically on the same page (a consent statement ticked and the name typed): the FactLot record keeps the signer, the time in UTC, the consent wording's version and a SHA-256 over the answered statements, and no IP address. relying_parties gives a lender or buyer its own view link (links_for_relying_parties), which shows the statements, the tenant's answers, the signature and the document fingerprints and lets that firm record its own reliance, one per confirmed statement and never on a disputed one, and only after the tenant has signed; where any statement is disputed, the page lists each with the tenant's own version and the firm must acknowledge them first, and the reliance stores which statements were confirmed and which disputed at that moment. The relying firm must differ from the sender and the tenant. fact_package_status reads the answers and the reliers later.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6436,7 +6436,7 @@
                 "maxLength": 120
               },
               "email": {
-                "description": "Kept by the Record to reach the person; never shown to the other party.",
+                "description": "Kept by FactLot to reach the person; never shown to the other party.",
                 "type": "string",
                 "maxLength": 200
               }
@@ -6457,7 +6457,7 @@
                 "maxLength": 120
               },
               "email": {
-                "description": "Kept by the Record; never shown to anyone else.",
+                "description": "Kept by FactLot; never shown to anyone else.",
                 "type": "string",
                 "maxLength": 200
               }
@@ -6675,7 +6675,7 @@
             "additionalProperties": {}
           },
           "relying_parties": {
-            "description": "Estoppel and rent_roll only: a label for each lender or buyer that is to get its own view link and token (for example the lender's name). Each can read the package and record its own reliance; none can answer for the tenant. For an estoppel with none given the Record makes one link; for a rent roll the party named in to has a link already and these are additional.",
+            "description": "Estoppel and rent_roll only: a label for each lender or buyer that is to get its own view link and token (for example the lender's name). Each can read the package and record its own reliance; none can answer for the tenant. For an estoppel with none given FactLot makes one link; for a rent roll the party named in to has a link already and these are additional.",
             "maxItems": 5,
             "type": "array",
             "items": {
@@ -6685,7 +6685,7 @@
             }
           },
           "estoppel_links": {
-            "description": "Rent roll only: the sender's status link (status_link_for_sender) of each estoppel that backs a matches_lease_confirmed_by_tenant line. The Record opens each with its private token to check the tenant agreed the statements; the token is not stored.",
+            "description": "Rent roll only: the sender's status link (status_link_for_sender) of each estoppel that backs a matches_lease_confirmed_by_tenant line. The FactLot record opens each with its private token to check the tenant agreed the statements; the token is not stored.",
             "maxItems": 60,
             "type": "array",
             "items": {
@@ -6721,7 +6721,7 @@
     {
       "type": "function",
       "name": "fact_package_status",
-      "description": "Read the status of a package sent with fact_package_send: for each item, whether the counterparty agreed or disputed it (with their reason and who answered), which items the sender accepted, the reliances recorded, and the package's integrity. For an estoppel it also gives the statement number and text, the tenant's own version where it gave one, and reliers: each lender or buyer that recorded reliance, its role, the statements and when. Give the sender's private status_link (or package_id with token). Needs no account and costs nothing; it reads only your own package, and the counterparty's link cannot read it. The answer says whether the package was sent in test mode (test_mode true: it does not count in the Record's measure) or for real.",
+      "description": "Read the status of a package sent with fact_package_send: for each item, whether the counterparty agreed or disputed it (with their reason and who answered), which items the sender accepted, the reliances recorded, and the package's integrity. For an estoppel it also gives the statement number and text, the tenant's own version where it gave one, the signer's name and title with the electronic signature record (time in UTC, consent wording version and text, SHA-256 of the signed statements, and whether they are unchanged), reliers (each lender or buyer that recorded reliance, its role, the statements and when), and for each relying-party link the first and last time it was opened and how many times, with the name, firm and role given once reliance is recorded and the statements confirmed and disputed at that moment. Give the sender's private status_link (or package_id with token). Needs no account and costs nothing; it reads only your own package, and the counterparty's link cannot read it. The answer says whether the package was sent in test mode (test_mode true: it does not count in the FactLot record's measure) or for real.",
       "parameters": {
         "type": "object",
         "properties": {
