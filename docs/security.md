@@ -13,9 +13,11 @@ Related: [service status](https://factlot.com/status/), [service levels](sla.md)
 
 - The hosted service runs on Cloudflare Workers. A sole proprietor operates it. There is no SOC 2
   report yet; for confidential documents, run FactLot yourself.
-- It stores no request bodies, tool inputs or outputs, and no documents, except a report you build
-  with `report_create`: that file is kept for 24 hours so you can download it, then deleted. It
-  stores API keys only as hashes, and usage metadata without IP addresses.
+- It stores no request bodies, tool inputs or outputs, and no documents, with two exceptions: a
+  report you build with `report_create` (that file is kept for 24 hours so you can download it,
+  then deleted), and a fact package you send to another party with `fact_package_send`, which the
+  Record keeps until you or the other party asks for it to be deleted (the documents themselves
+  are never sent). It stores API keys only as hashes, and usage metadata without IP addresses.
 - Every tool runs without a model, except `doc_extract_lease` and `report_narrative` (Pro and Team,
   and only when you call them), which send what you submit to a model provider. See the
   [privacy notice](https://factlot.com/privacy).
@@ -46,7 +48,7 @@ Related: [service status](https://factlot.com/status/), [service levels](sla.md)
 
 Cloudflare is a United States company and serves requests from its global network. FactLot sets no
 data-location restriction on any of these stores. The [privacy notice](https://factlot.com/privacy)
-lists every record, how long it is kept, and the subprocessors (Cloudflare, Stripe, GitHub). Stripe
+lists every record, how long it is kept, and the subprocessors (Cloudflare, Stripe, GitHub, Anthropic, and Supabase and Vercel for the Record). Stripe
 handles card data; FactLot never sees a card number.
 
 ## What is stored, and what is not
