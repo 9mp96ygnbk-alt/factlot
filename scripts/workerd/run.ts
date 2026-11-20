@@ -23,7 +23,7 @@
  * Prerequisite: `npm run build` (the site build reads packages/*\/dist).
  */
 import { execFileSync } from "node:child_process";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, webcrypto } from "node:crypto";
 import {
   mkdtempSync,
   readFileSync,
@@ -36,6 +36,7 @@ import { join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 
+import { rentRollCase, verifyAttestation } from "@factlot/tools";
 import { createTestHarness } from "wrangler";
 
 import { bindingStore } from "../registry/object_store.ts";
@@ -178,6 +179,7 @@ async function main(): Promise<void> {
     await emptyAnswerChecks(harness);
     await signInChecks(harness);
     await scheduledChecks(harness, apiPath);
+    await attestationChecks(harness, apiPath);
     await objectStoreChecks(harness, registryPath, registryOut, pack);
     const errors = allLogs(harness).filter((l) =>
       /uncaught|TypeError|ReferenceError|"msg\\?":\\?"(error|watch check failed|lifecycle sweep failed|watch check stopped)/i.test(
@@ -969,6 +971,120 @@ async function scheduledChecks(
 }
 
 // --- The registry Worker on its object-storage backend (r2_pack.ts) -------------------------------
+
+/**
+ * The attestation in the real Workers runtime: with a throwaway signing key as a secret (made here,
+ * never printed or stored), the public key is published, a tool run returns a signature that
+ * verifies against it, and the same run without the secret returns none.
+ */
+async function attestationChecks(
+  harness: Harness,
+  apiPath: string,
+): Promise<void> {
+  const k = (await webcrypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ])) as webcrypto.CryptoKeyPair;
+  const pem = `-----BEGIN PRIVATE KEY-----\n${Buffer.from(
+    await webcrypto.subtle.exportKey("pkcs8", k.privateKey),
+  ).toString("base64")}\n-----END PRIVATE KEY-----\n`;
+  const withKey = (secrets: Record<string, string>) =>
+    restartWith(harness, (cur) => ({
+      ...cur,
+      workers: cur.workers.map((w) =>
+        "configPath" in w && w.configPath === apiPath
+          ? { ...w, vars: { GATING_ENABLED: "false" }, secrets }
+          : w,
+      ),
+    }));
+  const call = async (path: string, init?: RequestInit) => {
+    const api = harness.getWorker("factlot-api");
+    return api.fetch(`https://api.factlot.com${path}`, {
+      ...init,
+      headers: {
+        "content-type": "application/json",
+        "cf-connecting-ip": "203.0.113.9",
+      },
+    } as Parameters<typeof api.fetch>[1]);
+  };
+  const certify = async (): Promise<Record<string, unknown>> =>
+    (await asJson(
+      await call("/v1/rent-roll/certify", {
+        method: "POST",
+        body: JSON.stringify(rentRollCase()),
+      }),
+    )) as Record<string, unknown>;
+
+  await withKey({ ATTESTATION_SIGNING_KEY: pem });
+  const keysRes = await call("/.well-known/factlot-attestation-keys.json");
+  const keys = (await asJson(keysRes)) as {
+    keys?: { kid: string; x: string; status: string }[];
+  };
+  expect(
+    keysRes.status === 200 &&
+      keys.keys?.length === 1 &&
+      keys.keys[0]!.status === "current" &&
+      Buffer.from(keys.keys[0]!.x, "base64url").length === 32,
+    "api publishes the attestation public key (Ed25519 key imported in workerd)",
+    keys,
+  );
+  const out = await certify();
+  const att = out.attestation as Record<string, unknown> | undefined;
+  expect(
+    !!att && att.key_id === keys.keys?.[0]?.kid,
+    "api rent_roll_certify returns an attestation signed with the key",
+    att ? { key_id: att.key_id } : Object.keys(out),
+  );
+  if (att && keys.keys) {
+    const input = rentRollCase() as Record<string, unknown>;
+    const facts: Record<string, unknown>[] = [];
+    const walk = (v: unknown): void => {
+      if (Array.isArray(v)) return void v.forEach(walk);
+      if (typeof v !== "object" || v === null) return;
+      const o = v as Record<string, unknown>;
+      if (
+        typeof o.id === "string" &&
+        typeof o.predicate === "string" &&
+        o.provenance
+      )
+        return void facts.push(o);
+      Object.values(o).forEach(walk);
+    };
+    walk(input);
+    const check = await verifyAttestation(
+      att,
+      {
+        kind: "rent_roll",
+        items: out.package_items as Record<string, unknown>[],
+        calculation: out.package_calculation as Record<string, unknown>,
+        facts,
+      },
+      new Map(keys.keys.map((x) => [x.kid, x.x])),
+    );
+    expect(
+      check.ok,
+      "the attestation from workerd verifies against the published key",
+      check.problems,
+    );
+  }
+  await withKey({});
+  const none = await certify();
+  expect(
+    none.attestation === null &&
+      typeof none.attestation_note === "string" &&
+      Array.isArray(none.package_items),
+    "without the secret the tool still works and says it has no attestation",
+    { attestation: none.attestation, note: none.attestation_note },
+  );
+  const noKeys = (await asJson(
+    await call("/.well-known/factlot-attestation-keys.json"),
+  )) as { keys?: unknown[] };
+  expect(
+    Array.isArray(noKeys.keys) && noKeys.keys.length === 0,
+    "without the secret the published key list is empty",
+    noKeys,
+  );
+}
 
 async function objectStoreChecks(
   harness: Harness,

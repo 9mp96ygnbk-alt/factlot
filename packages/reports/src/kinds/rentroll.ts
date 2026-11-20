@@ -7,7 +7,7 @@ import { Workbook } from "../xlsx.ts";
 import { longDate, longDates, num, pct, usd } from "../format.ts";
 import { InstitutionalWriter, type Cell } from "../institutional.ts";
 
-import type { KindInput } from "./common.ts";
+import { attestationParagraph, type KindInput } from "./common.ts";
 
 type Json = Record<string, unknown>;
 
@@ -524,6 +524,11 @@ export async function rentRollPdf(k: KindInput): Promise<Uint8Array> {
     `Each line of the rent roll rests on facts read from the rent roll document, and each lease figure on facts read from the lease documents, every fact carrying its verbatim quotation and page, checked by FactLot ${k.p.version}. The checks are fixed rules: the same facts always give the same grades. Dollar figures that differ by no more than ${usd(n(tol.annual_usd) ?? 1)} a year (one twelfth of that a month, ${usd(n(tol.psf) ?? 0.01)} per SF) are treated as agreeing within rounding. Where the roll states a figure the lease facts do not cover, it is shown as not checked. Where a tenant's estoppel answers were supplied, a line is shown as confirmed by the tenant only when the tenant agreed the premises, expiration and base rent statements; FactLot did not re-read the answers. Vacant space is as the roll states it and was not checked against any document. FactLot keeps facts, quotations, pages and document fingerprints, never the documents themselves.`,
     { size: 8, leading: 11.5 },
   );
+  const attestationText = attestationParagraph(k.ctx);
+  if (attestationText) {
+    w.section("Verification of the figures", 50);
+    w.para(attestationText, { size: 8, leading: 11.5 });
+  }
   w.section("Important information", 50);
   w.para(
     `${RENT_ROLL_NOTICE} Confirm each line against the rent roll and the leases before relying on it, and take advice. A line graded as differing, with no lease or not checkable is not one a lender or buyer can record reliance on.`,

@@ -330,8 +330,6 @@ def _dcf_lease(raw: Any, path: str) -> dict[str, Any]:
     if d.get("leasing") is not None:
         lp = join(path, "leasing")
         lease["leasing"] = _leasing_fields(obj(d["leasing"], lp), lp, market=False)
-    if lease["recovery"] == "base_year" and lease["base_year_opex_psf_annual"] is None:
-        fail(join(path, "base_year_opex_psf_annual"), "required when recovery is base_year")
     return lease
 
 
@@ -361,6 +359,14 @@ def dcf_pro_forma(raw: Any) -> Result:
     r = number(d, "discount_rate", ge=0, lt=1)
     timing = enum(d, "timing", ("end_of_year", "mid_year"), default="end_of_year")
     price = number(d, "purchase_price", optional=True, gt=0)
+    # The schema's cross-field check, after every field has passed and for every lease at once (as the
+    # TypeScript superRefine reports them): a base-year lease needs its base-year expense.
+    missing = [{"path": join(join("leases", i), "base_year_opex_psf_annual"),
+                "message": "required when recovery is base_year"}
+               for i, lease in enumerate(leases)
+               if lease["recovery"] == "base_year" and lease["base_year_opex_psf_annual"] is None]
+    if missing:
+        raise CalcInputError("invalid input: " + "; ".join(f"{x['path']}: {x['message']}" for x in missing), missing)
 
     t = Trace()
     H = hold

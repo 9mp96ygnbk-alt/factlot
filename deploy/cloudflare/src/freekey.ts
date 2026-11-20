@@ -61,6 +61,7 @@ import {
   FREE_KEY_SENT,
   FREE_KEY_DELETE_SENT,
 } from "./pages.ts";
+import { freeDocumentSubject } from "./free-document.ts";
 import { FREE_KEY_ADDRESS_LOOKUPS_PER_DAY } from "./plans.ts";
 import type { Env, KV } from "./types.ts";
 
@@ -455,6 +456,8 @@ async function deleteAddress(
     await env.METER.forget(`freekey:${keyId(h)}`);
   }
   await env.METER.forget(`freemail:${eh.slice(0, 32)}`);
+  // The free full document record (free-document.ts) is this address's data too.
+  await env.METER.forget(await freeDocumentSubject(eh));
   await env.KEYS.delete(`freeemail:${eh}`);
   // The consent record (and the address in it) goes with the key, whether or not lifecycle
   // emails are on, so turning them off never strands an address; the stop marker stays.

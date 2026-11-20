@@ -4,6 +4,7 @@
  * the REST twin `GET /v1/account/usage`, the region a registry call is about, and the hosted
  * coverage summary the account page shows.
  */
+import { DOCUMENTS_BLOCK } from "./free-document.ts";
 import { innerRequest } from "./internal.ts";
 import { accountSummary } from "./billing.ts";
 import { meterSubject, type KeyRecord } from "./keys.ts";
@@ -86,7 +87,10 @@ export async function accountUsage(
   record: KeyRecord,
   days = 30,
 ): Promise<
-  UsageSummary & { month: { used: number; limit: number; resets_at: string } }
+  UsageSummary & {
+    month: { used: number; limit: number; resets_at: string };
+    documents: typeof DOCUMENTS_BLOCK;
+  }
 > {
   const subject = meterSubject(record, hash);
   const plan = PLANS[record.plan];
@@ -97,6 +101,7 @@ export async function accountUsage(
   return {
     ...usage,
     month: { used: q.used, limit: q.limit, resets_at: q.resets_at },
+    documents: DOCUMENTS_BLOCK,
   };
 }
 

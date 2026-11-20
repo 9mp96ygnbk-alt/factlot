@@ -21,6 +21,10 @@ import {
   type KindInput,
 } from "./kinds/common.ts";
 import { auditPdf } from "./kinds/audit.ts";
+import {
+  auditPortfolioPdf,
+  auditPortfolioXlsx,
+} from "./kinds/audit_portfolio.ts";
 import { estoppelPdf } from "./kinds/estoppel.ts";
 import { rentRollPdf, rentRollXlsx } from "./kinds/rentroll.ts";
 import {
@@ -117,6 +121,7 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   tx_protest_deadline: "Texas protest deadline",
   property_sheet: "Property sheet",
   expense_audit: "Expense statement audit",
+  expense_audit_portfolio: "Expense statement audit, portfolio",
   estoppel_certificate: "Tenant estoppel certificate",
   rent_roll_certificate: "Rent roll certificate",
 };
@@ -326,6 +331,18 @@ function txPdfLimits(r: TxResult): void {
     );
 }
 
+/**
+ * How many units of the monthly report allowance a prepared report counts: one, except a portfolio
+ * audit, which counts one for each location audited in full.
+ */
+export function reportUnits(prepared: PreparedReport): number {
+  if (prepared.kind !== "expense_audit_portfolio") return 1;
+  const n = (
+    prepared.checked.result as { portfolio?: { locations_audited?: unknown } }
+  ).portfolio?.locations_audited;
+  return typeof n === "number" && n >= 1 ? n : 1;
+}
+
 /** The parcel a registry kind looks up (undefined for every other kind). */
 export function registryUrn(prepared: PreparedReport): string | undefined {
   return REGISTRY_KINDS.includes(prepared.kind)
@@ -424,6 +441,11 @@ export async function renderReport(
   else if (kind === "tx_unequal_appraisal" && format === "xlsx")
     bytes = await txXlsx(k);
   else if (kind === "expense_audit") bytes = await auditPdf(k);
+  else if (kind === "expense_audit_portfolio")
+    bytes =
+      format === "xlsx"
+        ? await auditPortfolioXlsx(k)
+        : await auditPortfolioPdf(k);
   else if (kind === "estoppel_certificate") bytes = await estoppelPdf(k);
   else if (kind === "rent_roll_certificate")
     bytes = format === "xlsx" ? await rentRollXlsx(k) : await rentRollPdf(k);
@@ -491,7 +513,10 @@ function pdfFooter(
 const BUILDERS: Record<
   Exclude<
     ReportKind,
-    "expense_audit" | "estoppel_certificate" | "rent_roll_certificate"
+    | "expense_audit"
+    | "expense_audit_portfolio"
+    | "estoppel_certificate"
+    | "rent_roll_certificate"
   >,
   (k: KindInput) => ReportDoc
 > = {

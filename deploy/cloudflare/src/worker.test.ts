@@ -12,10 +12,12 @@ import { createHandler } from "@factlot/server";
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
+  configureAttestation,
   configureRegistry,
   configureRegistryRunner,
   currentExchangeCaller,
   getTool,
+  rentRollCase,
   runTool,
   runToolAsync,
 } from "@factlot/tools";
@@ -61,6 +63,7 @@ import {
   type DurableObjectNamespaceLike,
 } from "./limiter.ts";
 import { resetCoverageCache } from "./account-tools.ts";
+import { freeDocumentSubject } from "./free-document.ts";
 import { CLAIM_POLL_MS } from "./claim.ts";
 import { HOSTING_NOTE, WHATS_NEW } from "./news.ts";
 import { EXTRACT_LEASE_STEP, REPORTS_STEP } from "./onboarding.ts";
@@ -1451,6 +1454,57 @@ describe("router", () => {
     }
     assert.equal(asked.length, 5);
     assert.deepEqual(seen, [...paths, ...paths]);
+  });
+
+  it("publishes the attestation public keys: none without a signing key, the current and previous keys with one", async () => {
+    const { api } = innerApi();
+    const get = () =>
+      handle(
+        new Request(
+          "https://api.factlot.com/.well-known/factlot-attestation-keys.json",
+        ),
+        env({ ASSETS: assets }),
+        api,
+      );
+    configureAttestation(undefined);
+    const none = await get();
+    assert.equal(none.status, 200);
+    assert.deepEqual(((await none.json()) as { keys: unknown[] }).keys, []);
+    const k = (await globalThis.crypto.subtle.generateKey(
+      { name: "Ed25519" },
+      true,
+      ["sign", "verify"],
+    )) as {
+      privateKey: Parameters<typeof globalThis.crypto.subtle.exportKey>[1];
+    };
+    const pem = `-----BEGIN PRIVATE KEY-----\n${Buffer.from(
+      await globalThis.crypto.subtle.exportKey("pkcs8", k.privateKey),
+    ).toString("base64")}\n-----END PRIVATE KEY-----`;
+    const previous = Buffer.alloc(32, 7).toString("base64url");
+    configureAttestation({
+      signingKey: pem,
+      keyId: "k-2026-11",
+      previousPublicKeys: [previous],
+    });
+    try {
+      const res = await get();
+      assert.equal(res.status, 200);
+      assert.match(res.headers.get("cache-control") ?? "", /max-age=300/);
+      const body = (await res.json()) as {
+        keys: { kid: string; alg: string; x: string; status: string }[];
+      };
+      assert.equal(body.keys.length, 2);
+      assert.deepEqual(
+        [body.keys[0]!.kid, body.keys[0]!.status, body.keys[0]!.alg],
+        ["k-2026-11", "current", "Ed25519"],
+      );
+      assert.equal(Buffer.from(body.keys[0]!.x, "base64url").length, 32);
+      assert.equal(body.keys[1]!.status, "previous");
+      assert.equal(body.keys[1]!.x, previous);
+      assert.ok(!JSON.stringify(body).includes("PRIVATE"));
+    } finally {
+      configureAttestation(undefined);
+    }
   });
 
   it("serves its own robots.txt on the API host", async () => {
@@ -13706,5 +13760,371 @@ describe("audit_expense_statement: the plan rule the router hands to the tool", 
     const e = env();
     e.RL_ANON = new CountingLimit(1000);
     assert.equal(await full(e), true);
+  });
+});
+
+describe("the first full document free: one per free, email-verified account", () => {
+  const TOOL_PATHS: Record<string, string> = {
+    "/v1/rent-roll/certify": "rent_roll_certify",
+    "/v1/estoppel/prepare": "estoppel_prepare",
+    "/v1/audit/expense-statement": "audit_expense_statement",
+  };
+  /** An inner API that runs the real document tool (REST path or MCP tools/call). */
+  const inner = {
+    fetch: async (r: Request) => {
+      const url = new URL(r.url);
+      const body = (await r.json()) as {
+        method?: string;
+        id?: number;
+        params?: { name: string; arguments: unknown };
+      };
+      if (url.pathname === "/mcp") {
+        const o = runTool(body.params!.name, body.params!.arguments);
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: body.id,
+            result: o.ok
+              ? { structuredContent: o.result }
+              : { isError: true, content: [{ type: "text", text: "error" }] },
+          }),
+        );
+      }
+      const o = runTool(TOOL_PATHS[url.pathname]!, body);
+      return new Response(JSON.stringify(o.ok ? o.result : o.error), {
+        status: o.ok ? 200 : 400,
+      });
+    },
+  };
+  const roll = (extra: Record<string, unknown> = {}) => ({
+    ...rentRollCase(),
+    ...extra,
+  });
+  // A different document (the answer differs with as_of).
+  const other = () => roll({ as_of: "2026-06-30" });
+  const setup = () => {
+    const e = env({ GATING_ENABLED: "true", FREE_KEY_ENABLED: "true" });
+    e.RL_ANON = new CountingLimit(1000);
+    return e;
+  };
+  const freeKeyFor = async (e: Env, email: string, n = 0) => {
+    const key = `fl_free_${String(n).padStart(2, "0")}${"B".repeat(41)}`;
+    await e.KEYS.put(
+      `freekey:${await hashKey(key)}`,
+      JSON.stringify({
+        tier: "free",
+        email_hash: await hashKey(email),
+        created: new Date(T0).toISOString(),
+      }),
+    );
+    return key;
+  };
+  type Ans = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const roller = async (
+    e: ReturnType<typeof env>,
+    key: string | undefined,
+    body: unknown,
+  ): Promise<{ status: number; body: Ans }> => {
+    const r = await call(e, inner, "/v1/rent-roll/certify", {
+      body,
+      ...(key ? { key } : {}),
+    });
+    return { status: r.status, body: (await r.json()) as Ans };
+  };
+  const whole = (a: { body: Ans }) => a.body.lines !== undefined;
+
+  it("the first full answer is whole and says it was the one free document; the next is the summary", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    const first = await roller(e, key, roll());
+    assert.equal(first.status, 200);
+    assert.ok(whole(first));
+    assert.equal(first.body.limited, undefined);
+    assert.equal(first.body.free_document.free_document, true);
+    assert.match(first.body.free_document.note, /one free full document/);
+    assert.match(first.body.free_document.note, /Pro or Team/);
+    assert.match(first.body.free_document.note, /factlot\.com\/pricing/);
+    const second = await roller(e, key, other());
+    assert.equal(second.status, 200);
+    assert.ok(!whole(second));
+    assert.equal(second.body.limited, true);
+    assert.equal(second.body.free_document.free_document, false);
+    assert.match(second.body.free_document.note, /already used/);
+  });
+
+  it("the same document asked for again is whole again and not counted again", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    assert.ok(whole(await roller(e, key, roll())));
+    const again = await roller(e, key, roll());
+    assert.ok(whole(again));
+    assert.equal(again.body.free_document.free_document, true);
+    assert.match(again.body.free_document.note, /not counted again/);
+    // a different document is still the summary
+    assert.ok(!whole(await roller(e, key, other())));
+    // 24 hours later the same document is the summary
+    e.clock.t = T0 + 25 * 3600_000;
+    assert.ok(!whole(await roller(e, key, roll())));
+  });
+
+  it("an input error does not use it", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    const bad = await roller(e, key, {});
+    assert.equal(bad.status, 400);
+    const bad2 = await roller(e, key, { ...roll(), as_of: "not a date" });
+    assert.equal(bad2.status, 400);
+    assert.ok(whole(await roller(e, key, roll())));
+  });
+
+  it("one account, however many keys: a replacement key sees the record; another address has its own", async () => {
+    const e = setup();
+    const k1 = await freeKeyFor(e, "a@example.com", 1);
+    const k2 = await freeKeyFor(e, "a@example.com", 2);
+    const k3 = await freeKeyFor(e, "b@example.com", 3);
+    assert.ok(whole(await roller(e, k1, roll())));
+    assert.ok(
+      !whole(await roller(e, k2, other())),
+      "rotated key, same account",
+    );
+    assert.ok(whole(await roller(e, k3, other())), "another account");
+  });
+
+  it("two simultaneous calls: exactly one gets the whole document", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    const answers = await Promise.all([
+      roller(e, key, roll()),
+      roller(e, key, other()),
+      roller(e, key, roll({ as_of: "2026-03-31" })),
+      roller(e, key, roll({ as_of: "2026-02-28" })),
+    ]);
+    assert.equal(answers.filter(whole).length, 1);
+    // and it stays one afterwards
+    assert.ok(!whole(await roller(e, key, roll({ as_of: "2026-01-31" }))));
+  });
+
+  it("covers the three tools together: used on one, gone for the others", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    assert.ok(whole(await roller(e, key, roll())));
+    const r = await call(e, inner, "/v1/estoppel/prepare", {
+      body: {},
+      key,
+    });
+    // an input error is still an error, not a summary
+    assert.equal(r.status, 400);
+    await r.body?.cancel();
+    const sub = (await (
+      await call(e, inner, "/mcp", {
+        key,
+        body: {
+          jsonrpc: "2.0",
+          id: 7,
+          method: "tools/call",
+          params: { name: "rent_roll_certify", arguments: other() },
+        },
+      })
+    ).json()) as Ans;
+    assert.equal(sub.result.structuredContent.limited, true);
+  });
+
+  it("over MCP: the first tools/call is whole", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    const res = (await (
+      await call(e, inner, "/mcp", {
+        key,
+        body: {
+          jsonrpc: "2.0",
+          id: 8,
+          method: "tools/call",
+          params: { name: "rent_roll_certify", arguments: roll() },
+        },
+      })
+    ).json()) as Ans;
+    assert.ok(res.result.structuredContent.lines);
+    assert.equal(
+      res.result.structuredContent.free_document.free_document,
+      true,
+    );
+  });
+
+  it("not for a keyless caller, and not for a paid key's rule (a paid key is whole without it)", async () => {
+    const e = setup();
+    const anon = await roller(e, undefined, roll());
+    assert.equal(anon.body.limited, true);
+    assert.equal(anon.body.free_document, undefined);
+    const pro = await issue(e);
+    const p = await roller(e, pro.key, roll());
+    assert.ok(whole(p));
+    assert.equal(p.body.free_document, undefined);
+  });
+
+  it("a record that cannot be written gives the summary, never an unrecorded whole document", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    const real = e.METER.freeDocument!;
+    e.METER = {
+      ...e.METER,
+      freeDocument: {
+        ...real,
+        commit: async () => {
+          throw new Error("meter down");
+        },
+      },
+    } as typeof e.METER;
+    const a = await roller(e, key, roll());
+    assert.equal(a.status, 200);
+    assert.ok(!whole(a));
+    // the reservation was released or lapses: not used
+    e.METER = { ...e.METER, freeDocument: real } as typeof e.METER;
+    e.clock.t += 120_000;
+    assert.ok(whole(await roller(e, key, roll())));
+  });
+
+  it("gating off: everyone gets the whole answer and the record is never touched", async () => {
+    const e = env({ FREE_KEY_ENABLED: "true" });
+    e.RL_ANON = new CountingLimit(1000);
+    const key = await freeKeyFor(e, "a@example.com");
+    const a = await roller(e, key, roll());
+    assert.ok(whole(a));
+    assert.equal(a.body.free_document, undefined);
+    const s = await e.METER.freeDocument!.status(
+      await freeDocumentSubject(await hashKey("a@example.com")),
+    );
+    assert.equal(s.used, undefined);
+  });
+
+  it("forgetting the address forgets the record", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    assert.ok(whole(await roller(e, key, roll())));
+    const subject = await freeDocumentSubject(await hashKey("a@example.com"));
+    assert.ok((await e.METER.freeDocument!.status(subject)).used);
+    await e.METER.forget(subject);
+    assert.equal((await e.METER.freeDocument!.status(subject)).used, undefined);
+  });
+
+  it("the report of the free document is whole too, for the same arguments only", async () => {
+    const e = setup();
+    const key = await freeKeyFor(e, "a@example.com");
+    const rep = (args: unknown) =>
+      call(e, inner, "/v1/reports", {
+        key,
+        body: { kind: "rent_roll_certificate", format: "pdf", arguments: args },
+      });
+    // before the free document is used: the report is refused
+    const before = await rep(roll());
+    assert.equal(before.status, 403);
+    assert.equal(((await before.json()) as Ans).code, "PlanRequired");
+    assert.ok(whole(await roller(e, key, roll())));
+    const ok = await rep(roll());
+    assert.equal(ok.status, 201, JSON.stringify(await ok.clone().json()));
+    const body = (await ok.json()) as Ans;
+    assert.match(body.download_url, /^https:/);
+    // another document's report is refused
+    const no = await rep(other());
+    assert.equal(no.status, 403);
+    await no.body?.cancel();
+    // not after 24 hours
+    e.clock.t = T0 + 25 * 3600_000;
+    const late = await rep(roll());
+    assert.equal(late.status, 403);
+    await late.body?.cancel();
+  });
+
+  it("account_status and account_usage (paid callers' tools) say the documents are included", async () => {
+    const e = setup();
+    const pro = await issue(e);
+    const res = (await (
+      await call(e, inner, "/v1/account/usage", { method: "GET", key: pro.key })
+    ).json()) as Ans;
+    assert.equal(res.documents.included_in_plan, true);
+    assert.equal(res.documents.per_document_charge, false);
+    assert.equal(res.documents.free_document.applies, false);
+  });
+});
+
+describe("Meter.freeDocument: the account's one free document", () => {
+  const meter = () => {
+    const clock = { t: T0 };
+    const m = new Meter(
+      () => new MemoryStore(),
+      () => clock.t,
+    );
+    return { m, clock };
+  };
+  it("only one reservation at a time; a commit makes it final; later reservations see it used", () => {
+    const { m } = meter();
+    const a = m.freeDocument({ op: "reserve", ttl_ms: 60_000 });
+    assert.equal(a.state, "available");
+    assert.equal(
+      m.freeDocument({ op: "reserve", ttl_ms: 60_000 }).state,
+      "busy",
+    );
+    const id = String(a.id);
+    assert.deepEqual(
+      m.freeDocument({
+        op: "commit",
+        id,
+        tool: "rent_roll_certify",
+        document_id: "d1",
+      }),
+      { committed: true },
+    );
+    const again = m.freeDocument({ op: "reserve", ttl_ms: 60_000 });
+    assert.equal(again.state, "used");
+    assert.equal((again.used as { document_id: string }).document_id, "d1");
+    assert.deepEqual(
+      m.freeDocument({ op: "commit", id: "x", tool: "t", document_id: "d2" }),
+      { committed: false },
+    );
+    assert.equal(
+      (m.freeDocument({ op: "status" }).used as { tool: string }).tool,
+      "rent_roll_certify",
+    );
+  });
+  it("a released or lapsed reservation can be taken again; an old holder cannot commit over a new one", () => {
+    const { m, clock } = meter();
+    const a = m.freeDocument({ op: "reserve", ttl_ms: 60_000 });
+    m.freeDocument({ op: "release", id: String(a.id) });
+    const b = m.freeDocument({ op: "reserve", ttl_ms: 60_000 });
+    assert.equal(b.state, "available");
+    clock.t += 61_000;
+    const c = m.freeDocument({ op: "reserve", ttl_ms: 60_000 });
+    assert.equal(c.state, "available");
+    // b's hold lapsed and c holds now: b cannot commit
+    assert.deepEqual(
+      m.freeDocument({
+        op: "commit",
+        id: String(b.id),
+        tool: "t",
+        document_id: "x",
+      }),
+      { committed: false },
+    );
+    assert.deepEqual(
+      m.freeDocument({
+        op: "commit",
+        id: String(c.id),
+        tool: "t",
+        document_id: "y",
+      }),
+      { committed: true },
+    );
+  });
+  it("sets no expiry: the record is not touched by the cleanup of counters", () => {
+    const { m, clock } = meter();
+    const a = m.freeDocument({ op: "reserve", ttl_ms: 60_000 });
+    m.freeDocument({
+      op: "commit",
+      id: String(a.id),
+      tool: "t",
+      document_id: "z",
+    });
+    clock.t += 800 * 24 * 3600_000;
+    m.cleanup();
+    assert.ok(m.freeDocument({ op: "status" }).used);
   });
 });

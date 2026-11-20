@@ -128,6 +128,26 @@ function protestArgFields(args: unknown): Field[] {
   });
 }
 
+/** expense_audit_portfolio: each location's label and landlord are printed as supplied. */
+function portfolioArgFields(args: unknown): Field[] {
+  const list = isObj(args) && Array.isArray(args.audits) ? args.audits : [];
+  return list.flatMap((x, i): Field[] => {
+    if (!isObj(x)) return [];
+    const out: Field[] = [];
+    const label = str(x.label);
+    if (label !== undefined)
+      out.push({ path: `arguments.audits.${i}.label`, text: label, max: 120 });
+    const landlord = str(x.landlord);
+    if (landlord !== undefined)
+      out.push({
+        path: `arguments.audits.${i}.landlord`,
+        text: landlord,
+        max: 200,
+      });
+    return out;
+  });
+}
+
 interface CitationLike {
   locator?: string | undefined;
 }
@@ -232,6 +252,8 @@ export function checkCallerText(
   }
   if (kind === "tx_unequal_appraisal") fields.push(...txArgFields(args));
   if (kind === "tx_protest_deadline") fields.push(...protestArgFields(args));
+  if (kind === "expense_audit_portfolio")
+    fields.push(...portfolioArgFields(args));
 
   const long: Issue[] = fields
     .filter((f) => f.max !== undefined && f.text.length > f.max)

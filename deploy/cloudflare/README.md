@@ -178,3 +178,30 @@ URL fragments) is a URL redesign. Invocation logs are therefore off: the privacy
 keeps no access log of its own, and with them on that was not true. Live debugging uses
 `wrangler tail`, which streams and stores nothing; turning them back on needs the privacy notice
 changed first.
+
+## Attestation signing key (optional)
+
+`audit_expense_statement`, `estoppel_prepare` and `rent_roll_certify` return an `attestation` when this
+Worker holds a signing key: an Ed25519 signature over what the tool computed, which `fact_package_send`
+carries to the FactLot record so the record can show the figures as "computed by FactLot and unchanged
+since". Without the key those tools work as before and answer `attestation: null` with a note.
+
+There is no existing key for this in production: fact packages are signed by their holders and FactLot
+holds no private key for them (`packages/tools/src/packages.ts`). This one is a new secret of the hosted
+service. Make it on your own machine and give it to the Worker without printing it:
+
+```bash
+openssl genpkey -algorithm ed25519 -out attestation-key.pem
+npx wrangler@4 secret put ATTESTATION_SIGNING_KEY < attestation-key.pem
+# keep attestation-key.pem somewhere safe (a password manager) and delete the local copy
+```
+
+After the next deploy, `https://api.factlot.com/.well-known/factlot-attestation-keys.json` lists the
+public key with its id (the first 16 hex characters of the SHA-256 of the public key, or
+`ATTESTATION_KEY_ID` if set). The FactLot record reads that URL (cached ten minutes).
+
+Rotating: put the new private key in `ATTESTATION_SIGNING_KEY` and list the old public key (`x` from the
+published list, base64url) in the variable `ATTESTATION_PREVIOUS_PUBLIC_KEYS` (comma-separated) so
+attestations signed just before the change still verify. Take the old key out of that variable once its
+attestations have been sent. Every key in the published list is accepted by the record; a key not in
+the list is not.

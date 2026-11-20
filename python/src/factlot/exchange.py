@@ -48,20 +48,23 @@ def configure_exchange(url: str | None = None, site_url: str | None = None, toke
 
 @contextlib.contextmanager
 def run_with_exchange_caller(account_id: str | None, full_audit: bool | None = None,
-                             test_reason: str | None = None) -> Iterator[None]:
+                             test_reason: str | None = None, free_document: Any = None) -> Iterator[None]:
     """Say which FactLot account is calling (never its key) for the fact_package_send calls inside, why
     this caller sends test packages only when the host knows (test_reason, e.g. a guest key), and
-    (full_audit False) that this caller gets audit_expense_statement's summary only, as the hosted API does."""
-    from . import audit
+    (full_audit False) that this caller gets audit_expense_statement's summary only, as the hosted API does.
+    free_document is the host's hook that gives a free account one whole document (free_document.py)."""
+    from . import audit, free_document as fd
 
     caller: dict[str, Any] = {"account_id": account_id} if account_id else {}
     if test_reason:
         caller["test_reason"] = test_reason
     t = _caller.set(caller)
     a = audit.set_full_audit(full_audit)
+    f = fd.set_free_document(free_document)
     try:
         yield
     finally:
+        fd._free_document.reset(f)
         audit._full_audit.reset(a)
         _caller.reset(t)
 
@@ -223,6 +226,7 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         **({"calculation": inp["calculation"]} if inp.get("calculation") else {}),
         **({"relying_parties": inp["relying_parties"]} if (estoppel or rent_roll) and inp.get("relying_parties") else {}),
         **({"linked_estoppels": linked} if rent_roll and linked else {}),
+        **({"attestation": inp["attestation"]} if inp.get("attestation") else {}),
         "approved_by": inp["approved_by"], "approval_confirmed": True,
         **({"sender_account": account_id} if forward else {}),
     }
@@ -256,10 +260,14 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         message = (f"SENT FOR REAL: the FactLot record recorded {n} reliance{'' if n == 1 else 's'} now (the sender relies on "
                    f"{'the figure' if n == 1 else 'the figures'} it accepted from {to_org}), and each item {to_org} agrees to will be "
                    f"recorded as relied on by them. Each is tied to the sender's FactLot account.")
+    att = sent.get("attestation") if isinstance(sent.get("attestation"), dict) else None
+    att_note = (f" {'ATTESTED' if att.get('status') == 'attested' else 'NOT ATTESTED'}: {att.get('line')}" if att else "")
     relier_tokens = sent.get("relier_tokens") if isinstance(sent.get("relier_tokens"), list) else []
     return {
         "package_id": id_, "digest": sent.get("digest"), "package_root": sent.get("package_root"), "status": sent.get("status"),
-        "recorded_as": "sandbox" if sandbox else "real", "test_mode": sandbox, "message": message,
+        "recorded_as": "sandbox" if sandbox else "real", "test_mode": sandbox, "message": message + att_note,
+        **({"attestation": att} if att else {}),
+        **({"package_signature": sent["package_signature"]} if isinstance(sent.get("package_signature"), dict) else {}),
         "link_for_counterparty": _link(id_, str(sent["counterparty_token"])),
         "status_link_for_sender": _link(id_, str(sent["owner_token"])),
         **({"links_for_relying_parties": [{"label": r.get("label"), "link": _link(id_, str(r["token"]))} for r in relier_tokens]}
@@ -334,6 +342,8 @@ def fact_package_status(args: dict[str, Any]) -> dict[str, Any]:
         "agreed": sum(1 for x in items if (x["answer"] or {}).get("decision") == "agreed"),
         "disputed": sum(1 for x in items if (x["answer"] or {}).get("decision") == "disputed"),
         "reliances": s.get("reliances"),
+        **({"attestation": s["attestation"]} if isinstance(s.get("attestation"), dict) else {}),
+        **({"package_signature": s["package_signature"]} if isinstance(s.get("package_signature"), dict) else {}),
         **({"reliers": s["reliers"]} if isinstance(s.get("reliers"), list) else {}),
         **({"signature": _signature_out(s["signature"])} if isinstance(s.get("signature"), dict) else {}),
         **({"links": [{"link": l.get("link"), "label": l.get("label"), "first_opened_at": l.get("first_opened_at"),

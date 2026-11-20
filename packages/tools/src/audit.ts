@@ -27,6 +27,7 @@ import { z } from "zod";
 import { ToolInputError, validateFact } from "./documents.ts";
 import type { Json } from "./documents.ts";
 import { currentExchangeCaller } from "./exchange.ts";
+import { gateDocument } from "./free_document.ts";
 
 export const AUDIT_MAX_FACTS = 1_000;
 export const AUDIT_PLAN_URL = "https://factlot.com/pricing/";
@@ -323,7 +324,7 @@ function num(x: number): string {
 const pct = (x: number): string => `${num(round(x * 100, 4))}%`;
 
 /** Lower-case words of a label, single-spaced. */
-function norm(s: string): string {
+export function norm(s: string): string {
   return s
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
@@ -424,7 +425,7 @@ const FIGURE_LABELS: Record<string, [string, string]> = {
   YOY_RISE: ["This year's line", "Prior year's line"],
 };
 
-const CHECKS: [string, string][] = [
+export const CHECKS: [string, string][] = [
   ["management_fee", "Management or admin fee"],
   ["cap", "Cap on controllable expenses"],
   ["capital_items", "Capital items"],
@@ -459,7 +460,7 @@ function levelFactor(r: number, n: number): number {
   return r / (1 - 1 / powInt(1 + r, n));
 }
 
-function audit(input: AuditInput): Json {
+export function audit(input: AuditInput): Json {
   // ---- read and validate every fact -----------------------------------------------------------
   const issues: Issue[] = [];
   const ids = new Set<string>();
@@ -1784,5 +1785,10 @@ export function auditLimited(): boolean {
 
 export function auditExpenseStatement(input: AuditInput): Json {
   const full = audit(input);
-  return auditLimited() ? auditSummary(full) : full;
+  return gateDocument(
+    "audit_expense_statement",
+    full,
+    auditSummary,
+    auditLimited(),
+  );
 }

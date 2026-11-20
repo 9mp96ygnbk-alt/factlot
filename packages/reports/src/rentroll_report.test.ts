@@ -52,6 +52,34 @@ const make = (format: "pdf" | "xlsx", context?: object) =>
   );
 
 describe("rent_roll_certificate report", () => {
+  it("prints whether the figures were computed by FactLot and unchanged since, only when known", async () => {
+    const att = await pdfText(
+      (
+        await make("pdf", {
+          package_attestation: {
+            status: "attested",
+            tool: "rent_roll_certify",
+            tool_version: "0.5.0",
+            key_id: "k1",
+            issued_at: "2026-11-20T10:00:00Z",
+            items_checked: 10,
+            calculation_covered: true,
+          },
+        })
+      ).bytes,
+    );
+    assert.match(att, /Verification of the figures/);
+    assert.match(att, /Computed by FactLot and unchanged since/);
+    assert.match(att, /signed 2026-11-20/);
+    const no = await pdfText(
+      (await make("pdf", { package_attestation: { status: "unattested" } }))
+        .bytes,
+    );
+    assert.match(no, /Not verified: the figures in the package sent/);
+    const unknown = await pdfText((await make("pdf")).bytes);
+    assert.ok(!/Verification of the figures/.test(unknown));
+  });
+
   it("is a PDF and an XLSX", () => {
     assert.deepEqual(KIND_FORMATS.rent_roll_certificate, ["pdf", "xlsx"]);
   });

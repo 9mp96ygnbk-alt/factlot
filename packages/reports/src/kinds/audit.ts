@@ -4,14 +4,14 @@
  */
 import { usd } from "../format.ts";
 import { InstitutionalWriter, type Cell } from "../institutional.ts";
-import type { KindInput } from "./common.ts";
+import { attestationParagraph, type KindInput } from "./common.ts";
 
 type Json = Record<string, unknown>;
 
 export const AUDIT_NOTICE =
   "These findings compare the landlord's statement with what the quoted lease terms yield, worked from the facts shown with their quotations and pages. A finding that follows from the lease states a difference worked from the quoted terms; a finding that depends on a reading, or a question to raise, is labelled so. None is a legal conclusion: confirm each against the lease and its amendments before relying on it.";
 
-const BASIS: Record<string, string> = {
+export const BASIS: Record<string, string> = {
   follows_from_terms: "Follows from the lease",
   depends_on_reading: "Depends on a reading",
   question_to_ask: "Question to raise",
@@ -24,7 +24,7 @@ const BASIS_LONG: Record<string, string> = {
 };
 
 /** Section headings: the finding in a phrase. A code not listed uses the tool's own title. */
-const SHORT_TITLE: Record<string, string> = {
+export const SHORT_TITLE: Record<string, string> = {
   FEE_RATE_ABOVE_CAP: "Administrative fee rate above the lease rate",
   FEE_ON_EXCLUDED_LINES:
     "Administrative fee charged on lines the lease excludes",
@@ -148,13 +148,13 @@ export const readable = (s: string): string =>
     .replace(/\b(?:[a-z]+_)+[a-z]+\b/g, (t) => t.replace(/_/g, " "));
 
 /** Money to the cent, with thousands separators. */
-const cents = (x: number | null): string => (x === null ? "—" : usd(x));
+export const cents = (x: number | null): string => (x === null ? "—" : usd(x));
 /** Money for a large figure: ".00" dropped. */
-const big = (x: number | null): string =>
+export const big = (x: number | null): string =>
   x === null ? "—" : usd(x).replace(/\.00$/, "");
 
 /** A tool's "needs lease.x and statement.y" with the predicates in words. */
-function plainNeeds(reason: string): string {
+export function plainNeeds(reason: string): string {
   let mapped = false;
   let s = reason
     .replace(
@@ -246,7 +246,7 @@ function collectSources(r: Json, args: unknown): SourceRow[] {
   );
 }
 
-const digest = (id: string): string => {
+export const digest = (id: string): string => {
   const m = /sha256-([0-9a-f]{8})/.exec(id);
   return m ? m[1]! : "";
 };
@@ -484,6 +484,11 @@ export async function auditPdf(k: KindInput): Promise<Uint8Array> {
     }.`,
     { size: 8, leading: 11.5 },
   );
+  const attestationText = attestationParagraph(k.ctx);
+  if (attestationText) {
+    w.section("Verification of the figures", 50);
+    w.para(attestationText, { size: 8, leading: 11.5 });
+  }
   w.section("Important information", 50);
   w.para(
     "This report is prepared from the documents supplied and has not been checked against any other source. It is not legal advice and states no legal conclusion; a finding that depends on a reading of the lease, or a question to raise, is labelled as such. Confirm each finding against the lease and its amendments, and take advice before disputing a statement or giving notice. Deadlines are counted from the dates on the statement as supplied: confirm how the lease counts days and what counts as notice.",

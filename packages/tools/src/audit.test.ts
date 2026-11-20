@@ -5,7 +5,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { auditSummary, runTool, runWithExchangeCaller } from "./index.ts";
+import {
+  documentId,
+  type FreeDocumentHost,
+  auditSummary,
+  runTool,
+  runWithExchangeCaller,
+} from "./index.ts";
+import { checkAttested } from "./attestation.testkit.test.ts";
 import { FactPackageSendInput } from "./exchange.ts";
 
 type Json = Record<string, unknown>;
@@ -707,4 +714,64 @@ test("a finding's two figures are comparable: the difference is their difference
       );
     }
   }
+});
+
+// ---- the first full document free (hosted, free_document.ts) --------------------------------
+
+test("free document: a limited caller the host entitles gets the whole answer once, flagged; later the summary", () => {
+  const used: string[] = [];
+  const host: FreeDocumentHost = {
+    use(tool, id) {
+      used.push(`${tool}:${id}`);
+      return used.length === 1
+        ? { granted: true, covers_until: "2026-11-21T00:00:00.000Z" }
+        : {
+            granted: false,
+            used_at: "2026-11-20T00:00:00.000Z",
+            used_tool: tool,
+          };
+    },
+  };
+  const runAudit = (a: Json) => {
+    const o = runTool("audit_expense_statement", a);
+    assert.ok(o.ok);
+    return o.result as Json;
+  };
+  const a = build(flawedCase());
+  const whole = runWithExchangeCaller(
+    { fullAudit: false, freeDocument: host },
+    () => runAudit(a),
+  );
+  const local = runAudit(a);
+  // the whole answer, plus a plain statement that it was the one free document
+  const { free_document: note, ...rest } = whole;
+  assert.deepEqual(rest, local);
+  const nt = note as Json;
+  assert.equal(nt.free_document, true);
+  assert.match(String(nt.note), /one free full document/);
+  assert.match(String(nt.note), /Pro or Team/);
+  assert.match(String(nt.note), /pricing/);
+  // the id the host saw is the hash of the whole answer, the same one report_create computes
+  assert.equal(used[0], `audit_expense_statement:${documentId(local)}`);
+  const summary = runWithExchangeCaller(
+    { fullAudit: false, freeDocument: host },
+    () => runAudit(a),
+  );
+  assert.equal(summary.limited, true);
+  assert.equal((summary.free_document as Json).free_document, false);
+  assert.match(String((summary.free_document as Json).note), /already used/);
+  // the host is not asked when the caller is paid or local
+  const n = used.length;
+  runWithExchangeCaller({ fullAudit: true, freeDocument: host }, () =>
+    runAudit(a),
+  );
+  runAudit(a);
+  assert.equal(used.length, n);
+});
+
+test("the hosted service attests the audit result; every tamper is refused", async () => {
+  const r = await checkAttested("audit_expense_statement", build(flawedCase()));
+  // The audit returns no calculation, so the attestation covers the items and the facts only.
+  assert.equal((r.attestation as Json).calculation_digest, null);
+  assert.ok((r.package_items as Json[]).length > 0);
 });

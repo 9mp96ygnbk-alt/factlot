@@ -1098,4 +1098,6 @@ def rent_roll_limited() -> bool:
 
 def rent_roll_certify(inp: dict[str, Any]) -> dict[str, Any]:
     full = certify_rent_roll(inp)
-    return rent_roll_summary(full) if rent_roll_limited() else full
+    from .free_document import gate_document
+
+    return gate_document("rent_roll_certify", full, rent_roll_summary, rent_roll_limited())

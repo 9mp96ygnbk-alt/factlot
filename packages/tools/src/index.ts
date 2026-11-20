@@ -19,6 +19,21 @@ export {
   EXCHANGE_SITE_URL,
   type ExchangeConfig,
 } from "./exchange.ts";
+export {
+  ATTESTATION_FORMAT,
+  ATTESTATION_KEYS_PATH,
+  ATTESTATION_PREFIX,
+  ATTESTATION_VERSION,
+  ATTESTED_TOOLS,
+  attestResult,
+  factsInInput,
+  attestationEnabled,
+  configureAttestation,
+  publishedAttestationKeys,
+  verifyAttestation,
+  type AttestationConfig,
+  type PublishedKey,
+} from "./attestation.ts";
 export * from "./providers.ts";
 export * from "./registry.ts";
 export * from "./fields.ts";
@@ -69,6 +84,20 @@ export {
 } from "./lookup_batch.ts";
 export type { LookupCall, LookupItem } from "./lookup_batch.ts";
 export { auditSummary, auditLimited, AUDIT_PLAN_URL } from "./audit.ts";
+export {
+  PORTFOLIO_MAX_AUDITS,
+  PORTFOLIO_PLAN_URL,
+  portfolioSummary,
+  portfolioLimited,
+} from "./audit_portfolio.ts";
+export {
+  FREE_DOCUMENT_COVER_HOURS,
+  FREE_DOCUMENT_PLAN_URL,
+  FREE_DOCUMENT_TOOLS,
+  documentId,
+  type FreeDocumentHost,
+  type FreeDocumentUse,
+} from "./free_document.ts";
 export {
   estoppelSummary,
   estoppelLimited,

@@ -30,6 +30,7 @@ import { z } from "zod";
 import { ToolInputError, jsonEqual, validateFact } from "./documents.ts";
 import type { Json } from "./documents.ts";
 import { RENT_ROLL_PACKAGE_FACTS, currentExchangeCaller } from "./exchange.ts";
+import { gateDocument } from "./free_document.ts";
 
 export const RENT_ROLL_PLAN_URL = "https://factlot.com/pricing/";
 export const RENT_ROLL_MAX_LINES = 60;
@@ -182,7 +183,7 @@ export const RentRollCertifyInput = z.object({
           })
           .optional()
           .describe(
-            "Optional: the tenant's answers to a confirmed estoppel for this lease (join estoppel_prepare's statement keys and codes with fact_package_status' answers). A line whose tenant, area, expiration and rent all match the lease is then graded confirmed by tenant only if the tenant agreed the premises, expiration and base rent statements and the estoppel speaks to the same rent step as the roll. A statement the tenant disputed makes the line differ. fact_package_send checks the estoppel with the Record when the roll is sent.",
+            "Optional: the tenant's answers to a confirmed estoppel for this lease (join estoppel_prepare's statement keys and codes with fact_package_status' answers). A line whose tenant, area, expiration and rent all match the lease is then graded confirmed by tenant only if the tenant agreed the premises, expiration and base rent statements and the estoppel speaks to the same rent step as the roll. A statement the tenant disputed makes the line differ. fact_package_send checks the estoppel with the FactLot record when the roll is sent.",
           ),
       }),
     )
@@ -2179,5 +2180,10 @@ export function rentRollLimited(): boolean {
 
 export function rentRollCertify(input: RentRollInput): Json {
   const full = certifyRentRoll(input);
-  return rentRollLimited() ? rentRollSummary(full) : full;
+  return gateDocument(
+    "rent_roll_certify",
+    full,
+    rentRollSummary,
+    rentRollLimited(),
+  );
 }

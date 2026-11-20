@@ -7,7 +7,7 @@ import { usd } from "../format.ts";
 import { InstitutionalWriter, type Cell } from "../institutional.ts";
 
 import { longDate } from "./audit.ts";
-import type { KindInput } from "./common.ts";
+import { attestationParagraph, type KindInput } from "./common.ts";
 
 type Json = Record<string, unknown>;
 
@@ -374,6 +374,11 @@ export async function estoppelPdf(k: KindInput): Promise<Uint8Array> {
     `Each statement from the lease rests on facts read from the lease documents, each carrying its verbatim quotation and page, checked by FactLot ${k.p.version}. The checks are fixed rules: the same facts always give the same statements. A statement with no lease source is for the tenant to confirm, and a gap or conflict between the lease and an amendment is flagged rather than resolved. FactLot keeps facts, quotations, pages and document fingerprints, never the documents themselves.`,
     { size: 8, leading: 11.5 },
   );
+  const attestationText = attestationParagraph(k.ctx);
+  if (attestationText) {
+    w.section("Verification of the figures", 50);
+    w.para(attestationText, { size: 8, leading: 11.5 });
+  }
   w.section("Important information", 50);
   w.para(
     "This certificate is prepared from the documents supplied and has not been checked against any other source. It is not legal advice and states no legal conclusion. Confirm each statement against the lease and its amendments, and take advice before relying on it or asking anyone to sign it. A lender or buyer who relies on it should read the tenant's answers, not only the statements.",

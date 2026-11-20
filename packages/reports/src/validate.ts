@@ -21,7 +21,13 @@ import {
   round,
   texasToday,
 } from "@factlot/calc";
-import { getTool, runTool, runWithExchangeCaller } from "@factlot/tools";
+import {
+  FREE_DOCUMENT_TOOLS,
+  documentId,
+  getTool,
+  runTool,
+  runWithExchangeCaller,
+} from "@factlot/tools";
 import { z } from "zod";
 
 export const REPORT_KINDS = [
@@ -36,6 +42,7 @@ export const REPORT_KINDS = [
   "tx_protest_deadline",
   "property_sheet",
   "expense_audit",
+  "expense_audit_portfolio",
   "estoppel_certificate",
   "rent_roll_certificate",
 ] as const;
@@ -63,6 +70,7 @@ export const KIND_TOOLS: Record<ReportKind, readonly string[]> = {
   ],
   property_sheet: ["registry_get"],
   expense_audit: ["audit_expense_statement"],
+  expense_audit_portfolio: ["audit_expense_portfolio"],
   estoppel_certificate: ["estoppel_prepare"],
   rent_roll_certificate: ["rent_roll_certify"],
 };
@@ -79,6 +87,7 @@ export const KIND_FORMATS: Record<ReportKind, readonly ReportFormat[]> = {
   tx_protest_deadline: ["ics", "pdf"],
   property_sheet: ["pdf", "xlsx"],
   expense_audit: ["pdf"],
+  expense_audit_portfolio: ["pdf", "xlsx"],
   estoppel_certificate: ["pdf"],
   rent_roll_certificate: ["pdf", "xlsx"],
 };
@@ -693,6 +702,85 @@ const AuditResult = z.looseObject({
 });
 type AuditResultT = z.output<typeof AuditResult>;
 
+/** audit_expense_portfolio's whole answer (the summary a limited caller gets is not a report's source). */
+const PortfolioResult = z.looseObject({
+  as_of: IsoDate,
+  portfolio: z.looseObject({
+    locations_submitted: Int,
+    locations_audited: Int,
+    locations_invalid: Int,
+    finding_count: Int,
+    follows_from_terms: Int,
+    depends_on_reading: Int,
+    question_to_ask: Int,
+    firm_difference: N,
+    readings_difference: N,
+    total_difference: N,
+    earliest_deadline: z
+      .looseObject({ label: z.string(), last_day: IsoDate })
+      .nullable(),
+    open_deadlines: Int,
+    passed_deadlines: Int,
+  }),
+  report_units: Int,
+  by_class: z.array(
+    z.looseObject({ class: z.string(), findings: Int, dollars_at_stake: N }),
+  ),
+  by_check: z.array(
+    z.looseObject({ check: z.string(), name: z.string(), findings: Int }),
+  ),
+  by_landlord: z.array(
+    z.looseObject({
+      landlord_name: z.string(),
+      locations: Int,
+      findings: Int,
+      firm_difference: N,
+      readings_difference: N,
+      total_difference: N,
+    }),
+  ),
+  ranking: z.array(
+    z.looseObject({ rank: Int, label: z.string(), total_difference: N }),
+  ),
+  deadlines: z.array(
+    z.looseObject({ label: z.string(), last_day: IsoDate, status: z.string() }),
+  ),
+  repeated_issues: z.array(
+    z.looseObject({ check_name: z.string(), location_count: Int }),
+  ),
+  locations: z.array(
+    z.looseObject({
+      index: Int,
+      label: z.string(),
+      landlord: z.string().nullable(),
+      statement_year: Int.nullable(),
+      summary: z.looseObject({
+        finding_count: Int,
+        dollars_at_stake: z.looseObject({ total_difference: N }),
+        checks_not_run: z.array(z.looseObject({ check: z.string() })),
+      }),
+      findings: z.array(
+        z.looseObject({
+          id: z.string(),
+          code: z.string(),
+          title: z.string(),
+          class: z.string(),
+          difference: N.nullable(),
+        }),
+      ),
+      sources: z.looseObject({
+        lease_documents: z.array(z.string()),
+        statement_documents: z.array(z.string()),
+        facts_used: Int,
+      }),
+    }),
+  ),
+  locations_invalid: z.array(
+    z.looseObject({ index: Int, issues: z.array(z.looseObject({})) }),
+  ),
+  warnings: z.array(z.string()),
+});
+
 const EstoppelResult = z.looseObject({
   as_of: IsoDate,
   premises: z.string(),
@@ -789,6 +877,7 @@ const SCHEMAS: Record<string, z.ZodType> = {
   rules_tx_property_tax_protest_deadline_batch: ProtestBatchResult,
   doc_abstract_lease: LeaseAbstract,
   audit_expense_statement: AuditResult,
+  audit_expense_portfolio: PortfolioResult,
   estoppel_prepare: EstoppelResult,
   rent_roll_certify: RentRollResult,
 };
@@ -1189,6 +1278,59 @@ function auditLinks(r: AuditResultT, bad: Issue[]): void {
       });
 }
 
+const r2 = (x: number) => Math.round(x * 100) / 100;
+
+/** The arithmetic links of a portfolio answer: the parts add to the totals. */
+function portfolioLinks(
+  r: z.output<typeof PortfolioResult>,
+  bad: Issue[],
+): void {
+  const p = r.portfolio;
+  if (p.locations_audited !== r.locations.length)
+    bad.push({
+      path: "portfolio.locations_audited",
+      message: "does not match the locations listed",
+    });
+  if (r.report_units !== p.locations_audited)
+    bad.push({ path: "report_units", message: "is not the locations audited" });
+  const sum = r2(
+    r.locations.reduce(
+      (a, l) => a + l.summary.dollars_at_stake.total_difference,
+      0,
+    ),
+  );
+  if (!eq(sum, p.total_difference))
+    bad.push({
+      path: "portfolio.total_difference",
+      message: "is not the sum of the locations",
+    });
+  if (!eq(r2(p.firm_difference + p.readings_difference), p.total_difference))
+    bad.push({
+      path: "portfolio.total_difference",
+      message: "is not the firm and reading differences together",
+    });
+  if (
+    r.locations.reduce((a, l) => a + l.summary.finding_count, 0) !==
+    p.finding_count
+  )
+    bad.push({
+      path: "portfolio.finding_count",
+      message: "is not the sum of the locations",
+    });
+  if (r.ranking.length !== r.locations.length)
+    bad.push({ path: "ranking", message: "does not list every location" });
+  if (
+    !eq(
+      r2(r.by_landlord.reduce((a, l) => a + l.total_difference, 0)),
+      p.total_difference,
+    )
+  )
+    bad.push({
+      path: "by_landlord",
+      message: "does not add to the portfolio total",
+    });
+}
+
 const LINKS: Record<string, (r: never, bad: Issue[]) => void> = {
   calc_tx_unequal_appraisal: txLinks,
   calc_cam_reconciliation: (r: CamResult, bad) =>
@@ -1204,6 +1346,7 @@ const LINKS: Record<string, (r: never, bad: Issue[]) => void> = {
   rules_tx_property_tax_protest_deadline_batch: protestBatchLinks,
   doc_abstract_lease: leaseLinks,
   audit_expense_statement: auditLinks,
+  audit_expense_portfolio: portfolioLinks,
   estoppel_prepare: estoppelLinks,
   rent_roll_certify: rentRollLinks,
 };
@@ -1273,6 +1416,8 @@ export interface Checked {
   check: "computed" | "supplied";
   /** The tool's arguments when given (validated by the tool). */
   args?: unknown;
+  /** The three document tools: the id of the whole answer (documentId), for the free-document rule. */
+  document_id?: string;
   /** A result was sent with the arguments: true when it differs from FactLot's run (unused). */
   result_mismatch?: boolean;
 }
@@ -1318,6 +1463,7 @@ export function checkInput(
   // The plan rule (whole answer or summary) is the host's, applied before a report is charged.
   const out =
     kind === "expense_audit" ||
+    kind === "expense_audit_portfolio" ||
     kind === "estoppel_certificate" ||
     kind === "rent_roll_certificate"
       ? runWithExchangeCaller({ fullAudit: true }, () =>
@@ -1337,6 +1483,7 @@ export function checkInput(
       `fix the fields listed in issues and retry; ${tool}'s arguments schema is the inputSchema of its entry in GET ${TOOLS_URL} (the arguments are the ones you would call the tool with)`,
     );
   if (kind === "tx_protest_deadline") protestItemErrors(out.result);
+  if (kind === "expense_audit_portfolio") portfolioAuditable(out.result);
   // FactLot's own result: a failed check here is a fault in FactLot, not in the request.
   const parsed = SCHEMAS[tool]!.safeParse(out.result);
   if (!parsed.success)
@@ -1350,6 +1497,9 @@ export function checkInput(
     result: parsed.data,
     check: "computed",
     args,
+    ...((FREE_DOCUMENT_TOOLS as readonly string[]).includes(tool)
+      ? { document_id: documentId(out.result as never) }
+      : {}),
     ...(input !== undefined
       ? {
           result_mismatch: !jsonEqual(
@@ -1426,6 +1576,30 @@ function runArgs(kind: ReportKind, args: unknown, now?: number): unknown {
   )
     return args;
   return { ...args, as_of: texasToday(new Date(now)) };
+}
+
+/** A portfolio report needs at least one location that could be audited: otherwise it names why not. */
+function portfolioAuditable(result: unknown): void {
+  const r = result as {
+    portfolio?: { locations_audited?: unknown };
+    locations_invalid?: { issues?: { path?: unknown; message?: unknown }[] }[];
+  } | null;
+  if (r?.portfolio?.locations_audited !== 0) return;
+  const issues: Issue[] = (r.locations_invalid ?? [])
+    .flatMap((l) => l.issues ?? [])
+    .slice(0, 20)
+    .map((i) => ({
+      path: String(i.path ?? "arguments.audits"),
+      message: issueMessage(String(i.message ?? "invalid")),
+    }));
+  throw new ReportInputError(
+    "ArgumentsError",
+    "no location in arguments.audits could be audited, so there is nothing to report; each location's issues are listed",
+    issues.length
+      ? issues
+      : [{ path: "arguments.audits", message: "no location could be audited" }],
+    `fix the locations listed in issues and retry; the arguments are audit_expense_portfolio's (its inputSchema in GET ${TOOLS_URL})`,
+  );
 }
 
 /**

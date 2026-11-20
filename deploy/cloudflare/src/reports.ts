@@ -26,6 +26,7 @@ import {
   ReportInputError,
   attachRegistry,
   prepareReport,
+  reportUnits,
   registryUrn,
   renderReport,
   reportRequestJsonSchema,
@@ -71,7 +72,7 @@ export const REPORT_TOOL = {
   name: REPORT_TOOL_NAME,
   title: "Create a client-ready report (XLSX, PDF, ICS)",
   description:
-    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas; send registry_tx_equity_candidates' sources as context.sources to print each cited source's as-of date, URL and rights, the rows of its subject and of the candidates used as comparables as context.candidates (value and improvement area must match the calculation) to print each property's account number, codes, land area and year built as sent, with value per SF computed by FactLot, and its selection_rule as context.selection_rule to print the candidate rule as applied), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline dated on its contractual day and a reminder 30 days before; dates before today are left out unless include_past is true), tx_protest_deadline (rules_tx_property_tax_protest_deadline on tax_year, notice_delivered_date?, as_of?, or the _batch rule when arguments has items: ics, one calendar with each notice's statutory filing deadline and conservative file-by date as all-day events, reminders 30 and 7 days before the file-by date, the rule's basis, status, warnings and notes in each description, and the rule's next_season dates when the requested year has passed; or pdf, a deadline sheet), expense_audit (audit_expense_statement: a PDF of a tenant's audit of a landlord's expense statement, each finding with its lease quote, page and calculation, the audit deadline and the checks that could not run; part of the paid plans, Pro and Team, when gating is on), estoppel_certificate (estoppel_prepare: a PDF tenant estoppel certificate, numbered statements each with its lease quote and page, the tenant's answer beside each when you send them as context.estoppel_answers and who has recorded reliance as context.estoppel_reliers, a signature block that says the tenant's signature, not FactLot, makes it an estoppel, and the document fingerprints; part of the paid plans, Pro and Team, when gating is on), rent_roll_certificate (rent_roll_certify: a PDF or XLSX rent roll certificate, each line with its grade, the roll and lease figures, quotes and pages, a differences section, the rollover schedule, WALT and the document fingerprints; send who has recorded reliance as context.rent_roll_reliers; the certifying party's certification, not FactLot, is what a lender or buyer relies on; part of the paid plans, Pro and Team, when gating is on), property_sheet (pdf or xlsx: one page for one parcel, arguments { urn } only, the parcel's FactLot ID from registry_search_address: FactLot runs registry_get on it as your own call, so it costs one lookup and is gated like any registry_get of yours (free: the current roll year only, with a line naming the earlier years a Pro or Team key adds), then lays out the address, IDs, owner of record when the registry holds an organisation (or why there is none), the linked registered entity as the registry's match with its confidence, values by roll year with each file's as-of date, building and land facts, for a Texas parcel the next general protest deadline under Tex. Tax Code §41.44(a)(1) labelled as the general rule, and every source with its licence or attribution; no context is accepted). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons, tx_protest_deadline item ids) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256, filename and billed (true when this request counted against the month; every refusal has billed: false); inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
+    "Hosted FactLot tool (api.factlot.com only). Builds a client-ready document by code, with no model: tx_unequal_appraisal (calc_tx_unequal_appraisal: evidence packet PDF or adjustment-grid workbook with live formulas; send registry_tx_equity_candidates' sources as context.sources to print each cited source's as-of date, URL and rights, the rows of its subject and of the candidates used as comparables as context.candidates (value and improvement area must match the calculation) to print each property's account number, codes, land area and year built as sent, with value per SF computed by FactLot, and its selection_rule as context.selection_rule to print the candidate rule as applied), lease_abstract (doc_abstract_lease), cam_reconciliation (calc_cam_reconciliation or _batch), debt_sizing (calc_debt_sizing), asc842_schedule (calc_lease_remeasurement_asc842), compare_proposals (calc_compare_proposals), dcf_summary (calc_dcf_pro_forma), critical_dates (calc_critical_dates; also ics: a calendar with each notice window and deadline dated on its contractual day and a reminder 30 days before; dates before today are left out unless include_past is true), tx_protest_deadline (rules_tx_property_tax_protest_deadline on tax_year, notice_delivered_date?, as_of?, or the _batch rule when arguments has items: ics, one calendar with each notice's statutory filing deadline and conservative file-by date as all-day events, reminders 30 and 7 days before the file-by date, the rule's basis, status, warnings and notes in each description, and the rule's next_season dates when the requested year has passed; or pdf, a deadline sheet), expense_audit (audit_expense_statement: a PDF of a tenant's audit of a landlord's expense statement, each finding with its lease quote, page and calculation, the audit deadline and the checks that could not run; part of the paid plans, Pro and Team, when gating is on; a free, email-verified account's one free full document covers its report for 24 hours), expense_audit_portfolio (audit_expense_portfolio: a PDF or XLSX of a tenant's audit of up to 50 landlord expense statements at once: key figures, totals by landlord, the locations ranked by dollars at stake, dispute deadlines in date order, repeated issues and one short section per location; the XLSX has one row per location and one row per finding; part of the paid plans, Pro and Team, when gating is on, and the free account's one free full document does not cover it; it counts one report for each location audited in full, locations with invalid input are not counted and the answer's reports shows the month's use), estoppel_certificate (estoppel_prepare: a PDF tenant estoppel certificate, numbered statements each with its lease quote and page, the tenant's answer beside each when you send them as context.estoppel_answers and who has recorded reliance as context.estoppel_reliers, a signature block that says the tenant's signature, not FactLot, makes it an estoppel, and the document fingerprints; part of the paid plans, Pro and Team, when gating is on; a free, email-verified account's one free full document covers its report for 24 hours), rent_roll_certificate (rent_roll_certify: a PDF or XLSX rent roll certificate, each line with its grade, the roll and lease figures, quotes and pages, a differences section, the rollover schedule, WALT and the document fingerprints; send who has recorded reliance as context.rent_roll_reliers; the certifying party's certification, not FactLot, is what a lender or buyer relies on; part of the paid plans, Pro and Team, when gating is on; a free, email-verified account's one free full document covers its report for 24 hours), property_sheet (pdf or xlsx: one page for one parcel, arguments { urn } only, the parcel's FactLot ID from registry_search_address: FactLot runs registry_get on it as your own call, so it costs one lookup and is gated like any registry_get of yours (free: the current roll year only, with a line naming the earlier years a Pro or Team key adds), then lays out the address, IDs, owner of record when the registry holds an organisation (or why there is none), the linked registered entity as the registry's match with its confidence, values by roll year with each file's as-of date, building and land facts, for a Texas parcel the next general protest deadline under Tex. Tax Code §41.44(a)(1) labelled as the general rule, and every source with its licence or attribution; no context is accepted). Every kind but lease_abstract requires the tool's arguments: FactLot runs the tool on them and builds the document from that run only, so its numbers are FactLot's results; a result sent as input is not used (the answer's result_mismatch says whether it differs). lease_abstract takes doc_abstract_lease's arguments, or its result as input: built from a supplied result, every page says the abstract values are as supplied by the caller and FactLot did not recompute them. Caller text (title, prepared_for, citation locators, comparable ids, labels and reasons, tx_protest_deadline item ids) is printed as supplied by the caller; advice or valuation wording in it is refused (TextNotAllowed). One report per request (one report_create per MCP batch). Returns download_url (works 24 hours), expires_at, bytes, sha256, filename and billed (true when this request counted against the month; every refusal has billed: false); inline: true also returns files under 1 MiB as base64. Counts against reports_per_month (free: 3 a month per IP address; Pro 50; Team 1,000); input errors are free.",
   inputSchema: (() => {
     const s = reportRequestJsonSchema() as {
       properties: Record<string, unknown>;
@@ -121,6 +122,12 @@ export interface ReportCaller {
    * expense_audit report is then refused with PlanRequired, unbilled. Default true.
    */
   auditFull?: boolean;
+  /**
+   * The free account's one full document also covers that document's report: true when the
+   * account's free document was used on this tool's answer (document id = hash of the whole
+   * answer) in the last 24 hours. Only set for a free, email-verified account.
+   */
+  freeDocumentCovers?: (tool: string, documentId: string) => Promise<boolean>;
   /** The meter subject: `sub:<subscription>` with a key, `ipm:<hash>` without. */
   subject: () => Promise<string>;
   /** What the free allowance is counted per in the quota message (default "IP address"). */
@@ -335,9 +342,10 @@ async function refundReport(
   env: Env,
   subject: string,
   quota: QuotaState,
+  units = 1,
 ): Promise<void> {
   try {
-    await env.METER.refund(subject, "month", 1, quota.resets_at, "reports");
+    await env.METER.refund(subject, "month", units, quota.resets_at, "reports");
   } catch {
     console.error(JSON.stringify({ msg: "reports: refund failed" }));
   }
@@ -398,7 +406,51 @@ async function buildAndStore(
       return { ...inputError(err), quota: before } as ReportOutcome;
     throw err;
   }
-  if (prepared.kind === "estoppel_certificate" && caller.auditFull === false)
+  const planLimited =
+    caller.auditFull === false &&
+    !(
+      prepared.checked.document_id !== undefined &&
+      (await caller.freeDocumentCovers?.(
+        prepared.checked.tool,
+        prepared.checked.document_id,
+      )) === true
+    );
+  if (prepared.kind === "expense_audit_portfolio" && planLimited)
+    return {
+      ok: false,
+      status: 403,
+      body: {
+        error: "PlanRequired",
+        code: "PlanRequired",
+        message: `the portfolio audit report prints each location's findings, the ranking, the deadline schedule and the repeated issues, which is part of the paid plans: Pro and Team. The one free full document of an email-verified account covers a single audit, not a portfolio. Nothing was counted. The counts and totals are free from audit_expense_portfolio.`,
+        next: `send a Pro or Team key as Authorization: Bearer <key> (${GATING_PRICING_URL}), or call audit_expense_portfolio for the free summary`,
+        upgrade: GATING_PRICING_URL,
+      },
+      quota: before,
+    };
+  // A portfolio counts one unit for each location audited in full; every other report counts one.
+  const units = reportUnits(prepared);
+  if (units > 1) {
+    const need = (q: QuotaState, per: string | undefined) => ({
+      ok: false as const,
+      status: 429,
+      body: {
+        ...reportQuotaError(q, caller.tier, o.now(), per),
+        message: `This portfolio report counts ${units} reports (one for each location audited in full) and ${q.remaining} of this month's ${q.limit} remain. Nothing was counted. They reset at ${q.resets_at}. ${caller.tier === "team" ? `Team is the largest plan; for more, email ${CONTACT}.` : `Team (${REPORTS_PER_MONTH.team.toLocaleString("en-US")} a month) lifts the cap: ${PRICING_URL}.`} Send fewer locations in arguments.audits to fit, or wait for the reset.`,
+        units_needed: units,
+        remaining: q.remaining,
+      },
+      quota: q,
+    });
+    if (before.remaining < units) return need(before, caller.per);
+    if (alsoSubject !== undefined) {
+      const shared = await infra(
+        env.METER.quota(alsoSubject, "month", spec.limit, "reports"),
+      );
+      if (shared.remaining < units) return need(shared, caller.also!.per);
+    }
+  }
+  if (prepared.kind === "estoppel_certificate" && planLimited)
     return {
       ok: false,
       status: 403,
@@ -411,7 +463,7 @@ async function buildAndStore(
       },
       quota: before,
     };
-  if (prepared.kind === "rent_roll_certificate" && caller.auditFull === false)
+  if (prepared.kind === "rent_roll_certificate" && planLimited)
     return {
       ok: false,
       status: 403,
@@ -424,7 +476,7 @@ async function buildAndStore(
       },
       quota: before,
     };
-  if (prepared.kind === "expense_audit" && caller.auditFull === false)
+  if (prepared.kind === "expense_audit" && planLimited)
     return {
       ok: false,
       status: 403,
@@ -439,11 +491,14 @@ async function buildAndStore(
     };
   // Charge before building (a build the runtime kills is not free), and before a property
   // sheet's lookup, so a lookup is never spent on a report that cannot be had.
-  let charged = await infra(env.METER.consume(subject, spec));
-  if (charged.granted >= 1 && charged.quota && alsoSubject !== undefined) {
-    const shared = await infra(env.METER.consume(alsoSubject, spec));
-    if (shared.granted < 1 || !shared.quota) {
-      await refundReport(env, subject, charged.quota);
+  const charge: QuotaSpec = { ...spec, n: units };
+  let charged = await infra(env.METER.consume(subject, charge));
+  if (charged.granted >= units && charged.quota && alsoSubject !== undefined) {
+    const shared = await infra(env.METER.consume(alsoSubject, charge));
+    if (shared.granted < units || !shared.quota) {
+      if (shared.granted > 0 && shared.quota)
+        await refundReport(env, alsoSubject, shared.quota, shared.granted);
+      await refundReport(env, subject, charged.quota, units);
       return {
         ok: false,
         status: 429,
@@ -460,7 +515,10 @@ async function buildAndStore(
     if (shared.quota.remaining < charged.quota.remaining)
       charged = { ...charged, quota: shared.quota };
   }
-  if (charged.granted < 1 || !charged.quota)
+  if (charged.granted < units || !charged.quota) {
+    // A part of a portfolio's units is never kept: give back what was granted.
+    if (charged.granted > 0 && charged.quota)
+      await refundReport(env, subject, charged.quota, charged.granted);
     return {
       ok: false,
       status: 429,
@@ -472,16 +530,18 @@ async function buildAndStore(
       ),
       ...(charged.quota ? { quota: charged.quota } : {}),
     };
+  }
   const quota = charged.quota;
   const restored = {
     ...quota,
-    used: quota.used - 1,
-    remaining: quota.remaining + 1,
+    used: quota.used - units,
+    remaining: quota.remaining + units,
   };
   // Give a report back on every meter it was charged to.
   const refundAll = async () => {
-    await refundReport(env, subject, quota);
-    if (alsoSubject !== undefined) await refundReport(env, alsoSubject, quota);
+    await refundReport(env, subject, quota, units);
+    if (alsoSubject !== undefined)
+      await refundReport(env, alsoSubject, quota, units);
   };
   // property_sheet: the caller's own registry_get of the parcel (one lookup, gated for their
   // plan), with the report already reserved. A lookup that fails or misses is passed on as the

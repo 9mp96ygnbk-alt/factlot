@@ -141,6 +141,23 @@ export const ReportContext = z.strictObject({
     .describe(
       "estoppel_certificate: who has recorded reliance (fact_package_status reliers: who, role, statements, statements_disputed, at). Printed as a table in the back matter; a relying party that acknowledged disputed statements is shown with them.",
     ),
+  package_attestation: z
+    .strictObject({
+      status: z.enum(["attested", "unattested"]),
+      line: z.string().max(300).optional(),
+      tool: z.string().max(60).nullable().optional(),
+      tool_version: z.string().max(40).nullable().optional(),
+      key_id: z.string().max(80).nullable().optional(),
+      key_scope: z.enum(["service", "test"]).nullable().optional(),
+      issued_at: z.string().max(40).nullable().optional(),
+      checked_at: z.string().max(40).nullable().optional(),
+      items_checked: z.number().int().nullable().optional(),
+      calculation_covered: z.boolean().optional(),
+    })
+    .optional()
+    .describe(
+      "expense_audit, estoppel_certificate and rent_roll_certificate: whether the sent package's figures were computed by FactLot and unchanged since, as fact_package_status returns it (attestation). The back matter then says so ('Computed by FactLot and unchanged since' with the tool, version, key and date, or 'Not verified'). Left out when the status is not known, and then nothing is printed about it.",
+    ),
   estoppel_signature: z
     .strictObject({
       signed: z.boolean(),
@@ -465,4 +482,39 @@ export function coverOf(
     ...(supplied ? { note: supplied } : {}),
     figures,
   };
+}
+
+/**
+ * The back-matter paragraph on whether the sent figures were computed by FactLot and unchanged since,
+ * from context.package_attestation (fact_package_status). Undefined when the status is not known.
+ */
+export function attestationParagraph(ctx: {
+  package_attestation?:
+    | {
+        status: string;
+        tool?: string | null;
+        tool_version?: string | null;
+        key_id?: string | null;
+        key_scope?: string | null;
+        issued_at?: string | null;
+        items_checked?: number | null;
+        calculation_covered?: boolean;
+      }
+    | undefined;
+}): string | undefined {
+  const a = ctx.package_attestation;
+  if (!a) return undefined;
+  if (a.status !== "attested")
+    return "Not verified: the figures in the package sent from this report were not confirmed as computed by FactLot. The sender supplied them without FactLot's signature, so FactLot has not checked that they are what its tools computed.";
+  const bits = [
+    a.tool ? a.tool.replace(/_/g, " ") : undefined,
+    a.tool_version ? `version ${a.tool_version}` : undefined,
+    a.key_id ? `key ${a.key_id}` : undefined,
+    a.issued_at ? `signed ${a.issued_at.slice(0, 10)}` : undefined,
+    typeof a.items_checked === "number"
+      ? `${a.items_checked} items checked`
+      : undefined,
+    a.calculation_covered ? "with its calculation" : undefined,
+  ].filter(Boolean);
+  return `${a.key_scope === "test" ? "Computed with a FactLot test key and unchanged since (a test package)." : "Computed by FactLot and unchanged since."} The items, grades and figures in the package sent from this report are the ones the FactLot service computed and signed${bits.length ? ` (${bits.join(", ")})` : ""}, and the FactLot record checked that none was changed afterwards.`;
 }
