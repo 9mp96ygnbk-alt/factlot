@@ -19,7 +19,8 @@ import type {
   ProtestDeadlineT,
   ProtestResult,
 } from "../validate.ts";
-import { closingBlocks, subtitle, type KindInput } from "./common.ts";
+import { longDate } from "../format.ts";
+import { closingBlocks, coverOf, subtitle, type KindInput } from "./common.ts";
 import { TX_DISCLAIMER } from "./tx.ts";
 
 /** The ch. 1152 sentence the other Texas outputs carry (registry_tx_equity_candidates' notice). */
@@ -463,6 +464,56 @@ export function protestDoc(k: KindInput): ReportDoc {
         `As of ${run.as_of}`,
       ],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      run.batch
+        ? "Texas protest filing deadlines"
+        : "Texas protest filing deadline",
+      [
+        run.batch
+          ? plural(run.subjects.length, "notice")
+          : `Tax year ${first.tax_year}`,
+      ],
+      run.batch
+        ? [
+            { figure: String(run.subjects.length), label: "Notices" },
+            {
+              figure: String(
+                run.subjects.filter((x) => x.d.status === "open").length,
+              ),
+              label: "Deadlines still open",
+            },
+            {
+              figure: String(
+                run.subjects.filter((x) => x.d.status === "passed").length,
+              ),
+              label: "Deadlines passed",
+            },
+          ]
+        : [
+            { figure: longDate(first.d.deadline), label: "Statutory deadline" },
+            {
+              figure: longDate(first.d.conservative_file_by),
+              label: "Conservative file-by date",
+            },
+            {
+              figure: first.d.status
+                .replace(/_/g, " ")
+                .replace(/^./, (x) => x.toUpperCase()),
+              label: "Status",
+            },
+            ...(first.d.days_remaining === null ||
+            first.d.days_remaining === undefined
+              ? []
+              : [
+                  {
+                    figure: String(first.d.days_remaining),
+                    label: "Days to the deadline",
+                  },
+                ]),
+          ],
+      run.as_of,
     ),
     blocks,
     readme: [

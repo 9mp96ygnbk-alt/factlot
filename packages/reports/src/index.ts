@@ -10,13 +10,9 @@
 import { CATALOG_VERSION, getTool } from "@factlot/tools";
 import { z } from "zod";
 
-import {
-  renderPdf,
-  renderXlsx,
-  type Provenance,
-  type ReportDoc,
-} from "./doc.ts";
+import { renderXlsx, type Provenance, type ReportDoc } from "./doc.ts";
 import { slug, utcStamp } from "./format.ts";
+import { longDate, renderPdf } from "./institutional_doc.ts";
 import { checkCallerText } from "./text.ts";
 import {
   LEASE_COMPUTED_LABEL,
@@ -123,6 +119,8 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   estoppel_certificate: "Tenant estoppel certificate",
 };
 
+// `input` and `arguments` are published as objects (every parameter needs a type for MCP clients
+// and directories); the handler still does the checking, so a wrong shape names its field.
 export const ReportRequest = z.strictObject({
   kind: z.enum(REPORT_KINDS).describe("Which report."),
   format: z
@@ -132,12 +130,14 @@ export const ReportRequest = z.strictObject({
     ),
   input: z
     .unknown()
+    .meta({ type: "object" })
     .optional()
     .describe(
       "lease_abstract only: the doc_abstract_lease result, used when arguments are not sent (each page then says the values are the caller's). For other kinds a result sent here is not used; the answer says whether it matches FactLot's run (result_mismatch).",
     ),
   arguments: z
     .unknown()
+    .meta({ type: "object" })
     .optional()
     .describe(
       "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only. tx_protest_deadline: rules_tx_property_tax_protest_deadline's (tax_year, notice_delivered_date?, as_of?), or with items the _batch rule's (items: [{id, tax_year, notice_delivered_date?}], as_of?). property_sheet: { urn } only, a parcel's FactLot ID; FactLot runs registry_get on it for the caller (gated and counted as the caller's lookup).",
@@ -392,16 +392,19 @@ export async function renderReport(
         : kind === "property_sheet"
           ? `${generated}; public-record values as published, laid out by code with no model; not an appraisal; see ${TERMS_URL}`
           : `${generated}; numbers are the tool's results; see ${TERMS_URL}`;
-  // A Texas PDF carries the disclaimer twice: on the cover and in every page's footer.
+  // A Texas PDF carries the disclaimer on the cover and in every page's footer (pdfFooter).
   const p: Provenance = {
-    footer:
-      (kind === "tx_unequal_appraisal" || kind === "tx_protest_deadline") &&
-      format === "pdf"
-        ? `${footer}. ${TX_DISCLAIMER}`
-        : footer,
+    footer,
     version,
     toolRef,
     generatedAt,
+    pdfFooter: pdfFooter(
+      kind,
+      checked.check,
+      version,
+      longDate(generatedAt.toISOString().slice(0, 10)),
+    ),
+    docType: KIND_TITLES[kind],
     header: `FactLot | ${KIND_TITLES[kind]}${ctx.title ? ` | ${ctx.title}` : ""}`,
     keywords: ["FactLot", kind, toolRef],
   };
@@ -454,6 +457,31 @@ export async function renderReport(
       : {}),
     generated_at: generatedAt.toISOString(),
   };
+}
+
+/**
+ * The one-line page footer of a PDF (no web address; the full statement of how the document was
+ * made, with the terms link, is under Basis of preparation). A Texas document keeps its required
+ * disclaimer on every page, so its footer wraps.
+ */
+function pdfFooter(
+  kind: ReportKind,
+  check: "computed" | "supplied",
+  version: string,
+  date: string,
+): string {
+  const by = `Prepared by FactLot ${version}, ${date}.`;
+  switch (kind) {
+    case "lease_abstract":
+      return `${check === "supplied" ? SUPPLIED_LABEL : LEASE_COMPUTED_LABEL} ${by}`;
+    case "tx_unequal_appraisal":
+    case "tx_protest_deadline":
+      return `${TX_DISCLAIMER} ${by}`;
+    case "property_sheet":
+      return `${by} Public-record values as published; not an appraisal.`;
+    default:
+      return `${by} Numbers are the tool's results.`;
+  }
 }
 
 const BUILDERS: Record<

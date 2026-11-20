@@ -2,7 +2,7 @@
 import { runTool } from "@factlot/tools";
 
 import type { Block, Check, Kv, Raw, ReportDoc, TableColumn } from "../doc.ts";
-import { num, pct, roundInText, usd } from "../format.ts";
+import { num, pct, roundInText, times, usd } from "../format.ts";
 import type {
   Asc842Result,
   CamBatchResult,
@@ -13,6 +13,8 @@ import type {
 } from "../validate.ts";
 import {
   closingBlocks,
+  bigUsd,
+  coverOf,
   subtitle,
   warningsBlocks,
   type KindInput,
@@ -227,6 +229,20 @@ export function camDoc(k: KindInput): ReportDoc {
       ],
       k.ctx,
     ),
+    cover: coverOf(
+      k,
+      "CAM reconciliation statement",
+      [year ? `Statement year ${year}` : undefined],
+      [
+        {
+          figure: bigUsd(v.balance_due),
+          label: "Balance due (a credit if negative)",
+        },
+        { figure: bigUsd(v.tenant_charge), label: "Tenant CAM charge" },
+        { figure: bigUsd(v.estimates_paid), label: "Estimates paid" },
+        { figure: bigUsd(v.cap_reduction), label: "Cap reduction deducted" },
+      ],
+    ),
     blocks,
     checks: [
       {
@@ -405,6 +421,20 @@ function camBatchDoc(k: KindInput): ReportDoc {
         `recovery ratio ${pct(b.recovery_ratio)}`,
       ],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      "CAM reconciliation",
+      [`Year ${v.year}`, `${b.tenant_count} tenant statements`],
+      [
+        {
+          figure: bigUsd(b.total_tenant_charges),
+          label: "Total tenant charges",
+        },
+        { figure: bigUsd(b.total_balance_due), label: "Total balance due" },
+        { figure: pct(b.recovery_ratio), label: "Recovery ratio" },
+        { figure: bigUsd(b.unrecovered), label: "Expenses not recovered" },
+      ],
     ),
     blocks,
     checks: [
@@ -656,6 +686,23 @@ export function debtDoc(k: KindInput): ReportDoc {
       ],
       k.ctx,
     ),
+    cover: coverOf(
+      k,
+      "Debt sizing",
+      [`Binding test: ${TEST_LABEL[v.binding_constraint]?.toLowerCase()}`],
+      [
+        { figure: bigUsd(v.max_loan), label: "Maximum loan" },
+        { figure: bigUsd(v.annual_debt_service), label: "Annual debt service" },
+        {
+          figure: times(v.resulting.dscr),
+          label: "Resulting debt service coverage",
+        },
+        {
+          figure: v.resulting.ltv === null ? "Not given" : pct(v.resulting.ltv),
+          label: "Resulting loan-to-value",
+        },
+      ],
+    ),
     blocks,
     checks: [
       {
@@ -785,6 +832,23 @@ export function asc842Doc(k: KindInput): ReportDoc {
         `${v.remaining_periods} periods`,
       ],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      "ASC 842 remeasurement",
+      [
+        `${v.classification[0]!.toUpperCase()}${v.classification.slice(1)} lease`,
+        `${v.remaining_periods} remaining periods`,
+      ],
+      [
+        { figure: bigUsd(v.new_lease_liability), label: "New lease liability" },
+        { figure: bigUsd(v.new_rou_asset), label: "New right-of-use asset" },
+        {
+          figure: bigUsd(v.liability_adjustment),
+          label: "Liability adjustment",
+        },
+        { figure: bigUsd(v.total_lease_cost), label: "Total lease cost" },
+      ],
     ),
     blocks,
     checks: [
@@ -941,6 +1005,27 @@ export function proposalsDoc(k: KindInput): ReportDoc {
         `first: ${v.best}`,
       ],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      "Lease proposals compared",
+      [
+        `${v.perspective[0]!.toUpperCase()}${v.perspective.slice(1)} perspective`,
+        `${v.ranking.length} proposals`,
+        metric,
+      ],
+      [
+        { figure: v.best, label: "First-ranked proposal" },
+        {
+          figure: num(v.ranking[0]!.metric_psf_annual, 2),
+          label: `${metric} of the first (${unit})`,
+        },
+        {
+          figure: bigUsd(v.ranking[0]!.total_net),
+          label: "Total net of the first",
+        },
+        { figure: String(v.ranking.length), label: "Proposals compared" },
+      ],
     ),
     blocks,
     readme: [
@@ -1173,6 +1258,33 @@ export function dcfDoc(k: KindInput): ReportDoc {
         `exit cap ${pct(v.exit.cap_rate)}`,
       ],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      "DCF summary",
+      [
+        `${v.hold_years}-year hold`,
+        `discount rate ${pct(v.discount_rate)}`,
+        `exit cap rate ${pct(v.exit.cap_rate)}`,
+      ],
+      [
+        { figure: bigUsd(v.value), label: "Value" },
+        { figure: usd(v.value_per_sf), label: "Value per square foot" },
+        {
+          figure:
+            v.going_in_cap_rate_on_value === null
+              ? "Not given"
+              : pct(v.going_in_cap_rate_on_value),
+          label: "Going-in cap rate on value",
+        },
+        {
+          figure:
+            v.reversion_share_of_value === null
+              ? "Not given"
+              : pct(v.reversion_share_of_value),
+          label: "Reversion share of value",
+        },
+      ],
     ),
     blocks,
     checks: [

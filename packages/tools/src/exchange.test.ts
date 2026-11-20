@@ -237,8 +237,10 @@ test("sends through the public endpoint; the token is added only when configured
   assert.equal((t.result as Json).test_mode, true);
   assert.match(
     (t.result as Json).message as string,
-    /^TEST MODE: .*no FactLot account key/,
+    /^TEST MODE: .*no full FactLot account key came with the call, and a full FactLot account key .* is needed to send for real/,
   );
+  // Nothing at all is forwarded: no Authorization header, no sender account.
+  assert.equal(noAcct.seen[0]!.body.sender_account, undefined);
 
   // A guest key: the host gives no account and its reason; the token is not forwarded.
   const guest = fakeExchange(sentOk(true));

@@ -12,8 +12,10 @@
  * Page content is written as PDF operator text and compressed once per page, as in pdf.ts.
  */
 import {
+  PDFArray,
   PDFDocument,
   PDFName,
+  PDFString,
   StandardFonts,
   rgb,
   type PDFFont,
@@ -22,7 +24,8 @@ import {
 } from "pdf-lib";
 
 import { stripControls } from "./format.ts";
-import { REPLACE } from "./pdf.ts";
+import { MAX_PDF_LINES, REPLACE, capText } from "./pdf.ts";
+import { ReportInputError } from "./validate.ts";
 
 const PAGE_W = 612; // US Letter
 const PAGE_H = 792;
@@ -38,6 +41,15 @@ export const TEXT_W = 5.6 * IN;
 /** The top of the content area, and the lowest line it may reach (above the footer). */
 const TOP = PAGE_H - MT;
 const BOTTOM = MB + 16;
+/** A number as a cell shows it: never broken across lines. */
+const NUMERIC = /^[-+(]?-?\$?-?[\d,]*\.?\d+(?:%|x|\/SF|\))?$/;
+/** Characters after which a long word may break (identifiers, URLs, paths). */
+const BREAK_AFTER = /(?<=[_\-/.:;,?&=#@|])/;
+const URL_CELL = /^https?:\/\/\S+$/;
+/** An ISO date or a long date's pieces, kept on one line. */
+const DATE_WORD = /^\d{4}-\d{2}-\d{2}[,;.)]?$/;
+/** Smallest text a table shrinks to so its numbers fit their columns. */
+const MIN_TABLE_SIZE = 5.5;
 
 const c = (hex: string): RGB =>
   rgb(
@@ -96,6 +108,22 @@ export interface InstitutionalColumn {
   mono?: boolean;
 }
 
+export interface DataTableOptions {
+  /** Body size (default 8.75); the table may shrink it to fit the page width. */
+  size?: number;
+  /** Row indexes set in bold with a hairline above (totals, the median). */
+  bold?: Set<number>;
+  /** A list of label and value rows: no header, no hairlines between rows. */
+  headerless?: boolean;
+  /** A hairline between rows; by default only when a cell wraps. */
+  rules?: boolean;
+  padY?: number;
+  /** Rows kept with the header at a page foot (default 2). */
+  keepRows?: number;
+  /** Allow a short table to split over a page instead of moving whole. */
+  splitShort?: boolean;
+}
+
 export interface InstitutionalMeta {
   title: string;
   subject: string;
@@ -115,6 +143,10 @@ export interface InstitutionalMeta {
 interface Page {
   page: PDFPage;
   ops: string[];
+  /** Page size: a landscape page swaps the two. */
+  w: number;
+  h: number;
+  links: { rect: number[]; uri: string }[];
 }
 
 export class InstitutionalWriter {
@@ -124,6 +156,7 @@ export class InstitutionalWriter {
   private cur!: Page;
   private readonly pages: Page[] = [];
   private y = TOP;
+  private lines = 0;
   private readonly advance = new Map<FontKey, Map<string, number>>();
   private readonly meta: InstitutionalMeta;
 
@@ -190,7 +223,7 @@ export class InstitutionalWriter {
   wrap(text: string, size: number, w: number, font: FontKey): string[] {
     const lines: string[] = [];
     const space = this.charW(" ", font) * size;
-    for (const para of this.clean(text).split("\n")) {
+    for (const para of this.clean(capText(text)).split("\n")) {
       if (para === "") {
         lines.push("");
         continue;
@@ -241,15 +274,41 @@ export class InstitutionalWriter {
 
   // --- drawing primitives -------------------------------------------------------------------
 
-  private newPage(): void {
-    this.cur = { page: this.doc.addPage([PAGE_W, PAGE_H]), ops: [] };
+  private newPage(
+    landscape = this.cur ? this.cur.w > this.cur.h : false,
+  ): void {
+    const [w, h] = landscape ? [PAGE_H, PAGE_W] : [PAGE_W, PAGE_H];
+    this.cur = { page: this.doc.addPage([w, h]), ops: [], w, h, links: [] };
     this.pages.push(this.cur);
-    this.y = TOP;
+    this.y = this.top;
+  }
+
+  /** The width tables and bands use on the current page (a landscape page is wider). */
+  get cw(): number {
+    return this.cur.w - 2 * ML;
+  }
+
+  /** The top of the content area of the current page. */
+  private get top(): number {
+    return this.cur.h - MT;
+  }
+
+  /**
+   * Continue on pages of this orientation: a new page when it changes, unless the current page
+   * is still empty (then it is replaced).
+   */
+  orientation(landscape: boolean): void {
+    if (this.cur.w > this.cur.h === landscape) return;
+    if (this.atTop) {
+      this.doc.removePage(this.pages.length - 1);
+      this.pages.pop();
+    }
+    this.newPage(landscape);
   }
 
   /** The current page is empty of content (nothing drawn since it was added). */
   private get atTop(): boolean {
-    return this.y >= TOP - 0.01;
+    return this.y >= this.top - 0.01;
   }
 
   private ensure(h: number): void {
@@ -274,6 +333,11 @@ export class InstitutionalWriter {
     color: Color = "ink",
   ): void {
     if (!s) return;
+    if (++this.lines > MAX_PDF_LINES)
+      throw new ReportInputError(
+        "TooLarge",
+        `the PDF would draw more than ${MAX_PDF_LINES.toLocaleString("en-US")} lines of text; ask for the xlsx format, or send less text`,
+      );
     this.cur.ops.push(
       `${rgbOp(COLORS[color])} rg BT /${FONT_NAMES[font]} ${n(size)} Tf ${n(x)} ${n(baseline)} Td ${this.fonts[font].encodeText(s).toString()} Tj ET`,
     );
@@ -297,7 +361,7 @@ export class InstitutionalWriter {
     color: Color,
     thickness: number,
     x = ML,
-    w = CONTENT_W,
+    w = this.cw,
   ) {
     this.rule(x, y, x + w, y, thickness, color);
   }
@@ -321,12 +385,12 @@ export class InstitutionalWriter {
     asOf: string;
   }): void {
     this.y = PAGE_H - 1.5 * IN;
-    for (const l of this.wrap(opts.title, 25, CONTENT_W, "serif")) {
+    for (const l of this.wrap(opts.title, 25, this.cw, "serif")) {
       this.text(l, ML, this.base(this.y, 25, 28), 25, "serif", "navy");
       this.y -= 28;
     }
     this.y -= 6;
-    for (const l of this.wrap(opts.line, 11, CONTENT_W, "sans")) {
+    for (const l of this.wrap(opts.line, 11, this.cw, "sans")) {
       this.text(l, ML, this.base(this.y, 11, 15), 11, "sans", "slate");
       this.y -= 15;
     }
@@ -336,7 +400,7 @@ export class InstitutionalWriter {
       `As of ${opts.asOf}`,
     ];
     for (const m of meta)
-      for (const l of this.wrap(m, 9.25, CONTENT_W, "sans")) {
+      for (const l of this.wrap(m, 9.25, this.cw, "sans")) {
         this.text(l, ML, this.base(this.y, 9.25, 13.5), 9.25, "sans", "slate");
         this.y -= 13.5;
       }
@@ -371,7 +435,7 @@ export class InstitutionalWriter {
       return Math.max(f, l, 66) + (i === 0 ? pad : 2 * pad);
     });
     const sum = natural.reduce((a, b) => a + b, 0);
-    const widths = natural.map((x) => x + ((CONTENT_W - sum) * x) / sum);
+    const widths = natural.map((x) => x + ((this.cw - sum) * x) / sum);
     const wrapped = cells.map((cell, i) =>
       this.wrap(
         cell.label,
@@ -419,7 +483,7 @@ export class InstitutionalWriter {
 
   /** A section heading: Times bold 13.5, 18 above and 6 below; keeps `keep` points with it. */
   section(text: string, keep = 40): void {
-    const lines = this.wrap(text, 13.5, CONTENT_W, "serifBold");
+    const lines = this.wrap(text, 13.5, this.cw, "serifBold");
     const above = this.atTop ? 0 : 18;
     this.ensure(above + lines.length * 17 + 6 + keep);
     if (!this.atTop) this.y -= above;
@@ -610,7 +674,7 @@ export class InstitutionalWriter {
     for (const [label, value] of rows) {
       const k = Math.max(
         this.wrap(label, size, labelW - 10, "sans").length,
-        this.wrap(value, size, CONTENT_W - labelW, "sans").length,
+        this.wrap(value, size, this.cw - labelW, "sans").length,
       );
       h += k * 12.5 + 8;
     }
@@ -629,7 +693,7 @@ export class InstitutionalWriter {
     const hair = 4;
     rows.forEach(([label, value], r) => {
       const ls = this.wrap(label, size, labelW - 10, "sans");
-      const vs = this.wrap(value, size, CONTENT_W - labelW, "sans");
+      const vs = this.wrap(value, size, this.cw - labelW, "sans");
       const k = Math.max(ls.length, vs.length);
       const h = k * lead + 2 * hair;
       this.ensure(h + (r === 0 ? 8 : 0));
@@ -686,7 +750,7 @@ export class InstitutionalWriter {
     const padY = opts.padY ?? 4.5;
     const padX = 4;
     const total = columns.reduce((s, col) => s + col.width, 0);
-    const widths = columns.map((col) => (col.width / total) * CONTENT_W);
+    const widths = columns.map((col) => (col.width / total) * this.cw);
     const xs = widths.map(
       (_, i) => ML + widths.slice(0, i).reduce((s, w) => s + w, 0),
     );
@@ -862,6 +926,330 @@ export class InstitutionalWriter {
     this.y -= 6;
   }
 
+  // --- notes and data tables ----------------------------------------------------------------
+
+  /**
+   * A required or cautionary statement set apart without a box: a 1 pt bronze rule at its left
+   * and the text beside it in body type. A long one continues over a page.
+   */
+  callout(text: string, size = 8.75): void {
+    const lead = size * 1.45;
+    const lines = this.wrap(text, size, TEXT_W - 14, "sans");
+    this.ensure(Math.min(lines.length, 3) * lead + 8);
+    let from = 0;
+    while (from < lines.length) {
+      const fit = Math.max(
+        1,
+        Math.min(lines.length - from, Math.floor((this.y - BOTTOM) / lead)),
+      );
+      const top = this.y;
+      lines
+        .slice(from, from + fit)
+        .forEach((l, k) =>
+          this.text(l, ML + 12, this.base(top, size, lead, k), size, "sans"),
+        );
+      const bottom = top - fit * lead;
+      this.rule(ML + 2, top - 2, ML + 2, bottom + 2, 1, "bronze");
+      this.y = bottom - 7;
+      from += fit;
+      if (from < lines.length) this.newPage();
+    }
+  }
+
+  /**
+   * Column widths and a text size at which every number fits its column on one line and every
+   * word (or separator-delimited piece of one) fits its column: the shares are the starting
+   * point, columns that need more take it from columns with room, and when the page is too
+   * narrow for all of them the text shrinks (down to MIN_TABLE_SIZE).
+   */
+  private fitColumns(
+    columns: InstitutionalColumn[],
+    rows: string[][],
+    size: number,
+    hsize: number,
+    pad: number,
+    headerless: boolean,
+  ): { widths: number[]; size: number; hsize: number } {
+    const cw = this.cw;
+    const total = columns.reduce((s, col) => s + col.width, 0);
+    const desired = columns.map((col) => (col.width / total) * cw);
+    const unbreakable = (
+      text: string,
+      sz: number,
+      font: FontKey,
+      numeric: boolean,
+    ): number => {
+      const t = this.clean(capText(text));
+      if (numeric && NUMERIC.test(t)) return this.width(t, sz, font);
+      let m = 0;
+      for (const word of t.split(/[ \n]+/))
+        for (const piece of DATE_WORD.test(word)
+          ? [word]
+          : word.split(BREAK_AFTER))
+          m = Math.max(m, this.width(piece, sz, font));
+      return m;
+    };
+    const need = (sz: number, hsz: number) =>
+      columns.map((col, i) => {
+        const numeric = col.align === "right";
+        const font: FontKey = col.mono ? "mono" : "sansBold";
+        const csz = col.mono ? Math.min(sz, 7) : sz;
+        let m = headerless
+          ? 0
+          : unbreakable(col.header, hsz, "sansBold", false);
+        for (const row of rows)
+          m = Math.max(m, unbreakable(row[i] ?? "", csz, font, numeric));
+        // A text column never claims more than 40% of the page for one long token.
+        return Math.min(m + 2 * pad + 0.5, numeric ? cw : cw * 0.4);
+      });
+    let sz = size;
+    let hsz = hsize;
+    let min = need(sz, hsz);
+    let sum = min.reduce((a, b) => a + b, 0);
+    if (sum > cw) {
+      const k = Math.max(MIN_TABLE_SIZE / sz, (cw / sum) * 0.98);
+      sz = Math.max(MIN_TABLE_SIZE, sz * k);
+      hsz = Math.max(MIN_TABLE_SIZE, hsz * k);
+      min = need(sz, hsz);
+      sum = min.reduce((a, b) => a + b, 0);
+    }
+    if (sum > cw)
+      return { widths: min.map((m) => (m / sum) * cw), size: sz, hsize: hsz };
+    const widths = desired.map((d, i) => Math.max(d, min[i]!));
+    const excess = widths.reduce((a, b) => a + b, 0) - cw;
+    if (excess > 0) {
+      const slack = widths.map((w, i) => w - min[i]!);
+      const room = slack.reduce((a, b) => a + b, 0);
+      for (let i = 0; i < widths.length; i++)
+        widths[i] = widths[i]! - (excess * slack[i]!) / room;
+    }
+    return { widths, size: sz, hsize: hsz };
+  }
+
+  /** The geometry of a data table: column widths, sizes, wrapped cells and row heights. */
+  private tablePlan(
+    columns: InstitutionalColumn[],
+    rows: string[][],
+    opts: DataTableOptions,
+  ) {
+    const padX = 4;
+    const padY = opts.padY ?? 3.5;
+    const fit = this.fitColumns(
+      columns,
+      rows,
+      opts.size ?? 8.75,
+      opts.headerless ? (opts.size ?? 8.75) : 7.5,
+      padX,
+      opts.headerless ?? false,
+    );
+    const size = fit.size;
+    const hSize = Math.min(7.5, fit.hsize);
+    const lead = size * 1.4;
+    const widths = fit.widths;
+    const xs = widths.map(
+      (_, i) => ML + widths.slice(0, i).reduce((a, b) => a + b, 0),
+    );
+    const bold = opts.bold ?? new Set<number>();
+    const fontOf = (i: number, isBold: boolean): FontKey =>
+      columns[i]!.mono ? "mono" : isBold ? "sansBold" : "sans";
+    const sizeOf = (i: number) => (columns[i]!.mono ? Math.min(7, size) : size);
+    const isNumber = (i: number, cell: string) =>
+      columns[i]!.align === "right" && NUMERIC.test(this.clean(cell));
+    const cellLines = (row: string[], isBold: boolean) =>
+      row.map((cell, i) =>
+        isNumber(i, cell ?? "")
+          ? [this.clean(cell)]
+          : this.wrap(
+              cell ?? "",
+              sizeOf(i),
+              widths[i]! - 2 * padX,
+              fontOf(i, isBold),
+            ),
+      );
+    const heads = columns.map((col, i) =>
+      this.wrap(col.header, hSize, widths[i]! - 2 * padX, "sansBold"),
+    );
+    const headH = opts.headerless
+      ? 0
+      : Math.max(1, ...heads.map((l) => l.length)) * hSize * 1.35 + 9;
+    const cells = rows.map((row, r) => cellLines(row, bold.has(r)));
+    const heights = cells.map(
+      (ls) => Math.max(1, ...ls.map((l) => l.length)) * lead + 2 * padY,
+    );
+    return {
+      padX,
+      padY,
+      size,
+      hSize,
+      lead,
+      widths,
+      xs,
+      bold,
+      fontOf,
+      sizeOf,
+      isNumber,
+      heads,
+      headH,
+      cells,
+      heights,
+    };
+  }
+
+  /** How much of a table must fit below a heading for the heading to stay with it. */
+  dataTableKeep(
+    columns: InstitutionalColumn[],
+    rows: string[][],
+    opts: DataTableOptions = {},
+  ): number {
+    const t = this.tablePlan(columns, rows, opts);
+    const first = t.heights
+      .slice(0, opts.keepRows ?? 2)
+      .reduce((a, b) => a + b, 0);
+    const whole = t.headH + t.heights.reduce((a, b) => a + b, 0) + 4;
+    return whole < (this.top - BOTTOM) * 0.3 && !opts.splitShort
+      ? whole
+      : t.headH + first + 4;
+  }
+
+  /** The height `dataTable` will take on one page (a longer table continues over pages). */
+  dataTableHeight(
+    columns: InstitutionalColumn[],
+    rows: string[][],
+    opts: DataTableOptions = {},
+  ): number {
+    const t = this.tablePlan(columns, rows, opts);
+    return t.headH + t.heights.reduce((a, b) => a + b, 0) + 10;
+  }
+
+  /**
+   * A book-style table that adapts to its content: column widths grow so no number breaks and
+   * the text shrinks (to 5.5 pt) when the page is too narrow; the header repeats on each page; a
+   * row taller than a page continues over pages. A web address in a cell is a link. `bold` sets
+   * rows in bold (totals, the median) with a hairline above; `headerless` makes a list of
+   * label and value rows. Rules are a navy line above and below, a hairline under the header,
+   * and, when any cell wraps or `rules` is set, a hairline between rows. No fills.
+   */
+  dataTable(
+    columns: InstitutionalColumn[],
+    rows: string[][],
+    opts: DataTableOptions = {},
+  ): void {
+    const t = this.tablePlan(columns, rows, opts);
+    const { padX, padY, hSize, lead, widths, xs } = t;
+    const between =
+      opts.rules ??
+      (opts.headerless
+        ? false
+        : t.heights.some((h) => h > t.lead + 2 * padY + 0.5));
+    const header = () => {
+      if (opts.headerless) {
+        this.hline(this.y, "navy", 0.75);
+        return;
+      }
+      this.hline(this.y, "navy", 0.75);
+      const top = this.y;
+      t.heads.forEach((ls, i) =>
+        ls.forEach((l, k) => {
+          const w = this.width(l, hSize, "sansBold");
+          const x =
+            columns[i]!.align === "right"
+              ? xs[i]! + widths[i]! - padX - w
+              : xs[i]! + padX;
+          this.text(
+            l,
+            x,
+            top - 6 - hSize * 0.8 - k * hSize * 1.35,
+            hSize,
+            "sansBold",
+            "slate",
+          );
+        }),
+      );
+      this.y = top - t.headH;
+      this.hline(this.y, "hair", 0.5);
+    };
+    const drawRow = (
+      lines: string[][],
+      isBold: boolean,
+      raw: string[],
+      ruleAbove: boolean,
+    ) => {
+      const top = this.y;
+      const h = Math.max(1, ...lines.map((l) => l.length)) * lead + 2 * padY;
+      if (ruleAbove) this.hline(top, "hair", 0.35);
+      lines.forEach((ls, i) => {
+        const sz = t.sizeOf(i);
+        const font = t.fontOf(i, isBold);
+        const room = widths[i]! - 2 * padX;
+        const uri = URL_CELL.test((raw[i] ?? "").trim()) ? raw[i]!.trim() : "";
+        ls.forEach((l, k) => {
+          let csz = sz;
+          let w = this.width(l, csz, font);
+          if (w > room && ls.length === 1 && t.isNumber(i, l)) {
+            csz = (sz * room) / w;
+            w = room;
+          }
+          const x =
+            columns[i]!.align === "right"
+              ? xs[i]! + widths[i]! - padX - w
+              : xs[i]! + padX;
+          const baseline =
+            top - padY - (lead - csz) / 2 - 0.78 * csz - k * lead;
+          this.text(l, x, baseline, csz, font, uri ? "navy" : "ink");
+          if (uri && l)
+            this.cur.links.push({
+              rect: [x, baseline - csz * 0.25, x + w, baseline + csz * 0.95],
+              uri,
+            });
+        });
+      });
+      this.y = top - h;
+    };
+    // Keep the header with the first rows; keep a short table whole.
+    const page = this.top - BOTTOM;
+    this.ensure(this.dataTableKeep(columns, rows, opts));
+    header();
+    rows.forEach((row, r) => {
+      const isBold = t.bold.has(r);
+      const lines = t.cells[r]!;
+      const h = t.heights[r]!;
+      const ruleAbove =
+        (isBold && r > 0) || (between && r > 0 && !t.bold.has(r - 1));
+      if (this.y - h < BOTTOM) {
+        if (h > page - t.headH - 40) {
+          // A row taller than a page: split its lines over pages.
+          let start = 0;
+          const max = Math.max(...lines.map((l) => l.length));
+          while (start < max) {
+            if (this.y - lead - 2 * padY < BOTTOM) {
+              this.newPage();
+              header();
+            }
+            const fitLines = Math.max(
+              1,
+              Math.floor((this.y - BOTTOM - 2 * padY) / lead),
+            );
+            drawRow(
+              lines.map((l) => l.slice(start, start + fitLines)),
+              isBold,
+              row,
+              false,
+            );
+            start += fitLines;
+          }
+          return;
+        }
+        this.newPage();
+        header();
+        drawRow(lines, isBold, row, false);
+        return;
+      }
+      drawRow(lines, isBold, row, ruleAbove);
+    });
+    this.hline(this.y, "navy", 0.75);
+    this.y -= 10;
+  }
+
   // --- output -------------------------------------------------------------------------------
 
   async bytes(): Promise<Uint8Array> {
@@ -869,14 +1257,16 @@ export class InstitutionalWriter {
     const total = this.pages.length;
     this.pages.forEach((p, i) => {
       this.cur = p;
+      const top = p.h - MT;
+      const cw = this.cw;
       if (i === 0) {
         // The brand line above a thin navy rule across the top margin.
-        const ry = PAGE_H - MT + 12;
+        const ry = top + 12;
         this.text("FactLot", ML, ry + 6, 9, "sansBold", "navy");
         const right = this.clean(m.mastheadRight);
         this.text(
           right,
-          ML + CONTENT_W - this.width(right, 8, "sans"),
+          ML + cw - this.width(right, 8, "sans"),
           ry + 6,
           8,
           "sans",
@@ -884,7 +1274,7 @@ export class InstitutionalWriter {
         );
         this.hline(ry, "navy", 0.75);
       } else {
-        const hy = PAGE_H - MT + 12;
+        const hy = top + 12;
         this.text(
           this.clean(m.runningHeader),
           ML,
@@ -896,7 +1286,7 @@ export class InstitutionalWriter {
         const label = `Page ${i + 1} of ${total}`;
         this.text(
           label,
-          ML + CONTENT_W - this.width(label, 7.5, "sans"),
+          ML + cw - this.width(label, 7.5, "sans"),
           hy + 4,
           7.5,
           "sans",
@@ -905,7 +1295,12 @@ export class InstitutionalWriter {
         this.hline(hy, "hair", 0.5);
       }
       this.hline(MB, "hair", 0.5);
-      this.text(this.clean(m.footer), ML, MB - 11, 7, "sans", "slate");
+      // The footer is one line; a longer one (required wording) wraps, up to three lines.
+      this.wrap(m.footer, 7, cw, "sans")
+        .slice(0, 3)
+        .forEach((l, k) =>
+          this.text(l, ML, MB - 11 - k * 8.5, 7, "sans", "slate"),
+        );
     });
     const ctx = this.doc.context;
     for (const p of this.pages) {
@@ -918,6 +1313,22 @@ export class InstitutionalWriter {
         ctx.register(ctx.flateStream(p.ops.join("\n"))),
       );
       p.ops = [];
+      if (p.links.length) {
+        const annots = ctx.obj([]) as PDFArray;
+        for (const l of p.links)
+          annots.push(
+            ctx.register(
+              ctx.obj({
+                Type: "Annot",
+                Subtype: "Link",
+                Rect: l.rect.map((x) => Math.round(x * 100) / 100),
+                Border: [0, 0, 0],
+                A: { Type: "Action", S: "URI", URI: PDFString.of(l.uri) },
+              }),
+            ),
+          );
+        p.page.node.set(PDFName.of("Annots"), annots);
+      }
     }
     this.doc.setTitle(this.clean(m.title), { showInWindowTitleBar: true });
     this.doc.setSubject(this.clean(m.subject));

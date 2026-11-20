@@ -13,7 +13,9 @@ import { pct, roundInText, usd } from "../format.ts";
 import { ReportInputError, type TxResult } from "../validate.ts";
 import { Workbook, addr, fx, range, type Sheet } from "../xlsx.ts";
 import {
+  bigUsd,
   closingBlocks,
+  coverOf,
   subtitle,
   warningsBlocks,
   type ContextSource,
@@ -843,6 +845,34 @@ export function txDoc(k: KindInput): ReportDoc {
         "Tex. Tax Code §41.43(b)(3), §42.26(a)(3)",
       ],
       k.ctx,
+    ),
+    cover: coverOf(
+      k,
+      "Unequal-appraisal evidence",
+      [
+        `Tax year ${v.tax_year}`,
+        v.subject_id ? `Subject ${v.subject_id}` : undefined,
+        `${v.comparables_count} comparables`,
+        "Tex. Tax Code §41.43(b)(3), §42.26(a)(3)",
+      ],
+      [
+        {
+          figure: bigUsd(v.median_adjusted_value),
+          label: "Median adjusted value of the comparables",
+        },
+        {
+          figure: bigUsd(v.subject_value),
+          label: `Subject value (${v.subject_value_basis})`,
+        },
+        {
+          figure: bigUsd(v.subject_minus_median),
+          label: "Subject value minus median",
+        },
+        {
+          figure: pct(v.subject_minus_median_pct),
+          label: "Subject minus median, share of the median",
+        },
+      ],
     ),
     blocks,
     readme: [],
