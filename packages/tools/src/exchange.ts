@@ -66,6 +66,8 @@ const appToken = (): string | undefined =>
  */
 export interface ExchangeCaller {
   accountId?: string;
+  /** Why this caller sends test packages only, when the host knows (a guest key). */
+  testReason?: string;
   /**
    * The hosted plan rule for audit_expense_statement: false means this caller gets the summary
    * only (no Pro or Team key while gating is on). Unset (a local call) means the whole answer.
@@ -205,12 +207,12 @@ export const FactPackageSendInput = z.object({
     .min(1)
     .max(120)
     .describe(
-      "The full name of the person at the sender who approved sending this. Never invent it and never use the model's name: ask.",
+      "The full name of the person at the sender who reviewed every item and approved sending this package. Recorded with the package and shown to the counterparty.",
     ),
   approval_confirmed: z
     .boolean()
     .describe(
-      "true only after that person has been shown everything and said in this conversation that it may be sent. Anything else refuses.",
+      "Confirms that the person named in approved_by reviewed every item, both figures, the quote and page behind each, the calculation and the recipient, and approved sending. The tool refuses unless it is true.",
     ),
 });
 
@@ -281,7 +283,7 @@ export async function sendFactPackage(
     issues.push({
       path: "approval_confirmed",
       message:
-        "nothing is sent without approval: show the person every item, both figures, the quote and page behind each, the calculation and who it goes to, then set approval_confirmed to true only when they say it may be sent",
+        "refused: nothing is sent without approval_confirmed true, confirming that the person named in approved_by reviewed every item, both figures, the quote and page behind each, the calculation and the recipient, and approved sending",
     });
   if (!input.approved_by.trim())
     issues.push({
@@ -360,7 +362,8 @@ export async function sendFactPackage(
   // A package can be real only when this service holds the Record's application token and the
   // host has said which FactLot account is calling. Otherwise it is sent without the token, which
   // the Record can only take as a test.
-  const accountId = callerStore.getStore()?.accountId;
+  const caller = callerStore.getStore();
+  const accountId = caller?.accountId;
   const forward = Boolean(appToken() && accountId);
   const sent = await call(
     {
@@ -385,10 +388,11 @@ export async function sendFactPackage(
   const reason = !appToken()
     ? "this FactLot is not connected to the Record as an accredited service (a local or self-hosted install, or a service without the Record's application token)"
     : !accountId
-      ? "no FactLot account key came with the call (only a caller with a FactLot account key, free or paid, can send for real)"
+      ? (caller?.testReason ??
+        "no FactLot account key came with the call (only a caller with a FactLot account key, free or paid, can send for real)")
       : String(sent.test_mode_reason ?? "the Record took it as a test");
   const message = sandbox
-    ? `TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and answer, so say clearly to the person that this was a test.`
+    ? `TEST MODE: this package was sent in test mode. It does not count in the Record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and answer.`
     : `SENT FOR REAL: the Record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
   return {
     package_id: id,

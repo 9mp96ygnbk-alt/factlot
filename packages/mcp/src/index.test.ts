@@ -371,3 +371,21 @@ test("tools/list input schemas carry no numeric exclusive bounds (Copilot Studio
   assert.equal(term.minimum, 1);
   await client.close();
 });
+
+test("annotations: fact_package_send is the one write tool; every other tool is read-only", async () => {
+  const client = await connect();
+  const { tools } = await client.listTools();
+  const send = tools.find((t) => t.name === "fact_package_send");
+  assert.equal(send?.annotations?.readOnlyHint, false);
+  assert.equal(send?.annotations?.destructiveHint, false);
+  assert.equal(send?.annotations?.openWorldHint, true);
+  const status = tools.find((t) => t.name === "fact_package_status");
+  assert.equal(status?.annotations?.readOnlyHint, true);
+  assert.equal(status?.annotations?.openWorldHint, true);
+  for (const t of tools) {
+    if (t.name === "fact_package_send") continue;
+    assert.equal(t.annotations?.readOnlyHint, true, t.name);
+    assert.equal(t.annotations?.destructiveHint, false, t.name);
+  }
+  await client.close();
+});

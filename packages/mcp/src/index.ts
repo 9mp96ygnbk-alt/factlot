@@ -223,6 +223,34 @@ const READ_ONLY = {
   destructiveHint: false,
 } as const;
 
+/**
+ * The tools whose hints differ from READ_ONLY. fact_package_send sends a package to an outside
+ * party through the Record (a write that cannot be recalled, but deletes or overwrites nothing);
+ * fact_package_status only reads, but from the Record, where the counterparty's answers live.
+ */
+const TOOL_ANNOTATIONS: Record<
+  string,
+  {
+    readOnlyHint: boolean;
+    idempotentHint: boolean;
+    openWorldHint: boolean;
+    destructiveHint: boolean;
+  }
+> = {
+  fact_package_send: {
+    readOnlyHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+    destructiveHint: false,
+  },
+  fact_package_status: { ...READ_ONLY, openWorldHint: true },
+};
+
+/** The MCP annotations of a tool: READ_ONLY unless TOOL_ANNOTATIONS says otherwise. */
+export function toolAnnotations(name: string) {
+  return TOOL_ANNOTATIONS[name] ?? READ_ONLY;
+}
+
 export interface CreateServerOptions {
   /**
    * Register registry_* tools. Default: only when a registry is available: a registry file
@@ -324,7 +352,7 @@ export function createServer(opts: CreateServerOptions = {}): McpServer {
         title: tool.title,
         description: tool.description,
         inputSchema: tool.input,
-        annotations: { ...READ_ONLY, title: tool.title },
+        annotations: { ...toolAnnotations(tool.name), title: tool.title },
       },
       handler,
     );

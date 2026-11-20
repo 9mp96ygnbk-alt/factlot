@@ -240,6 +240,22 @@ test("sends through the public endpoint; the token is added only when configured
     /^TEST MODE: .*no FactLot account key/,
   );
 
+  // A guest key: the host gives no account and its reason; the token is not forwarded.
+  const guest = fakeExchange(sentOk(true));
+  configureExchange({ fetch: guest.f, token: "cre_testtoken" });
+  const g = await runWithExchangeCaller(
+    { testReason: "the call came with a guest key" },
+    () => runToolAsync("fact_package_send", baseInput(pkg, ids)),
+  );
+  assert.ok(g.ok);
+  assert.equal(guest.seen[0]!.headers.authorization, undefined);
+  assert.equal(guest.seen[0]!.body.sender_account, undefined);
+  assert.equal((g.result as Json).recorded_as, "sandbox");
+  assert.match(
+    (g.result as Json).message as string,
+    /^TEST MODE: .*because the call came with a guest key\. The counterparty can still open the link and answer\.$/,
+  );
+
   // An account without the application token (local or self-hosted) is a test too.
   const noTok = fakeExchange(sentOk(true));
   configureExchange({ fetch: noTok.f });
