@@ -4263,7 +4263,7 @@
       "post": {
         "operationId": "id_parcel",
         "summary": "FactLot parcel ID",
-        "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. Use it as the join key across systems.",
+        "description": "Deterministic FactLot ID for a parcel from state FIPS, county FIPS, and the assessor's parcel number (APN). The same parcel always yields the same ID, offline. It serves as the join key across systems.",
         "x-openai-isConsequential": false,
         "requestBody": {
           "required": true,
@@ -4621,7 +4621,7 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 200,
-                              "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction."
+                              "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Only for a value a person has read: a confirmation by the extractor itself does not count as a confirmation by a person."
                             },
                             "at": {
                               "anyOf": [
@@ -4854,7 +4854,7 @@
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 200,
-                                    "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Never set this for a value no person has read: an agent must not confirm its own extraction."
+                                    "description": "The name or role of the PERSON who read the clause and confirmed the value, e.g. \"J. Smith, lease administrator\". FactLot does not authenticate it. Only for a value a person has read: a confirmation by the extractor itself does not count as a confirmation by a person."
                                   },
                                   "at": {
                                     "anyOf": [

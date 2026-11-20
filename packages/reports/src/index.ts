@@ -121,6 +121,8 @@ export const KIND_TITLES: Record<ReportKind, string> = {
   rent_roll_certificate: "Rent roll certificate",
 };
 
+// `input` and `arguments` are published as objects (every parameter needs a type for MCP clients
+// and directories); the handler still does the checking, so a wrong shape names its field.
 export const ReportRequest = z.strictObject({
   kind: z.enum(REPORT_KINDS).describe("Which report."),
   format: z
@@ -130,12 +132,14 @@ export const ReportRequest = z.strictObject({
     ),
   input: z
     .unknown()
+    .meta({ type: "object" })
     .optional()
     .describe(
       "lease_abstract only: the doc_abstract_lease result, used when arguments are not sent (each page then says the values are the caller's). For other kinds a result sent here is not used; the answer says whether it matches FactLot's run (result_mismatch).",
     ),
   arguments: z
     .unknown()
+    .meta({ type: "object" })
     .optional()
     .describe(
       "The tool's arguments. Required for every kind but lease_abstract: FactLot runs the tool on them and builds the document from that run only. tx_protest_deadline: rules_tx_property_tax_protest_deadline's (tax_year, notice_delivered_date?, as_of?), or with items the _batch rule's (items: [{id, tax_year, notice_delivered_date?}], as_of?). property_sheet: { urn } only, a parcel's FactLot ID; FactLot runs registry_get on it for the caller (gated and counted as the caller's lookup).",

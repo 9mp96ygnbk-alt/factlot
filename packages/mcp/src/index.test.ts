@@ -389,3 +389,17 @@ test("annotations: fact_package_send is the one write tool; every other tool is 
   }
   await client.close();
 });
+
+test("tool descriptions state what a tool does and never instruct the model", async () => {
+  const client = await connect();
+  const { tools } = await client.listTools();
+  // Wording that tells the model how to behave, as opposed to what the tool does or refuses.
+  const instructing =
+    /\bCall (it )?before\b|READ THE|\b[Rr]elay (them|each|that|this)\b|\bCite rule\b|show (every|the) [a-z ]+ to the person|never your own|\bOCR it first\b|ask for the full name|wait for them to say/;
+  for (const t of tools) {
+    const texts = [t.description ?? "", JSON.stringify(t.inputSchema)];
+    for (const text of texts)
+      assert.doesNotMatch(text, instructing, `${t.name} instructs the model`);
+  }
+  await client.close();
+});
