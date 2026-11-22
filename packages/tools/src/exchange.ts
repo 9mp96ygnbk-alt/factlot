@@ -341,6 +341,12 @@ export const FactPackageSendInput = z.object({
     .describe(
       "Confirms that the person named in approved_by reviewed every item, both figures, the quote and page behind each, the calculation and the recipient, and approved sending. The tool refuses unless it is true.",
     ),
+  test: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Optional, default false. True sends this package as a test whatever key the caller holds: the sender's account is not passed to the FactLot record, so the package is recorded as a test (recorded_as sandbox, test_mode true), records no real reliance and never counts in the FactLot record's measure. The counterparty can still open the link and answer, so a firm can rehearse the whole exchange with its own key. A test package cannot be turned into a real one later: send again without test. False or left out: the package is real when the caller's key allows it, as before.",
+    ),
 });
 
 export const FactPackageStatusInput = z.object({
@@ -617,7 +623,10 @@ export async function sendFactPackage(
   // the Record can only take as a test.
   const caller = callerStore.getStore();
   const accountId = caller?.accountId;
-  const forward = Boolean(appToken() && accountId);
+  // test: true is the sender's own switch: the account and the application token are withheld, so
+  // the Record can only take the package as a test, whatever key the caller holds.
+  const testAsked = input.test === true;
+  const forward = Boolean(appToken() && accountId) && !testAsked;
   const sent = await call(
     {
       action: "send",
@@ -643,19 +652,26 @@ export async function sendFactPackage(
   const id = String(sent.id);
   const reliances = (sent.reliances_recorded as Json[]) ?? [];
   const sandbox = sent.sandbox === true;
-  const reason = !appToken()
-    ? "this FactLot is not connected to the hosted FactLot record as an accredited service (a local or self-hosted install, or a service without the FactLot record's application token)"
-    : !accountId
-      ? (caller?.testReason ??
-        "no full FactLot account key came with the call, and a full FactLot account key (a paid fl_live_ key or an email-verified fl_free_ key) is needed to send for real")
-      : String(sent.test_mode_reason ?? "the FactLot record took it as a test");
-  const message = sandbox
-    ? `TEST MODE: this package was sent in test mode. It does not count in the FactLot record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and ${rentRoll ? "read it" : "answer"}.`
-    : rentRoll
-      ? `SENT FOR REAL: the certified rent roll was sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each line graded as matching when a lender or buyer, a different firm from the sender, records its own. A line that differs from its lease, has no lease or could not be checked is never recorded as relied on. The sender's certification, not FactLot, is what the lender or buyer relies on.`
-      : estoppel
-        ? `SENT FOR REAL: the estoppel statements were sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and the tenant, records its own. A disputed statement is never recorded as relied on.`
-        : `SENT FOR REAL: the FactLot record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
+  const reason = testAsked
+    ? "the sender asked for a test (test: true), so the sender's account was not passed to the FactLot record"
+    : !appToken()
+      ? "this FactLot is not connected to the hosted FactLot record as an accredited service (a local or self-hosted install, or a service without the FactLot record's application token)"
+      : !accountId
+        ? (caller?.testReason ??
+          "no full FactLot account key came with the call, and a full FactLot account key (a paid fl_live_ key or an email-verified fl_free_ key) is needed to send for real")
+        : String(
+            sent.test_mode_reason ?? "the FactLot record took it as a test",
+          );
+  const message =
+    testAsked && !sandbox
+      ? `NOT RECORDED AS A TEST: test: true was asked and the sender's account was withheld, but the FactLot record did not answer that it took this package as a test. Treat it as sent to ${input.to.organisation}, read fact_package_status, and report this to FactLot.`
+      : sandbox
+        ? `TEST MODE: this package was sent in test mode. It does not count in the FactLot record's measure and records no real reliance, because ${reason}. The counterparty can still open the link and ${rentRoll ? "read it" : "answer"}.`
+        : rentRoll
+          ? `SENT FOR REAL: the certified rent roll was sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each line graded as matching when a lender or buyer, a different firm from the sender, records its own. A line that differs from its lease, has no lease or could not be checked is never recorded as relied on. The sender's certification, not FactLot, is what the lender or buyer relies on.`
+          : estoppel
+            ? `SENT FOR REAL: the estoppel statements were sent to ${input.to.organisation}. Nothing is recorded as relied on yet: a reliance is recorded for each statement the tenant confirms when a lender or buyer, a different firm from the sender and the tenant, records its own. A disputed statement is never recorded as relied on.`
+            : `SENT FOR REAL: the FactLot record recorded ${reliances.length} reliance${reliances.length === 1 ? "" : "s"} now (the sender relies on ${reliances.length === 1 ? "the figure" : "the figures"} it accepted from ${input.to.organisation}), and each item ${input.to.organisation} agrees to will be recorded as relied on by them. Each is tied to the sender's FactLot account.`;
   const att = isJson(sent.attestation) ? sent.attestation : undefined;
   const attNote = att
     ? att.status === "attested"

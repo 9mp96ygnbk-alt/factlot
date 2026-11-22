@@ -218,7 +218,10 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     ref = subject.get("record_id") or subject.get("urn")
     caller = current_exchange_caller() or {}
     account_id = caller.get("account_id")
-    forward = bool(_token() and account_id)
+    # test: true is the sender's own switch: the account and the application token are withheld, so the
+    # Record can only take the package as a test, whatever key the caller holds.
+    test_asked = inp.get("test") is True
+    forward = bool(_token() and account_id) and not test_asked
     body: dict[str, Any] = {
         "action": "send", "package": pkg, "kind": inp["kind"], "title": inp["title"],
         "subject": {"label": subject["label"], **({"ref": ref} if ref else {})},
@@ -234,7 +237,9 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
     id_ = str(sent["id"])
     reliances = sent.get("reliances_recorded") or []
     sandbox = sent.get("sandbox") is True
-    if not _token():
+    if test_asked:
+        reason = "the sender asked for a test (test: true), so the sender's account was not passed to the FactLot record"
+    elif not _token():
         reason = ("this FactLot is not connected to the hosted FactLot record as an accredited service (a local or self-hosted install, "
                   "or a service without the FactLot record's application token)")
     elif not account_id:
@@ -244,7 +249,11 @@ def send_fact_package(args: dict[str, Any]) -> dict[str, Any]:
         reason = str(sent.get("test_mode_reason") or "the FactLot record took it as a test")
     n = len(reliances)
     to_org = inp["to"]["organisation"]
-    if sandbox:
+    if test_asked and not sandbox:
+        message = (f"NOT RECORDED AS A TEST: test: true was asked and the sender's account was withheld, but the FactLot record did "
+                   f"not answer that it took this package as a test. Treat it as sent to {to_org}, read fact_package_status, and "
+                   "report this to FactLot.")
+    elif sandbox:
         message = (f"TEST MODE: this package was sent in test mode. It does not count in the FactLot record's measure and records no real "
                    f"reliance, because {reason}. The counterparty can still open the link and {'read it' if rent_roll else 'answer'}.")
     elif rent_roll:

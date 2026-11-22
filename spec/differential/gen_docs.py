@@ -606,6 +606,8 @@ def send_refusal_case(r):
            "from": {"organisation": "Tenant Co", "person": "Pat Tenant", "email": "pat@example.invalid"},
            "to": {"organisation": "Landlord Co", "person": "Lee Landlord", "email": "lee@example.invalid"},
            "items": items, "approved_by": "Pat Tenant", "approval_confirmed": True}
+    if r.random() < 0.4:
+        inp["test"] = r.choice([True, False])  # the test switch is accepted by both languages
     defect = r.choice(["approval", "approver", "same_org", "dup_key", "their_value", "unknown_fact", "tamper"])
     if defect == "approval":
         inp["approval_confirmed"] = r.choice([False, False, None])

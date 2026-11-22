@@ -149,6 +149,58 @@ class ExchangeTools(unittest.TestCase):
         self.assertNotIn("authorization", fake.seen[0]["headers"])
         self.assertNotIn("sender_account", fake.seen[0]["body"])
 
+    def _send(self, caller, extra, sandbox):
+        fake = Fake(sent_ok(sandbox))
+        configure_exchange(transport=fake, token="apptoken-fictional")
+        inp = {**self.inp, **extra}
+        if caller is None:
+            r = run_tool("fact_package_send", inp)
+        else:
+            with run_with_exchange_caller(caller.get("account_id"), test_reason=caller.get("test_reason")):
+                r = run_tool("fact_package_send", inp)
+        self.assertNotIn("error", r, r)
+        return r, fake.seen[0]
+
+    def test_test_switch(self):
+        full = {"account_id": "acct_fictional_0001"}
+        # A full key with test true: nothing travels that could make it real.
+        r, seen = self._send(full, {"test": True}, True)
+        self.assertNotIn("authorization", seen["headers"])
+        self.assertNotIn("sender_account", seen["body"])
+        self.assertNotIn("test", seen["body"])
+        self.assertEqual((r["recorded_as"], r["test_mode"]), ("sandbox", True))
+        self.assertFalse(r["recorded"]["counts_in_the_measure"])
+        self.assertTrue(r["message"].startswith(
+            "TEST MODE: this package was sent in test mode. It does not count in the FactLot record's measure and records "
+            "no real reliance, because the sender asked for a test (test: true)"))
+        self.assertNotIn("acct_fictional_0001", json.dumps(r))
+        # Without test, and with test false: forwarded and real, alike.
+        omitted, s0 = self._send(full, {}, False)
+        off, s1 = self._send(full, {"test": False}, False)
+        for x, s in ((omitted, s0), (off, s1)):
+            self.assertEqual(s["headers"]["authorization"], "Bearer apptoken-fictional")
+            self.assertEqual(s["body"]["sender_account"], "acct_fictional_0001")
+            self.assertEqual((x["recorded_as"], x["test_mode"]), ("real", False))
+            self.assertTrue(x["message"].startswith("SENT FOR REAL"))
+        self.assertEqual(off, omitted)
+        self.assertEqual(s1["body"], s0["body"])
+        # A guest key and no key: unchanged without the switch; a test with it.
+        guest = {"test_reason": "the call came with a guest key"}
+        self.assertEqual(self._send(guest, {"test": False}, True)[0], self._send(guest, {}, True)[0])
+        self.assertEqual(self._send(None, {"test": False}, True)[0], self._send(None, {}, True)[0])
+        self.assertIn("because the call came with a guest key.", self._send(guest, {}, True)[0]["message"])
+        for caller in (guest, None):
+            x, s = self._send(caller, {"test": True}, True)
+            self.assertNotIn("authorization", s["headers"])
+            self.assertNotIn("sender_account", s["body"])
+            self.assertTrue(x["test_mode"])
+            self.assertIn("the sender asked for a test", x["message"])
+        # A record that answered "not a test" to a withheld account is reported, never called TEST MODE.
+        odd, s = self._send(full, {"test": True}, False)
+        self.assertNotIn("sender_account", s["body"])
+        self.assertTrue(odd["message"].startswith("NOT RECORDED AS A TEST"))
+        self.assertIn("error", run_tool("fact_package_send", {**self.inp, "test": "yes"}))
+
     def test_token_and_account_forward_and_say_sent_for_real(self):
         fake = Fake(sent_ok(False))
         configure_exchange(transport=fake, token="apptoken-fictional")

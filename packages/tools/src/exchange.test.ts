@@ -292,6 +292,92 @@ test("sends through the public endpoint; the token is added only when configured
   assert.ok(!JSON.stringify(rr).includes("cre_testtoken"));
 });
 
+test("test: true sends a test whatever key the caller holds; false is the same as left out", async () => {
+  const { pkg, ids } = makePackage();
+  const full = { accountId: "acct_abc12345" };
+  const send = (caller: Json | undefined, extra: Json, sandbox: boolean) => {
+    const fake = fakeExchange(sentOk(sandbox));
+    configureExchange({ fetch: fake.f, token: "cre_testtoken" });
+    const run = () =>
+      runToolAsync("fact_package_send", { ...baseInput(pkg, ids), ...extra });
+    return (caller ? runWithExchangeCaller(caller, run) : run()).then((o) => {
+      assert.ok(o.ok, JSON.stringify(o));
+      return { r: o.result as Json, seen: fake.seen[0]! };
+    });
+  };
+
+  // A full key with test: true. Neither the application token nor the account travels, so the
+  // record can only take it as a test; the answer says TEST MODE and why.
+  const t = await send(full, { test: true }, true);
+  assert.equal(t.seen.headers.authorization, undefined);
+  assert.equal(t.seen.body.sender_account, undefined);
+  assert.equal(t.seen.body.test, undefined); // the switch itself is not sent on
+  assert.equal(t.r.recorded_as, "sandbox");
+  assert.equal(t.r.test_mode, true);
+  assert.equal((t.r.recorded as Json).counts_in_the_measure, false);
+  assert.match(
+    t.r.message as string,
+    /^TEST MODE: this package was sent in test mode\. It does not count in the FactLot record's measure and records no real reliance, because the sender asked for a test \(test: true\)/,
+  );
+  assert.ok(!JSON.stringify(t.r).includes("acct_abc12345"));
+
+  // The same full key without test, and with test: false: forwarded and real, byte for byte alike.
+  const omitted = await send(full, {}, false);
+  const off = await send(full, { test: false }, false);
+  for (const x of [omitted, off]) {
+    assert.equal(x.seen.headers.authorization, "Bearer cre_testtoken");
+    assert.equal(x.seen.body.sender_account, "acct_abc12345");
+    assert.equal(x.r.recorded_as, "real");
+    assert.equal(x.r.test_mode, false);
+    assert.match(x.r.message as string, /^SENT FOR REAL/);
+  }
+  assert.deepEqual(off.r, omitted.r);
+  assert.deepEqual(off.seen.body, omitted.seen.body);
+
+  // A guest key and no key are tests with or without the switch; without it their answers are as before.
+  const guest = { testReason: "the call came with a guest key" };
+  const g0 = await send(guest, {}, true);
+  const g1 = await send(guest, { test: false }, true);
+  assert.deepEqual(g1.r, g0.r);
+  assert.match(
+    g0.r.message as string,
+    /because the call came with a guest key\./,
+  );
+  const n0 = await send(undefined, {}, true);
+  const n1 = await send(undefined, { test: false }, true);
+  assert.deepEqual(n1.r, n0.r);
+  assert.match(
+    n0.r.message as string,
+    /no full FactLot account key came with the call/,
+  );
+  for (const x of [
+    await send(guest, { test: true }, true),
+    await send(undefined, { test: true }, true),
+  ]) {
+    assert.equal(x.seen.headers.authorization, undefined);
+    assert.equal(x.seen.body.sender_account, undefined);
+    assert.equal(x.r.test_mode, true);
+    assert.match(
+      x.r.message as string,
+      /^TEST MODE: .*the sender asked for a test/,
+    );
+  }
+
+  // If a record ever answered "not a test" to a withheld account, the answer says so and never "TEST MODE".
+  const odd = await send(full, { test: true }, false);
+  assert.equal(odd.seen.body.sender_account, undefined);
+  assert.equal(odd.r.test_mode, false);
+  assert.match(odd.r.message as string, /^NOT RECORDED AS A TEST/);
+
+  // test must be a boolean.
+  configureExchange({ fetch: fakeExchange(sentOk(true)).f });
+  const bad = await runToolAsync("fact_package_send", {
+    ...baseInput(pkg, ids),
+    test: "yes",
+  });
+  assert.equal(bad.ok, false);
+});
+
 test("platform refusals are input errors; an unreachable or failing platform is ExchangeUnavailable", async () => {
   const { pkg, ids } = makePackage();
   configureExchange({
