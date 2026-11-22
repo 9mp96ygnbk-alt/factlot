@@ -775,3 +775,159 @@ test("the hosted service attests the audit result; every tamper is refused", asy
   assert.equal((r.attestation as Json).calculation_digest, null);
   assert.ok((r.package_items as Json[]).length > 0);
 });
+
+// ---- statement levels: a statement entered as the landlord prints it ---------------------------
+// A printed statement lists building-level lines, then a fee computed on the building subtotal,
+// then a total that includes the fee. Alder Court: lines 850,000; the lease takes taxes and
+// insurance out of the fee base, so the fee base is 350,000 and the fee 35,000; the printed total
+// is 885,000. The tenant (8%) owes 68,000 + 2,800 = 70,800 before the cap.
+
+function printedCase(): Case {
+  const c = cleanCase();
+  c.st["statement.admin_fee"] = { rate: 0.1, base_amount: 350000, amount: 35000 };
+  c.st["statement.total"] = { amount: 885000 };
+  return c;
+}
+const warningsOf = (r: Json) => r.warnings as string[];
+
+test("levels: a clean statement entered as printed (building-level fee, fee-inclusive total) has no findings", () => {
+  const r = run(printedCase());
+  assert.deepEqual(codes(r), []);
+  assert.equal((r.totals as Json).total_difference, 0);
+  const lv = r.levels as Json;
+  assert.equal(lv["statement.admin_fee"], "building");
+  assert.equal(lv["statement.admin_fee.basis"], "inferred");
+  assert.equal(lv["statement.total.includes_fee"], true);
+  // An inferred level is said, never silent.
+  assert.ok(warningsOf(r).some((w) => w.startsWith("FEE_LEVEL_INFERRED")));
+});
+
+test("levels: the same statement with the level stated gives the same answer and no inference warning", () => {
+  const c = printedCase();
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 350000,
+    amount: 35000,
+    level: "building",
+  };
+  c.st["statement.total"] = { amount: 885000, includes_fee: true };
+  const r = run(c);
+  assert.deepEqual(codes(r), []);
+  assert.equal((r.levels as Json)["statement.admin_fee.basis"], "stated");
+  assert.deepEqual(warningsOf(r), []);
+});
+
+test("levels: a building-level fee difference is converted by the tenant's share before it is totalled", () => {
+  // Fee charged on every line: base 850,000, fee 85,000, total 935,000. The lease's base is
+  // 350,000. Building-level difference 10% x 500,000 = 50,000; the tenant's share is 4,000.
+  const c = printedCase();
+  c.st["statement.admin_fee"] = { rate: 0.1, base_amount: 850000, amount: 85000 };
+  c.st["statement.total"] = { amount: 935000 };
+  c.st["statement.tenant_charge"] = { amount: 74583 };
+  c.st["statement.balance_claimed"] = { amount: 8583 };
+  const r = run(c);
+  const fee = find(r, "FEE_ON_EXCLUDED_LINES")!;
+  assert.equal(fee.difference, 4000);
+  assert.equal(fee.landlord_figure, 6800);
+  assert.equal(fee.lease_figure, 2800);
+  assert.deepEqual(codes(r), ["FEE_ON_EXCLUDED_LINES"]);
+  assert.equal((r.totals as Json).total_difference, 4000);
+  // 12% billed on the building base: 2% x 350,000 = 7,000 at building level, 560 to the tenant.
+  const d = printedCase();
+  d.st["statement.admin_fee"] = {
+    rate: 0.12,
+    base_amount: 350000,
+    amount: 42000,
+    level: "building",
+  };
+  d.st["statement.total"] = { amount: 892000 };
+  const rate = find(run(d), "FEE_RATE_ABOVE_CAP")!;
+  assert.equal(rate.difference, 560);
+  // A fee misadded at building level (36,000 billed, 10% x 350,000 = 35,000): 80 to the tenant.
+  const e = printedCase();
+  e.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 350000,
+    amount: 36000,
+    level: "building",
+  };
+  e.st["statement.total"] = { amount: 886000 };
+  assert.equal(find(run(e), "ARITH_FEE")!.difference, 80);
+});
+
+test("levels: a fee-inclusive total is not an arithmetic gap; a real gap still is", () => {
+  const r = run(printedCase());
+  assert.equal(find(r, "ARITH_LINES_VS_TOTAL"), undefined);
+  // Printed total 895,000: lines 850,000 + fee 35,000 = 885,000; gap 10,000; tenant 800.
+  const c = printedCase();
+  c.st["statement.total"] = { amount: 895000 };
+  assert.equal(find(run(c), "ARITH_LINES_VS_TOTAL")!.difference, 800);
+  // Stated as excluding the fee, the same 885,000 is a 35,000 gap: tenant 2,800.
+  const d = printedCase();
+  d.st["statement.total"] = { amount: 885000, includes_fee: false };
+  assert.equal(find(run(d), "ARITH_LINES_VS_TOTAL")!.difference, 2800);
+});
+
+test("levels: the tenant-level convention still reads as before", () => {
+  const r = run(flawedCase());
+  assert.equal((r.levels as Json)["statement.admin_fee"], "tenant");
+  assert.equal(find(r, "FEE_ON_EXCLUDED_LINES")!.difference, 4000);
+  assert.deepEqual(warningsOf(r), []);
+});
+
+test("guard: a total difference above the tenant's whole charge is warned, never silent", () => {
+  // A building-level base stated as tenant-level: the audit must do as told, and say the result
+  // cannot be right. 10% x (850,000 - 28,000) = 82,200 against a charge of 70,583.
+  const c = cleanCase();
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 850000,
+    amount: 85000,
+    level: "tenant",
+  };
+  const r = run(c);
+  assert.ok((r.totals as Json).total_difference as number > 70583);
+  assert.equal((r.totals as Json).exceeds_tenant_charge, true);
+  assert.ok(
+    warningsOf(r).some((w) => w.startsWith("TOTAL_EXCEEDS_TENANT_CHARGE")),
+  );
+  const clean = run(cleanCase());
+  assert.equal((clean.totals as Json).exceeds_tenant_charge, false);
+  // The summary a free caller gets carries the warning too.
+  const s = auditSummary(r).summary as Json;
+  assert.ok(
+    (s.warnings as string[]).some((w) =>
+      w.startsWith("TOTAL_EXCEEDS_TENANT_CHARGE"),
+    ),
+  );
+});
+
+test("received date: accepted as its own input with who states it; the statement need not print it", () => {
+  const c = cleanCase();
+  c.st["statement.period"] = { year: 2025, statement_date: "2026-03-01" };
+  const r = run(c, {
+    received: { date: "2026-03-10", stated_by: "Dana Whitlock, Birchwood Analytics Inc" },
+  });
+  const d = (r.deadlines as Json[])[0]!;
+  assert.equal(d.last_day, "2026-07-08");
+  assert.equal(d.counted_from, "2026-03-10");
+  assert.equal(d.counted_from_basis, "stated_by_person");
+  assert.equal(d.stated_by, "Dana Whitlock, Birchwood Analytics Inc");
+  // Without either, the deadline is not guessed.
+  const n = run(c);
+  assert.deepEqual(n.deadlines, []);
+  assert.match(checkOf(n, "deadlines").reason as string, /received/);
+  // A printed date still works and is marked as the statement's.
+  const p = (run(cleanCase()).deadlines as Json[])[0]!;
+  assert.equal(p.counted_from_basis, "statement_fact");
+});
+
+test("a fact with no id is refused in words that say so", () => {
+  const args = build(cleanCase());
+  delete (args.statement_facts as Json[])[0]!.id;
+  const o = runTool("audit_expense_statement", args);
+  assert.equal(o.ok, false);
+  const text = JSON.stringify(o);
+  assert.match(text, /has no id/);
+  assert.doesNotMatch(text, /duplicate fact id undefined/);
+});
