@@ -784,7 +784,11 @@ test("the hosted service attests the audit result; every tamper is refused", asy
 
 function printedCase(): Case {
   const c = cleanCase();
-  c.st["statement.admin_fee"] = { rate: 0.1, base_amount: 350000, amount: 35000 };
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 350000,
+    amount: 35000,
+  };
   c.st["statement.total"] = { amount: 885000 };
   return c;
 }
@@ -821,7 +825,11 @@ test("levels: a building-level fee difference is converted by the tenant's share
   // Fee charged on every line: base 850,000, fee 85,000, total 935,000. The lease's base is
   // 350,000. Building-level difference 10% x 500,000 = 50,000; the tenant's share is 4,000.
   const c = printedCase();
-  c.st["statement.admin_fee"] = { rate: 0.1, base_amount: 850000, amount: 85000 };
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 850000,
+    amount: 85000,
+  };
   c.st["statement.total"] = { amount: 935000 };
   c.st["statement.tenant_charge"] = { amount: 74583 };
   c.st["statement.balance_claimed"] = { amount: 8583 };
@@ -886,7 +894,7 @@ test("guard: a total difference above the tenant's whole charge is warned, never
     level: "tenant",
   };
   const r = run(c);
-  assert.ok((r.totals as Json).total_difference as number > 70583);
+  assert.ok(((r.totals as Json).total_difference as number) > 70583);
   assert.equal((r.totals as Json).exceeds_tenant_charge, true);
   assert.ok(
     warningsOf(r).some((w) => w.startsWith("TOTAL_EXCEEDS_TENANT_CHARGE")),
@@ -906,7 +914,10 @@ test("received date: accepted as its own input with who states it; the statement
   const c = cleanCase();
   c.st["statement.period"] = { year: 2025, statement_date: "2026-03-01" };
   const r = run(c, {
-    received: { date: "2026-03-10", stated_by: "Dana Whitlock, Birchwood Analytics Inc" },
+    received: {
+      date: "2026-03-10",
+      stated_by: "Dana Whitlock, Birchwood Analytics Inc",
+    },
   });
   const d = (r.deadlines as Json[])[0]!;
   assert.equal(d.last_day, "2026-07-08");

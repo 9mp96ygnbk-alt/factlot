@@ -379,5 +379,100 @@ class AuditTests(unittest.TestCase):
         self.assertTrue(factlot.audit_limited() is False)
 
 
+def printed_case():
+    """The statement as the landlord prints it: building-level fee (10% x 350,000 = 35,000) and a total
+    that includes it (850,000 + 35,000)."""
+    c = clean_case()
+    c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 350000, "amount": 35000}
+    c["st"]["statement.total"] = {"amount": 885000}
+    return c
+
+
+class Levels(unittest.TestCase):
+    def test_printed_statement_is_clean(self):
+        r = run(printed_case())
+        self.assertEqual(codes(r), [])
+        self.assertEqual(r["totals"]["total_difference"], 0)
+        self.assertEqual((r["levels"]["statement.admin_fee"], r["levels"]["statement.admin_fee.basis"]),
+                         ("building", "inferred"))
+        self.assertIs(r["levels"]["statement.total.includes_fee"], True)
+        self.assertTrue(any(w.startswith("FEE_LEVEL_INFERRED") for w in r["warnings"]))
+
+    def test_stated_level(self):
+        c = printed_case()
+        c["st"]["statement.admin_fee"]["level"] = "building"
+        c["st"]["statement.total"]["includes_fee"] = True
+        r = run(c)
+        self.assertEqual(codes(r), [])
+        self.assertEqual(r["levels"]["statement.admin_fee.basis"], "stated")
+        self.assertEqual(r["warnings"], [])
+
+    def test_building_fee_difference_is_converted(self):
+        c = printed_case()
+        c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 850000, "amount": 85000}
+        c["st"]["statement.total"] = {"amount": 935000}
+        c["st"]["statement.tenant_charge"] = {"amount": 74583}
+        c["st"]["statement.balance_claimed"] = {"amount": 8583}
+        r = run(c)
+        fee = find(r, "FEE_ON_EXCLUDED_LINES")
+        self.assertEqual((fee["difference"], fee["landlord_figure"], fee["lease_figure"]), (4000, 6800, 2800))
+        self.assertEqual(codes(r), ["FEE_ON_EXCLUDED_LINES"])
+        self.assertEqual(r["totals"]["total_difference"], 4000)
+        d = printed_case()
+        d["st"]["statement.admin_fee"] = {"rate": 0.12, "base_amount": 350000, "amount": 42000, "level": "building"}
+        d["st"]["statement.total"] = {"amount": 892000}
+        self.assertEqual(find(run(d), "FEE_RATE_ABOVE_CAP")["difference"], 560)
+        e = printed_case()
+        e["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 350000, "amount": 36000, "level": "building"}
+        e["st"]["statement.total"] = {"amount": 886000}
+        self.assertEqual(find(run(e), "ARITH_FEE")["difference"], 80)
+
+    def test_fee_inclusive_total(self):
+        self.assertIsNone(find(run(printed_case()), "ARITH_LINES_VS_TOTAL"))
+        c = printed_case()
+        c["st"]["statement.total"] = {"amount": 895000}
+        self.assertEqual(find(run(c), "ARITH_LINES_VS_TOTAL")["difference"], 800)
+        d = printed_case()
+        d["st"]["statement.total"] = {"amount": 885000, "includes_fee": False}
+        self.assertEqual(find(run(d), "ARITH_LINES_VS_TOTAL")["difference"], 2800)
+
+    def test_tenant_convention_unchanged(self):
+        r = run(flawed_case())
+        self.assertEqual(r["levels"]["statement.admin_fee"], "tenant")
+        self.assertEqual(find(r, "FEE_ON_EXCLUDED_LINES")["difference"], 4000)
+        self.assertEqual(r["warnings"], [])
+
+    def test_guard(self):
+        c = clean_case()
+        c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 850000, "amount": 85000, "level": "tenant"}
+        r = run(c)
+        self.assertGreater(r["totals"]["total_difference"], 70583)
+        self.assertIs(r["totals"]["exceeds_tenant_charge"], True)
+        self.assertTrue(any(w.startswith("TOTAL_EXCEEDS_TENANT_CHARGE") for w in r["warnings"]))
+        self.assertIs(run(clean_case())["totals"]["exceeds_tenant_charge"], False)
+        self.assertTrue(any(w.startswith("TOTAL_EXCEEDS_TENANT_CHARGE") for w in audit_summary(r)["summary"]["warnings"]))
+
+    def test_received_input(self):
+        c = clean_case()
+        c["st"]["statement.period"] = {"year": 2025, "statement_date": "2026-03-01"}
+        r = run(c, received={"date": "2026-03-10", "stated_by": "Dana Whitlock, Birchwood Analytics Inc"})
+        d = r["deadlines"][0]
+        self.assertEqual((d["last_day"], d["counted_from"], d["counted_from_basis"], d["stated_by"]),
+                         ("2026-07-08", "2026-03-10", "stated_by_person", "Dana Whitlock, Birchwood Analytics Inc"))
+        n = run(c)
+        self.assertEqual(n["deadlines"], [])
+        self.assertIn("received", check_of(n, "deadlines")["reason"])
+        self.assertEqual(run(clean_case())["deadlines"][0]["counted_from_basis"], "statement_fact")
+
+    def test_fact_without_id(self):
+        args = build(clean_case())
+        del args["statement_facts"][0]["id"]
+        r = run_tool("audit_expense_statement", args)
+        text = json.dumps(r)
+        self.assertIn("error", r)
+        self.assertIn("has no id", text)
+        self.assertNotIn("duplicate fact id undefined", text)
+
+
 if __name__ == "__main__":
     unittest.main()

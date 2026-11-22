@@ -687,7 +687,7 @@ def _audit_base(r):
 
 
 def _audit_mutate(r, c):
-    k = r.randrange(16)
+    k = r.randrange(21)
     if k == 0:
         c["st"]["statement.admin_fee"] = {"rate": r.choice([0.12, 0.2]), "base_amount": 28000, "amount": 3360}
     elif k == 1:
@@ -734,6 +734,33 @@ def _audit_mutate(r, c):
                                                "interest_rate": r.choice([0, 0.06])}
         c["lines"].append({"label": "Roof work", "amount": 9000, "controllable": False, "variable": False,
                            **({"amortization": {"cost": 50000, "years": 5, "rate": 0.06}} if r.random() < 0.5 else {})})
+    elif k == 16:
+        # the statement as printed: a building-level fee and a total that includes it, level stated or not
+        base = sum(l["amount"] for l in c["lines"] if l["label"] not in ("Real estate taxes", "Insurance"))
+        if r.random() < 0.4:
+            base = sum(l["amount"] for l in c["lines"])
+        rate = r.choice([0.1, 0.12])
+        fee = round(base * rate, 2) + r.choice([0, 0, 1000])
+        c["st"]["statement.admin_fee"] = {"rate": rate, "base_amount": base, "amount": fee,
+                                          **({"level": "building"} if r.random() < 0.5 else {})}
+        c["st"]["statement.total"] = {"amount": sum(l["amount"] for l in c["lines"]) + fee + r.choice([0, 0, 2500]),
+                                      **({"includes_fee": r.choice([True, False])} if r.random() < 0.4 else {})}
+    elif k == 17:
+        # a level stated against the figures: the guard must say so in both languages
+        c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": r.choice([850000, 350000, 31000]),
+                                          "amount": r.choice([85000, 35000, 3100]), "level": r.choice(["tenant", "building"])}
+    elif k == 18:
+        c["st"]["statement.total"] = {"amount": c["st"]["statement.total"]["amount"], "includes_fee": r.choice([True, False])}
+        if r.random() < 0.3:
+            c["st"].pop("statement.admin_fee", None)
+    elif k == 19:
+        # no printed receipt date: the receipt comes from the received input, or the deadline is not computed
+        c["st"]["statement.period"] = {"year": 2025, "statement_date": "2026-03-01"}
+        if r.random() < 0.7:
+            c["received"] = {"date": r.choice(["2026-03-10", "2026-03-25"]), "stated_by": "Dana Whitlock"}
+    elif k == 20:
+        c["received"] = {"date": r.choice(["2026-03-10", "2026-03-12"]), "stated_by": "Dana Whitlock"}
+        c["st"].pop("statement.tenant_charge", None)
     else:
         c["lease"]["lease.audit_right"] = {"window_days": 45, "starts_from": r.choice(["statement_date", "statement_receipt"]),
                                            "notice_form": "written notice",
@@ -762,6 +789,8 @@ def audit_case(r, in_portfolio=False):
         statement_facts.append(_audit_fact(n, "statement.separately_billed", sb, 3))
     args = {"lease_facts": lease_facts, "statement_facts": statement_facts,
             "as_of": r.choice(["2026-04-01", "2026-08-01", "2027-01-15"])}
+    if c.get("received"):
+        args["received"] = c["received"]
     if c.get("prior"):
         args["prior_statement_facts"] = [_audit_fact(n + 1, "statement.period", c["priorPeriod"], 2)] + \
             [_audit_fact(n + 2 + i, "statement.line", l, 2) for i, l in enumerate(c["prior"])]

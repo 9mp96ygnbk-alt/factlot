@@ -46,6 +46,7 @@ const ENTRY_KEYS = [
   "statement_facts",
   "prior_statement_facts",
   "yoy_threshold",
+  "received",
 ] as const;
 
 // The entries are checked one by one in the tool (a bad entry is reported for that location only), so
@@ -86,6 +87,12 @@ const Entry = z.looseObject({
     .optional()
     .describe(
       "Optional: this location's year-over-year threshold, a number above 0 and at most 10, as audit_expense_statement's yoy_threshold. Default: the call's yoy_threshold.",
+    ),
+  received: z
+    .unknown()
+    .optional()
+    .describe(
+      "Optional: the day the tenant received this location's statement and who states it, {date: YYYY-MM-DD, stated_by: full name}, as audit_expense_statement's received. For a statement that does not print its receipt date.",
     ),
 });
 
@@ -249,6 +256,26 @@ function prepareEntry(
       });
     else yoy = y;
   }
+  let received: { date: string; stated_by: string } | undefined;
+  if (e.received !== undefined && e.received !== null) {
+    const r = e.received as { date?: unknown; stated_by?: unknown };
+    const keys = isObj(e.received) ? Object.keys(e.received) : [];
+    if (
+      !isObj(e.received) ||
+      keys.some((k) => k !== "date" && k !== "stated_by") ||
+      typeof r.date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(r.date) ||
+      typeof r.stated_by !== "string" ||
+      r.stated_by.trim() === "" ||
+      r.stated_by.trim().length > 200
+    )
+      issues.push({
+        path: at("received"),
+        message:
+          "expected {date: YYYY-MM-DD, stated_by: the full name of the person stating it (at most 200 characters)}",
+      });
+    else received = { date: r.date, stated_by: r.stated_by.trim() };
+  }
   if (issues.length || !lease_facts || !statement_facts)
     return { ok: false, label, landlord, issues: issues.slice(0, 20) };
   return {
@@ -263,6 +290,7 @@ function prepareEntry(
         ...(prior ? { prior_statement_facts: prior } : {}),
         as_of: asOf,
         yoy_threshold: yoy,
+        ...(received ? { received } : {}),
       },
     },
   };
@@ -736,7 +764,21 @@ function portfolio(input: PortfolioInput): Json {
     );
   if (withoutDeadline.length)
     warnings.push(
-      `No deadline could be computed (the lease's audit right was not supplied) for: ${withoutDeadline.join(", ")}.`,
+      `No deadline could be computed (the lease's audit right, or the day the statement was received, was not supplied) for: ${withoutDeadline.join(", ")}.`,
+    );
+  const exceeding = locs
+    .filter((l) => (l.full.totals as Json).exceeds_tenant_charge === true)
+    .map((l) => l.label);
+  if (exceeding.length)
+    warnings.push(
+      `The differences add to more than the tenant's whole charge at: ${exceeding.join(", ")}. A difference cannot exceed what was billed, so these totals (and the portfolio totals that include them) are not reliable until a person has checked the level each amount was entered at; each location's own warnings say more (include_results).`,
+    );
+  const levelNotes = locs
+    .filter((l) => arr(l.full.warnings).length > 0)
+    .map((l) => l.label);
+  if (levelNotes.length)
+    warnings.push(
+      `The audit of these locations carries its own warnings (a level that was inferred, or a date that differs): ${levelNotes.join(", ")}. Read them with include_results before relying on the figures.`,
     );
 
   return {

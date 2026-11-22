@@ -17,6 +17,17 @@
  * check that cannot be made exact is left out and said so. python/src/factlot/audit.py is the same
  * code; spec/differential runs both on the same inputs.
  *
+ * Levels: every statement amount is read at one stated level, and the two are never mixed.
+ * Building level (the whole building, before the tenant's share): statement.line amount and
+ * grossed_up_amount, statement.total, statement.base_year_total, statement.base_year_applied
+ * stop_amount, lease.expense_stop. Tenant level (after the share): statement.cap_reference,
+ * statement.cap_applied, statement.base_year_applied deduction, statement.separately_billed,
+ * statement.tenant_charge, the estimates and the balance. statement.admin_fee states its own level
+ * (level: building when the fee is printed on the building's expenses, tenant when on the tenant's
+ * share); a building-level fee is converted by the tenant's share before any figure is compared or
+ * totalled. Every difference in a finding and in the totals is tenant level. See `levels` and
+ * `warnings` in the answer.
+ *
  * Hosted plan: on the hosted API a caller without a Pro or Team key (or with gating on and no paid
  * plan) gets the summary only (count, total difference, deadlines, checks not run); the Worker says
  * so through runWithExchangeCaller({ fullAudit: false }). Locally the answer is always whole.
@@ -40,7 +51,7 @@ export const AuditExpenseStatementInput = z.object({
     "The lease's verified facts (doc_abstract_lease's facts, or doc_verify_facts' verified[].fact), each with its quote and page. Read by predicate: lease.pro_rata_share (number; required: every finding rests on it), lease.pro_rata_basis {tenant_sf, building_sf}, lease.cam_cap {method, rate} or, when the lease says only 'cumulative' or 'non-cumulative' and not how, lease.cam_cap_rate {rate} (the audit then shows the figure under each of the three methods), lease.operating_expense_base_year (integer), lease.expense_stop {amount} (building-level USD per year), lease.cam_admin_fee {rate, base: actual|grossed_up, excluded_from_base: [category words]}, lease.cam_gross_up {target_occupancy, applies_to: variable_expenses|all_expenses, base_year_grossed_up?: boolean}, lease.cam_exclusion (one per excluded category: a string, or {category, keywords?: [words]}), lease.capex_treatment {keywords: [words], recoverable: excluded|amortized, amortization_years?, interest_rate?}, lease.audit_right {window_days, starts_from: statement_receipt|statement_date, notice_form, auditor?, cost_shift_threshold?: {type: percent_of_billed|amount, value}}. A check whose lease term is missing is listed in checks_not_run; nothing is guessed.",
   ),
   statement_facts: FactList(AUDIT_MAX_FACTS).describe(
-    "The landlord's statement as verified facts, each with its quote and page. Read by predicate: statement.period {year, statement_date, received_date}, statement.line {label, amount (building-level USD), controllable?, variable?, capital?, grossed_up_amount?, amortization?: {cost, years, rate}} (one per billed line), statement.total {amount}, statement.share_applied {share, building_sf?}, statement.gross_up {actual_occupancy, target_occupancy}, statement.admin_fee {rate, base_amount, amount}, statement.cap_reference {year, amount} (the tenant's controllable amount in the cap's reference year), statement.cap_applied {limit: number or null}, statement.base_year_applied {base_year?, stop_amount?, deduction, grossed_up?}, statement.base_year_total {year, amount}, statement.separately_billed {label, amount}, statement.tenant_charge {amount}, statement.estimates_credited {amount}, statement.estimates_paid {amount}, statement.balance_claimed {amount}.",
+    "The landlord's statement as verified facts, each with its quote and page. Read by predicate: Every amount has one level: building-level (the whole building, before the tenant's share) or tenant-level (after the share); enter each at the level named here. Read by predicate: statement.period {year, statement_date, received_date?} (received_date only when the statement itself prints or is stamped with it; otherwise use the received input), statement.line {label, amount (building-level), controllable?, variable?, capital?, grossed_up_amount? (building-level), amortization?: {cost, years, rate}} (one per billed line; not the management or admin fee, which is statement.admin_fee), statement.total {amount (building-level, as printed), includes_fee?: boolean (true when the printed total includes the management or admin fee, false when it is the lines only; left out, the audit works it out from the figures and says so in levels)}, statement.share_applied {share, building_sf?}, statement.gross_up {actual_occupancy, target_occupancy}, statement.admin_fee {rate, base_amount, amount, level?: building|tenant} (level building when base_amount and amount are printed on the building's expenses, as most statements print them; level tenant when they are on the tenant's share; left out, the audit takes the level whose lines the base matches, tenant when neither, and says which in levels and warnings), statement.cap_reference {year, amount (tenant-level: the tenant's controllable amount in the cap's reference year)}, statement.cap_applied {limit: tenant-level number, or null}, statement.base_year_applied {base_year?, stop_amount? (building-level), deduction (tenant-level), grossed_up?}, statement.base_year_total {year, amount (building-level)}, statement.separately_billed {label, amount (tenant-level)}, statement.tenant_charge {amount (tenant-level: the tenant's whole charge for the year)}, statement.estimates_credited {amount}, statement.estimates_paid {amount}, statement.balance_claimed {amount} (all tenant-level). Every difference the audit reports is tenant-level.",
   ),
   prior_statement_facts: FactList(AUDIT_MAX_FACTS)
     .optional()
@@ -52,6 +63,25 @@ export const AuditExpenseStatementInput = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .describe(
       "Today's date, YYYY-MM-DD. The tool reads no clock: deadlines are counted from this date.",
+    ),
+  received: z
+    .strictObject({
+      date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .describe("The day the tenant received the statement, YYYY-MM-DD."),
+      stated_by: z
+        .string()
+        .trim()
+        .min(1)
+        .max(200)
+        .describe(
+          "The full name (and firm) of the person who states that date. Printed with the deadline.",
+        ),
+    })
+    .optional()
+    .describe(
+      "Optional: the date the tenant received the statement, when the statement does not print it. A receipt date is a person's statement, not a fact verified against a document: the deadline counted from it says who stated it. When statement.period carries a printed received_date, that one is used and a different date here is warned.",
     ),
   yoy_threshold: z
     .number()
@@ -131,7 +161,7 @@ const STATEMENT_SHAPES: Record<string, z.ZodType> = {
   "statement.period": strict({
     year: z.number().int().min(1900).max(2200),
     statement_date: Date_,
-    received_date: Date_,
+    received_date: Date_.optional(),
   }),
   "statement.line": strict({
     label: z.string().min(1).max(300),
@@ -146,7 +176,10 @@ const STATEMENT_SHAPES: Record<string, z.ZodType> = {
       rate: N.min(0).max(1),
     }).optional(),
   }),
-  "statement.total": strict({ amount: Money }),
+  "statement.total": strict({
+    amount: Money,
+    includes_fee: z.boolean().optional(),
+  }),
   "statement.share_applied": strict({
     share: Ratio,
     building_sf: N.gt(0).optional(),
@@ -159,6 +192,7 @@ const STATEMENT_SHAPES: Record<string, z.ZodType> = {
     rate: N.min(0).max(1),
     base_amount: Money,
     amount: Money,
+    level: z.enum(["building", "tenant"]).optional(),
   }),
   "statement.cap_reference": strict({
     year: z.number().int().min(1900).max(2200),
@@ -232,7 +266,15 @@ function readFacts(
         });
       return;
     }
-    const id = String(f.id);
+    if (typeof f.id !== "string" || f.id.trim() === "") {
+      issues.push({
+        path: `${at}.id`,
+        message:
+          "this fact has no id: the audit names every fact by its id, so give each fact a unique id (doc_verify_facts and doc_abstract_lease return one)",
+      });
+      return;
+    }
+    const id = f.id;
     const predicate = String(f.predicate);
     const sources = (f.provenance as { sources?: unknown } | undefined)
       ?.sources;
@@ -509,6 +551,7 @@ export function audit(input: AuditInput): Json {
     f?.value as T | undefined;
 
   const findings: Finding[] = [];
+  const warnings: string[] = [];
   const counts = new Map<string, number>();
   const notRun: NotRun[] = [];
   const ran = new Map<string, number>();
@@ -585,7 +628,7 @@ export function audit(input: AuditInput): Json {
   const period = v<{
     year: number;
     statement_date: string;
-    received_date: string;
+    received_date?: string;
   }>(periodFact);
   const lines: Line[] = (S_.get("statement.line") ?? []).map((f) => {
     const x = f.value as {
@@ -715,10 +758,64 @@ export function audit(input: AuditInput): Json {
   }
 
   // ---- 1. management or admin fee -------------------------------------------------------------
+  // The statement's fee, read at its own level and carried at tenant level from here on: a
+  // building-level base and amount are multiplied by the tenant's share once, here, so no figure
+  // below mixes the two levels.
   const feeStatement = st("statement.admin_fee");
-  const feeS = v<{ rate: number; base_amount: number; amount: number }>(
-    feeStatement,
-  );
+  const feeRaw = v<{
+    rate: number;
+    base_amount: number;
+    amount: number;
+    level?: "building" | "tenant";
+  }>(feeStatement);
+  let feeLevel: "building" | "tenant" | null = null;
+  let feeLevelBasis: "stated" | "inferred" | "default" | null = null;
+  if (feeRaw) {
+    if (feeRaw.level !== undefined) {
+      feeLevel = feeRaw.level;
+      feeLevelBasis = "stated";
+    } else {
+      feeLevel = "tenant";
+      feeLevelBasis = "default";
+      if (S !== undefined && lines.length > 0) {
+        const cleanLines = lines.filter((l) => !feeExcluded(l));
+        const sums = [
+          sumActual(lines),
+          sumGross(lines),
+          sumActual(cleanLines),
+          sumGross(cleanLines),
+        ];
+        const dist = (xs: number[]) =>
+          Math.min(...xs.map((x) => Math.abs(feeRaw.base_amount - x)));
+        const dTenant = dist(sums.map((x) => S * x));
+        const dBuilding = dist(sums);
+        if (dBuilding < dTenant) {
+          feeLevel = "building";
+          feeLevelBasis = "inferred";
+          warnings.push(
+            `FEE_LEVEL_INFERRED: statement.admin_fee states no level. Its base (${money(feeRaw.base_amount)}) is ${dBuilding <= BASE_TOL ? "the sum of the building's lines" : "nearer the building's lines than the tenant's share of them"}, so the fee was read as building-level and converted by the tenant's share (${pct(S)}). Add level: "building" to the fact to state it, or level: "tenant" if the figures are the tenant's.`,
+          );
+        } else if (dTenant > BASE_TOL)
+          warnings.push(
+            `FEE_LEVEL_NOT_STATED: statement.admin_fee states no level and its base (${money(feeRaw.base_amount)}) matches no set of lines at either level; it was read as tenant-level. Add level: "building" if the statement prints the fee on the building's expenses, or level: "tenant" to confirm.`,
+          );
+      }
+    }
+  }
+  const feeK = feeLevel === "building" && S !== undefined ? S : 1;
+  const feeS = feeRaw
+    ? {
+        rate: feeRaw.rate,
+        base_amount: feeK * feeRaw.base_amount,
+        amount: feeK * feeRaw.amount,
+      }
+    : undefined;
+  const feeLevelSteps: string[] =
+    feeRaw && feeLevel === "building" && S !== undefined
+      ? [
+          `The statement's fee is building-level${feeLevelBasis === "inferred" ? " (inferred from its base)" : ""}: base ${money(feeRaw.base_amount)}, fee ${money(feeRaw.amount)}; the tenant's share ${pct(S)}: base ${money(feeS!.base_amount)}, fee ${money(feeS!.amount)}`,
+        ]
+      : [];
   if (needShare("management_fee")) {
     const m = missing([
       [feeFact, "lease.cam_admin_fee"],
@@ -741,7 +838,8 @@ export function audit(input: AuditInput): Json {
           leaseFacts: [feeFact!, ...anchor],
           statementFacts: [feeStatement!],
           steps: [
-            `Fee base on the statement: ${money(b)}`,
+            ...feeLevelSteps,
+            `Fee base on the statement${feeLevelSteps.length ? " (tenant's share)" : ""}: ${money(b)}`,
             `Landlord: ${pct(rs)} x ${money(b)} = ${money(b * rs)}`,
             `Lease: ${pct(rl)} x ${money(b)} = ${money(b * rl)}`,
           ],
@@ -780,7 +878,8 @@ export function audit(input: AuditInput): Json {
           statementFacts: [feeStatement!, ...ls],
           lines: ls,
           steps: [
-            `Fee base on the statement: ${money(b)}; the base the lease yields: ${money(ideal)}`,
+            ...feeLevelSteps,
+            `Fee base on the statement${feeLevelSteps.length ? " (tenant's share)" : ""}: ${money(b)}; the base the lease yields: ${money(ideal)}`,
             step,
             `Fee at the lease rate on the higher base: ${pct(rl)} x ${money(hi)} = ${money(rl * hi)}`,
             `Fee at the lease rate on the lower base: ${pct(rl)} x ${money(lo)} = ${money(rl * lo)}`,
@@ -1395,27 +1494,65 @@ export function audit(input: AuditInput): Json {
   }
 
   // ---- 9. arithmetic --------------------------------------------------------------------------
+  let totalIncludesFee: boolean | null = null;
+  let totalIncludesFeeBasis: "stated" | "inferred" | null = null;
   if (needShare("arithmetic")) {
     ran.set("arithmetic", ran.get("arithmetic") ?? 0);
     const share = S!;
     const totalFact = st("statement.total");
     if (totalFact) {
-      const t = (totalFact.value as { amount: number }).amount;
+      const tv = totalFact.value as { amount: number; includes_fee?: boolean };
+      const t = tv.amount;
       const sum = sumActual(lines);
-      if (Math.abs(t - sum) > TOL)
+      // The fee at building level, to compare with a printed total that includes it. A fee given
+      // at tenant level is rounded to the cent, so its building-level figure is known only to
+      // half a cent over the share.
+      const feeB =
+        feeRaw === undefined
+          ? undefined
+          : feeLevel === "building"
+            ? feeRaw.amount
+            : feeRaw.amount / share;
+      const feeTol = feeLevel === "building" ? TOL : TOL + 0.005 / share;
+      let includes = false;
+      if (tv.includes_fee !== undefined) {
+        totalIncludesFee = tv.includes_fee;
+        totalIncludesFeeBasis = "stated";
+        if (tv.includes_fee && feeB === undefined)
+          skip(
+            "arithmetic",
+            "statement.total says it includes the fee, but no statement.admin_fee fact was given: the lines were not compared with the total",
+            "partly_run",
+          );
+        includes = tv.includes_fee;
+      } else if (feeB !== undefined) {
+        includes = Math.abs(t - (sum + feeB)) < Math.abs(t - sum);
+        totalIncludesFee = includes;
+        totalIncludesFeeBasis = "inferred";
+      }
+      const expected = includes ? sum + (feeB ?? 0) : sum;
+      const tol = includes ? feeTol : TOL;
+      const what = includes ? "lines and the fee" : "lines";
+      if (!(includes && feeB === undefined) && Math.abs(t - expected) > tol)
         add("arithmetic", "ARITH_LINES_VS_TOTAL", {
-          title: `The lines add to ${money(sum)}; the statement's total is ${money(t)}`,
+          title: `The ${what} add to ${money(expected)}; the statement's total is ${money(t)}`,
           class: "follows_from_terms",
           landlord: usd(share * t),
-          lease: usd(share * sum),
-          difference: usd(Math.max(0, usd(share * t) - usd(share * sum))),
+          lease: usd(share * expected),
+          difference: usd(Math.max(0, usd(share * t) - usd(share * expected))),
           leaseFacts: anchor,
-          statementFacts: [totalFact, ...lines.map((l) => l.fact)],
+          statementFacts: [
+            totalFact,
+            ...(includes && feeStatement ? [feeStatement] : []),
+            ...lines.map((l) => l.fact),
+          ],
           steps: [
-            `Sum of the ${lines.length} lines: ${money(sum)}; stated total: ${money(t)}; gap ${money(t - sum)}`,
-            t > sum
-              ? `If the charge is computed from the total, the tenant's share of the gap is ${pct(share)} x ${money(t - sum)} = ${money(share * (t - sum))}`
-              : "The total is lower than the lines: no overcharge from this gap",
+            includes
+              ? `Sum of the ${lines.length} lines: ${money(sum)}; fee (building level): ${money(feeB!)}; together ${money(expected)}; stated total${totalIncludesFeeBasis === "inferred" ? " (read as including the fee)" : " (includes the fee)"}: ${money(t)}; gap ${money(t - expected)}`
+              : `Sum of the ${lines.length} lines: ${money(sum)}; stated total: ${money(t)}; gap ${money(t - sum)}`,
+            t > expected
+              ? `If the charge is computed from the total, the tenant's share of the gap is ${pct(share)} x ${money(t - expected)} = ${money(share * (t - expected))}`
+              : `The total is lower than the ${what}: no overcharge from this gap`,
           ],
           confirm: [
             "which figure the charge was computed from (the lines or the total)",
@@ -1477,6 +1614,7 @@ export function audit(input: AuditInput): Json {
           leaseFacts: [feeFact, ...anchor],
           statementFacts: [feeStatement!],
           steps: [
+            ...feeLevelSteps,
             `${pct(feeS.rate)} x ${money(feeS.base_amount)} = ${money(exp)}; billed ${money(feeS.amount)}`,
           ],
           confirm: ["whether other fees are included in the amount billed"],
@@ -1551,41 +1689,72 @@ export function audit(input: AuditInput): Json {
     ]);
     if (m.length) skip("deadlines", `needs ${m.join(" and ")}`);
     else {
-      ran.set("deadlines", 1);
-      const from =
-        right!.starts_from === "statement_receipt"
-          ? period!.received_date
-          : period!.statement_date;
-      const last = addDays(from, right!.window_days);
-      const left = daysBetween(input.as_of, last);
-      deadlines.push({
-        code: "AUDIT_WINDOW",
-        title: "Last day to exercise the audit right or dispute the statement",
-        last_day: last,
-        starts_from: right!.starts_from,
-        counted_from: from,
-        window_days: right!.window_days,
-        as_of: input.as_of,
-        status: left >= 0 ? "open" : "passed",
-        days_remaining: left,
-        notice_form: right!.notice_form,
-        ...(right!.auditor !== undefined
-          ? { auditor_requirement: right!.auditor }
-          : {}),
-        lease_fact_ids: [rightFact!.id],
-        statement_fact_ids: [periodFact!.id],
-        sources: [
-          sourceOf(rightFact!, "lease"),
-          sourceOf(periodFact!, "statement"),
-        ],
-        steps: [
-          `${right!.starts_from === "statement_receipt" ? "Received" : "Dated"} ${from}; ${right!.window_days} days later is ${last}; as of ${input.as_of}: ${left >= 0 ? `${left} days left` : `${-left} days past`}`,
-        ],
-        confirm: [
-          "how the lease counts days (calendar days, business days, a day of receipt) and what counts as notice",
-          CONFIRM_COMMON,
-        ],
-      });
+      const receipt = right!.starts_from === "statement_receipt";
+      const printed = period!.received_date;
+      const from = !receipt
+        ? period!.statement_date
+        : (printed ?? input.received?.date);
+      const basis: "statement_fact" | "stated_by_person" =
+        receipt && printed === undefined
+          ? "stated_by_person"
+          : "statement_fact";
+      if (
+        receipt &&
+        printed !== undefined &&
+        input.received &&
+        input.received.date !== printed
+      )
+        warnings.push(
+          `RECEIVED_DATE_DIFFERS: the statement prints ${printed} as received; ${input.received.stated_by} states ${input.received.date}. The deadline is counted from the statement's date; confirm which is right.`,
+        );
+      if (from === undefined)
+        skip(
+          "deadlines",
+          "the lease counts from receipt: needs the day the tenant received the statement, as the received input {date, stated_by} (or statement.period received_date when the statement itself prints it)",
+        );
+      else {
+        ran.set("deadlines", 1);
+        const last = addDays(from, right!.window_days);
+        const left = daysBetween(input.as_of, last);
+        const by =
+          basis === "stated_by_person" ? input.received!.stated_by : undefined;
+        deadlines.push({
+          code: "AUDIT_WINDOW",
+          title:
+            "Last day to exercise the audit right or dispute the statement",
+          last_day: last,
+          starts_from: right!.starts_from,
+          counted_from: from,
+          counted_from_basis: basis,
+          ...(by !== undefined ? { stated_by: by } : {}),
+          window_days: right!.window_days,
+          as_of: input.as_of,
+          status: left >= 0 ? "open" : "passed",
+          days_remaining: left,
+          notice_form: right!.notice_form,
+          ...(right!.auditor !== undefined
+            ? { auditor_requirement: right!.auditor }
+            : {}),
+          lease_fact_ids: [rightFact!.id],
+          statement_fact_ids: [periodFact!.id],
+          sources: [
+            sourceOf(rightFact!, "lease"),
+            sourceOf(periodFact!, "statement"),
+          ],
+          steps: [
+            `${receipt ? "Received" : "Dated"} ${from}${by !== undefined ? ` (stated by ${by}; the statement does not print it)` : ""}; ${right!.window_days} days later is ${last}; as of ${input.as_of}: ${left >= 0 ? `${left} days left` : `${-left} days past`}`,
+          ],
+          confirm: [
+            "how the lease counts days (calendar days, business days, a day of receipt) and what counts as notice",
+            ...(by !== undefined
+              ? [
+                  "the receipt date: it is a person's statement, not a fact verified against a document (keep the proof of receipt)",
+                ]
+              : []),
+            CONFIRM_COMMON,
+          ],
+        });
+      }
     }
   }
 
@@ -1596,10 +1765,30 @@ export function audit(input: AuditInput): Json {
   const readingSum = findings
     .filter((f) => f.class === "depends_on_reading" && f.difference !== null)
     .reduce((a, f) => a + f.difference!, 0);
+  // Guard: no difference can exceed what the tenant was billed. The bound is the statement's own
+  // tenant charge, or, without one, the tenant's share of the lines (grossed up) plus the fee.
+  const totalSum = usd(firmSum + readingSum);
+  const chargeStated = v<{ amount: number }>(
+    st("statement.tenant_charge"),
+  )?.amount;
+  const bound =
+    chargeStated ??
+    (S !== undefined && lines.length > 0
+      ? usd(S * sumGross(lines) + (feeS?.amount ?? 0))
+      : undefined);
+  const exceeds = bound !== undefined && totalSum > bound + TOL;
+  if (exceeds) {
+    const big = findings
+      .filter((f) => f.difference !== null && f.difference > bound + TOL)
+      .map((f) => f.id);
+    warnings.push(
+      `TOTAL_EXCEEDS_TENANT_CHARGE: the differences add to ${money(totalSum)}, more than the tenant's whole charge of ${money(bound)} (${chargeStated !== undefined ? "statement.tenant_charge" : "the tenant's share of the lines plus the fee; no statement.tenant_charge was given"}). A difference cannot exceed what was billed, so this total is not reliable${big.length ? ` (alone above the charge: ${big.join(", ")})` : ""}. Check that each amount is entered at the level its predicate states (statement.line, statement.total and statement.base_year_total are building-level; statement.admin_fee states its level; the others are tenant-level) and whether findings on the same lines overlap. Do not send or rely on the total until a person has confirmed it.`,
+    );
+  }
   let costShifting: Json | null = null;
   {
     const thr = right?.cost_shift_threshold;
-    const charge = v<{ amount: number }>(st("statement.tenant_charge"))?.amount;
+    const charge = chargeStated;
     if (!rightFact) skip("cost_shifting", "needs lease.audit_right");
     else if (!thr)
       skip(
@@ -1624,6 +1813,7 @@ export function audit(input: AuditInput): Json {
         difference_with_readings: usd(firmSum + readingSum),
         crosses_on_firm_findings: firmSum > amount,
         crosses_if_readings_hold: firmSum + readingSum > amount,
+        ...(exceeds ? { total_exceeds_tenant_charge: true } : {}),
         lease_fact_ids: [rightFact.id],
         sources: [
           sourceOf(rightFact, "lease"),
@@ -1729,6 +1919,25 @@ export function audit(input: AuditInput): Json {
       difference_with_readings: usd(firmSum + readingSum),
       total_difference: usd(firmSum + readingSum),
       unit: "USD",
+      level: "tenant",
+      tenant_charge_bound: bound ?? null,
+      exceeds_tenant_charge: bound === undefined ? null : exceeds,
+    },
+    warnings,
+    levels: {
+      "statement.line": "building",
+      "statement.total": "building",
+      "statement.total.includes_fee": totalIncludesFee,
+      "statement.total.includes_fee.basis": totalIncludesFeeBasis,
+      "statement.base_year_total": "building",
+      "statement.admin_fee": feeLevel,
+      "statement.admin_fee.basis": feeLevelBasis,
+      "statement.cap_reference": "tenant",
+      "statement.cap_applied": "tenant",
+      "statement.base_year_applied.deduction": "tenant",
+      "statement.separately_billed": "tenant",
+      "statement.tenant_charge": "tenant",
+      findings: "tenant",
     },
     deadlines,
     cost_shifting: costShifting,
@@ -1766,6 +1975,7 @@ export function auditSummary(full: Json): Json {
         notice_form: d.notice_form,
       })),
       checks_not_run: full.checks_not_run,
+      warnings: full.warnings ?? [],
     },
     audit_available: "pro",
     audit_withheld: [

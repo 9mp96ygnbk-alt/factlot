@@ -11,6 +11,7 @@ hosted service's per-location attestation is added by the hosted API only.
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Any
 
 from . import audit as _audit_mod
@@ -23,7 +24,7 @@ PORTFOLIO_MAX_AUDITS = 50
 PORTFOLIO_PLAN_URL = "https://factlot.com/pricing/"
 _LABEL_MAX = 120
 _LANDLORD_MAX = 200
-_ENTRY_KEYS = ["label", "landlord", "lease_facts", "statement_facts", "prior_statement_facts", "yoy_threshold"]
+_ENTRY_KEYS = ["label", "landlord", "lease_facts", "statement_facts", "prior_statement_facts", "yoy_threshold", "received"]
 _CLASSES = ["follows_from_terms", "depends_on_reading", "question_to_ask"]
 _CLASS_LABEL = {
     "follows_from_terms": "Follows from the lease's terms",
@@ -116,6 +117,17 @@ def _prepare_entry(entry: Any, index: int, as_of: str, default_yoy: float, seen:
             issues.append({"path": at("yoy_threshold"), "message": "expected a number above 0 and at most 10"})
         else:
             yoy = y
+    received = None
+    rc = e.get("received")
+    if rc is not None:
+        if (not isinstance(rc, dict) or any(k not in ("date", "stated_by") for k in rc)
+                or not isinstance(rc.get("date"), str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", rc["date"])
+                or not isinstance(rc.get("stated_by"), str) or rc["stated_by"].strip() == ""
+                or len(rc["stated_by"].strip()) > 200):
+            issues.append({"path": at("received"),
+                           "message": "expected {date: YYYY-MM-DD, stated_by: the full name of the person stating it (at most 200 characters)}"})
+        else:
+            received = {"date": rc["date"], "stated_by": rc["stated_by"].strip()}
     if issues or lease_facts is None or statement_facts is None:
         return {"ok": False, "label": label, "landlord": landlord, "issues": issues[:20]}
     audit_input: dict[str, Any] = {"lease_facts": lease_facts, "statement_facts": statement_facts}
@@ -123,6 +135,8 @@ def _prepare_entry(entry: Any, index: int, as_of: str, default_yoy: float, seen:
         audit_input["prior_statement_facts"] = prior
     audit_input["as_of"] = as_of
     audit_input["yoy_threshold"] = yoy
+    if received is not None:
+        audit_input["received"] = received
     return {"ok": True, "index": index, "label": label, "landlord": landlord, "audit_input": audit_input}
 
 
@@ -386,8 +400,14 @@ def _portfolio(inp: dict[str, Any]) -> dict[str, Any]:
         warnings.append(f"The last day to dispute or audit has passed as of {as_of} for: {', '.join(passed)}. Confirm with "
                         "the lease how the day is counted and whether a late dispute is still open.")
     if without_deadline:
-        warnings.append("No deadline could be computed (the lease's audit right was not supplied) for: "
+        warnings.append("No deadline could be computed (the lease's audit right, or the day the statement was received, was not supplied) for: "
                         f"{', '.join(without_deadline)}.")
+    exceeding = [l["label"] for l in locs if l["full"]["totals"].get("exceeds_tenant_charge") is True]
+    if exceeding:
+        warnings.append(f"The differences add to more than the tenant's whole charge at: {', '.join(exceeding)}. A difference cannot exceed what was billed, so these totals (and the portfolio totals that include them) are not reliable until a person has checked the level each amount was entered at; each location's own warnings say more (include_results).")
+    level_notes = [l["label"] for l in locs if len(l["full"].get("warnings") or []) > 0]
+    if level_notes:
+        warnings.append(f"The audit of these locations carries its own warnings (a level that was inferred, or a date that differs): {', '.join(level_notes)}. Read them with include_results before relying on the figures.")
 
     return {
         "as_of": as_of,

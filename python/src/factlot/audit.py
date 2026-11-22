@@ -171,15 +171,16 @@ _LEASE_SHAPES: dict[str, Callable[[Any], Any]] = {
 _LEASE_MULTI = {"lease.cam_exclusion"}
 
 _STATEMENT_SHAPES: dict[str, Callable[[Any], Any]] = {
-    "statement.period": _strict({"year": _YEAR, "statement_date": _date, "received_date": _date}),
+    "statement.period": _strict({"year": _YEAR, "statement_date": _date, "received_date": _opt(_date)}),
     "statement.line": _strict({
         "label": _str(1, 300), "amount": _MONEY, "controllable": _opt(_bool), "variable": _opt(_bool),
         "capital": _opt(_bool), "grossed_up_amount": _opt(_MONEY),
         "amortization": _opt(_strict({"cost": _num(gt=0), "years": _int(1, 100), "rate": _num(lo=0, hi=1)}))}),
-    "statement.total": _strict({"amount": _MONEY}),
+    "statement.total": _strict({"amount": _MONEY, "includes_fee": _opt(_bool)}),
     "statement.share_applied": _strict({"share": _RATIO, "building_sf": _opt(_num(gt=0))}),
     "statement.gross_up": _strict({"actual_occupancy": _RATIO, "target_occupancy": _RATIO}),
-    "statement.admin_fee": _strict({"rate": _num(lo=0, hi=1), "base_amount": _MONEY, "amount": _MONEY}),
+    "statement.admin_fee": _strict({"rate": _num(lo=0, hi=1), "base_amount": _MONEY, "amount": _MONEY,
+                                    "level": _opt(_enum("building", "tenant"))}),
     "statement.cap_reference": _strict({"year": _YEAR, "amount": _MONEY}),
     "statement.cap_applied": _strict({"limit": _nullable(_MONEY)}),
     "statement.base_year_applied": _strict({"base_year": _opt(_YEAR), "stop_amount": _opt(_MONEY), "deduction": _MONEY,
@@ -232,7 +233,11 @@ def _read_facts(items: list[Any], path: str, side: str, shapes: dict[str, Callab
                 issues.append({"path": f"{at}{'.' + x['path'] if x['path'] else ''}",
                                "message": f"not a valid fact (fact_validate): {x['message']}"})
             continue
-        id_ = str(f["id"])
+        if not isinstance(f.get("id"), str) or f["id"].strip() == "":
+            issues.append({"path": f"{at}.id",
+                           "message": "this fact has no id: the audit names every fact by its id, so give each fact a unique id (doc_verify_facts and doc_abstract_lease return one)"})
+            continue
+        id_ = f["id"]
         predicate = str(f["predicate"])
         sources = (f.get("provenance") or {}).get("sources")
         src = sources[0] if isinstance(sources, list) and sources else None
@@ -385,6 +390,8 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
         raise DocInputError(issues[:20])
     as_of = inp["as_of"]
     yoy = inp.get("yoy_threshold", 0.1)
+    received = inp.get("received")
+    warnings: list[str] = []
 
     def lease(p: str) -> _Fact | None:
         a = L.get(p)
@@ -517,8 +524,38 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
             ran["pro_rata_share"] = ran.get("pro_rata_share", 0)
 
     # 1. management or admin fee
+    # The statement's fee, read at its own level and carried at tenant level from here on: a
+    # building-level base and amount are multiplied by the tenant's share once, here.
     fee_statement = st("statement.admin_fee")
-    fee_s = val(fee_statement)
+    fee_raw = val(fee_statement)
+    fee_level: str | None = None
+    fee_level_basis: str | None = None
+    if fee_raw:
+        if fee_raw.get("level") is not None:
+            fee_level, fee_level_basis = fee_raw["level"], "stated"
+        else:
+            fee_level, fee_level_basis = "tenant", "default"
+            if S is not None and len(lines) > 0:
+                clean_lines = [l for l in lines if not fee_excluded(l)]
+                sums = [sum_actual(lines), sum_gross(lines), sum_actual(clean_lines), sum_gross(clean_lines)]
+                d_tenant = min(abs(fee_raw["base_amount"] - S * x) for x in sums)
+                d_building = min(abs(fee_raw["base_amount"] - x) for x in sums)
+                if d_building < d_tenant:
+                    fee_level, fee_level_basis = "building", "inferred"
+                    why = ("the sum of the building's lines" if d_building <= BASE_TOL
+                           else "nearer the building's lines than the tenant's share of them")
+                    warnings.append(
+                        f"FEE_LEVEL_INFERRED: statement.admin_fee states no level. Its base ({_money(fee_raw['base_amount'])}) is {why}, so the fee was read as building-level and converted by the tenant's share ({_pct(S)}). Add level: \"building\" to the fact to state it, or level: \"tenant\" if the figures are the tenant's.")
+                elif d_tenant > BASE_TOL:
+                    warnings.append(
+                        f"FEE_LEVEL_NOT_STATED: statement.admin_fee states no level and its base ({_money(fee_raw['base_amount'])}) matches no set of lines at either level; it was read as tenant-level. Add level: \"building\" if the statement prints the fee on the building's expenses, or level: \"tenant\" to confirm.")
+    fee_k = S if fee_level == "building" and S is not None else 1
+    fee_s = ({"rate": fee_raw["rate"], "base_amount": fee_k * fee_raw["base_amount"], "amount": fee_k * fee_raw["amount"]}
+             if fee_raw else None)
+    fee_level_steps: list[str] = (
+        [f"The statement's fee is building-level{' (inferred from its base)' if fee_level_basis == 'inferred' else ''}: base {_money(fee_raw['base_amount'])}, fee {_money(fee_raw['amount'])}; the tenant's share {_pct(S)}: base {_money(fee_s['base_amount'])}, fee {_money(fee_s['amount'])}"]
+        if fee_raw and fee_level == "building" and S is not None else [])
+    ts_label = " (tenant's share)" if fee_level_steps else ""
     if need_share("management_fee"):
         m = missing([(fee_fact, "lease.cam_admin_fee"), (fee_statement, "statement.admin_fee")])
         if m:
@@ -531,7 +568,7 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
                     title=f"Fee rate billed is {_pct(rs)}; the lease allows {_pct(rl)}", cls="follows_from_terms",
                     landlord=_usd(b * rs), lease_=_usd(b * rl), difference=_usd(b * rs - b * rl),
                     lease_facts=[fee_fact, *anchor], statement_facts=[fee_statement],
-                    steps=[f"Fee base on the statement: {_money(b)}",
+                    steps=[*fee_level_steps, f"Fee base on the statement{ts_label}: {_money(b)}",
                            f"Landlord: {_pct(rs)} x {_money(b)} = {_money(b * rs)}",
                            f"Lease: {_pct(rl)} x {_money(b)} = {_money(b * rl)}"],
                     confirm=["that the lease's rate is the maximum, and not a rate for one category of cost"])
@@ -553,7 +590,8 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
                 add("management_fee", code, title=title, cls=cls, landlord=_usd(rl * hi), lease_=_usd(rl * lo),
                     difference=diff, lease_facts=[fee_fact, *anchor], statement_facts=[fee_statement, *ls],
                     lines=ls,
-                    steps=[f"Fee base on the statement: {_money(b)}; the base the lease yields: {_money(ideal)}", step,
+                    steps=[*fee_level_steps,
+                           f"Fee base on the statement{ts_label}: {_money(b)}; the base the lease yields: {_money(ideal)}", step,
                            f"Fee at the lease rate on the higher base: {_pct(rl)} x {_money(hi)} = {_money(rl * hi)}",
                            f"Fee at the lease rate on the lower base: {_pct(rl)} x {_money(lo)} = {_money(rl * lo)}",
                            f"Difference: {_money(rl * hi)} less {_money(rl * lo)} = {_money(diff)}"],
@@ -886,22 +924,45 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
                             confirm=["whether the base year's total was adjusted (grossed up, or restated for the lease's definitions)"])
 
     # 9. arithmetic
+    total_includes_fee: bool | None = None
+    total_includes_fee_basis: str | None = None
     if need_share("arithmetic"):
         ran["arithmetic"] = ran.get("arithmetic", 0)
         share = S
         total_fact = st("statement.total")
         if total_fact:
-            t = total_fact.value["amount"]
+            tv = total_fact.value
+            t = tv["amount"]
             total_sum = sum_actual(lines)
-            if abs(t - total_sum) > TOL:
+            # The fee at building level, to compare with a printed total that includes it. A fee given at
+            # tenant level is rounded to the cent, so its building-level figure is known to half a cent over the share.
+            fee_b = None if fee_raw is None else fee_raw["amount"] if fee_level == "building" else fee_raw["amount"] / share
+            fee_tol = TOL if fee_level == "building" else TOL + 0.005 / share
+            includes = False
+            if tv.get("includes_fee") is not None:
+                total_includes_fee, total_includes_fee_basis = tv["includes_fee"], "stated"
+                if tv["includes_fee"] and fee_b is None:
+                    skip("arithmetic", "statement.total says it includes the fee, but no statement.admin_fee fact was given: the lines were not compared with the total", "partly_run")
+                includes = tv["includes_fee"]
+            elif fee_b is not None:
+                includes = abs(t - (total_sum + fee_b)) < abs(t - total_sum)
+                total_includes_fee, total_includes_fee_basis = includes, "inferred"
+            expected = total_sum + (fee_b or 0) if includes else total_sum
+            tol = fee_tol if includes else TOL
+            what = "lines and the fee" if includes else "lines"
+            if not (includes and fee_b is None) and abs(t - expected) > tol:
+                read_as = " (read as including the fee)" if total_includes_fee_basis == "inferred" else " (includes the fee)"
                 add("arithmetic", "ARITH_LINES_VS_TOTAL",
-                    title=f"The lines add to {_money(total_sum)}; the statement's total is {_money(t)}",
-                    cls="follows_from_terms", landlord=_usd(share * t), lease_=_usd(share * total_sum),
-                    difference=_usd(max(0, _usd(share * t) - _usd(share * total_sum))), lease_facts=anchor,
-                    statement_facts=[total_fact, *(l.fact for l in lines)],
-                    steps=[f"Sum of the {len(lines)} lines: {_money(total_sum)}; stated total: {_money(t)}; gap {_money(t - total_sum)}",
-                           f"If the charge is computed from the total, the tenant's share of the gap is {_pct(share)} x {_money(t - total_sum)} = {_money(share * (t - total_sum))}"
-                           if t > total_sum else "The total is lower than the lines: no overcharge from this gap"],
+                    title=f"The {what} add to {_money(expected)}; the statement's total is {_money(t)}",
+                    cls="follows_from_terms", landlord=_usd(share * t), lease_=_usd(share * expected),
+                    difference=_usd(max(0, _usd(share * t) - _usd(share * expected))), lease_facts=anchor,
+                    statement_facts=[total_fact, *([fee_statement] if includes and fee_statement else []),
+                                     *(l.fact for l in lines)],
+                    steps=[(f"Sum of the {len(lines)} lines: {_money(total_sum)}; fee (building level): {_money(fee_b)}; together {_money(expected)}; stated total{read_as}: {_money(t)}; gap {_money(t - expected)}"
+                            if includes else
+                            f"Sum of the {len(lines)} lines: {_money(total_sum)}; stated total: {_money(t)}; gap {_money(t - total_sum)}"),
+                           f"If the charge is computed from the total, the tenant's share of the gap is {_pct(share)} x {_money(t - expected)} = {_money(share * (t - expected))}"
+                           if t > expected else f"The total is lower than the {what}: no overcharge from this gap"],
                     confirm=["which figure the charge was computed from (the lines or the total)"])
         credited = st("statement.estimates_credited")
         paid = st("statement.estimates_paid")
@@ -935,7 +996,8 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
                     cls="follows_from_terms", landlord=_usd(fee_s["amount"]), lease_=_usd(exp),
                     difference=_usd(fee_s["amount"] - exp), lease_facts=[fee_fact, *anchor],
                     statement_facts=[fee_statement],
-                    steps=[f"{_pct(fee_s['rate'])} x {_money(fee_s['base_amount'])} = {_money(exp)}; billed {_money(fee_s['amount'])}"],
+                    steps=[*fee_level_steps,
+                           f"{_pct(fee_s['rate'])} x {_money(fee_s['base_amount'])} = {_money(exp)}; billed {_money(fee_s['amount'])}"],
                     confirm=["whether other fees are included in the amount billed"])
 
     # 10. year over year
@@ -981,21 +1043,36 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
     if m:
         skip("deadlines", f"needs {' and '.join(m)}")
     else:
-        ran["deadlines"] = 1
-        frm = period["received_date"] if right["starts_from"] == "statement_receipt" else period["statement_date"]
-        last = add_days(frm, right["window_days"])
-        left = days_between(as_of, last)
-        deadlines.append({
-            "code": "AUDIT_WINDOW", "title": "Last day to exercise the audit right or dispute the statement",
-            "last_day": last, "starts_from": right["starts_from"], "counted_from": frm, "window_days": right["window_days"],
-            "as_of": as_of, "status": "open" if left >= 0 else "passed", "days_remaining": left,
-            "notice_form": right["notice_form"],
-            **({"auditor_requirement": right["auditor"]} if right.get("auditor") is not None else {}),
-            "lease_fact_ids": [right_fact.id], "statement_fact_ids": [period_fact.id],
-            "sources": [source_of(right_fact, "lease"), source_of(period_fact, "statement")],
-            "steps": [f"{'Received' if right['starts_from'] == 'statement_receipt' else 'Dated'} {frm}; {right['window_days']} days later is {last}; as of {as_of}: {f'{left} days left' if left >= 0 else f'{-left} days past'}"],
-            "confirm": ["how the lease counts days (calendar days, business days, a day of receipt) and what counts as notice", _CONFIRM_COMMON],
-        })
+        receipt = right["starts_from"] == "statement_receipt"
+        printed = period.get("received_date")
+        frm = period["statement_date"] if not receipt else printed if printed is not None else (received or {}).get("date")
+        basis = "stated_by_person" if receipt and printed is None else "statement_fact"
+        if receipt and printed is not None and received and received["date"] != printed:
+            warnings.append(
+                f"RECEIVED_DATE_DIFFERS: the statement prints {printed} as received; {received['stated_by']} states {received['date']}. The deadline is counted from the statement's date; confirm which is right.")
+        if frm is None:
+            skip("deadlines", "the lease counts from receipt: needs the day the tenant received the statement, as the received input {date, stated_by} (or statement.period received_date when the statement itself prints it)")
+        else:
+            ran["deadlines"] = 1
+            last = add_days(frm, right["window_days"])
+            left = days_between(as_of, last)
+            by = received["stated_by"] if basis == "stated_by_person" else None
+            by_step = f" (stated by {by}; the statement does not print it)" if by is not None else ""
+            deadlines.append({
+                "code": "AUDIT_WINDOW", "title": "Last day to exercise the audit right or dispute the statement",
+                "last_day": last, "starts_from": right["starts_from"], "counted_from": frm, "counted_from_basis": basis,
+                **({"stated_by": by} if by is not None else {}),
+                "window_days": right["window_days"],
+                "as_of": as_of, "status": "open" if left >= 0 else "passed", "days_remaining": left,
+                "notice_form": right["notice_form"],
+                **({"auditor_requirement": right["auditor"]} if right.get("auditor") is not None else {}),
+                "lease_fact_ids": [right_fact.id], "statement_fact_ids": [period_fact.id],
+                "sources": [source_of(right_fact, "lease"), source_of(period_fact, "statement")],
+                "steps": [f"{'Received' if receipt else 'Dated'} {frm}{by_step}; {right['window_days']} days later is {last}; as of {as_of}: {f'{left} days left' if left >= 0 else f'{-left} days past'}"],
+                "confirm": ["how the lease counts days (calendar days, business days, a day of receipt) and what counts as notice",
+                            *(["the receipt date: it is a person's statement, not a fact verified against a document (keep the proof of receipt)"] if by is not None else []),
+                            _CONFIRM_COMMON],
+            })
 
     # totals, then 12. cost-shifting
     firm_sum: float = 0
@@ -1006,10 +1083,23 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
     for f in findings:
         if f["class"] == "depends_on_reading" and f["difference"] is not None:
             reading_sum += f["difference"]
-    cost_shifting = None
-    thr = right.get("cost_shift_threshold") if right else None
+    # Guard: no difference can exceed what the tenant was billed. The bound is the statement's own tenant
+    # charge, or, without one, the tenant's share of the lines (grossed up) plus the fee.
     charge_fact = st("statement.tenant_charge")
     charge = charge_fact.value["amount"] if charge_fact else None
+    total_sum_all = _usd(firm_sum + reading_sum)
+    bound = charge if charge is not None else (
+        _usd(S * sum_gross(lines) + (fee_s["amount"] if fee_s else 0)) if S is not None and len(lines) > 0 else None)
+    exceeds = bound is not None and total_sum_all > bound + TOL
+    if exceeds:
+        big = [f["id"] for f in findings if f["difference"] is not None and f["difference"] > bound + TOL]
+        bound_basis = ("statement.tenant_charge" if charge is not None
+                       else "the tenant's share of the lines plus the fee; no statement.tenant_charge was given")
+        alone = f" (alone above the charge: {', '.join(big)})" if big else ""
+        warnings.append(
+            f"TOTAL_EXCEEDS_TENANT_CHARGE: the differences add to {_money(total_sum_all)}, more than the tenant's whole charge of {_money(bound)} ({bound_basis}). A difference cannot exceed what was billed, so this total is not reliable{alone}. Check that each amount is entered at the level its predicate states (statement.line, statement.total and statement.base_year_total are building-level; statement.admin_fee states its level; the others are tenant-level) and whether findings on the same lines overlap. Do not send or rely on the total until a person has confirmed it.")
+    cost_shifting = None
+    thr = right.get("cost_shift_threshold") if right else None
     if right_fact is None:
         skip("cost_shifting", "needs lease.audit_right")
     elif not thr:
@@ -1024,6 +1114,7 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
             "threshold_amount": _usd(amount), "firm_difference": _usd(firm_sum),
             "difference_with_readings": _usd(firm_sum + reading_sum),
             "crosses_on_firm_findings": firm_sum > amount, "crosses_if_readings_hold": firm_sum + reading_sum > amount,
+            **({"total_exceeds_tenant_charge": True} if exceeds else {}),
             "lease_fact_ids": [right_fact.id],
             "sources": [source_of(right_fact, "lease"), *([source_of(charge_fact, "statement")] if charge is not None else [])],
             "steps": [f"Threshold: {_money(thr['value'])}" if thr["type"] == "amount"
@@ -1076,7 +1167,24 @@ def _audit(inp: dict[str, Any]) -> dict[str, Any]:
         "totals": {"finding_count": len(findings), "follows_from_terms": firm_count, "depends_on_reading": reading_count,
                    "question_to_ask": question_count, "firm_difference": _usd(firm_sum),
                    "difference_with_readings": _usd(firm_sum + reading_sum),
-                   "total_difference": _usd(firm_sum + reading_sum), "unit": "USD"},
+                   "total_difference": _usd(firm_sum + reading_sum), "unit": "USD", "level": "tenant",
+                   "tenant_charge_bound": bound, "exceeds_tenant_charge": None if bound is None else exceeds},
+        "warnings": warnings,
+        "levels": {
+            "statement.line": "building",
+            "statement.total": "building",
+            "statement.total.includes_fee": total_includes_fee,
+            "statement.total.includes_fee.basis": total_includes_fee_basis,
+            "statement.base_year_total": "building",
+            "statement.admin_fee": fee_level,
+            "statement.admin_fee.basis": fee_level_basis,
+            "statement.cap_reference": "tenant",
+            "statement.cap_applied": "tenant",
+            "statement.base_year_applied.deduction": "tenant",
+            "statement.separately_billed": "tenant",
+            "statement.tenant_charge": "tenant",
+            "findings": "tenant",
+        },
         "deadlines": deadlines,
         "cost_shifting": cost_shifting,
         "checks": checks,
@@ -1103,6 +1211,7 @@ def audit_summary(full: dict[str, Any]) -> dict[str, Any]:
                            "days_remaining": d["days_remaining"], "notice_form": d["notice_form"]}
                           for d in full["deadlines"]],
             "checks_not_run": full["checks_not_run"],
+            "warnings": full.get("warnings", []),
         },
         "audit_available": "pro",
         "audit_withheld": [
