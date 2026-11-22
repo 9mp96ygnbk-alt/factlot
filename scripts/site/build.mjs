@@ -1551,6 +1551,7 @@ fs.writeFileSync(
     buildCoverageCatalog({
       hosted: hostedJson,
       fields: fieldsJson,
+      stores: readJson("site/_data/coverage-stores.json"),
       configs: loadSourceConfigs(root),
       toolNames: tools.map((t) => t.name),
       version: VERSION,

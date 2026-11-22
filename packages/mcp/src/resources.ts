@@ -170,7 +170,22 @@ export interface ResourceData {
   sources: SourceEntry[];
   id_spec: string;
   plans: PlanFacts;
+  /** The stores of the one coverage manifest (site/_data/coverage-stores.json): each with its figures and date. */
+  coverage_stores?: CoverageStoreEntry[];
 }
+
+export interface CoverageStoreEntry {
+  id: string;
+  name: string;
+  describes: string;
+  parcels: number;
+  counties: number;
+  states: number;
+  computed_at: string;
+  computed_from: string;
+}
+
+export const COVERAGE_MANIFEST_URL = "https://factlot.com/coverage.json";
 
 // --- Where this server stands --------------------------------------------------------------------
 
@@ -297,6 +312,12 @@ export function coverageResource(data: ResourceData, ctx: ResourceContext) {
     uri: "factlot://coverage",
     ...coverageStanding(data, ctx),
     pack_built_at: h.pack_built_at,
+    // Which store these figures describe, and the other store's own figures and date, so the two
+    // are never read as one number (the one coverage manifest).
+    store: "hosted_registry",
+    ...(data.coverage_stores
+      ? { stores: data.coverage_stores, manifest: COVERAGE_MANIFEST_URL }
+      : {}),
     summary: h.text
       ? `Hosted registry: ${h.text.places}; ${h.text.totals}. ${h.text.withheld}`.trim()
       : undefined,

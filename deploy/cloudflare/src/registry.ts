@@ -13,6 +13,7 @@
  * service one by one, each first checked as runTool checks it, at most BATCH_CONCURRENCY items
  * at a time. The registry Worker needs no route of its own for it.
  */
+import { COVERAGE_MANIFEST_URL, COVERAGE_STORES } from "./coverage_stores.ts";
 import {
   TX_EQUITY_NOTICE,
   TX_EQUITY_RULE,
@@ -170,6 +171,38 @@ export function withholdFacts<T>(value: T): T {
   return value;
 }
 
+/**
+ * registry_coverage names the store it describes and when that store was built, so its figures are
+ * never read as another store's (the FactLot record holds more, and these tools do not answer from
+ * it). Additive: every existing field is unchanged. The stores come from the one coverage manifest.
+ */
+export function withCoverageStore<T extends ToolOutcome>(
+  name: string,
+  outcome: T,
+): T {
+  if (name !== "registry_coverage" || !outcome.ok) return outcome;
+  const r = outcome.result;
+  if (typeof r !== "object" || r === null || Array.isArray(r)) return outcome;
+  const hosted = COVERAGE_STORES.find((s) => s.id === "hosted_registry");
+  const record = COVERAGE_STORES.find((s) => s.id === "record");
+  if (!hosted) return outcome;
+  return {
+    ...outcome,
+    result: {
+      ...(r as Record<string, unknown>),
+      store: {
+        id: hosted.id,
+        name: hosted.name,
+        computed_at: hosted.computed_at,
+        authoritative_for:
+          "what the registry_* tools on this service can answer: rely on these figures for a tool call",
+        note: `These figures describe the hosted registry, built ${hosted.computed_at}, which the registry_* tools answer from.${record ? ` The FactLot record is a separate store these tools do not answer from yet; it held ${record.parcels.toLocaleString("en-US")} parcels in ${record.counties} counties when read ${record.computed_at}.` : ""} Every store's figures and dates: ${COVERAGE_MANIFEST_URL}`,
+        manifest: COVERAGE_MANIFEST_URL,
+      },
+    },
+  };
+}
+
 export function registryRunner(service: Fetcher): RegistryRunner {
   const one: Run = async (name, input) => {
     const response = await service.fetch(
@@ -184,7 +217,9 @@ export function registryRunner(service: Fetcher): RegistryRunner {
     const outcome = (await response.json()) as ToolOutcome;
     if (typeof outcome !== "object" || outcome === null || !("ok" in outcome))
       throw new Error("registry service answered without an outcome");
-    return outcome.ok ? withholdFacts(outcome) : outcome;
+    return outcome.ok
+      ? withCoverageStore(name, withholdFacts(outcome))
+      : outcome;
   };
   // A registry Worker older than the narrowing parameters ignores them: its list would look narrowed and is not.
   const guarded: Run = async (name, input) => {

@@ -137,6 +137,7 @@ export function buildCoverageCatalog({
   toolNames,
   version,
   idExampleUrn,
+  stores,
 }) {
   const known = new Set(toolNames);
   const countyByFips = new Map(hosted.counties.map((c) => [c.fips, c]));
@@ -256,6 +257,17 @@ export function buildCoverageCatalog({
       "spec/schemas/tools.json",
     ],
     pack_built_at: hosted.pack_built_at,
+    // The one coverage manifest: every store FactLot publishes figures for, each with its figures and
+    // the time they were computed (site/_data/coverage-stores.json, scripts/site/gen-coverage.ts). The
+    // places below describe the hosted_registry store only.
+    ...(stores
+      ? {
+          store: "hosted_registry",
+          stores: stores.stores,
+          stores_answer_first: stores.answer_first,
+          stores_relation: stores.relation,
+        }
+      : {}),
     links: {
       mcp: `${API}/mcp`,
       openapi: `${API}/openapi.json`,

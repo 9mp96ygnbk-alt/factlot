@@ -3181,10 +3181,15 @@ describe("registry runner", () => {
       },
     };
     const run = registryRunner(service);
-    assert.deepEqual(await run("registry_coverage", {}), {
-      ok: true,
-      result: { n: 1 },
-    });
+    // registry_coverage comes back with every field the service gave, plus the store it describes.
+    const cov = (await run("registry_coverage", {})) as {
+      ok: true;
+      result: { n: number; store: { id: string; computed_at: string } };
+    };
+    const { store, ...rest } = cov.result;
+    assert.deepEqual(rest, { n: 1 });
+    assert.equal(store.id, "hosted_registry");
+    assert.match(store.computed_at, /^\d{4}-\d{2}-\d{2}T/);
     assert.deepEqual(seen, [
       {
         url: REGISTRY_RUN_URL,

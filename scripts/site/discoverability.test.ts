@@ -89,6 +89,8 @@ describe("coverage catalog (/coverage.json)", () => {
     toolNames,
     version,
     idExampleUrn,
+    // As the build gives it: the stores of the one coverage manifest.
+    stores: json("site/_data/coverage-stores.json"),
   });
 
   it("lists exactly the hosted counties, with the parcel and building counts of hosted.json", () => {

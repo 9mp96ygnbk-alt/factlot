@@ -190,6 +190,20 @@ export function resourceData(): ResourceData {
     ),
     markets,
     sources: sources(hosted, marketSources),
+    coverage_stores: (
+      readJson("site/_data/coverage-stores.json") as {
+        stores: Record<string, unknown>[];
+      }
+    ).stores.map((x) => ({
+      id: String(x.id),
+      name: String(x.name),
+      describes: String(x.describes),
+      parcels: Number(x.parcels),
+      counties: Number(x.counties),
+      states: Number(x.states),
+      computed_at: String(x.computed_at),
+      computed_from: String(x.computed_from),
+    })),
     id_spec: readFileSync(join(root, "docs/id-spec.md"), "utf8"),
     plans: {
       pricing_url: PRICING_URL,
