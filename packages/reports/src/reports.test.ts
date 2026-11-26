@@ -2243,7 +2243,7 @@ describe("tx_protest_deadline", () => {
     assert.match(fileBy.description, /2027-05-15 is a Saturday/);
     for (const e of events) {
       assert.ok(e.description.includes(TX_DISCLAIMER), "disclaimer");
-      assert.ok(e.description.includes(TX_SOFTWARE), "ch. 1152 sentence");
+      assert.ok(e.description.includes(TX_SOFTWARE), "software sentence");
       assert.match(
         e.description,
         /not a substitute for the advice of an attorney/,
@@ -2527,7 +2527,7 @@ describe("tx_protest_deadline", () => {
     );
   });
 
-  it("PDF: a one-page deadline sheet with both disclaimers, the ch. 1152 sentence and the rule's dates", async () => {
+  it("PDF: a one-page deadline sheet with both disclaimers, the software sentence and the rule's dates", async () => {
     const f = await createReport(
       {
         kind: "tx_protest_deadline",
@@ -2543,7 +2543,8 @@ describe("tx_protest_deadline", () => {
     assert.ok(text.includes("May 17, 2027") && text.includes("May 14, 2027"));
     assert.ok(text.includes("not a substitute for the advice of an attorney"));
     assert.ok(text.includes("§1103.003(1)"));
-    assert.ok(text.includes("chapter 1152"));
+    assert.ok(text.includes("act for anyone"));
+    assert.ok(!text.includes("chapter 1152"));
     assert.ok(!/you should|recommend|protest your/i.test(text));
   });
 

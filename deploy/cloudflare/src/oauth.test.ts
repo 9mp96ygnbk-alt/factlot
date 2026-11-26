@@ -32,6 +32,7 @@ import {
   type ListableKV,
 } from "./oauth.ts";
 import { unzip } from "@factlot/reports";
+import { currentExchangeCaller } from "@factlot/tools";
 
 import { handle } from "./router.ts";
 import type { Env, Fetcher, RateLimit } from "./types.ts";
@@ -1992,6 +1993,15 @@ describe("every PAID_ONLY entry applies to a free connection", () => {
         results: parcels(5).map((urn) => ({ urn })),
         coverage: { loaded: true },
       };
+    if (
+      [
+        "audit_expense_statement",
+        "audit_expense_portfolio",
+        "estoppel_prepare",
+        "rent_roll_certify",
+      ].includes(name)
+    )
+      return { fullAudit: currentExchangeCaller()?.fullAudit };
     if (name !== "registry_get") return { coverage: { county_loaded: true } };
     if (args.urn === ENTITY)
       return {
@@ -2160,6 +2170,23 @@ describe("every PAID_ONLY entry applies to a free connection", () => {
       await refusedCall("registry_tx_equity_candidates_batch", {
         subjects: [{ id: "a", urn: "x" }],
       });
+    },
+    documents: async () => {
+      // The Worker tells the tools, per call, whether the caller gets the whole document; the tools
+      // turn fullAudit false into the summary (packages/tools: the hosted summary tests). Here the
+      // inner API is a stub, so it answers with what the Worker told it.
+      const { e, free, paid } = await tokens();
+      for (const name of [
+        "audit_expense_statement",
+        "audit_expense_portfolio",
+        "estoppel_prepare",
+        "rent_roll_certify",
+      ]) {
+        const f = await tool(e, free, name, {});
+        assert.equal(f.structuredContent?.fullAudit, false, `${name} free`);
+        const p = await tool(e, paid, name, {});
+        assert.equal(p.structuredContent?.fullAudit, true, `${name} paid`);
+      }
     },
     model_tools: async () => {
       const { e, free, paid } = await tokens();

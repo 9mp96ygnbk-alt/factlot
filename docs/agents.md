@@ -143,7 +143,7 @@ Prompts (`prompts/get`) give the tool order for common jobs and ask for every fa
 
 ## Hosted plans
 
-<!-- plans:paid-only -->Eight things on the hosted API need a Pro or Team key: value history before the current roll year and superseded facts (`registry_get`, and the subject of `registry_tx_equity_candidates`); `registry_get` with `as_of` (a record on an earlier date); `registry_tx_equity_candidates` with `tax_year` (a roll year you name); a parcel's recorded sales, deeds and mortgages beyond the newest sale or deed (`registry_get`), and `registry_recorded_facts`; an owner's parcels beyond the first three (`registry_owned_by`, and `registry_get` on an entity); the registry batch tools `registry_lookup_batch` and `registry_tx_equity_candidates_batch`; the model-backed tools `doc_extract_lease` and `report_narrative`; and the account tools `account_status` and `account_usage`.<!-- /plans:paid-only --> A refused call answers `PlanRequired` and counts
+<!-- plans:paid-only -->Nine things on the hosted API need a Pro or Team key: value history before the current roll year and superseded facts (`registry_get`, and the subject of `registry_tx_equity_candidates`); `registry_get` with `as_of` (a record on an earlier date); `registry_tx_equity_candidates` with `tax_year` (a roll year you name); a parcel's recorded sales, deeds and mortgages beyond the newest sale or deed (`registry_get`), and `registry_recorded_facts`; an owner's parcels beyond the first three (`registry_owned_by`, and `registry_get` on an entity); the registry batch tools `registry_lookup_batch` and `registry_tx_equity_candidates_batch`; the whole answer of the expense audit, estoppel and rent roll tools `audit_expense_statement`, `audit_expense_portfolio`, `estoppel_prepare` and `rent_roll_certify` (each finding, statement or line with its quotes, the items to send and the full report); the model-backed tools `doc_extract_lease` and `report_narrative`; and the account tools `account_status` and `account_usage`.<!-- /plans:paid-only --> A refused call answers `PlanRequired` and counts
 
 nothing; a shortened answer says what was left out. <!-- plans:counted -->A lookup is one call to a `registry_*` tool that finds something: a record, a resolved ID, owners or search results. Not counted: a call that finds nothing (an empty list, urn null or a NotFound inside loaded coverage; up to an hourly limit), `registry_coverage`, input errors, misses outside loaded coverage (county, state, entity registry or ID system not loaded) and calls the registry could not answer.<!-- /plans:counted -->
 `GET https://api.factlot.com/v1/plans` serves the same rules as JSON.
@@ -238,10 +238,11 @@ spreadsheet or another model before relying on a figure:
 
 ## Texas property tax
 
-FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152,
-does not prepare, file or advise on protests, and does not represent owners before an appraisal
-review board. If you provide property tax services to others for compensation, your own
-registration obligations apply.
+FactLot is software. It computes dates from the text of the statutes, lists appraisal roll records
+with their sources, and does arithmetic on the comparables and adjustments the user chooses; it does
+not choose comparables, give opinions of value, prepare or file protests, advise whether to protest,
+or act for anyone, including before an appraisal review board. If you provide property tax services
+to others for compensation, your own registration obligations apply.
 
 The Texas tools are built for the people who do this work: registered property tax consultants,
 appraisers, attorneys and CRE analysts who run the software themselves. They compute a deadline,

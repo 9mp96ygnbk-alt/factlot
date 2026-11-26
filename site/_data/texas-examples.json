@@ -197,7 +197,7 @@
         }
       ],
       "candidates_total_returned": 10,
-      "candidates_notice": "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.",
+      "candidates_notice": "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software: it computes dates from statute text, lists records with their sources and does arithmetic on the comparables the user chooses; it does not choose comparables, give opinions of value, prepare or file protests, or act for anyone.",
       "candidates": [
         {
           "id": "fl:parcel:us-48201:0010830000001",
@@ -653,7 +653,7 @@
         }
       ],
       "candidates_total_returned": 50,
-      "candidates_notice": "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.",
+      "candidates_notice": "Candidates only: a person decides which, if any, to use as comparables. The selection rule is FactLot's default, not a legal standard of comparability. For evidence calculations only: FactLot does not represent property owners, file protests, or advise whether to protest or what value to claim. Owner names and mailing addresses are never returned. Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a substitute for the advice of an attorney. FactLot is software: it computes dates from statute text, lists records with their sources and does arithmetic on the comparables the user chooses; it does not choose comparables, give opinions of value, prepare or file protests, or act for anyone.",
       "candidates": [
         {
           "id": "fl:parcel:us-48113:421243300b04b0000",

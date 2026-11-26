@@ -5573,6 +5573,16 @@ export const RESOURCE_DATA: ResourceData = {
           ],
         },
         {
+          what: "the whole answer of the expense audit, estoppel and rent roll tools audit_expense_statement, audit_expense_portfolio, estoppel_prepare and rent_roll_certify (each finding, statement or line with its quotes, the items to send and the full report)",
+          free: "a summary (counts, totals and flags; for the audit also the deadlines and the checks not run), and one whole document in total for an email-verified free key across audit_expense_statement, estoppel_prepare and rent_roll_certify",
+          tools: [
+            "audit_expense_statement",
+            "audit_expense_portfolio",
+            "estoppel_prepare",
+            "rent_roll_certify",
+          ],
+        },
+        {
           what: "the model-backed tools doc_extract_lease and report_narrative",
           free: "not included",
           tools: ["doc_extract_lease", "report_narrative"],

@@ -333,10 +333,7 @@ ${paste.map((t) => `<pre><code>${esc(t)}</code></pre>`).join("\n")}`;
  */
 export function texasSoftwareSentence(texasHtml) {
   const flat = texasHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  const m =
-    /FactLot is software\. It is not a property tax consultant[^.]*\./.exec(
-      flat,
-    );
+  const m = /FactLot is software\. It computes dates[^.]*\./.exec(flat);
   if (!m) throw new Error("home: the Texas page no longer has the sentence");
   return m[0];
 }

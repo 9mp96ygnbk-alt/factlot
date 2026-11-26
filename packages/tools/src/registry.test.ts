@@ -102,7 +102,7 @@ test("hosted withheld counties and the equity notice match Python", () => {
   );
   assert.ok(
     TX_EQUITY_NOTICE.endsWith(
-      "FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.",
+      "FactLot is software: it computes dates from statute text, lists records with their sources and does arithmetic on the comparables the user chooses; it does not choose comparables, give opinions of value, prepare or file protests, or act for anyone.",
     ),
   );
   const python = JSON.parse(

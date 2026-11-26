@@ -23,9 +23,9 @@ import { longDate } from "../format.ts";
 import { closingBlocks, coverOf, subtitle, type KindInput } from "./common.ts";
 import { TX_DISCLAIMER } from "./tx.ts";
 
-/** The ch. 1152 sentence the other Texas outputs carry (registry_tx_equity_candidates' notice). */
+/** What the software does and does not do, as the other Texas outputs say it (registry_tx_equity_candidates' notice). */
 export const TX_SOFTWARE =
-  "FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does not prepare, file or advise on protests.";
+  "FactLot is software: it computes dates from statute text, lists records with their sources and does arithmetic on the comparables the user chooses; it does not choose comparables, give opinions of value, prepare or file protests, or act for anyone.";
 
 /** What the dates are, on every event and on the sheet. */
 export const PROTEST_SCOPE =

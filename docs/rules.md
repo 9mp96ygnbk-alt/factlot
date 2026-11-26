@@ -20,10 +20,11 @@ Draft packs are listed under [Draft packs](#draft-packs). They are not tools.
 
 ## Texas protest deadline
 
-FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152,
-does not prepare, file or advise on protests, and does not represent owners before an appraisal
-review board. If you provide property tax services to others for compensation, your own
-registration obligations apply.
+FactLot is software. It computes dates from the text of the statutes, lists appraisal roll records
+with their sources, and does arithmetic on the comparables and adjustments the user chooses; it does
+not choose comparables, give opinions of value, prepare or file protests, advise whether to protest,
+or act for anyone, including before an appraisal review board. If you provide property tax services
+to others for compensation, your own registration obligations apply.
 
 The deadline is the later of May 15 and the 30th day after the notice of appraised value was
 delivered. It then rolls forward past Saturdays, Sundays, and Texas legal holidays, using actual

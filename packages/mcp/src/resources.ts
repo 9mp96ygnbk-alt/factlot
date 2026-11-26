@@ -584,7 +584,7 @@ export function plansResource(data: ResourceData) {
   return {
     uri: "factlot://plans",
     about:
-      "Plans of the hosted API (https://api.factlot.com), as GET /v1/plans states them. Every calculator, ID, fact, rules and document tool is on every plan; registry lookups are metered. Reading these resources and prompts uses no registry lookup and needs no key.",
+      "Plans of the hosted API (https://api.factlot.com), as GET /v1/plans states them. Every calculator, ID, fact, rules and document-checking (doc_*) tool is on every plan; the expense audit, estoppel and rent roll tools give a free caller a summary only (one whole document in total for an email-verified free key); registry lookups are metered. Reading these resources and prompts uses no registry lookup and needs no key.",
     pricing: p.pricing_url,
     free: p.free,
     paid: p.paid,

@@ -6,10 +6,11 @@ columns feed which facts, and when the 2027 rolls appear as the publishers state
 publisher page cited below was read on 2026-11-06 unless another date is given; anything not
 established from the publisher's own page is marked **unconfirmed**.
 
-FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152,
-does not prepare, file or advise on protests, and does not represent owners before an appraisal
-review board. If you provide property tax services to others for compensation, your own
-registration obligations apply.
+FactLot is software. It computes dates from the text of the statutes, lists appraisal roll records
+with their sources, and does arithmetic on the comparables and adjustments the user chooses; it does
+not choose comparables, give opinions of value, prepare or file protests, advise whether to protest,
+or act for anyone, including before an appraisal review board. If you provide property tax services
+to others for compensation, your own registration obligations apply.
 
 ## 1. Neighborhood code and building class
 

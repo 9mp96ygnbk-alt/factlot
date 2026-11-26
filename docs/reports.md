@@ -118,8 +118,7 @@ exactly as sent.
   as of the rule's `as_of`, the statutes the rule cites with its verification note (the
   §41.44(a)(1) text as checked), every warning and note of the rule (what it does not cover: late
   protests under §41.44(b)-(c-3), §25.25 motions), the rule's disclaimer, both Texas disclaimer
-  sentences and "FactLot is software, not a property tax consultant under Texas Occupations Code
-  chapter 1152; it does not prepare, file or advise on protests." The file-by event has reminders
+  sentences and "FactLot is software: it computes dates from statute text, lists records with their sources and does arithmetic on the comparables the user chooses; it does not choose comparables, give opinions of value, prepare or file protests, or act for anyone." The file-by event has reminders
   30 and 7 days before, plus one an hour after generation when it is under 30 days away (when the
   file-by date is already behind and the deadline is not, the reminder is on the deadline). When
   the requested tax year's deadline has passed, the events are the rule's `next_season` dates

@@ -1776,7 +1776,7 @@ describe("router", () => {
     };
     assert.equal(
       body.plans.free!.note,
-      "Every calculator, ID, fact, rules and document tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address.",
+      "Every calculator, ID, fact, rules and document-checking (doc_*) tool at 60 requests a minute per IP address, and 25 registry lookups a day per IP address.",
     );
     assert.equal(
       body.plans.pro!.note,
@@ -8904,6 +8904,7 @@ describe("paid gating (GATING_ENABLED)", () => {
         "recorded",
         "portfolio",
         "batch",
+        "documents",
         "model_tools",
         "account_tools",
       ],
@@ -13398,6 +13399,12 @@ describe("registry_lookup_batch: single calls fanned out, metered per item", () 
 });
 
 describe("every PAID_ONLY entry is what the router enforces", () => {
+  const DOCUMENT_PATHS = [
+    "/v1/audit/expense-statement",
+    "/v1/audit/expense-portfolio",
+    "/v1/estoppel/prepare",
+    "/v1/rent-roll/certify",
+  ];
   const parcels = (n: number) =>
     Array.from({ length: n }, (_, i) => `fl:parcel:us-11001:${i}`);
   const ENTITY = "fl:entity:us-dc:e1";
@@ -13452,6 +13459,13 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
       results: parcels(5).map((urn) => ({ urn })),
       coverage: { loaded: true },
     }),
+    // The document tools: the stub answers with what the router told the tools about the caller.
+    ...Object.fromEntries(
+      DOCUMENT_PATHS.map((path) => [
+        path,
+        () => ({ fullAudit: currentExchangeCaller()?.fullAudit }),
+      ]),
+    ),
   };
   const api = {
     fetch: async (r: Request) => {
@@ -13537,6 +13551,16 @@ describe("every PAID_ONLY entry is what the router enforces", () => {
   }
 
   const scenarios: Record<string, () => Promise<void>> = {
+    documents: async () => {
+      // A free caller's document tools run with fullAudit false, which the tools turn into the
+      // summary (packages/tools: the hosted summary tests); a Pro key's with fullAudit true.
+      for (const path of DOCUMENT_PATHS) {
+        const r = await both(path, {});
+        for (const [who, a] of Object.entries(r.free))
+          assert.equal(a.body.fullAudit, false, `${path} ${who}`);
+        assert.equal(r.pro.body.fullAudit, true, `${path} pro`);
+      }
+    },
     history: async () => {
       const r = await both("/v1/registry/get", {
         urn: "hist",

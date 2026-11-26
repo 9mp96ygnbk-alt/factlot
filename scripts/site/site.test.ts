@@ -342,7 +342,7 @@ describe("texas hub", () => {
   });
   it("keeps the legal disclaimers word for word", () => {
     for (const sentence of [
-      "FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152",
+      "FactLot is software. It computes dates from the text of the statutes, lists appraisal roll records with their sources, and does arithmetic on the comparables and adjustments the user chooses",
       "not an appraisal or an opinion of value (Occupations Code §1103.003(1)), not legal or tax advice, and not a substitute for the advice of an attorney.",
     ])
       assert.ok(html.includes(sentence) && deadline.includes(sentence));
@@ -402,7 +402,7 @@ const examples = (
   JSON.parse(read("site/_data/texas-examples.json")) as { examples: Example[] }
 ).examples;
 const SENTENCES = [
-  "FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152",
+  "FactLot is software. It computes dates from the text of the statutes, lists appraisal roll records with their sources, and does arithmetic on the comparables and adjustments the user chooses",
   "not an appraisal or an opinion of value (Occupations Code §1103.003(1)), not legal or tax advice, and not a substitute for the advice of an attorney.",
 ];
 const group = (n: number) => n.toLocaleString("en-US");
@@ -1200,6 +1200,8 @@ describe("plan facts (site/_data/plans.json and the documents that state them)",
         "recorded sales, deeds and mortgages are limited to the newest sale or deed, and the recorded-facts lookup is not included",
       portfolio: "an owner's parcels are limited to the first three",
       batch: "the registry batch lookups",
+      documents:
+        "The expense audit, estoppel and rent roll tools give a summary only",
       model_tools: "the model-backed tools",
       account_tools: "the account tools are not included",
     };

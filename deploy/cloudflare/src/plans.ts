@@ -1,6 +1,8 @@
 /**
- * Hosted plans. The calculators, IDs, document and rules tools are free on the hosted API (rate
- * limited per address) and open source to run locally. Registry lookups are metered: a daily
+ * Hosted plans. The calculators, IDs, fact, rules and document-checking (doc_*) tools are free on the
+ * hosted API (rate limited per address) and open source to run locally. While GATING_ENABLED is on,
+ * the expense audit, estoppel and rent roll tools give a free caller a summary only, apart from one
+ * whole document for an email-verified free account (free-document.ts); see PAID_ONLY. Registry lookups are metered: a daily
  * allowance per address without a key, a monthly allowance per subscription with one. Caps are
  * hard: nothing is billed beyond the monthly price.
  */
@@ -169,7 +171,7 @@ export function publicPlans(
       requests_per_minute: ANONYMOUS_REQUESTS_PER_MINUTE,
       registry_lookups_per_day: ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY,
       auth: "none",
-      note: `Every calculator, ID, fact, rules and document tool at ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute per IP address, and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per IP address.`,
+      note: `Every calculator, ID, fact, rules and document-checking (doc_*) tool at ${ANONYMOUS_REQUESTS_PER_MINUTE} requests a minute per IP address, and ${ANONYMOUS_REGISTRY_LOOKUPS_PER_DAY} registry lookups a day per IP address.`,
       ...(freeKey
         ? {
             free_key: {
@@ -278,6 +280,17 @@ export const PAID_ONLY: readonly PaidOnlyFeature[] = [
     what: "the registry batch tools registry_lookup_batch and registry_tx_equity_candidates_batch",
     free: "one parcel per call with the single-parcel tools",
     tools: ["registry_lookup_batch", "registry_tx_equity_candidates_batch"],
+  },
+  {
+    id: "documents",
+    what: "the whole answer of the expense audit, estoppel and rent roll tools audit_expense_statement, audit_expense_portfolio, estoppel_prepare and rent_roll_certify (each finding, statement or line with its quotes, the items to send and the full report)",
+    free: "a summary (counts, totals and flags; for the audit also the deadlines and the checks not run), and one whole document in total for an email-verified free key across audit_expense_statement, estoppel_prepare and rent_roll_certify",
+    tools: [
+      "audit_expense_statement",
+      "audit_expense_portfolio",
+      "estoppel_prepare",
+      "rent_roll_certify",
+    ],
   },
   {
     id: "model_tools",

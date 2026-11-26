@@ -15,12 +15,12 @@ them, and do not shorten it:
 > **This is not a substitute for the advice of an attorney.** These are calculations on public
 > appraisal-roll data and on the figures you supply. They are not an appraisal or an opinion of
 > value (Texas Occupations Code §1103.003(1)), and not legal or tax advice. They do not say whether
-> to protest, what value to put forward, or how a hearing may go.
->
-> FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter
-> 1152, does not prepare, file or advise on protests, and does not represent owners before an
-> appraisal review board. If you provide property tax services to others for compensation, your own
-> registration obligations apply.
+> to protest, what value to put forward, or how a hearing may go. > FactLot is software. It computes
+> dates from the text of the statutes, lists appraisal roll records with their sources, and does
+> arithmetic on the comparables and adjustments the user chooses; it does not choose comparables,
+> give opinions of value, prepare or file protests, advise whether to protest, or act for anyone,
+> including before an appraisal review board. If you provide property tax services to others for
+> compensation, your own registration obligations apply.
 
 ## Hard rules
 

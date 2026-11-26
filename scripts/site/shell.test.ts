@@ -577,12 +577,13 @@ describe("the brand images", () => {
 });
 
 // The legal text as it stood when the pages took the shared shell. A change to the words of either
-// page changes its hash: update it in the same commit as the change, on purpose.
+// page changes its hash: update it in the same commit as the change, on purpose. terms.html: 26
+// November 2026 (free-plan document summaries; what the software does for Texas property tax work).
 const LEGAL_TEXT = {
   "privacy.html":
     "50805affaf8470bb9f9830ac02dd97991c56d203bddaa2c4effb652bc4831e33",
   "terms.html":
-    "bd0a593038c6622dea829532a6e9c2a787f9638b7175261ea004621f5daed0ce",
+    "11a69cea43502152c895d6d9e5f4014fbecdb15d82c418c414aa671641923ad0",
 };
 // The same pages' <main>, byte for byte: every tag, attribute and link target as well as the
 // words. Only the chrome outside <main> was meant to change when the pages took the shell.
@@ -590,7 +591,7 @@ const LEGAL_MAIN = {
   "privacy.html":
     "8d062f00bd646a278f4e1cd876937b2ed8b58d98494052478eaade7e75a6c64d",
   "terms.html":
-    "51a1a9501ecbe64259a83032367fa1e39b518146657330fb7c4f0a89b3bac264",
+    "0704bffa9c232f0ea2022d57b9336a63b39e90cf3278c76b38ac7307d86589cb",
 };
 const mainOf = (html: string) =>
   /<main\b[^>]*>([\s\S]*?)<\/main>/.exec(html)![1]!;
@@ -715,13 +716,13 @@ describe("the hand-written sources", () => {
     const texas = texasSoftwareSentence(read("site/_content/texas.html"));
     assert.ok(
       about.includes(
-        "FactLot is software: it is not a property tax consultant and does not prepare, file or advise on protests.",
+        "FactLot is software: for Texas property tax work it computes dates from statute text, lists records with their sources and does arithmetic on the comparables the user chooses; it does not choose comparables, give opinions of value, prepare or file protests, advise whether to protest, or act for anyone.",
       ),
     );
     for (const part of [
       "FactLot is software",
-      "is not a property tax consultant",
-      "does not prepare, file or advise on protests",
+      "does arithmetic on the comparables",
+      "does not choose comparables, give opinions of value, prepare or file protests, advise whether to protest, or act for anyone",
     ])
       assert.ok(texas.includes(part), part);
     // Old addresses: some redirect to the sister site, as the sentence says, each to a page
@@ -792,7 +793,7 @@ describe("the hand-written sources", () => {
     const sentence = texasSoftwareSentence(texasPage);
     assert.equal(
       sentence,
-      "FactLot is software. It is not a property tax consultant under Texas Occupations Code chapter 1152, does not prepare, file or advise on protests, and does not represent owners before an appraisal review board.",
+      "FactLot is software. It computes dates from the text of the statutes, lists appraisal roll records with their sources, and does arithmetic on the comparables and adjustments the user chooses; it does not choose comparables, give opinions of value, prepare or file protests, advise whether to protest, or act for anyone, including before an appraisal review board.",
     );
     assert.ok(words(texasPage).includes(sentence));
     const homeSource = read("site/index.html");

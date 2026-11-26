@@ -368,8 +368,9 @@ class TxEquity(unittest.TestCase):
             "Not an appraisal or an opinion of value (Tex. Occ. Code §1103.003(1)); not legal or tax advice and not a "
             "substitute for the advice of an attorney.", NOTICE)
         self.assertTrue(NOTICE.endswith(
-            "FactLot is software, not a property tax consultant under Texas Occupations Code chapter 1152; it does "
-            "not prepare, file or advise on protests."))
+            "FactLot is software: it computes dates from statute text, lists records with their sources and does "
+            "arithmetic on the comparables the user chooses; it does not choose comparables, give opinions of value, "
+            "prepare or file protests, or act for anyone."))
 
     def test_hosted_withheld_counties(self):
         # Owner decision of 2026-11-07: Tarrant is withheld from every hosted tool, with the candidate tool's reason.

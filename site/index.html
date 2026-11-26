@@ -86,7 +86,7 @@
           {
             "@type": "Offer",
             "name": "Free",
-            "description": "Every calculator, ID, fact, rules and document tool at {{PLAN_FREE_RPM}} requests a minute per IP address, and {{PLAN_FREE_LOOKUPS_DAY}} registry lookups a day per IP address. No key needed; an optional free key by email counts requests and lookups on its own meter, while reports stay counted per IP address too.",
+            "description": "Every calculator, ID, fact, rules and document-checking (doc_*) tool at {{PLAN_FREE_RPM}} requests a minute per IP address, and {{PLAN_FREE_LOOKUPS_DAY}} registry lookups a day per IP address; a summary from the expense audit and certificate tools, and one whole document from them for an email-verified free key. No key needed; an optional free key by email counts requests and lookups on its own meter, while reports stay counted per IP address too.",
             "price": "0",
             "priceCurrency": "USD",
             "url": "https://factlot.com/#pricing"
@@ -1032,7 +1032,14 @@
                 <strong class="amt">$0</strong>, no key needed
               </p>
               <ul>
-                <li>Every calculator, ID, fact, rules and document tool</li>
+                <li>
+                  Every calculator, ID, fact, rules and document-checking
+                  (<code>doc_*</code>) tool
+                </li>
+                <li>
+                  A summary from the expense audit and certificate tools; one
+                  whole document from them for an email-verified free key
+                </li>
                 <li>{{PLAN_FREE_RPM}} requests a minute per IP address</li>
                 <li>
                   {{PLAN_FREE_LOOKUPS_DAY}} registry lookups a day per IP
