@@ -347,6 +347,12 @@ export async function auditPdf(k: KindInput): Promise<Uint8Array> {
     );
   }
 
+  // The audit's own warnings (a level that was inferred, a total above the tenant's whole charge)
+  // are printed, never dropped: a figure the tool itself doubts must not read as settled.
+  const auditWarnings = arr(r.warnings).map((x) => String(x));
+  if (auditWarnings.length)
+    w.note("Resolve before relying on these figures", auditWarnings.join(" "));
+
   w.note("How to read this report", AUDIT_NOTICE);
 
   const dateRows = (d: Json): [string, string][] => {

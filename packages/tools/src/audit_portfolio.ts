@@ -738,6 +738,20 @@ function portfolio(input: PortfolioInput): Json {
     warnings.push(
       `No deadline could be computed (the lease's audit right was not supplied) for: ${withoutDeadline.join(", ")}.`,
     );
+  const exceeding = locs
+    .filter((l) => (l.full.totals as Json).exceeds_tenant_charge === true)
+    .map((l) => l.label);
+  if (exceeding.length)
+    warnings.push(
+      `The differences add to more than the tenant's whole charge at: ${exceeding.join(", ")}. A difference cannot exceed what was billed, so these totals (and the portfolio totals that include them) are not reliable until a person has checked the level each amount was entered at; each location's own warnings say more (include_results).`,
+    );
+  const levelNotes = locs
+    .filter((l) => arr(l.full.warnings).length > 0)
+    .map((l) => l.label);
+  if (levelNotes.length)
+    warnings.push(
+      `The audit of these locations carries its own warnings (a level that was inferred or not stated, or a total above the tenant's charge): ${levelNotes.join(", ")}. Read them with include_results before relying on the figures.`,
+    );
 
   return {
     as_of: input.as_of,

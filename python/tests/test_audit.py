@@ -379,5 +379,182 @@ class AuditTests(unittest.TestCase):
         self.assertTrue(factlot.audit_limited() is False)
 
 
+
+# ---- a statement entered as the landlord prints it (the same cases as audit.test.ts, worked there) ----
+# Lines 850,000 (building level); fee 10% x 350,000 = 35,000; printed total 885,000; tenant 8% = 70,800.
+
+def printed_clean():
+    c = clean_case()
+    del c["lease"]["lease.cam_cap"]
+    del c["st"]["statement.cap_reference"]
+    del c["st"]["statement.cap_applied"]
+    c["st"]["statement.total"] = {"amount": 885000}
+    c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 350000, "amount": 35000}
+    c["st"]["statement.tenant_charge"] = {"amount": 70800}
+    c["st"]["statement.estimates_credited"] = {"amount": 66000}
+    c["st"]["statement.estimates_paid"] = {"amount": 66000}
+    c["st"]["statement.balance_claimed"] = {"amount": 4800}
+    return c
+
+
+def fee_on_every_line(c):
+    c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 850000, "amount": 85000}
+    c["st"]["statement.total"] = {"amount": 935000}
+    c["st"]["statement.tenant_charge"] = {"amount": 74800}
+    c["st"]["statement.balance_claimed"] = {"amount": 8800}
+    return c
+
+
+class PrintedStatement(unittest.TestCase):
+    def test_clean_statement_is_zero(self):
+        r = run(printed_clean())
+        self.assertEqual(codes(r), [])
+        t = r["totals"]
+        self.assertEqual((t["finding_count"], t["firm_difference"], t["difference_with_readings"], t["total_difference"]),
+                         (0, 0, 0, 0))
+        self.assertIs(t["exceeds_tenant_charge"], False)
+        self.assertTrue(all(i["position"] == "accept_theirs" for i in r["package_items"]))
+        self.assertEqual((r["levels"]["statement.admin_fee"], r["levels"]["statement.admin_fee.basis"]),
+                         ("building", "inferred"))
+        self.assertIs(r["levels"]["statement.total.includes_fee"], True)
+        self.assertTrue(any(w.startswith("FEE_LEVEL_INFERRED") for w in r["warnings"]))
+        s = audit_summary(r)["summary"]
+        self.assertEqual((s["finding_count"], s["total_difference"]), (0, 0))
+
+    def test_stated_levels(self):
+        c = printed_clean()
+        c["st"]["statement.admin_fee"]["level"] = "building"
+        c["st"]["statement.total"]["includes_fee"] = True
+        r = run(c)
+        self.assertEqual(codes(r), [])
+        self.assertEqual(r["totals"]["total_difference"], 0)
+        self.assertEqual(r["levels"]["statement.admin_fee.basis"], "stated")
+        self.assertEqual(r["levels"]["statement.total.includes_fee.basis"], "stated")
+        self.assertEqual(r["warnings"], [])
+
+    def test_one_real_overcharge(self):
+        r = run(fee_on_every_line(printed_clean()))
+        self.assertEqual(codes(r), ["FEE_ON_EXCLUDED_LINES"])
+        f = find(r, "FEE_ON_EXCLUDED_LINES")
+        self.assertEqual((f["landlord_figure"], f["lease_figure"], f["difference"]), (6800, 2800, 4000))
+        self.assertEqual(r["totals"]["total_difference"], 4000)
+        self.assertIs(r["totals"]["exceeds_tenant_charge"], False)
+        g = printed_clean()
+        g["st"]["statement.total"] = {"amount": 895000}
+        rg = run(g)
+        self.assertEqual(codes(rg), ["ARITH_LINES_VS_TOTAL"])
+        self.assertEqual(find(rg, "ARITH_LINES_VS_TOTAL")["difference"], 800)
+        self.assertEqual(rg["totals"]["total_difference"], 800)
+        h = printed_clean()
+        h["st"]["statement.admin_fee"] = {"rate": 0.12, "base_amount": 350000, "amount": 42000, "level": "building"}
+        h["st"]["statement.total"] = {"amount": 892000, "includes_fee": True}
+        rh = run(h)
+        self.assertEqual(codes(rh), ["FEE_RATE_ABOVE_CAP"])
+        self.assertEqual(find(rh, "FEE_RATE_ABOVE_CAP")["difference"], 560)
+        k = printed_clean()
+        k["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 350000, "amount": 36000, "level": "building"}
+        k["st"]["statement.total"] = {"amount": 886000, "includes_fee": True}
+        rk = run(k)
+        self.assertEqual(codes(rk), ["ARITH_FEE"])
+        self.assertEqual(find(rk, "ARITH_FEE")["difference"], 80)
+        m = printed_clean()
+        m["st"]["statement.total"] = {"amount": 885000, "includes_fee": False}
+        self.assertEqual(find(run(m), "ARITH_LINES_VS_TOTAL")["difference"], 2800)
+
+    def test_gross_up(self):
+        clean = printed_clean()
+        clean["st"]["statement.gross_up"] = {"actual_occupancy": 0.8, "target_occupancy": 0.95}
+        clean["lines"][2] = {**clean["lines"][2], "grossed_up_amount": 178125}
+        r = run(clean)
+        self.assertEqual(codes(r), [])
+        self.assertEqual(r["totals"]["total_difference"], 0)
+        g = printed_clean()
+        g["st"]["statement.gross_up"] = {"actual_occupancy": 0.8, "target_occupancy": 0.95}
+        g["lines"][2] = {**g["lines"][2], "grossed_up_amount": 178125}
+        g["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 378125, "amount": 37812.5}
+        g["st"]["statement.total"] = {"amount": 887812.5}
+        rg = run(g)
+        self.assertEqual(codes(rg), ["FEE_ON_GROSSED_UP_BASE"])
+        f = find(rg, "FEE_ON_GROSSED_UP_BASE")
+        self.assertEqual((f["landlord_figure"], f["lease_figure"], f["difference"]), (3025, 2800, 225))
+        self.assertEqual(rg["totals"]["total_difference"], 225)
+        w = printed_clean()
+        w["st"]["statement.gross_up"] = {"actual_occupancy": 0.8, "target_occupancy": 1}
+        rw = run(w)
+        self.assertEqual(codes(rw), ["GROSSUP_WRONG_OCCUPANCY"])
+        self.assertEqual(find(rw, "GROSSUP_WRONG_OCCUPANCY")["difference"], 750)
+        self.assertEqual(rw["totals"]["total_difference"], 750)
+
+    def test_cap_and_base_year(self):
+        cap = printed_clean()
+        cap["lease"]["lease.cam_cap"] = {"method": "compounding_from_base", "rate": 0.05}
+        cap["st"]["statement.cap_reference"] = {"year": 2022, "amount": 24000}
+        cap["st"]["statement.cap_applied"] = {"limit": 27783}
+        cap["st"]["statement.tenant_charge"] = {"amount": 70583}
+        cap["st"]["statement.balance_claimed"] = {"amount": 4583}
+        rc = run(cap)
+        self.assertEqual(codes(rc), [])
+        self.assertEqual(rc["totals"]["total_difference"], 0)
+        nc = printed_clean()
+        nc["lease"]["lease.cam_cap"] = {"method": "compounding_from_base", "rate": 0.05}
+        nc["st"]["statement.cap_reference"] = {"year": 2022, "amount": 24000}
+        nc["st"]["statement.cap_applied"] = {"limit": None}
+        rn = run(nc)
+        self.assertEqual(codes(rn), ["CAP_EXCEEDED"])
+        self.assertEqual(find(rn, "CAP_EXCEEDED")["difference"], 217)
+        self.assertEqual(rn["totals"]["total_difference"], 217)
+        by = printed_clean()
+        by["lease"]["lease.operating_expense_base_year"] = 2022
+        by["st"]["statement.base_year_total"] = {"year": 2022, "amount": 800000}
+        by["st"]["statement.base_year_applied"] = {"base_year": 2022, "deduction": 64000}
+        by["st"]["statement.tenant_charge"] = {"amount": 6800}
+        by["st"]["statement.estimates_credited"] = {"amount": 6000}
+        by["st"]["statement.estimates_paid"] = {"amount": 6000}
+        by["st"]["statement.balance_claimed"] = {"amount": 800}
+        rb = run(by)
+        self.assertEqual(codes(rb), [])
+        self.assertEqual(rb["totals"]["total_difference"], 0)
+        by["st"]["statement.base_year_applied"] = {"base_year": 2022, "deduction": 60000}
+        by["st"]["statement.tenant_charge"] = {"amount": 10800}
+        by["st"]["statement.balance_claimed"] = {"amount": 4800}
+        rb2 = run(by)
+        self.assertEqual(codes(rb2), ["BASE_YEAR_DEDUCTION"])
+        self.assertEqual(find(rb2, "BASE_YEAR_DEDUCTION")["difference"], 4000)
+        self.assertEqual(rb2["totals"]["total_difference"], 4000)
+
+    def test_tenant_convention_unchanged(self):
+        r = run(flawed_case())
+        self.assertEqual(r["levels"]["statement.admin_fee"], "tenant")
+        self.assertEqual(find(r, "FEE_ON_EXCLUDED_LINES")["difference"], 4000)
+        self.assertEqual(r["totals"]["total_difference"], 4217)
+        self.assertEqual(r["warnings"], [])
+
+    def test_guard(self):
+        c = clean_case()
+        c["st"]["statement.admin_fee"] = {"rate": 0.1, "base_amount": 850000, "amount": 85000, "level": "tenant"}
+        r = run(c)
+        self.assertEqual(r["totals"]["total_difference"], 82200)
+        self.assertIs(r["totals"]["exceeds_tenant_charge"], True)
+        self.assertTrue(any(w.startswith("TOTAL_EXCEEDS_TENANT_CHARGE") for w in r["warnings"]))
+        self.assertTrue(any(w.startswith("TOTAL_EXCEEDS_TENANT_CHARGE") for w in audit_summary(r)["summary"]["warnings"]))
+
+    def test_portfolio(self):
+        def loc(label, c):
+            a = build(c)
+            del a["as_of"]
+            return {"label": label, "landlord": "Alder Court Holdings LLC", **a}
+        r = run_tool("audit_expense_portfolio", {"as_of": "2026-04-01", "audits": [
+            loc("Alder Court, Suite 200", printed_clean()), loc("Alder Court, Suite 300", fee_on_every_line(printed_clean()))]})
+        self.assertNotIn("error", r, r)
+        a, b = r["locations"]
+        self.assertEqual((a["summary"]["finding_count"], a["summary"]["dollars_at_stake"]["total_difference"]), (0, 0))
+        self.assertEqual((b["summary"]["finding_count"], b["summary"]["dollars_at_stake"]["total_difference"]), (1, 4000))
+        self.assertEqual((r["portfolio"]["finding_count"], r["portfolio"]["total_difference"]), (1, 4000))
+        z = run_tool("audit_expense_portfolio", {"as_of": "2026-04-01", "audits": [
+            loc("Alder Court, Suite 200", printed_clean()), loc("Alder Court, Suite 210", printed_clean())]})
+        self.assertNotIn("error", z, z)
+        self.assertEqual((z["portfolio"]["finding_count"], z["portfolio"]["total_difference"]), (0, 0))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -775,3 +775,300 @@ test("the hosted service attests the audit result; every tamper is refused", asy
   assert.equal((r.attestation as Json).calculation_digest, null);
   assert.ok((r.package_items as Json[]).length > 0);
 });
+
+// ---- a statement entered as the landlord prints it ---------------------------------------------
+// A printed statement lists building-level lines, then a management fee computed on the building's
+// subtotal, then a total that includes the fee. The invented Alder Court statement, as printed:
+//   lines 400,000 + 100,000 + 150,000 + 120,000 + 80,000 = 850,000 (building level)
+//   fee 10% x (850,000 less taxes 400,000 and insurance 100,000) = 10% x 350,000 = 35,000
+//   total 850,000 + 35,000 = 885,000
+//   tenant (8%): 8% x 885,000 = 70,800 = 68,000 of lines + 2,800 of fee.
+// The lease allows exactly that (10% on actual expenses, taxes and insurance out of the fee base),
+// so nothing is wrong and the audit must report no finding and 0.00 of differences. No cap is
+// given, so the charge is the whole 70,800. Every figure below is worked by hand.
+
+function printedClean(): Case {
+  const c = cleanCase();
+  delete c.lease["lease.cam_cap"];
+  delete c.st["statement.cap_reference"];
+  delete c.st["statement.cap_applied"];
+  c.st["statement.total"] = { amount: 885000 };
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 350000,
+    amount: 35000,
+  };
+  c.st["statement.tenant_charge"] = { amount: 70800 };
+  c.st["statement.estimates_credited"] = { amount: 66000 };
+  c.st["statement.estimates_paid"] = { amount: 66000 };
+  c.st["statement.balance_claimed"] = { amount: 4800 };
+  return c;
+}
+const totalsOf = (r: Json) => r.totals as Json;
+const warningsOf = (r: Json) => (r.warnings ?? []) as string[];
+
+test("printed statement: a clean $70,800 statement reports no finding and $0.00 of differences", () => {
+  const r = run(printedClean());
+  assert.deepEqual(codes(r), []);
+  assert.equal(totalsOf(r).finding_count, 0);
+  assert.equal(totalsOf(r).firm_difference, 0);
+  assert.equal(totalsOf(r).difference_with_readings, 0);
+  assert.equal(totalsOf(r).total_difference, 0);
+  assert.equal(totalsOf(r).exceeds_tenant_charge, false);
+  // every line goes out as accept_theirs: nothing is disputed
+  const items = r.package_items as Json[];
+  assert.ok(items.every((i) => i.position === "accept_theirs"));
+  assert.equal(checkOf(r, "management_fee").status, "ran");
+  assert.equal(checkOf(r, "arithmetic").status, "ran");
+  // The level the fee was read at is said, never silent.
+  const lv = r.levels as Json;
+  assert.equal(lv["statement.admin_fee"], "building");
+  assert.equal(lv["statement.admin_fee.basis"], "inferred");
+  assert.equal(lv["statement.total.includes_fee"], true);
+  assert.ok(warningsOf(r).some((w) => w.startsWith("FEE_LEVEL_INFERRED")));
+  // The free summary says the same: no finding, 0.00.
+  const s = auditSummary(r).summary as Json;
+  assert.equal(s.finding_count, 0);
+  assert.equal(s.total_difference, 0);
+  assert.deepEqual(run(printedClean()), r);
+});
+
+test("printed statement: the levels stated on the facts give the same answer and no warning", () => {
+  const c = printedClean();
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 350000,
+    amount: 35000,
+    level: "building",
+  };
+  c.st["statement.total"] = { amount: 885000, includes_fee: true };
+  const r = run(c);
+  assert.deepEqual(codes(r), []);
+  assert.equal(totalsOf(r).total_difference, 0);
+  assert.equal((r.levels as Json)["statement.admin_fee.basis"], "stated");
+  assert.equal(
+    (r.levels as Json)["statement.total.includes_fee.basis"],
+    "stated",
+  );
+  assert.deepEqual(warningsOf(r), []);
+});
+
+test("printed statement: one real overcharge reports exactly its amount", () => {
+  // Fee charged on every line: base 850,000, fee 85,000, total 935,000, tenant 8% x 935,000 = 74,800.
+  // Lease base 350,000. Building-level excess 10% x 500,000 = 50,000; to the tenant 8% x 50,000 = 4,000.
+  const c = printedClean();
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 850000,
+    amount: 85000,
+  };
+  c.st["statement.total"] = { amount: 935000 };
+  c.st["statement.tenant_charge"] = { amount: 74800 };
+  c.st["statement.balance_claimed"] = { amount: 8800 };
+  const r = run(c);
+  assert.deepEqual(codes(r), ["FEE_ON_EXCLUDED_LINES"]);
+  const fee = find(r, "FEE_ON_EXCLUDED_LINES")!;
+  assert.equal(fee.landlord_figure, 6800);
+  assert.equal(fee.lease_figure, 2800);
+  assert.equal(fee.difference, 4000);
+  assert.equal(totalsOf(r).total_difference, 4000);
+  assert.equal(totalsOf(r).exceeds_tenant_charge, false);
+  // A total misadded by 10,000 (895,000 printed, 885,000 due): 8% x 10,000 = 800, and nothing else.
+  const g = printedClean();
+  g.st["statement.total"] = { amount: 895000 };
+  const rg = run(g);
+  assert.deepEqual(codes(rg), ["ARITH_LINES_VS_TOTAL"]);
+  assert.equal(find(rg, "ARITH_LINES_VS_TOTAL")!.difference, 800);
+  assert.equal(totalsOf(rg).total_difference, 800);
+  // 12% billed on the building base, stated level: 2% x 350,000 = 7,000; to the tenant 560.
+  const h = printedClean();
+  h.st["statement.admin_fee"] = {
+    rate: 0.12,
+    base_amount: 350000,
+    amount: 42000,
+    level: "building",
+  };
+  h.st["statement.total"] = { amount: 892000, includes_fee: true };
+  const rh = run(h);
+  assert.deepEqual(codes(rh), ["FEE_RATE_ABOVE_CAP"]);
+  assert.equal(find(rh, "FEE_RATE_ABOVE_CAP")!.difference, 560);
+  // A fee misadded at building level (36,000 billed, 10% x 350,000 = 35,000): 8% x 1,000 = 80.
+  const k = printedClean();
+  k.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 350000,
+    amount: 36000,
+    level: "building",
+  };
+  k.st["statement.total"] = { amount: 886000, includes_fee: true };
+  const rk = run(k);
+  assert.deepEqual(codes(rk), ["ARITH_FEE"]);
+  assert.equal(find(rk, "ARITH_FEE")!.difference, 80);
+  // Stated as the lines only, a printed 885,000 is a 35,000 gap: the caller said so, 8% = 2,800.
+  const m = printedClean();
+  m.st["statement.total"] = { amount: 885000, includes_fee: false };
+  assert.equal(find(run(m), "ARITH_LINES_VS_TOTAL")!.difference, 2800);
+});
+
+test("printed statement with gross-up: clean, a fee on the grossed-up base, and a wrong occupancy", () => {
+  // Actual occupancy 80%, the lease and the statement gross variable lines up to 95%. Janitorial is
+  // the one variable line: 150,000 x 0.95 / 0.80 = 178,125. Lease fee base: actual, 350,000.
+  const clean = printedClean();
+  clean.st["statement.gross_up"] = {
+    actual_occupancy: 0.8,
+    target_occupancy: 0.95,
+  };
+  clean.lines[2] = { ...clean.lines[2]!, grossed_up_amount: 178125 };
+  const r = run(clean);
+  assert.deepEqual(codes(r), []);
+  assert.equal(totalsOf(r).total_difference, 0);
+  // Fee on the grossed-up base: 350,000 + 28,125 = 378,125; fee 37,812.50; total 887,812.50.
+  // Excess at building level 10% x 28,125 = 2,812.50; to the tenant 8% = 225.00.
+  const g = printedClean();
+  g.st["statement.gross_up"] = {
+    actual_occupancy: 0.8,
+    target_occupancy: 0.95,
+  };
+  g.lines[2] = { ...g.lines[2]!, grossed_up_amount: 178125 };
+  g.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 378125,
+    amount: 37812.5,
+  };
+  g.st["statement.total"] = { amount: 887812.5 };
+  const rg = run(g);
+  assert.deepEqual(codes(rg), ["FEE_ON_GROSSED_UP_BASE"]);
+  const f = find(rg, "FEE_ON_GROSSED_UP_BASE")!;
+  assert.equal(f.landlord_figure, 3025);
+  assert.equal(f.lease_figure, 2800);
+  assert.equal(f.difference, 225);
+  assert.equal(totalsOf(rg).total_difference, 225);
+  // Grossed up to 100% instead of 95%: 150,000 / 0.80 = 187,500 against 178,125, excess 9,375;
+  // to the tenant 8% x 9,375 = 750.00. The building-level fee is right, so that is all.
+  const w = printedClean();
+  w.st["statement.gross_up"] = { actual_occupancy: 0.8, target_occupancy: 1 };
+  const rw = run(w);
+  assert.deepEqual(codes(rw), ["GROSSUP_WRONG_OCCUPANCY"]);
+  assert.equal(find(rw, "GROSSUP_WRONG_OCCUPANCY")!.difference, 750);
+  assert.equal(totalsOf(rw).total_difference, 750);
+});
+
+test("printed statement with a cap and with a base year", () => {
+  // Cap: 24,000 in 2022, 5% compounding: 24,000 x 1.05^3 = 27,783.00. Controllable lines billed
+  // 8% x 350,000 = 28,000. Applied: no finding (the charge is 70,800 - 217 = 70,583).
+  const cap = printedClean();
+  cap.lease["lease.cam_cap"] = { method: "compounding_from_base", rate: 0.05 };
+  cap.st["statement.cap_reference"] = { year: 2022, amount: 24000 };
+  cap.st["statement.cap_applied"] = { limit: 27783 };
+  cap.st["statement.tenant_charge"] = { amount: 70583 };
+  cap.st["statement.balance_claimed"] = { amount: 4583 };
+  const rc = run(cap);
+  assert.deepEqual(codes(rc), []);
+  assert.equal(totalsOf(rc).total_difference, 0);
+  // Not applied: 28,000 - 27,783 = 217.00, and nothing else.
+  const nc = printedClean();
+  nc.lease["lease.cam_cap"] = { method: "compounding_from_base", rate: 0.05 };
+  nc.st["statement.cap_reference"] = { year: 2022, amount: 24000 };
+  nc.st["statement.cap_applied"] = { limit: null };
+  const rn = run(nc);
+  assert.deepEqual(codes(rn), ["CAP_EXCEEDED"]);
+  assert.equal(find(rn, "CAP_EXCEEDED")!.difference, 217);
+  assert.equal(totalsOf(rn).total_difference, 217);
+  // Base year 2022, building total 800,000: deduction 8% x 800,000 = 64,000. Charge 70,800 - 64,000
+  // = 6,800. Deducted right: no finding. Deducted 60,000: 4,000 short, and nothing else.
+  const by = printedClean();
+  by.lease["lease.operating_expense_base_year"] = 2022;
+  by.st["statement.base_year_total"] = { year: 2022, amount: 800000 };
+  by.st["statement.base_year_applied"] = { base_year: 2022, deduction: 64000 };
+  by.st["statement.tenant_charge"] = { amount: 6800 };
+  by.st["statement.estimates_credited"] = { amount: 6000 };
+  by.st["statement.estimates_paid"] = { amount: 6000 };
+  by.st["statement.balance_claimed"] = { amount: 800 };
+  const rb = run(by);
+  assert.deepEqual(codes(rb), []);
+  assert.equal(totalsOf(rb).total_difference, 0);
+  by.st["statement.base_year_applied"] = { base_year: 2022, deduction: 60000 };
+  by.st["statement.tenant_charge"] = { amount: 10800 };
+  by.st["statement.balance_claimed"] = { amount: 4800 };
+  const rb2 = run(by);
+  assert.deepEqual(codes(rb2), ["BASE_YEAR_DEDUCTION"]);
+  assert.equal(find(rb2, "BASE_YEAR_DEDUCTION")!.difference, 4000);
+  assert.equal(totalsOf(rb2).total_difference, 4000);
+});
+
+test("printed statement: the tenant-level convention still reads as before", () => {
+  const r = run(flawedCase());
+  assert.equal((r.levels as Json)["statement.admin_fee"], "tenant");
+  assert.equal(find(r, "FEE_ON_EXCLUDED_LINES")!.difference, 4000);
+  assert.equal(totalsOf(r).total_difference, 4217);
+  assert.deepEqual(warningsOf(r), []);
+});
+
+test("guard: differences above the tenant's whole charge are warned, in the answer and the summary", () => {
+  // A building-level base stated as tenant-level: the audit does as told and says it cannot be
+  // right. 10% x (850,000 - 28,000) = 82,200 against a charge of 70,583.
+  const c = cleanCase();
+  c.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 850000,
+    amount: 85000,
+    level: "tenant",
+  };
+  const r = run(c);
+  assert.equal(totalsOf(r).total_difference, 82200);
+  assert.equal(totalsOf(r).exceeds_tenant_charge, true);
+  assert.ok(
+    warningsOf(r).some((w) => w.startsWith("TOTAL_EXCEEDS_TENANT_CHARGE")),
+  );
+  const s = auditSummary(r).summary as Json;
+  assert.ok(
+    (s.warnings as string[]).some((w) =>
+      w.startsWith("TOTAL_EXCEEDS_TENANT_CHARGE"),
+    ),
+  );
+});
+
+test("portfolio: a clean printed statement adds 0.00; one real overcharge adds exactly its amount", () => {
+  const loc = (label: string, c: Case) => {
+    const { as_of: _a, ...rest } = build(c);
+    void _a;
+    return { label, landlord: "Alder Court Holdings LLC", ...rest };
+  };
+  const over = printedClean();
+  over.st["statement.admin_fee"] = {
+    rate: 0.1,
+    base_amount: 850000,
+    amount: 85000,
+  };
+  over.st["statement.total"] = { amount: 935000 };
+  over.st["statement.tenant_charge"] = { amount: 74800 };
+  over.st["statement.balance_claimed"] = { amount: 8800 };
+  const o = runTool("audit_expense_portfolio", {
+    as_of: "2026-04-01",
+    audits: [
+      loc("Alder Court, Suite 200", printedClean()),
+      loc("Alder Court, Suite 300", over),
+    ],
+  });
+  assert.ok(o.ok, JSON.stringify(o));
+  const p = o.result as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [a, b] = p.locations;
+  assert.equal(a.summary.finding_count, 0);
+  assert.equal(a.summary.dollars_at_stake.total_difference, 0);
+  assert.equal(b.summary.finding_count, 1);
+  assert.equal(b.summary.dollars_at_stake.total_difference, 4000);
+  assert.equal(p.portfolio.total_difference, 4000);
+  assert.equal(p.portfolio.finding_count, 1);
+  // A clean portfolio of printed statements: 0.00.
+  const z = runTool("audit_expense_portfolio", {
+    as_of: "2026-04-01",
+    audits: [
+      loc("Alder Court, Suite 200", printedClean()),
+      loc("Alder Court, Suite 210", printedClean()),
+    ],
+  });
+  assert.ok(z.ok, JSON.stringify(z));
+  const zr = z.result as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  assert.equal(zr.portfolio.total_difference, 0);
+  assert.equal(zr.portfolio.finding_count, 0);
+});

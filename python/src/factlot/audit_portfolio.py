@@ -388,6 +388,12 @@ def _portfolio(inp: dict[str, Any]) -> dict[str, Any]:
     if without_deadline:
         warnings.append("No deadline could be computed (the lease's audit right was not supplied) for: "
                         f"{', '.join(without_deadline)}.")
+    exceeding = [l["label"] for l in locs if l["full"]["totals"].get("exceeds_tenant_charge") is True]
+    if exceeding:
+        warnings.append(f"The differences add to more than the tenant's whole charge at: {', '.join(exceeding)}. A difference cannot exceed what was billed, so these totals (and the portfolio totals that include them) are not reliable until a person has checked the level each amount was entered at; each location's own warnings say more (include_results).")
+    level_notes = [l["label"] for l in locs if len(l["full"].get("warnings") or []) > 0]
+    if level_notes:
+        warnings.append(f"The audit of these locations carries its own warnings (a level that was inferred or not stated, or a total above the tenant's charge): {', '.join(level_notes)}. Read them with include_results before relying on the figures.")
 
     return {
         "as_of": as_of,
